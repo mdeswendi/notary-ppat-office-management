@@ -5,6 +5,75 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-08 — M0.2 clean-clone reproducibility fix
+
+Branch `feat/m0-foundation`. Follows the M0.2 initialization below.
+
+### Problem
+
+A clean clone at `D:\Projects\notary-ppat-office-management` failed typecheck even though
+`pnpm install --frozen-lockfile` succeeded and lint passed:
+
+```text
+src/app/layout.tsx(20,50): error TS2304: Cannot find name 'LayoutProps'.
+```
+
+### Root cause
+
+`LayoutProps<"/">` is correct for Next.js 16.3.0. It is a **generated** global type, not a
+hand-written one, and `tsconfig.json` already expects it:
+
+```text
+include:  next-env.d.ts
+          .next/types/**/*.ts
+          .next/dev/types/**/*.ts
+```
+
+`.gitignore` correctly excludes `/.next/` and `next-env.d.ts` because both are build
+artifacts. In a clean clone neither exists, so all three include globs match nothing and the
+global type is undefined. The original environment passed only because an earlier
+`next dev` / `next build` had left `.next/types/` behind — the check was never reproducible,
+it was merely incidentally satisfied.
+
+Confirmed by inspection: `.next/types/routes.d.ts` line 51 declares
+`type LayoutProps<LayoutRoute extends LayoutRoutes>`.
+
+### Fix
+
+`next typegen` exists in Next.js 16.3.0 and regenerates both `next-env.d.ts` and
+`.next/types/` without a full build. The typecheck script now generates route types first:
+
+```text
+before   "typecheck": "tsc --noEmit"
+after    "typecheck": "next typegen && tsc --noEmit"
+```
+
+A standalone `"typegen": "next typegen"` script was added so route types can be regenerated
+on their own.
+
+`layout.tsx` was **not** modified. Replacing `LayoutProps<"/">` with a hand-written children
+type would have silenced the symptom and discarded Next.js route-aware typing.
+
+### Verification
+
+Verified from a genuinely clean state — `.next/` and `next-env.d.ts` were deleted before the
+run, not merely assumed absent.
+
+```text
+pnpm typecheck   PASS   generates route types, then tsc --noEmit clean
+pnpm lint        PASS
+pnpm build       PASS   4 static routes
+```
+
+### Changed
+
+- `frontend/package.json` — `typecheck` script; added `typegen` script
+
+No generated artifact was committed. `.next/`, `next-env.d.ts`, and `node_modules/` remain
+ignored.
+
+---
+
 ## 2026-08-08 — M0.2 Frontend Initialization
 
 Branch `feat/m0-foundation`. Records D-017 and D-018. First application code in the
