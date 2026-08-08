@@ -245,6 +245,61 @@ feat/m3-projects
 
 ---
 
+## 2026-08-08 — M0.2A Node Runtime Normalization
+
+### D-013 — Node.js runtime line
+
+Resolves O-008.
+
+```text
+Runtime line     Node.js 24.x LTS
+Installed        24.19.0
+npm              11.17.0
+Managed by       nvm-windows 1.1.11
+Rejected line    Node.js 25.x — EOL, must not be used
+```
+
+Use the latest supported patch in the Node 24 LTS line. This documentation is deliberately
+not pinned to a single patch version; 24.19.0 records what is installed today, not a
+permanent requirement.
+
+Unchanged by this decision:
+
+```text
+Next.js target                16.x
+Next.js minimum Node          >= 20.9
+```
+
+Node 24.19.0 satisfies the `>= 20.9` minimum with margin, and is an LTS line rather than a
+Current line, which the earlier v25.9.0 was not.
+
+Side effect worth noting: Node 24 still bundles `corepack` (0.35.0). Node 25 did not. This
+directly affects how pnpm is installed — see O-013.
+
+### C-001 — Correction to the M0.2 environment audit
+
+The M0.2 audit reported PHP, Composer, and the Laravel Installer as **not installed**. That
+was wrong. They are installed, via **Laravel Herd** at `C:\Program Files\Herd`:
+
+```text
+PHP 8.4.23        C:\Users\User\.config\herd\bin\php84\php.exe
+PHP 8.5.8         C:\Users\User\.config\herd\bin\php85\php.exe
+Composer          C:\Users\User\.config\herd\bin\composer.phar
+Laravel Installer C:\Users\User\.config\herd\bin\laravel.phar
+nginx             C:\Users\User\.config\herd\bin\nginx
+```
+
+The audit checked PATH resolution only. `C:\Users\User\.config\herd\bin` is not on PATH —
+only `...\herd\bin\nvm` is — so every bare command lookup failed. The tools exist and PHP
+runs correctly when invoked by absolute path.
+
+Both PHP builds satisfy the `>= 8.3` baseline in D-005. D-005 is therefore **unchanged**;
+only the audit finding was wrong.
+
+This correction does not by itself make the backend toolchain usable. See O-011 and O-012.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -260,7 +315,10 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
 | O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
 | O-010 | `gh` CLI is still not installed. Remote repository administration — visibility, branch protection, collaborators, settings — cannot be inspected or changed from this terminal. | Open. Not a blocker. Git operations over HTTPS work using the stored credential. Install `gh` only if repository administration from the terminal becomes useful. |
-| O-008 | Node.js v25.9.0 is installed. It satisfies the hard baseline `>= 20.9`, but v25 is an odd-numbered Current release, not an LTS line. `10_M0_FOUNDATION.md` section 2 recommends the current supported Node LTS. | Open. Not a blocker. Decide before frontend initialization whether to stay on v25 or move to an LTS line. |
+| O-008 | Node.js v25.9.0 was in use; the v25 line is EOL and is not an LTS line | **Resolved 2026-08-08.** Migrated to Node 24.19.0 LTS via nvm-windows. Verified in a clean shell: `node v24.19.0`, `npm 11.17.0`, single resolution at `C:\Program Files\nodejs\node.exe`. See D-013. |
+| O-011 | `C:\Users\User\.config\herd\bin` is not on PATH, so `composer` and `laravel` cannot be invoked. Their `.bat` wrappers shell out to a bare `php`, which also is not on PATH, so both fail with `'php' is not recognized`. | Open. Blocks all backend tooling. Fix requires either adding Herd's bin to PATH or invoking the `.phar` files through an absolute PHP path. Needs a decision before M0.3. |
+| O-012 | Herd's PHP loads three extensions from `C:\Program Files\Herd\resources\app.asar.unpacked\resources\bin\`, which does not exist. `redis`, `mongodb`, and `herd` extensions fail at every PHP startup. | Open. Non-fatal — PHP runs and reports its version. Relevant later because the stack uses Redis; Laravel can use the pure-PHP `predis` client instead of the `phpredis` extension. Likely an incomplete or half-updated Herd installation. |
+| O-013 | pnpm is not installed. Node 24 bundles `corepack` 0.35.0, which Node 25 did not, so a corepack-based install path is now available. | Open by instruction. The proposed command is reported but deliberately not executed. |
 
 ---
 

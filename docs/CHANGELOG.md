@@ -5,6 +5,50 @@ Records changes to the specification documents only. No application code exists 
 
 ---
 
+## 2026-08-08 — M0.2A Node Runtime Normalization
+
+Resolves O-008. Records D-013 and correction C-001.
+
+### Workstation runtime
+
+Node was migrated off the EOL v25 line onto the 24 LTS line. No repository file was touched
+by the migration itself.
+
+```text
+before   node v25.9.0   npm 11.12.1
+after    node v24.19.0  npm 11.17.0   npx 11.17.0   corepack 0.35.0
+```
+
+Method: the existing Node was already managed by nvm-windows 1.1.11, with
+`C:\Program Files\nodejs` as a symlink into the nvm store. No MSI uninstall or elevated
+installer was needed — `nvm install 24.19.0` followed by `nvm use 24.19.0` was sufficient.
+
+v25.9.0 remains in the nvm store but is not on PATH. Exactly one `node.exe` resolves.
+
+### Changed
+
+**`docs/DECISIONS.md`**
+
+- added D-013: Node 24.x LTS is the runtime line; v25 is rejected as EOL; Next.js target
+  16.x and the `>= 20.9` minimum are unchanged
+- added C-001: correction to the M0.2 environment audit — PHP, Composer, and the Laravel
+  Installer are installed via Laravel Herd; the audit tested PATH resolution only. D-005 is
+  unchanged, because both Herd PHP builds satisfy `>= 8.3`
+- O-008 marked resolved
+- added O-011: Herd's `bin` is not on PATH, so `composer` and `laravel` fail
+- added O-012: three Herd PHP extensions fail to load from a missing directory
+- added O-013: pnpm not installed; corepack is now available under Node 24
+
+### Not done
+
+- pnpm not installed; the command is reported only.
+- No frontend or backend initialization.
+- No PHP, Composer, Laravel Installer, or Docker installed.
+- No packages, migrations, containers, or business modules.
+- v25.9.0 not removed from the nvm store; kept as a rollback path.
+
+---
+
 ## 2026-08-08 — GitHub remote connected
 
 Resolves O-009. Updates D-012.
