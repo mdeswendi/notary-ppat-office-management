@@ -1,0 +1,674 @@
+# Notary & PPAT Office Management System
+## Security Rules — v1.0
+
+## 1. Security Objective
+
+The application handles sensitive identity, legal, property, tax, corporate, and document data.
+
+Security is a core requirement, not a later enhancement.
+
+---
+
+## 2. Security Principles
+
+Use:
+
+- least privilege;
+- defense in depth;
+- backend authorization;
+- private file storage;
+- auditability;
+- secure session handling;
+- controlled finalization;
+- controlled data exposure;
+- secure defaults.
+
+---
+
+## 3. Authentication
+
+Use Laravel Sanctum SPA cookie/session authentication.
+
+Do not store first-party auth tokens in:
+
+```text
+localStorage
+sessionStorage
+```
+
+Use secure session cookies.
+
+Production must use HTTPS.
+
+---
+
+## 4. Password Storage
+
+Passwords must use Laravel's secure password hashing.
+
+Never store or log plain-text passwords.
+
+Never expose password hashes through APIs.
+
+---
+
+## 5. Login Protection
+
+Apply rate limiting to login.
+
+Consider future protections such as:
+
+- MFA;
+- suspicious session monitoring;
+- account lockout or throttling strategy;
+- password reset protections.
+
+MFA should be available for sensitive/high-privilege users.
+
+---
+
+## 6. Session Security
+
+Production session cookies should be configured appropriately for:
+
+- Secure;
+- HttpOnly;
+- SameSite;
+- domain;
+- expiration.
+
+Users should be able to revoke sessions in a later security milestone.
+
+---
+
+## 7. CSRF
+
+Do not disable CSRF protection merely to simplify development.
+
+Use Sanctum-compatible CSRF flow.
+
+---
+
+## 8. Authorization
+
+Backend authorization model:
+
+```text
+Role
++
+Permission
++
+Data Scope
++
+Record State
++
+Business Rule
+```
+
+Never authorize only in the frontend.
+
+Never trust a role or permission value sent by the client.
+
+---
+
+## 9. Permission Principle
+
+Use capability-based permissions.
+
+Example:
+
+```text
+ppat.deeds.approve
+```
+
+Do not rely on:
+
+```text
+role == PPAT_STAFF
+```
+
+as the only authorization check.
+
+---
+
+## 10. Data Scope
+
+Supported scopes:
+
+```text
+OWN
+ASSIGNED
+TEAM
+OFFICE
+ALL
+```
+
+A user may have permission to view a resource but still be restricted by scope.
+
+---
+
+## 11. Sensitive Data
+
+Examples:
+
+- NIK;
+- NPWP;
+- identity scans;
+- tax documents;
+- deeds;
+- Minuta Akta;
+- Warkah;
+- certificates;
+- corporate legal documents.
+
+Sensitive information must be protected by:
+
+- authorization;
+- masking;
+- private storage;
+- auditing where appropriate;
+- secure transport.
+
+---
+
+## 12. NIK and NPWP
+
+Default UI should mask full values.
+
+Example:
+
+```text
+3174********1234
+```
+
+Full reveal requires explicit permission.
+
+Avoid returning full values in APIs when unnecessary.
+
+---
+
+## 13. File Storage
+
+Legal and identity documents must use private storage.
+
+Never use predictable public paths.
+
+Bad:
+
+```text
+https://domain.com/uploads/ktp-budi.pdf
+```
+
+Preferred:
+
+```text
+Authorized backend download endpoint
+or
+short-lived signed access mechanism
+```
+
+---
+
+## 14. File Versioning
+
+Never overwrite an existing legal document version.
+
+Store:
+
+- document;
+- versions;
+- uploader;
+- timestamps;
+- checksum;
+- current-version flag.
+
+---
+
+## 15. File Validation
+
+Backend must validate:
+
+- MIME type;
+- extension consistency where practical;
+- size;
+- authorization;
+- intended related resource;
+- document category.
+
+Future malware scanning may be added for production.
+
+---
+
+## 16. File Names
+
+Do not rely on user-supplied filenames for storage location.
+
+Use generated storage names.
+
+Preserve original filename only as metadata.
+
+---
+
+## 17. Checksum
+
+Store SHA-256 checksum for document versions where implemented.
+
+Purpose:
+
+- integrity verification;
+- duplicate detection support;
+- audit support.
+
+---
+
+## 18. Audit Log
+
+Audit logs are append-only.
+
+Do not implement:
+
+```text
+audit.update
+audit.delete
+```
+
+Audit records may include:
+
+```text
+actor_user_id
+event
+resource type
+resource id
+old values
+new values
+IP address
+user agent
+reason
+timestamp
+```
+
+---
+
+## 19. Logging Restrictions
+
+Never log:
+
+- passwords;
+- session cookies;
+- CSRF tokens;
+- auth headers;
+- API secrets;
+- private keys;
+- full document content;
+- unnecessary full NIK;
+- unnecessary full NPWP.
+
+Remove sensitive frontend `console.log()` calls before production.
+
+---
+
+## 20. Finalized Legal Records
+
+Legal record lifecycle may include:
+
+```text
+DRAFT
+UNDER_REVIEW
+APPROVED
+FINALIZED
+LOCKED
+```
+
+After `LOCKED`:
+
+```text
+normal update = denied
+```
+
+Do not silently edit finalized legal data.
+
+---
+
+## 21. Correction Process
+
+Corrections should use controlled mechanisms such as:
+
+```text
+CORRECTION
+AMENDMENT
+SUPERSEDE
+VOID
+```
+
+according to documented business/legal rules.
+
+Do not re-open a finalized record simply by toggling a boolean.
+
+---
+
+## 22. Delete Policy
+
+Operational temporary data may use soft delete.
+
+Finalized legal records should generally not be hard deleted.
+
+Prefer:
+
+```text
+ARCHIVED
+VOID
+SUPERSEDED
+CANCELLED
+```
+
+Audit logs must not be deletable from normal application UI.
+
+---
+
+## 23. Critical Actions
+
+The following should require explicit permission and audit:
+
+- deed approval;
+- deed finalization;
+- deed numbering;
+- register finalization;
+- PPAT report approval;
+- sensitive document access where configured;
+- role changes;
+- permission changes;
+- security-setting changes;
+- invoice cancellation;
+- correction of finalized data.
+
+---
+
+## 24. Database Transactions
+
+Critical multi-step actions must use database transactions.
+
+Example:
+
+```text
+Finalize Deed
+```
+
+should not leave partial changes if one step fails.
+
+---
+
+## 25. Secrets
+
+Never commit:
+
+- Laravel APP_KEY;
+- production database passwords;
+- S3 secrets;
+- SMTP secrets;
+- private keys;
+- API keys.
+
+Use `.env.example` with placeholders.
+
+---
+
+## 26. Frontend Environment Variables
+
+Any variable prefixed with:
+
+```text
+NEXT_PUBLIC_
+```
+
+is considered visible to the browser.
+
+Never put secrets in these variables.
+
+---
+
+## 27. Database Security
+
+Production database should:
+
+- not be publicly exposed to the Internet;
+- use separate credentials;
+- use least privilege;
+- use encrypted transport where appropriate;
+- be backed up;
+- have restore procedures tested.
+
+---
+
+## 28. Backups
+
+Production should have:
+
+- automated database backups;
+- private document storage backups;
+- retention policy;
+- off-site or separate-failure-domain copy;
+- restore testing;
+- backup access control.
+
+A backup that has never been restored in testing should not be considered sufficient.
+
+---
+
+## 29. Data Retention
+
+Retention rules for legal and protocol data must be validated with applicable law and office obligations before production.
+
+Do not automatically purge legal data based only on generic software retention practices.
+
+---
+
+## 30. CORS
+
+Configure allowed origins narrowly.
+
+Development may allow:
+
+```text
+http://localhost:3000
+```
+
+Production should allow only approved frontend origin(s).
+
+Credentials should be configured correctly for Sanctum.
+
+---
+
+## 31. Security Headers
+
+Production should implement appropriate headers such as:
+
+- Content-Security-Policy;
+- X-Content-Type-Options;
+- Referrer-Policy;
+- clickjacking/frame protection;
+- Strict-Transport-Security where appropriate.
+
+---
+
+## 32. XSS
+
+React escaping must not be bypassed unnecessarily.
+
+Avoid unsafe raw HTML.
+
+If rich text is introduced later, sanitize it carefully.
+
+---
+
+## 33. SQL Injection
+
+Use Eloquent/query builder parameterization.
+
+Do not concatenate untrusted input into raw SQL.
+
+Raw queries must be reviewed carefully.
+
+---
+
+## 34. Mass Assignment
+
+Laravel models must be configured intentionally.
+
+Do not allow sensitive fields to be mass-assigned merely for convenience.
+
+Examples:
+
+- role;
+- permission;
+- finalized_by;
+- locked_at;
+- approval fields;
+- office ownership.
+
+---
+
+## 35. IDOR Prevention
+
+Every resource endpoint must authorize the resource itself.
+
+Knowing a ULID must not grant access.
+
+Example:
+
+```text
+GET /api/v1/documents/{id}
+```
+
+must still check:
+
+- permission;
+- scope;
+- resource relationship;
+- sensitivity.
+
+---
+
+## 36. Office Isolation
+
+Even if the first deployment has one office, data queries should be designed so future office isolation is possible.
+
+Do not assume every authenticated user can access every office record.
+
+---
+
+## 37. Sensitive Download
+
+Sensitive document downloads should be auditable if required.
+
+Download URLs should not be long-lived public links.
+
+---
+
+## 38. Rate Limiting
+
+Apply or prepare rate limiting for:
+
+- login;
+- password reset;
+- global search;
+- sensitive reveal;
+- document-heavy endpoints;
+- high-cost reports.
+
+---
+
+## 39. Validation
+
+Client-side validation is not security.
+
+Laravel validation is authoritative.
+
+Business-rule validation belongs in backend domain logic.
+
+---
+
+## 40. Error Messages
+
+Do not expose stack traces or internal server details to production users.
+
+Return generic user-facing error messages.
+
+Log technical details securely on the server.
+
+---
+
+## 41. Development Debugging
+
+`APP_DEBUG` must be disabled in production.
+
+Do not expose Laravel debug pages publicly.
+
+---
+
+## 42. Dependency Security
+
+Keep dependencies updated.
+
+Review security advisories.
+
+Do not install unnecessary packages suggested by AI without checking their need and maintenance status.
+
+---
+
+## 43. AI Coding Rule
+
+Claude or any coding assistant must not:
+
+- disable authorization;
+- expose private files;
+- simplify away audit controls;
+- add public document routes;
+- weaken CSRF;
+- add hard delete for legal records;
+- invent security exceptions for convenience.
+
+Security-related changes require deliberate review.
+
+---
+
+## 44. Legal Rule Uncertainty
+
+If a legal workflow requirement is unclear:
+
+```text
+DO NOT GUESS
+```
+
+Document the gap and request domain validation.
+
+Security must not be weakened to work around an undefined legal rule.
+
+---
+
+## 45. Production Security Checklist
+
+Before production:
+
+```text
+[ ] HTTPS enforced
+[ ] APP_DEBUG=false
+[ ] production secrets outside Git
+[ ] database not publicly exposed
+[ ] secure session cookie configuration
+[ ] CORS restricted
+[ ] authorization tests passing
+[ ] private file storage verified
+[ ] backup configured
+[ ] restore tested
+[ ] audit log protected
+[ ] rate limits configured
+[ ] privileged accounts reviewed
+[ ] MFA decision completed
+[ ] legal record locking tested
+[ ] sensitive data masking tested
+[ ] dependency scan completed
+```
+
+---
+
+**Status:** Final baseline v1.0
