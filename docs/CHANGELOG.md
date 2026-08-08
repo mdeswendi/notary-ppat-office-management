@@ -5,6 +5,137 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.4 PostgreSQL & Redis Application Integration
+
+Branch `feat/m0-foundation`. Connectivity and migration only. No business schema, no
+authentication, no authorization.
+
+### Observed infrastructure
+
+```text
+PostgreSQL   18.4 (Debian 18.4-1.pgdg13+1)   server_version_num 180004   healthy
+Redis        8.10.0 standalone                                           healthy
+```
+
+Both containers were already running. `docker-compose.yml` was read but not modified, no
+container or volume was recreated, and `docker compose down -v` was never run.
+
+### Laravel → PostgreSQL
+
+Verified through Laravel's own configured connection over TCP `127.0.0.1:5432`, not merely
+by `psql` inside the container over a unix socket — the container-side check proves Docker
+is alive, the host-side check proves the application's path works.
+
+```text
+laravel driver        pgsql
+PDO driver            pgsql
+PDO server version    18.4
+current_database()    notary_ppat_office
+current_user          notary_app
+encoding              UTF8
+```
+
+### Migrations
+
+Only the three standard Laravel 13 scaffold migrations were present, unmodified since
+M0.3. No business or domain migration was created.
+
+```text
+0001_01_01_000000_create_users_table   Ran   [1]
+0001_01_01_000001_create_cache_table   Ran   [1]
+0001_01_01_000002_create_jobs_table    Ran   [1]
+```
+
+`php artisan migrate` — not `migrate:fresh`. No seeder was run. Nine tables now exist in
+`public`, all Laravel infrastructure:
+
+```text
+migrations   users   password_reset_tokens   sessions
+cache        cache_locks   jobs   job_batches   failed_jobs
+```
+
+A pattern check against the domain vocabulary — client, party, project, matter, workflow,
+document, task, notary, ppat, property, warkah, billing, deed, minuta, repertorium —
+returned no matches.
+
+### Laravel → Redis
+
+Two independent paths were exercised from the application, each with a unique namespaced
+M0.4 key, each deleted afterwards.
+
+```text
+Redis facade   default connection, database 0   write / read / verify / delete   PASS
+Cache store    Illuminate\Cache\RedisStore
+               cache connection, database 1     put / get / verify / forget      PASS
+```
+
+The client is **phpredis 6.1.0**, the compiled extension already supplied by Herd.
+Predis was not installed — it is unnecessary when phpredis is present and Laravel
+supports it directly.
+
+Cleanup verified by scanning both databases with `SCAN` for `*m0_4*` and `*probe*`: no
+matches, and `DBSIZE` is `0` for database 0 and database 1. Redis was never flushed;
+`FLUSHALL` and `FLUSHDB` were not run, and persistence configuration was untouched.
+
+### Driver bootstrap sanity
+
+Configuration resolves and each backing table is present and readable. No worker was
+started and no job was enqueued — `Queue::size()` is a COUNT.
+
+```text
+session   database   Illuminate\Session\DatabaseSessionHandler   sessions table present
+queue     database   Illuminate\Queue\DatabaseQueue              jobs table readable, 0 pending
+cache     redis      Illuminate\Cache\RedisStore                 database 1
+```
+
+Worth recording: the scaffold's `cache` and `cache_locks` tables were created by
+`0001_01_01_000001_create_cache_table` but are **unused**, because `CACHE_STORE=redis`.
+They are standard scaffold output and were left in place rather than removed.
+
+### Quality gate
+
+```text
+vendor/bin/pint --test   PASS
+php artisan test         PASS   3 passed, 4 assertions
+```
+
+No test was added and none was rewritten. `phpunit.xml` keeps Laravel's defaults —
+`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`, `CACHE_STORE=array`,
+`SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync` — so the suite stays runnable on a machine
+with no Docker at all. Deliberately **no** infrastructure-dependent test was introduced:
+that would couple the quality gate to a running container and turn an environment outage
+into a red suite. Connectivity is proven by explicit verification instead.
+
+The first run after `config:clear` took 29.6s; the two runs after it took 0.65s and 0.71s.
+Cold-start rebuild, not an infrastructure dependency.
+
+### Configuration
+
+All M0.4 configuration is local and lives in the gitignored `backend/.env`. `DB_PASSWORD`
+was set to the development-only credential that `docker-compose.yml` already defines; the
+value was read from the running container rather than assumed, and confirmed to be the
+compose fallback. It was **not** copied into `.env.example`, which keeps `APP_KEY=` and
+`DB_PASSWORD=` empty. `APP_KEY` was not altered. The file's LF endings and absence of a
+BOM were preserved.
+
+`php artisan config:clear` was run so no stale configuration could affect verification.
+
+### Not done — deferred by scope
+
+```text
+Business schema and models     M2 onward
+Sanctum, CSRF, CORS, login     M0.7
+/api/v1/me                     M0.7
+Spatie Laravel Permission      M0.8
+i18n, app shell, dashboard     M0.5, M0.6, M0.9
+```
+
+`frontend/` and `docker-compose.yml` unchanged, verified with `git diff`. No open item was
+closed: none is resolved by M0.4. No new decision was recorded — connectivity working as
+designed is not an architectural decision.
+
+---
+
 ## 2026-08-09 — Backend EditorConfig alignment
 
 Branch `feat/m0-foundation`. Closes O-016, raised by M0.3 below. No new decision; D-011
