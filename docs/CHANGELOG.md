@@ -5,6 +5,70 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.5 Internationalization Foundation
+
+Branch `feat/m0-foundation`. Frontend only. `next-intl` 4.13.5.
+
+### Added
+
+```text
+frontend/src/i18n/routing.ts      locales id + en, default id
+frontend/src/i18n/navigation.ts   locale-aware Link / router helpers
+frontend/src/i18n/request.ts      per-request messages
+frontend/src/proxy.ts             locale negotiation and prefixing
+frontend/src/app/[locale]/        layout + minimal foundation page
+frontend/src/components/locale-switcher.tsx
+frontend/messages/{id,en}.json    8 canonical namespaces
+```
+
+`src/app/layout.tsx` and `src/app/page.tsx` were removed; `[locale]/layout.tsx` is now the
+root layout and sets `<html lang>` from the active segment. The scaffold's hardcoded
+English strings and the `Create Next App` title are gone — every visible label resolves
+through a translation key.
+
+### Verified against a running dev server
+
+```text
+/            307 -> /id, including for an en-US browser
+/id          200, lang="id", Indonesian
+/en          200, lang="en", English
+/fr          307 -> /id/fr -> 404, never a third locale
+ID <-> EN    switch traverses /id <-> /en, content and lang follow
+refresh      /id stays Indonesian, /en stays English
+```
+
+Message parity: 13 keys each, no key missing in either direction. The three values that
+match across locales are the product name and the two language endonyms.
+
+`pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm format:check` all pass. Both locales
+prerender as static HTML.
+
+### Two deviations from library defaults, both deliberate
+
+**Locale detection is off** (`localeDetection: false`, `localeCookie: false`). By default
+next-intl negotiates from `accept-language` and a cookie, which made `/` non-deterministic
+— an English browser landed on `/en`, so Indonesian was not really the default. Measured
+before the change. The URL is now the only source of locale. Remembering a person's
+language belongs to `preferred_locale` on their profile in a later identity milestone.
+
+**The middleware file is `src/proxy.ts`, not `src/middleware.ts`.** Next.js 16.3 deprecates
+the `middleware` convention and warns on every build. next-intl still publishes the handler
+as `next-intl/middleware`, but it is a plain `(NextRequest) => NextResponse`, so only the
+file name changes.
+
+### Also
+
+`pnpm add next-intl` appended unresolved placeholders to `frontend/pnpm-workspace.yaml`
+for `@parcel/watcher` and `@swc/core`, which made every later `pnpm install` — and so
+`pnpm lint` — fail with `ERR_PNPM_IGNORED_BUILDS`. Both are optional to next-intl and ship
+prebuilt binaries, so both were denied, matching the existing `sharp: false` /
+`unrs-resolver: false` posture. `pnpm install --frozen-lockfile` now succeeds.
+
+No backend, Docker, or infrastructure change. No authentication, authorization, app shell,
+or business module.
+
+---
+
 ## 2026-08-09 — M0.4 PostgreSQL & Redis Application Integration
 
 Branch `feat/m0-foundation`. Connectivity and migration only. No business schema, no

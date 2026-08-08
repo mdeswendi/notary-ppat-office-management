@@ -1,0 +1,16 @@
+{
+  "common": {
+    "appName": "Notary & PPAT Office Management System",
+    "foundationNotice": "Application foundation is ready. Business modules are not available yet.",
+    "language": "Language",
+    "localeIndonesian": "Bahasa Indonesia",
+    "localeEnglish": "English"
+  },
+  "auth": {},
+  "navigation": {},
+  "dashboard": {},
+  "actions": {},
+  "status": {},
+  "validation": {},
+  "legal": {}
+}

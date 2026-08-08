@@ -476,6 +476,35 @@ to M0.7 and must not appear in the dependency tree before it.
 
 ---
 
+## 2026-08-09 — M0.5 Internationalization Foundation
+
+### D-020 — The URL is the only source of the active locale
+
+```text
+localeDetection: false
+localeCookie:    false
+```
+
+next-intl by default negotiates the locale from the `accept-language` header and a
+`NEXT_LOCALE` cookie. Measured before changing it: `/` redirected an `en-US` browser to
+`/en`. Indonesian was therefore not actually the default locale — it was merely the
+fallback for browsers that did not ask for something else. `/` must be deterministic, so
+detection is off and `/` always resolves to `/id`.
+
+The cookie is disabled as well. With detection off it was still written but never read,
+and a cookie that looks authoritative while being inert misleads the next reader.
+
+**Tension with `05_I18N_LEGAL_TERMINOLOGY.md` section 19**, which states that a user's
+language choice should persist across sessions. That remains the intended end state, but
+it is a property of an authenticated user's `preferred_locale`, not of a header guess made
+before anyone has signed in. Section 19 is deferred, not contradicted: whoever implements
+profile language preference should apply it as a redirect target for authenticated users
+and must not re-enable `localeDetection` to get it, or `/` becomes non-deterministic again.
+
+Locale is never read from `localStorage` or `sessionStorage`.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
