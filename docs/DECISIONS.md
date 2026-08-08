@@ -300,6 +300,40 @@ This correction does not by itself make the backend toolchain usable. See O-011 
 
 ---
 
+## 2026-08-08 — M0.2B Backend Toolchain and Package Manager
+
+### D-014 — Local development PHP runtime
+
+Resolves the PHP 8.4 vs 8.5 question for the workstation only.
+
+```text
+Local development PHP   8.4  (currently 8.4.23, supplied by Laravel Herd)
+Also available          8.5.8
+```
+
+**D-005 is unchanged.** The project requirement in the documentation remains `PHP >= 8.3`.
+PHP 8.4 is the runtime chosen for this workstation today, not a raised project floor. Code
+must not assume 8.4-only features.
+
+Herd 1.29.0 supplies PHP, Composer 2.10.1, the Laravel Installer 5.30.0, and nginx.
+
+### D-015 — pnpm is provisioned through corepack
+
+```text
+Mechanism   corepack 0.35.0, bundled with Node 24
+Command     corepack enable pnpm
+Installed   pnpm 11.20.0
+```
+
+Chosen over `npm install -g pnpm` because corepack ships with Node, requires no elevation,
+and allows the pnpm version to be pinned per project through the `packageManager` field in
+`package.json` once the frontend exists.
+
+This replaces the earlier caveat in D-013: under Node 25 corepack was unbundled, so this
+path only became available after the migration to Node 24 LTS.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -316,9 +350,9 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
 | O-010 | `gh` CLI is still not installed. Remote repository administration — visibility, branch protection, collaborators, settings — cannot be inspected or changed from this terminal. | Open. Not a blocker. Git operations over HTTPS work using the stored credential. Install `gh` only if repository administration from the terminal becomes useful. |
 | O-008 | Node.js v25.9.0 was in use; the v25 line is EOL and is not an LTS line | **Resolved 2026-08-08.** Migrated to Node 24.19.0 LTS via nvm-windows. Verified in a clean shell: `node v24.19.0`, `npm 11.17.0`, single resolution at `C:\Program Files\nodejs\node.exe`. See D-013. |
-| O-011 | `C:\Users\User\.config\herd\bin` is not on PATH, so `composer` and `laravel` cannot be invoked. Their `.bat` wrappers shell out to a bare `php`, which also is not on PATH, so both fail with `'php' is not recognized`. | Open. Blocks all backend tooling. Fix requires either adding Herd's bin to PATH or invoking the `.phar` files through an absolute PHP path. Needs a decision before M0.3. |
-| O-012 | Herd's PHP loads three extensions from `C:\Program Files\Herd\resources\app.asar.unpacked\resources\bin\`, which does not exist. `redis`, `mongodb`, and `herd` extensions fail at every PHP startup. | Open. Non-fatal — PHP runs and reports its version. Relevant later because the stack uses Redis; Laravel can use the pure-PHP `predis` client instead of the `phpredis` extension. Likely an incomplete or half-updated Herd installation. |
-| O-013 | pnpm is not installed. Node 24 bundles `corepack` 0.35.0, which Node 25 did not, so a corepack-based install path is now available. | Open by instruction. The proposed command is reported but deliberately not executed. |
+| O-011 | Herd's `bin` was not on PATH, so `composer` and `laravel` failed with `'php' is not recognized` | **Resolved 2026-08-08.** Herd reinstalled; `C:\Users\User\.config\herd\bin` now present in the persisted USER PATH. `php`, `composer`, `laravel`, and `herd` all resolve. |
+| O-012 | Three Herd PHP extensions failed to load from a missing directory | **Resolved 2026-08-08.** The Herd reinstall fixed it. `php --version` is now warning-free, and `redis`, `mongodb`, and `herd` all appear in `php -m` — they load rather than merely being silenced. |
+| O-013 | pnpm not installed | **Resolved 2026-08-08.** `corepack enable pnpm` → pnpm 11.20.0. See D-015. |
 
 ---
 

@@ -5,6 +5,62 @@ Records changes to the specification documents only. No application code exists 
 
 ---
 
+## 2026-08-08 — M0.2B Backend Toolchain and Package Manager
+
+Resolves O-011, O-012, O-013. Records D-014 and D-015.
+
+### Workstation state
+
+Laravel Herd was reinstalled, which fixed both outstanding backend problems at once.
+
+```text
+Herd        1.29.0
+PHP         8.4.23   warning-free; 8.5.8 also available
+Composer    2.10.1   using php84
+Laravel     5.30.0   installer
+Node        24.19.0
+npm         11.17.0
+corepack    0.35.0
+pnpm        11.20.0
+```
+
+Command resolution, all from `C:\Users\User\.config\herd\bin\`:
+
+```text
+herd      herd.bat
+php       php.bat
+composer  composer.bat
+laravel   laravel.bat
+node      C:\Program Files\nodejs\node.exe   (nvm symlink -> v24.19.0)
+pnpm      C:\Program Files\nodejs\pnpm       (corepack shim)
+```
+
+`php --ini` loads `C:\Users\User\.config\herd\bin\php84\php.ini` with no additional scan
+directory. `php -m` lists every extension Laravel needs, including `pdo_pgsql` and `pgsql`
+for PostgreSQL, plus `redis`, `mongodb`, and `herd` which previously failed to load.
+
+Node 24.19.0 survived the Herd reinstall; the nvm symlink was not reset.
+
+### Changed
+
+**`docs/DECISIONS.md`**
+
+- added D-014: local development PHP is 8.4. **D-005 is explicitly unchanged** — the project
+  requirement stays `PHP >= 8.3`. 8.4 is a workstation runtime choice, not a raised floor,
+  and code must not assume 8.4-only features
+- added D-015: pnpm is provisioned through corepack rather than a global npm install
+- O-011 marked resolved: Herd's bin is now on the persisted USER PATH
+- O-012 marked resolved: extensions load, verified through `php -m`, not merely silenced
+- O-013 marked resolved: pnpm 11.20.0
+
+### Not done
+
+- Docker not installed. Local PostgreSQL 18 and Redis 8 remain unavailable.
+- No frontend or backend initialization.
+- No packages, migrations, containers, or business modules.
+
+---
+
 ## 2026-08-08 — M0.2A Node Runtime Normalization
 
 Resolves O-008. Records D-013 and correction C-001.
