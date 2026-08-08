@@ -213,12 +213,20 @@ Resolves O-007.
 ```text
 Git repository   initialized 2026-08-08
 Initial branch   main
-Remote           none yet
+Remote           origin
+Remote URL       https://github.com/mdeswendi/notary-ppat-office-management.git
 GitHub account   https://github.com/mdeswendi
-Visibility       PRIVATE when the remote is created
+Visibility       PRIVATE (verified 2026-08-08)
 ```
 
-The remote repository has not been created. When it is, it must be **private**.
+The remote must remain **private**.
+
+Visibility was verified, not assumed: an anonymous `git ls-remote` with the credential
+helper disabled was rejected, while the same call with stored credentials succeeded. A
+public repository would have answered the anonymous probe.
+
+If the repository is ever made public, that is a reversal of this decision and must be
+recorded here first.
 
 Rationale: `docs/` already contains the complete permission matrix, the data-scope model,
 NIK/NPWP masking rules, and the document access architecture for a working legal office.
@@ -250,7 +258,8 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
 | O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Deferred 2026-08-08.** Deferred until the repository has executable quality gates for both frontend and backend — that is, until `pnpm lint/typecheck/build` and `pint --test` / `php artisan test` can actually run. Explicitly **not** a blocker for M0. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
-| O-009 | No GitHub remote exists. `gh` CLI is not installed, so the remote cannot be created from the terminal. | Open by decision. Local-only was chosen deliberately. Creating the remote requires either installing `gh` or creating a private repository through the browser, then adding the remote and pushing. |
+| O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
+| O-010 | `gh` CLI is still not installed. Remote repository administration — visibility, branch protection, collaborators, settings — cannot be inspected or changed from this terminal. | Open. Not a blocker. Git operations over HTTPS work using the stored credential. Install `gh` only if repository administration from the terminal becomes useful. |
 | O-008 | Node.js v25.9.0 is installed. It satisfies the hard baseline `>= 20.9`, but v25 is an odd-numbered Current release, not an LTS line. `10_M0_FOUNDATION.md` section 2 recommends the current supported Node LTS. | Open. Not a blocker. Decide before frontend initialization whether to stay on v25 or move to an LTS line. |
 
 ---

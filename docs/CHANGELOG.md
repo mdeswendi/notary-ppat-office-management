@@ -5,6 +5,51 @@ Records changes to the specification documents only. No application code exists 
 
 ---
 
+## 2026-08-08 — GitHub remote connected
+
+Resolves O-009. Updates D-012.
+
+### Repository
+
+```text
+remote      origin
+url         https://github.com/mdeswendi/notary-ppat-office-management.git
+branch      main -> origin/main (tracking)
+commit      93ff35b (local and remote identical)
+files       25
+visibility  private, verified
+```
+
+Visibility verification method: an anonymous `git ls-remote` with the credential helper
+disabled was rejected; the same call using the stored credential succeeded. A public
+repository would have answered the anonymous probe. Visibility is therefore confirmed by
+observation, not assumed.
+
+The remote was empty before the push — no GitHub-generated README, `.gitignore`, or LICENSE
+— so the first push was a fast-forward with no merge or force.
+
+Pushed content is documentation and tooling configuration only. No application code, no
+secrets, no client data.
+
+### Changed
+
+**`docs/DECISIONS.md`**
+
+- D-012 updated: remote URL recorded, visibility marked verified with the method used, and
+  a requirement that any future switch to public be recorded here first
+- O-009 marked resolved
+- added O-010: `gh` CLI still absent, so remote repository administration is not available
+  from the terminal; not a blocker
+
+### Not done
+
+- No software installed or upgraded.
+- No frontend or backend initialization.
+- No packages, migrations, containers, or business modules.
+- No branch protection or repository settings configured.
+
+---
+
 ## 2026-08-08 — Version control initialized
 
 Resolves O-007. Records D-012.
