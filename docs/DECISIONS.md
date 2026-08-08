@@ -334,6 +334,39 @@ path only became available after the migration to Node 24 LTS.
 
 ---
 
+## 2026-08-08 — PostgreSQL 18 Docker mount correction
+
+### D-016 — PostgreSQL 18+ persistent mount target
+
+Amends the volume detail of D-009. The image choice `postgres:18` is unchanged.
+
+```text
+Correct    postgres_data:/var/lib/postgresql
+Wrong      postgres_data:/var/lib/postgresql/data
+```
+
+From PostgreSQL 18 the official Docker image stores data in a major-version subdirectory so
+that `pg_upgrade --link` works without crossing a mount boundary. It expects **one** mount at
+`/var/lib/postgresql`. Mounting `/var/lib/postgresql/data` makes the container refuse to
+start; the entrypoint reports that path as an unused mount/volume and exits, leaving the
+container in a restart loop.
+
+Verified after the correction:
+
+```text
+data_directory   /var/lib/postgresql/18/docker
+```
+
+That path is created by the image beneath the single mount. Do not mount it directly and do
+not reintroduce the `/data` suffix. `docker-compose.yml` carries an inline comment pointing
+here to prevent regression.
+
+This applies to PostgreSQL 18 and later only. Images up to 17 used
+`/var/lib/postgresql/data`, which is why the older form is still common in examples found
+online.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

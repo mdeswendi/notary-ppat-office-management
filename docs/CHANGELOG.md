@@ -5,6 +5,76 @@ Records changes to the specification documents only. No application code exists 
 
 ---
 
+## 2026-08-08 — PostgreSQL 18 Docker data-directory compatibility correction
+
+First infrastructure smoke test. Records D-016.
+
+### Problem
+
+The PostgreSQL container never started. It sat in a restart loop from creation.
+
+```text
+old mount   postgres_data:/var/lib/postgresql/data
+```
+
+The image entrypoint rejected it and reported `/var/lib/postgresql/data` as an unused
+mount/volume. From PostgreSQL 18 the official image places data in a major-version
+subdirectory and expects a single mount one level higher, so `pg_upgrade --link` does not
+cross a mount boundary.
+
+### Correction
+
+```text
+new mount   postgres_data:/var/lib/postgresql
+```
+
+`postgres:18`, the database name, the user, the development password mechanism, the
+`127.0.0.1` port binding, the healthcheck, the restart policy, and the entire Redis service
+were all left untouched.
+
+An inline comment was added at the volume declaration pointing to D-016, because the wrong
+form is still widespread in online examples and is easy to reintroduce.
+
+### Smoke-test result
+
+```text
+PostgreSQL     18.4 (Debian 18.4-1.pgdg13+1)   healthy
+data_directory /var/lib/postgresql/18/docker
+database       notary_ppat_office              encoding UTF8
+user           notary_app                      connects successfully
+binding        127.0.0.1:5432 -> 5432
+
+Redis          8.10.0                          healthy, PONG
+binding        127.0.0.1:6379 -> 6379
+uptime         unbroken across the repair
+```
+
+The observed PostgreSQL minor is 18.4. Per D-005 this is recorded as observed state, not as
+a pinned requirement.
+
+### Volume handling
+
+Only `notary_ppat_postgres_data` was removed and recreated. It had been created minutes
+earlier by the failed smoke test and contained no application or client data — no Laravel or
+Next.js application exists, and no tables were ever created.
+
+`notary_ppat_redis_data` was preserved. `docker compose down -v` was deliberately not used,
+as it would have destroyed both volumes. The Redis container was never stopped.
+
+### Changed
+
+- `docker-compose.yml` — PostgreSQL volume target corrected; regression comment added
+- `docs/DECISIONS.md` — added D-016 making the PostgreSQL 18+ mount target canonical
+
+### Not done
+
+- No PostgreSQL or Redis version change.
+- No credential change.
+- No application tables, migrations, or client data.
+- No frontend or backend initialization.
+
+---
+
 ## 2026-08-08 — M0.2B Backend Toolchain and Package Manager
 
 Resolves O-011, O-012, O-013. Records D-014 and D-015.

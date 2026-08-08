@@ -27,7 +27,11 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PostgreSQL 18+ official images require a SINGLE mount at /var/lib/postgresql.
+      # The data itself lands in a major-version subdirectory below it. Mounting
+      # /var/lib/postgresql/data instead makes the container fail to start.
+      # See docs/DECISIONS.md D-016.
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U notary_app -d notary_ppat_office"]
       interval: 10s
