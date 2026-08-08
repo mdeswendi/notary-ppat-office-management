@@ -206,6 +206,35 @@ Applied in: root `.editorconfig`.
 No Prettier configuration is created at this stage. When one is added at frontend
 initialization, it must agree with this decision.
 
+### D-012 — Version control and repository hosting
+
+Resolves O-007.
+
+```text
+Git repository   initialized 2026-08-08
+Initial branch   main
+Remote           none yet
+GitHub account   https://github.com/mdeswendi
+Visibility       PRIVATE when the remote is created
+```
+
+The remote repository has not been created. When it is, it must be **private**.
+
+Rationale: `docs/` already contains the complete permission matrix, the data-scope model,
+NIK/NPWP masking rules, and the document access architecture for a working legal office.
+The repository will later hold code that processes penghadap identity data, Minuta Akta, and
+Warkah. A public repository would publish that design surface and cannot be meaningfully
+retracted once indexed or forked. This is consistent with `docs/07_SECURITY_RULES.md`.
+
+Development branch naming follows `10_M0_FOUNDATION.md` section 60:
+
+```text
+feat/m0-foundation
+feat/m1-identity
+feat/m2-parties
+feat/m3-projects
+```
+
 ---
 
 ## Open Items
@@ -220,7 +249,8 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Deferred 2026-08-08.** Cosmetic only. Must not block foundation development. Not to be touched during unrelated steps. |
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
 | O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Deferred 2026-08-08.** Deferred until the repository has executable quality gates for both frontend and backend — that is, until `pnpm lint/typecheck/build` and `pint --test` / `php artisan test` can actually run. Explicitly **not** a blocker for M0. |
-| O-007 | The working directory is not a Git repository. `git init` has never been run, yet `10_M0_FOUNDATION.md` section 67 lists "Git repository initialized" as the first M0.1 acceptance criterion. | Open. Found during the M0.2 environment audit. M0.1 was accepted as complete, but this criterion is unmet. Needs an explicit instruction before any commit is possible. |
+| O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
+| O-009 | No GitHub remote exists. `gh` CLI is not installed, so the remote cannot be created from the terminal. | Open by decision. Local-only was chosen deliberately. Creating the remote requires either installing `gh` or creating a private repository through the browser, then adding the remote and pushing. |
 | O-008 | Node.js v25.9.0 is installed. It satisfies the hard baseline `>= 20.9`, but v25 is an odd-numbered Current release, not an LTS line. `10_M0_FOUNDATION.md` section 2 recommends the current supported Node LTS. | Open. Not a blocker. Decide before frontend initialization whether to stay on v25 or move to an LTS line. |
 
 ---

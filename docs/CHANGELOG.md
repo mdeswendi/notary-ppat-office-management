@@ -5,6 +5,47 @@ Records changes to the specification documents only. No application code exists 
 
 ---
 
+## 2026-08-08 — Version control initialized
+
+Resolves O-007. Records D-012.
+
+### Repository
+
+- `git init` on branch `main`
+- 25 files tracked, working tree clean
+- no remote configured; local only, by decision
+
+Commit history:
+
+```text
+3874e77  docs: add Claude coding instructions
+8c94dde  docs: add canonical specification set
+eb00d82  chore: initialize repository structure and tooling
+```
+
+Verified before committing that `.gitignore` does not exclude `backend/.gitkeep`,
+`frontend/.gitkeep`, `infra/.gitkeep`, `scripts/.gitkeep`, `.github/.gitkeep`, or
+`docker-compose.yml`.
+
+### Changed
+
+**`docs/DECISIONS.md`**
+
+- added D-012: repository initialized, branch naming, GitHub account recorded, remote
+  visibility fixed as **private** when created
+- O-007 marked resolved
+- added O-009: no GitHub remote yet; `gh` CLI absent
+
+### Not done
+
+- No GitHub remote created and nothing pushed.
+- No software installed or upgraded.
+- No frontend or backend initialization.
+- No packages, migrations, containers, or business modules.
+- Git identity not modified.
+
+---
+
 ## 2026-08-08 — M0.2 Environment Readiness Audit
 
 Configuration and documentation only. No software was installed, upgraded, or started.
