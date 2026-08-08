@@ -5,6 +5,116 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-08 — M0.3 Backend Initialization
+
+Branch `feat/m0-foundation`. First backend application code in the repository.
+
+### Initialized
+
+```text
+Laravel Framework   13.24.0   (skeleton laravel/laravel v13.0.0)
+PHP runtime         8.4.23    development runtime only; project floor stays >= 8.3
+Composer            2.10.1
+Pest                4.7.8     with pest-plugin-laravel 4.1.0
+Laravel Pint        1.30.4    shipped with the skeleton
+```
+
+Command used:
+
+```bash
+composer create-project laravel/laravel backend "^13.0" --no-scripts --no-interaction
+```
+
+`--no-scripts` was deliberate, not incidental. The skeleton's `post-create-project-cmd`
+runs `key:generate`, creates `database/database.sqlite`, and then runs
+`artisan migrate --graceful`. M0.3 must not touch a database, so the scripts were skipped
+and `key:generate` was invoked on its own afterwards. No SQLite file exists and no
+migration ran. See D-019.
+
+The version constraint `"^13.0"` was explicit rather than relying on "latest", so the
+result cannot drift to Laravel 14 on a later clone.
+
+### Added
+
+| Path | Note |
+|---|---|
+| `backend/` | Laravel 13 application, default structure preserved |
+| `backend/routes/api.php` | Created manually; `install:api` was **not** run, because it installs Sanctum, which belongs to M0.7 |
+| `backend/app/Http/Controllers/HealthController.php` | Invokable controller, returns a bare status flag |
+| `backend/tests/Feature/HealthTest.php` | Pest feature test for the health endpoint |
+| `backend/tests/Pest.php` | Created by `pest --init` |
+
+`bootstrap/app.php` gained one line: `api: __DIR__.'/../routes/api.php'` inside
+`withRouting()`. The default `api` prefix yields the canonical URL.
+
+```text
+GET /api/v1/health   →   200   {"status":"ok"}
+```
+
+The response is asserted with `assertExactJson`, so any future addition of runtime,
+dependency, or configuration detail to this public endpoint fails the test.
+
+### Environment
+
+`backend/.env.example` aligned with `10_M0_FOUNDATION.md` section 48 — PostgreSQL
+connection, `SESSION_DRIVER=database`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=database`,
+Redis host/port, and `FRONTEND_URL`. `APP_KEY` and `DB_PASSWORD` are empty placeholders.
+
+A local `APP_KEY` was generated into `backend/.env` with `php artisan key:generate`.
+`backend/.env` is ignored by `backend/.gitignore` and was verified unstaged. The key value
+is not recorded anywhere in the repository or in this changelog.
+
+`DB_PASSWORD` was deliberately left empty in the local `.env` as well. Supplying the
+development credential is part of M0.4, not M0.3.
+
+### Verification
+
+```text
+Laravel boot                  PASS   php artisan about
+Laravel 13 major              PASS   13.24.0
+APP_KEY configured            PASS   local only, not committed
+GET /api/v1/health            PASS   200, {"status":"ok"}, application/json
+  via 127.0.0.1 and localhost PASS
+  /api/api/v1/health          404    confirmed not created
+  /v1/health                  404    confirmed not created
+Health feature test           PASS
+php artisan test              PASS   3 passed, 4 assertions
+Pest                          PASS   4.7.8
+Pint                          PASS   1.30.4, --test clean
+```
+
+Pint was confirmed to be actually inspecting files rather than trivially passing: a
+deliberately misformatted throwaway file was rejected with eight fixers, then removed.
+
+The health test runs without PostgreSQL or Redis. `phpunit.xml` keeps Laravel's defaults —
+`CACHE_STORE=array`, `SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync`, and an in-memory
+SQLite connection that no test touches.
+
+### Not done — deferred by scope
+
+```text
+Database connectivity test      M0.4
+Migrations                      M0.4
+Redis application integration   M0.4
+Sanctum, CSRF, CORS, login      M0.7
+Spatie Laravel Permission       M0.8
+/api/v1/me                      M0.7
+```
+
+No migration was executed. No database or Redis connection was opened. No Sanctum or
+Spatie package is present — verified against `composer.json` and `composer.lock`. Default
+Laravel migrations remain in source as untouched scaffold.
+
+`frontend/` and `docker-compose.yml` were not modified; both verified with `git diff`.
+Docker containers were not touched.
+
+### Open item raised
+
+O-016 — `backend/.editorconfig` declares `root = true`, so the repository `.editorconfig`
+does not apply inside `backend/`. See `DECISIONS.md`.
+
+---
+
 ## 2026-08-08 — M0.2 clean-clone reproducibility fix
 
 Branch `feat/m0-foundation`. Follows the M0.2 initialization below.
