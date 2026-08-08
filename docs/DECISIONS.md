@@ -203,6 +203,13 @@ churn once the frontend is initialized.
 
 Applied in: root `.editorconfig`.
 
+**Scope, added 2026-08-09 resolving O-016.** The root `.editorconfig` is the *only*
+EditorConfig file in the repository, and it governs `frontend/`, `backend/`, and every
+other directory. A nested `.editorconfig` carrying `root = true` halts the upward search
+and silently exempts its subtree from this decision, so nested EditorConfig files must not
+be introduced. If a scaffold ships one — the Laravel skeleton does — remove it during
+initialization rather than leaving repository policy partially applied.
+
 No Prettier configuration is created at this stage. When one is added at frontend
 initialization, it must agree with this decision.
 
@@ -490,7 +497,7 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-011 | Herd's `bin` was not on PATH, so `composer` and `laravel` failed with `'php' is not recognized` | **Resolved 2026-08-08.** Herd reinstalled; `C:\Users\User\.config\herd\bin` now present in the persisted USER PATH. `php`, `composer`, `laravel`, and `herd` all resolve. |
 | O-012 | Three Herd PHP extensions failed to load from a missing directory | **Resolved 2026-08-08.** The Herd reinstall fixed it. `php --version` is now warning-free, and `redis`, `mongodb`, and `herd` all appear in `php -m` — they load rather than merely being silenced. |
 | O-013 | pnpm not installed | **Resolved 2026-08-08.** `corepack enable pnpm` → pnpm 11.20.0. See D-015. |
-| O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | Open. Reported rather than resolved, per `CLAUDE.md` section 58. The scaffold file was left untouched during M0.3 because deleting or editing it is an architectural change that was not requested. Resolve by either removing `root = true` from the backend file, or accepting the Laravel convention for backend JSON and recording that under D-011. |
+| O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---
 

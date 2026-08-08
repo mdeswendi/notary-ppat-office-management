@@ -5,6 +5,69 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — Backend EditorConfig alignment
+
+Branch `feat/m0-foundation`. Closes O-016, raised by M0.3 below. No new decision; D-011
+remains the canonical formatting decision and gained a scope note.
+
+### Cause
+
+The Laravel skeleton ships its own `backend/.editorconfig` declaring `root = true`. That
+directive halts EditorConfig's upward search, so the repository `.editorconfig` — and with
+it D-011 — stopped at the `backend/` boundary and never governed a single file inside it.
+
+Measured with the reference `editorconfig` resolver rather than inferred:
+
+```text
+backend/composer.json     indent_size=4     D-011 requires 2
+backend/package.json      indent_size=4     D-011 requires 2
+backend/vite.config.js    indent_size=4     D-011 requires 2
+```
+
+PHP was unaffected only by coincidence — both files happen to specify 4 spaces.
+
+### Fix
+
+```text
+deleted   backend/.editorconfig     18 lines
+```
+
+Deletion rather than editing. Removing only `root = true` would have left the file's
+`[*] indent_size = 4` block in place, and as the nearer file it still wins over the root
+file's `[*.{json,jsonc}]` rule — the override would have survived in a less visible form.
+
+Every rule the backend file carried already exists in the root file, with one exception:
+`[compose.yaml] indent_size = 4`, a Laravel Sail convention. No `compose.yaml` exists and
+`backend/` contains no YAML at all, so nothing regressed. Any future `compose.yaml` would
+take 2 spaces from the root `[*.{yml,yaml}]` rule, which is repository policy.
+
+### Verification
+
+Resolved properties after the fix:
+
+```text
+backend/**.php                4     backend/composer.json     2
+backend/**.blade.php          4     backend/package.json      2
+backend/phpunit.xml           4     backend/vite.config.js    2
+backend/README.md      trim off     backend/**.css            2
+frontend/**.tsx               2     docker-compose.yml        2
+```
+
+```text
+vendor/bin/pint --test    PASS
+php artisan test          PASS   3 passed, 4 assertions
+```
+
+No generated file was reformatted. Rewriting `composer.json`, `package.json`, or
+`vite.config.js` to 2 spaces would have produced a large diff for no functional gain, and
+Composer and npm both write their own indentation when they rewrite those files regardless
+of EditorConfig. The policy now applies to hand-edited files; the generated ones keep
+whatever their generator emits.
+
+`frontend/` and `docker-compose.yml` unchanged, verified with `git diff`.
+
+---
+
 ## 2026-08-08 — M0.3 Backend Initialization
 
 Branch `feat/m0-foundation`. First backend application code in the repository.
