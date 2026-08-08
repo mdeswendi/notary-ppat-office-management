@@ -1,0 +1,57 @@
+# =============================================================================
+#  LOCAL DEVELOPMENT INFRASTRUCTURE ONLY
+#
+#  This file provisions PostgreSQL and Redis for local development.
+#  It is NOT a production deployment specification.
+#
+#  Do not use these credentials, ports, or settings outside a developer machine.
+#  Production infrastructure is defined separately and is out of scope for M0.
+#
+#  Frontend and backend are NOT containerized at this milestone. They run
+#  natively for faster hot reload. See docs/10_M0_FOUNDATION.md section 47.
+# =============================================================================
+
+name: notary-ppat-office
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: notary_ppat_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notary_ppat_office
+      POSTGRES_USER: notary_app
+      # Development-only fallback. Override via a local .env file that is not
+      # committed. Never place a production secret in this repository.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notary_app -d notary_ppat_office"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:8-alpine
+    container_name: notary_ppat_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres_data:
+    name: notary_ppat_postgres_data
+  redis_data:
+    name: notary_ppat_redis_data

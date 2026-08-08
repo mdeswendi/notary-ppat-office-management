@@ -1,0 +1,52 @@
+# Notary & PPAT Office Management System
+# https://editorconfig.org
+#
+# Indentation follows each ecosystem's own convention rather than one global rule:
+#   PHP / Laravel        4 spaces (PSR-12)
+#   TypeScript / React   2 spaces (Prettier and the Next.js scaffold default)
+#   JSON / YAML          2 spaces
+# See docs/DECISIONS.md decision D-011.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# ---------- Backend ----------
+[*.php]
+indent_size = 4
+
+[*.blade.php]
+indent_size = 4
+
+# ---------- Frontend ----------
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2
+
+[*.{css,scss}]
+indent_size = 2
+
+# ---------- Data & configuration ----------
+[*.{json,jsonc}]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2
+
+# ---------- Markdown ----------
+# Two trailing spaces are a significant hard line break, so trailing whitespace is
+# preserved. No further whitespace rules are imposed.
+[*.md]
+trim_trailing_whitespace = false
+
+# ---------- Platform ----------
+[*.{bat,cmd}]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

@@ -1,0 +1,73 @@
+# ---------- Environment & rahasia ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# ---------- Node / JavaScript ----------
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.eslintcache
+.vite/
+
+# ---------- PHP / Laravel ----------
+vendor/
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+
+# ---------- Basis data lokal ----------
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+dump.rdb
+
+# ---------- Infrastruktur ----------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.vagrant/
+kubeconfig
+
+# ---------- Unggahan & data operasional ----------
+# Dokumen klien, scan, dan arsip akta tidak boleh masuk repositori.
+# Dibatasi ke root: Laravel membawa backend/storage/ beserta berkas .gitignore-nya
+# sendiri, dan direktori itu HARUS tetap ter-track.
+/uploads/
+/storage/
+/media/
+/backups/
+*.local
+
+# ---------- Log ----------
+/logs/
+*.log
+
+# ---------- Editor & OS ----------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
