@@ -367,6 +367,67 @@ online.
 
 ---
 
+## 2026-08-08 — M0.2 Frontend Initialization
+
+### D-017 — shadcn/ui foundation configuration
+
+The shadcn CLI now asks two questions the project documentation never answered. Both were
+answered with the CLI's own default, as instructed, and are recorded here so the choice is
+deliberate rather than accidental.
+
+**Component primitive library — `base`**
+
+```text
+Offered   Base UI (Recommended) | React Aria | Radix UI
+Chosen    Base UI
+```
+
+`04_UI_DESIGN_SYSTEM.md` section 55 and `CLAUDE.md` section 40 name shadcn/ui but never the
+primitive layer beneath it. Those documents were written when Radix was the only option.
+Base UI is now the CLI default. Revisit before adding many components — migrating primitives
+later is expensive.
+
+**Preset — `nova`**
+
+```text
+Offered   Nova (Lucide / Geist) | Vega | Maia | Lyra | Mira | Luma | Sera | Rhea | Custom
+Chosen    Nova
+```
+
+Nova uses Lucide icons, which matches `04_UI_DESIGN_SYSTEM.md` section 9 exactly. It also
+brings the Geist font, which does not match the Inter recommendation in section 6. See
+O-014; typography belongs to M0.6 and was not touched here.
+
+Resulting `components.json`:
+
+```text
+style          base-nova
+baseColor      neutral
+cssVariables   true
+iconLibrary    lucide
+rsc            true
+aliases        @/components, @/lib, @/lib/utils, @/components/ui, @/hooks
+```
+
+`baseColor` is `neutral`. No product colour or branding was invented. The navy and domain
+accents in `04_UI_DESIGN_SYSTEM.md` are M0.6 work.
+
+### D-018 — Frontend formatting
+
+```text
+prettier                     3.9.6
+prettier-plugin-tailwindcss  0.8.1
+```
+
+`.prettierrc.json` sets `tabWidth: 2` and `endOfLine: "lf"`, agreeing with `.editorconfig`
+and D-011. No ESLint rule and no TypeScript strictness setting was weakened to make the
+checks pass.
+
+Scripts added to `frontend/package.json`: `typecheck` (`tsc --noEmit`), `format`,
+`format:check`. `lint` and `build` came from the scaffold.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -381,6 +442,8 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Deferred 2026-08-08.** Deferred until the repository has executable quality gates for both frontend and backend — that is, until `pnpm lint/typecheck/build` and `pint --test` / `php artisan test` can actually run. Explicitly **not** a blocker for M0. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
 | O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
+| O-014 | The shadcn `nova` preset installs the **Geist** font. `04_UI_DESIGN_SYSTEM.md` section 6 recommends **Inter**. | Open. Deferred to M0.6 design system, where typography is decided. Not touched during M0.2. |
+| O-015 | The Next.js scaffold generated `frontend/AGENTS.md` and `frontend/CLAUDE.md`. The latter is an 11-byte pointer containing only `@AGENTS.md`. | Open. Both were kept as standard scaffold output. They are Next.js coding hints, not project rules, and do not contradict the root `CLAUDE.md`. Remove them if a second instruction file in the repository is unwanted. |
 | O-010 | `gh` CLI is still not installed. Remote repository administration — visibility, branch protection, collaborators, settings — cannot be inspected or changed from this terminal. | Open. Not a blocker. Git operations over HTTPS work using the stored credential. Install `gh` only if repository administration from the terminal becomes useful. |
 | O-008 | Node.js v25.9.0 was in use; the v25 line is EOL and is not an LTS line | **Resolved 2026-08-08.** Migrated to Node 24.19.0 LTS via nvm-windows. Verified in a clean shell: `node v24.19.0`, `npm 11.17.0`, single resolution at `C:\Program Files\nodejs\node.exe`. See D-013. |
 | O-011 | Herd's `bin` was not on PATH, so `composer` and `laravel` failed with `'php' is not recognized` | **Resolved 2026-08-08.** Herd reinstalled; `C:\Users\User\.config\herd\bin` now present in the persisted USER PATH. `php`, `composer`, `laravel`, and `herd` all resolve. |

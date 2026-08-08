@@ -1,7 +1,90 @@
 # Notary & PPAT Office Management System
 ## Documentation Changelog
 
-Records changes to the specification documents only. No application code exists yet.
+Records specification changes and milestone results.
+
+---
+
+## 2026-08-08 — M0.2 Frontend Initialization
+
+Branch `feat/m0-foundation`. Records D-017 and D-018. First application code in the
+repository.
+
+### Generated versions
+
+```text
+next                 16.3.0     major 16 as required
+react                19.2.8
+react-dom            19.2.8
+typescript           5.9.3
+eslint               9.39.5
+eslint-config-next   16.3.0
+tailwindcss          4.3.3
+@tailwindcss/postcss 4.3.3
+packageManager       pnpm@11.20.0
+```
+
+`create-next-app@latest` resolved to 16.3.0, so the "stop if not major 16" gate passed. The
+`packageManager` field was written by the scaffold itself and already matched the verified
+workstation pnpm; no manual edit was needed.
+
+Scaffold flags: `--ts --tailwind --eslint --app --src-dir --import-alias "@/*"` as specified,
+plus `--use-pnpm`, `--disable-git`, and `--yes` to keep the run non-interactive. Experimental
+options were declined — no React Compiler, no Rspack, no Biome, no `--api`, no `--empty`.
+
+### shadcn/ui foundation
+
+Initialized foundation only. No components added. See D-017 for the two CLI questions that
+project documentation did not answer and how they were resolved.
+
+Created `src/lib/utils.ts` and updated `src/app/globals.css`. Added `@base-ui/react`,
+`class-variance-authority`, `clsx`, `lucide-react`, `shadcn`, `tailwind-merge`,
+`tw-animate-css`.
+
+### Acceptance criteria
+
+```text
+Next.js runs         PASS   HTTP 200, ready in 997ms, Turbopack
+TypeScript works     PASS   tsc --noEmit clean
+Tailwind works       PASS   v4 detected and validated by the shadcn CLI
+shadcn initialized   PASS   components.json written
+lint passes          PASS   eslint exit 0
+typecheck passes     PASS   exit 0
+build passes         PASS   4 static routes generated
+```
+
+The dev server was started only for the smoke test and shut down afterwards. Port 3000 was
+verified released with no stray node processes.
+
+### Added
+
+`frontend/` — 25 files. Scaffold output plus four additions:
+
+```text
+.env.example        public placeholders only
+.prettierrc.json    tabWidth 2, endOfLine lf, tailwind plugin
+.prettierignore
+package.json        typecheck, format, format:check scripts
+```
+
+One correction to scaffold output: `frontend/.gitignore` ships `.env*`, which would have
+excluded `.env.example` from version control. Added `!.env.example` so the placeholder file
+stays tracked.
+
+`frontend/AGENTS.md` and `frontend/CLAUDE.md` are standard scaffold output and were kept. See
+O-015.
+
+### Changed
+
+- `docs/DECISIONS.md` — added D-017, D-018, O-014, O-015
+
+### Not done
+
+- No next-intl, no locale routing, no TanStack Query, no Axios client.
+- No authentication, application shell, sidebar, or dashboard.
+- No business modules, no fake statistics, no database integration.
+- No backend, Docker, or legal-workflow documentation touched.
+- Not merged into `main`.
 
 ---
 
