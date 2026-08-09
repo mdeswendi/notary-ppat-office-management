@@ -13,6 +13,16 @@ export type CurrentUser = {
   name: string;
   email: string;
   preferred_locale: string;
+  /**
+   * Role names, for display and administration only. Never use these to
+   * decide whether a capability is available — see `permissions`.
+   */
+  roles: string[];
+  /**
+   * Effective permission names, already resolved by the backend across direct
+   * grants and role inheritance. The browser never recomputes inheritance.
+   */
+  permissions: string[];
 };
 
 export type LoginCredentials = {

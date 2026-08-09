@@ -54,6 +54,10 @@ it('returns the current user for a session authenticated request', function (): 
                 'name' => 'Rina',
                 'email' => 'user@example.test',
                 'preferred_locale' => 'id',
+                // Present since M0.8. Empty here because this user holds no
+                // assignments; AuthorizationTest covers populated cases.
+                'roles' => [],
+                'permissions' => [],
             ],
         ]);
 });

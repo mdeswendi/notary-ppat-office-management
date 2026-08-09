@@ -5,6 +5,55 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.8 Authorization Foundation
+
+Branch `feat/m0-foundation`. `spatie/laravel-permission` **8.3.0**. Package foundation only:
+the real role matrix, Data Scope, and office isolation all remain M1.
+
+### Backend
+
+Config and migration published, then the migration was **corrected before it ran**: the
+package ships `unsignedBigInteger` for the morph key in both `model_has_permissions` and
+`model_has_roles`, which cannot hold a ULID. Both were changed to `ulid()`, applying the
+consequence D-023 already recorded. The column keeps its default semantic name `model_id`.
+
+```text
+roles.id / permissions.id          bigint      package-native, unchanged
+model_has_roles.model_id           char(26)    ULID
+model_has_permissions.model_id     char(26)    ULID
+```
+
+Package defaults preserved — `teams: false`, `enable_wildcard_permission: false`, cache
+store `default` (Redis), guard `web`. `User` gained `HasRoles` alongside `HasUlids`; no role
+or permission column was added to `users`.
+
+`GET /api/v1/me` now returns `roles` and `permissions`. Permissions are **effective** —
+resolved by the package across direct grants and role inheritance, then de-duplicated and
+sorted for stable output. Names only: no ids, pivots, or guard internals.
+
+### Frontend
+
+`CurrentUser` gained `roles: string[]` and `permissions: string[]`. Added a `can()` helper
+(exact string match, no wildcards, no role fallback), a `useCurrentUser` hook reading the
+existing `["auth", "me"]` query, and `PermissionGuard`. There is no second user store and
+nothing in browser storage. **Guards are presentation only** — every protected action is
+authorized again by the backend.
+
+### Verified
+
+38 backend tests pass on in-memory SQLite, so the ULID pivot works there as well as on
+PostgreSQL. Live PostgreSQL check: a role-derived permission makes `$user->can()` true
+through Laravel's Gate, an unrelated permission is false, a user with no role is denied, and
+`model_has_roles.model_id` holds the complete 26-character ULID. Over HTTP, `/api/v1/me`
+returned the role name and inherited permission for one user and empty arrays for another.
+All 20 M0.7 authentication checks still pass unchanged.
+
+No role seed, no `Gate::before` Super Admin bypass, no Data Scope, no business policies or
+tables. All temporary users, roles, and permissions were removed — every authorization
+table is back to zero rows.
+
+---
+
 ## 2026-08-09 — O-019 User primary key aligned with the ULID strategy
 
 Branch `feat/m0-foundation`. Closes O-019. Done before M0.8, not during it: Spatie's

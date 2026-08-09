@@ -28,6 +28,31 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'preferred_locale' => $this->preferred_locale,
+            'roles' => $this->resource->getRoleNames()->sort()->values()->all(),
+            'permissions' => $this->effectivePermissionNames(),
         ];
+    }
+
+    /**
+     * Effective permission names: those granted directly plus those inherited
+     * through roles.
+     *
+     * `getAllPermissions()` is the package's own resolution of both paths, so
+     * inheritance is never recomputed here — and never in the browser. Names
+     * only: database ids, pivot rows, and guard internals stay server-side.
+     *
+     * Sorted and de-duplicated so a permission reachable by more than one path
+     * appears once and the output order is stable.
+     *
+     * @return array<int, string>
+     */
+    private function effectivePermissionNames(): array
+    {
+        return $this->resource->getAllPermissions()
+            ->pluck('name')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 }
