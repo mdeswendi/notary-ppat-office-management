@@ -5,6 +5,34 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0 Foundation closed
+
+`feat/m0-foundation` merged into `main` with `--no-ff`, preserving the fourteen M0 commits.
+
+```text
+merge commit   8be0ad0
+parents        2f8a1d8 (main) + 2bdf80b (feature, CI-green)
+conflicts      none
+```
+
+The merge carried no code change of its own: the feature HEAD merged is exactly the commit
+whose CI had been verified, so nothing untested reached `main`.
+
+**GitHub Actions on `main` at `8be0ad0` is green — frontend and backend both pass**, the
+backend on PHP 8.3. That closes the last outstanding verification. **O-006 is resolved**;
+its full history, including the CI failure that caught the PHP 8.3 lockfile defect, is kept
+in `DECISIONS.md` rather than tidied away.
+
+M0 is complete end to end: clean-clone reproducibility, the full 18-item Definition of Done,
+feature-branch CI, merge, post-merge local gates, and main-branch CI.
+
+`O-017`, `O-018`, `O-020`, `O-021`, and `O-022` remain **open and non-blocking**, with their
+scope unchanged. `feat/m0-foundation` is retained as the M0 historical checkpoint.
+
+No business module exists. M1 — Identity & Access Management — has not begun.
+
+---
+
 ## 2026-08-09 — Composer lock aligned with PHP 8.3
 
 Branch `feat/m0-foundation`. Fixes the backend CI failure that the first real GitHub Actions
@@ -43,8 +71,8 @@ hidden the defect rather than fixed it — no required dependency needs 8.4. Rec
 packages requiring only `php >=8.2`. On the local 8.4 runtime, Pint passes and all 38 tests
 pass. Frontend has no tracked change and all four gates still pass.
 
-Local checks cannot prove a PHP 8.3 runtime — the CLI here is 8.4. **GitHub Actions remains
-the verification**, and O-006 stays open operationally until a real run passes.
+Local checks cannot prove a PHP 8.3 runtime — the CLI here is 8.4, so GitHub Actions was the
+verification. **Confirmed: both jobs subsequently passed on PHP 8.3.**
 
 ---
 
@@ -98,8 +126,9 @@ CI was deferred until executable quality gates existed on both sides. They now d
 `.github/workflows/quality.yml` was added, running exactly the README commands. The backend
 job pins **PHP 8.3**, the canonical minimum, while the workstation runs 8.4 — that gap is
 the point. No PostgreSQL or Redis service is needed because the Pest suite uses in-memory
-SQLite. No secrets, no deployment. Validated locally; **not yet observed running on
-GitHub**.
+SQLite. No secrets, no deployment. Validated locally at the time; its first real runs then
+exposed a PHP 8.3 lockfile defect, which was fixed and verified green — see the entries
+above.
 
 ### Open items
 
