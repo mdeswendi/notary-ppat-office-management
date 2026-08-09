@@ -1,22 +1,41 @@
 # Notary & PPAT Office Management System
 
-Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah).
+Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bilingual
+(Indonesia / Inggris) dengan frontend Next.js dan backend Laravel.
 
-> **Status: M0.1 — Repository Foundation.**
-> Dokumentasi dan kerangka repositori sudah ada.
-> Frontend (Next.js) dan backend (Laravel) **belum diinisialisasi**.
-> Belum ada dependensi terpasang, belum ada migrasi, belum ada modul bisnis.
+> **Status: M0 — Foundation.**
+> Fondasi sudah lengkap: autentikasi sesi, fondasi otorisasi, routing bilingual, dan
+> application shell. **Belum ada modul bisnis** — Party, Project, Matter, Notary, PPAT,
+> Warkah, Billing, dan Reports dikerjakan mulai M1.
+
+## Arsitektur
+
+```text
+Browser
+   │
+   ▼
+Next.js (localhost:3000)
+   │  REST + cookie sesi (Sanctum SPA)
+   ▼
+Laravel (localhost:8000)
+   │
+   ├── PostgreSQL 18   127.0.0.1:5432   (Docker)
+   └── Redis 8         127.0.0.1:6379   (Docker)
+```
+
+Backend Laravel adalah sumber kebenaran untuk autentikasi, otorisasi, validasi, dan aturan
+bisnis. Pemeriksaan di frontend hanya untuk pengalaman pengguna.
 
 ## Struktur Repositori
 
 ```text
 notary-ppat-office-management/
-├── frontend/            # Aplikasi Next.js — belum diinisialisasi
-├── backend/             # API Laravel — belum diinisialisasi
+├── frontend/            # Aplikasi Next.js
+├── backend/             # API Laravel
 ├── docs/                # Spesifikasi kanonik
 ├── infra/               # Konfigurasi infrastruktur
 ├── scripts/             # Skrip bantu
-├── .github/             # Reserved untuk CI/CD — belum ada workflow
+├── .github/workflows/   # CI quality gate
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
@@ -25,19 +44,163 @@ notary-ppat-office-management/
 └── docker-compose.yml   # Infrastruktur development lokal saja
 ```
 
-## Technology Baseline
+## Prasyarat
 
-| Lapisan | Baseline |
-| --- | --- |
-| Frontend | Next.js 16.x, TypeScript, Tailwind CSS, shadcn/ui, next-intl, TanStack Query |
-| Runtime | Node.js >= 20.9, pnpm |
-| Backend | Laravel 13.x, PHP >= 8.3, Sanctum, Spatie Laravel Permission |
-| Database | PostgreSQL 18.x (minor release terbaru yang didukung) |
-| Cache/Queue | Redis 8.x |
-| Testing | Pest (backend), lint/typecheck/build (frontend) |
+| Kebutuhan | Versi | Catatan |
+| --- | --- | --- |
+| Node.js | 24.x LTS | Minimum Next.js adalah >= 20.9; lihat D-013 |
+| pnpm | 11.x | Diaktifkan lewat Corepack yang menyertai Node 24 |
+| PHP | >= 8.3 | Workstation saat ini memakai 8.4; jangan pakai fitur khusus 8.4 |
+| Composer | 2.x | |
+| Docker Desktop | terbaru | Hanya untuk PostgreSQL dan Redis |
 
-Versi di atas berasal dari spesifikasi dan **belum diverifikasi** terhadap rilis yang
-tersedia. Periksa sebelum instalasi.
+Frontend dan backend berjalan **native**, bukan di dalam container.
+
+## URL Development
+
+```text
+Frontend     http://localhost:3000
+Backend      http://localhost:8000
+PostgreSQL   127.0.0.1:5432
+Redis        127.0.0.1:6379
+```
+
+Gunakan `localhost` secara konsisten di browser. Cookie sesi terikat pada nama host, jadi
+mencampur `localhost` dan `127.0.0.1` dalam satu alur login akan memutus sesi.
+
+## Penyiapan dari Clone Baru
+
+Jalankan ketiga langkah berikut berurutan. Perintah diberi label direktori asalnya.
+
+### 1. Infrastruktur — dari root repositori
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Compose hanya menjalankan PostgreSQL dan Redis. Keduanya di-bind ke `127.0.0.1`, jadi tidak
+terekspos ke jaringan.
+
+Kata sandi PostgreSQL memakai fallback khusus development yang tertulis langsung di
+`docker-compose.yml`. Untuk memakai kata sandi sendiri, buat `.env` di root berisi
+`POSTGRES_PASSWORD=...` sebelum container pertama kali dibuat, lalu pakai nilai yang sama di
+langkah berikutnya. Berkas itu tidak ikut ter-commit.
+
+Menghentikan container tanpa menghapus data:
+
+```bash
+docker compose down
+```
+
+> **Peringatan:** `docker compose down -v` ikut menghapus named volume
+> `notary_ppat_postgres_data` dan `notary_ppat_redis_data` beserta seluruh isinya. Jangan
+> dipakai sebagai perintah shutdown harian.
+
+### 2. Backend — dari `backend/`
+
+```bash
+cd backend
+composer install
+```
+
+Buat `.env` lokal dari contoh yang tersedia:
+
+```bash
+# PowerShell
+Copy-Item .env.example .env
+
+# bash
+cp .env.example .env
+```
+
+```bash
+php artisan key:generate
+```
+
+Lalu buka `backend/.env` dan isi `DB_PASSWORD` dengan kata sandi PostgreSQL yang dipakai
+container pada langkah 1 — nilai fallback development-nya terlihat di `docker-compose.yml`.
+
+`backend/.env` sudah masuk `.gitignore`. **Jangan** meng-commit berkas itu, dan jangan
+membagikan `APP_KEY`.
+
+Jalankan migrasi:
+
+```bash
+php artisan migrate
+```
+
+> `composer install` **tidak** membuat `.env` dan tidak membuat `APP_KEY`. Hook itu hanya
+> berjalan saat repositori pertama kali dibuat dengan `create-project`. Karena itu kedua
+> langkah di atas wajib dilakukan manual pada setiap clone baru. Lihat D-019.
+
+### 3. Frontend — dari `frontend/`
+
+```bash
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+```
+
+Berkas environment **tidak wajib**. Aplikasi sudah memakai default `http://localhost:8000`
+untuk API dan `http://localhost:3000` untuk dirinya sendiri. Salin `.env.example` menjadi
+`.env.local` hanya bila salah satu URL itu perlu diubah.
+
+Seluruh variabel berawalan `NEXT_PUBLIC_` terlihat di browser. Jangan pernah menaruh kata
+sandi database, `APP_KEY`, atau rahasia lain di sana.
+
+## Menjalankan Aplikasi
+
+Dua terminal:
+
+```bash
+# terminal 1 — dari backend/
+php artisan serve --host=127.0.0.1 --port=8000
+
+# terminal 2 — dari frontend/
+pnpm dev
+```
+
+Buka <http://localhost:3000>. Pengguna anonim diarahkan ke `/id/login`.
+
+Belum ada pengguna bawaan dan **tidak ada seeder akun** — seluruh manajemen pengguna, role,
+dan permission adalah pekerjaan M1. Untuk mencoba secara lokal, buat satu pengguna melalui
+`php artisan tinker`.
+
+## Perintah Mutu
+
+Backend, dari `backend/`:
+
+```bash
+vendor/bin/pint --test     # format
+php artisan test           # Pest, SQLite in-memory, tidak butuh Docker
+php artisan migrate:status
+```
+
+Frontend, dari `frontend/`:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+Perintah yang sama dijalankan otomatis oleh CI pada setiap push dan pull request — lihat
+`.github/workflows/quality.yml`.
+
+## Rute dan Bahasa
+
+Rute selalu diawali locale, dan nama rute tetap dalam bahasa Inggris di kedua locale:
+
+```text
+/id/login       /en/login
+/id/dashboard   /en/dashboard
+```
+
+`/` selalu mengarah ke `/id`. Locale ditentukan **hanya** oleh URL — tanpa deteksi
+`accept-language` dan tanpa cookie locale. Lihat D-020.
 
 ## Dokumentasi
 
@@ -58,60 +221,26 @@ Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
 | [docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) | Spesifikasi implementasi M0 |
 | [docs/11_LEGAL_REFERENCES.md](docs/11_LEGAL_REFERENCES.md) | Register rujukan hukum |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan dokumentasi |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan |
 
 Dokumen 08 dan 09 **tidak boleh** dipakai untuk mengimplementasi alur kerja hukum sebelum
 divalidasi oleh sumber domain.
 
-## Menjalankan Infrastruktur Lokal
-
-Hanya PostgreSQL dan Redis. Frontend dan backend berjalan native, bukan dalam container.
-
-```bash
-docker compose up -d
-docker compose ps
-```
-
-Port yang dipakai (di-bind ke `127.0.0.1` saja):
+## Milestone
 
 ```text
-PostgreSQL   5432
-Redis        6379
+M0   Foundation                  selesai
+M1   Identity & Access Management
+M2   Party / Individual / Company
+M3   Project Management
+M4   Matter & Workflow Engine
+M5   Documents & Tasks
+M6   Notary Module
+M7   PPAT Module
+M8   Dashboard, Billing & Reports
 ```
 
-Kata sandi PostgreSQL memakai fallback khusus development. Untuk menggantinya, buat berkas
-`.env` lokal di root berisi `POSTGRES_PASSWORD=...`. Berkas itu tidak ikut ter-commit.
-
-Menghentikan:
-
-```bash
-docker compose down
-```
-
-Menghapus sekaligus volume data:
-
-```bash
-docker compose down -v
-```
-
-## Langkah Berikutnya
-
-Urutan pengerjaan mengikuti [docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) §66:
-
-```text
-M0.1   Repository & environment      ← sedang berjalan
-M0.2   Frontend initialization
-M0.3   Backend initialization
-M0.4   PostgreSQL & Redis
-M0.5   i18n
-M0.6   Design system
-M0.7   Authentication
-M0.8   Authorization foundation
-M0.9   Application shell
-M0.10  Tests & documentation
-```
-
-Perintah build, run, dan test akan ditambahkan setelah M0.2 dan M0.3.
+Urutan ini mengikuti [docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) dan `CLAUDE.md` §2.
 
 ## Lisensi
 

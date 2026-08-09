@@ -1,0 +1,104 @@
+# Quality gate for the Notary & PPAT Office Management System.
+#
+# Runs exactly the commands documented in README.md, so a green run means the
+# documented developer workflow still works. Nothing is deployed and no secret
+# is referenced.
+#
+# The backend job pins PHP 8.3 — the canonical minimum in docs/DECISIONS.md
+# D-005 — while the workstation runs 8.4. That difference is the point: it
+# catches accidental use of 8.4-only syntax before it reaches anyone else.
+#
+# No PostgreSQL or Redis service is declared. The Pest suite runs against
+# in-memory SQLite with array cache and session drivers, configured in
+# backend/phpunit.xml, so it is deliberately independent of Docker.
+
+name: Quality
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        # Corepack ships with Node 24 and pins pnpm from the packageManager
+        # field in package.json, so the CI version matches the lockfile.
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        # Generates Next.js route types first; a clean checkout has no .next.
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_pgsql, pgsql, redis, mbstring, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php8.3-
+
+      - name: Install
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        # composer install does not create .env or a key — those hooks only run
+        # on create-project. Same two manual steps the README documents.
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Format
+        run: vendor/bin/pint --test
+
+      - name: Tests
+        run: php artisan test
