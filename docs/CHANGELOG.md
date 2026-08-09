@@ -1,7 +1,926 @@
 # Notary & PPAT Office Management System
 ## Documentation Changelog
 
-Records changes to the specification documents only. No application code exists yet.
+Records specification changes and milestone results.
+
+---
+
+## 2026-08-09 — Composer lock aligned with PHP 8.3
+
+Branch `feat/m0-foundation`. Fixes the backend CI failure that the first real GitHub Actions
+runs exposed. Frontend job was already passing and is untouched.
+
+### Cause
+
+The workstation runs PHP 8.4.23; the project supports `^8.3`. Composer resolves against the
+PHP it runs on, so the committed lockfile selected Symfony 8.1.x, which requires
+`php >=8.4.1`. CI on PHP 8.3.33 reported `Your lock file does not contain a compatible set
+of packages`. The reported blocker named one package; `composer prohibits php 8.3.33`
+showed **sixteen**.
+
+### Fix
+
+Added `config.platform.php = "8.3.0"` to `backend/composer.json` and re-resolved narrowly:
+
+```bash
+composer update "symfony/*" --with-all-dependencies --minimal-changes
+```
+
+Result — 16 Symfony packages downgraded 8.1.x → 7.4.x, `symfony/polyfill-php83` added,
+**zero upgrades, zero removals, zero non-Symfony changes**. Laravel 13.24.0, Sanctum 4.3.3,
+Spatie 8.3.0, Pest 4.7.8, Pint 1.30.4, and PHPUnit 12.5.33 are all unchanged. Laravel 13
+already accepts `symfony/* ^7.4.0 || ^8.0.0`, so no requirement was relaxed to achieve this.
+
+The project floor stays `php: ^8.3` and CI stays on PHP 8.3. Raising either would have
+hidden the defect rather than fixed it — no required dependency needs 8.4. Recorded as
+**D-025**.
+
+### Verified
+
+`composer prohibits php 8.3.0` and `php 8.3.33` both report no prohibitions;
+`composer validate --strict` passes; a clean `composer install` from the committed
+`composer.json` + `composer.lock` alone (no vendor, no `.env`) succeeds and installs Symfony
+packages requiring only `php >=8.2`. On the local 8.4 runtime, Pint passes and all 38 tests
+pass. Frontend has no tracked change and all four gates still pass.
+
+Local checks cannot prove a PHP 8.3 runtime — the CLI here is 8.4. **GitHub Actions remains
+the verification**, and O-006 stays open operationally until a real run passes.
+
+---
+
+## 2026-08-09 — M0.10 Foundation Acceptance — **M0 COMPLETE**
+
+Branch `feat/m0-foundation`. No feature work; this milestone proves the foundation is
+reproducible and accepts it.
+
+### The one real defect found
+
+The README still described the **M0.1** state — it claimed the frontend and backend were
+not yet initialized and carried no setup, migration, or quality commands. A new developer
+could not have set the project up from it. That is a reproducibility failure, so it was
+rewritten before the clean-clone test and the clone was then set up by following it
+literally.
+
+The rewrite documents the D-019 gap explicitly: `composer install` creates neither `.env`
+nor `APP_KEY`, because those hooks only run on `create-project`, so both are manual on
+every clone. It also records that the frontend needs no environment file, that Docker runs
+only PostgreSQL and Redis, and that `docker compose down -v` destroys the named volumes.
+
+### Clean-clone verification
+
+Cloned fresh from `origin` into a separate directory — not copied — with no `node_modules`,
+`.next`, `vendor`, or `.env`. Following the README verbatim:
+
+```text
+docker compose up -d          idempotent; reused the running containers, volumes intact
+composer install              OK
+.env + key:generate           new APP_KEY, verified different from the primary checkout
+php artisan migrate:fresh     all 5 migrations from zero
+pint --test / artisan test    PASS — 38 tests, 119 assertions
+pnpm install --frozen-lockfile / format:check / lint / typecheck / build   PASS
+```
+
+Both servers booted from the clone, and a 22-point acceptance passed end to end:
+`/` → `/id`; both login pages render without the shell; anonymous dashboards return real
+307s to the same-locale login; CSRF-less login is rejected with 419; invalid credentials
+return a generic 422; login 204; `/api/v1/me` returns a 26-character ULID with `roles` and
+`permissions` and no credential fields; the session survives repeated requests; the
+authenticated shell renders in both locales; the locale switch preserves `/dashboard`;
+logout 204, then 401, then redirect; replayed pre-logout cookies still redirect.
+
+Compose sets `name: notary-ppat-office` explicitly, so project identity does not depend on
+the directory — which is why the clone reused the existing stack rather than building a
+second one. Recorded as **D-024**.
+
+### O-006 resolved on its own terms
+
+CI was deferred until executable quality gates existed on both sides. They now do, so
+`.github/workflows/quality.yml` was added, running exactly the README commands. The backend
+job pins **PHP 8.3**, the canonical minimum, while the workstation runs 8.4 — that gap is
+the point. No PostgreSQL or Redis service is needed because the Pest suite uses in-memory
+SQLite. No secrets, no deployment. Validated locally; **not yet observed running on
+GitHub**.
+
+### Open items
+
+O-017, O-018, O-020, O-021, and O-022 were each classified against the Definition of Done
+and **none blocks M0**. None was closed for checklist tidiness; the reasoning is recorded in
+`DECISIONS.md`.
+
+### Result
+
+All eighteen Definition of Done items in `10_M0_FOUNDATION.md` section 77 verified.
+**M0 Foundation is complete.** No business module exists — M1 begins with Identity & Access
+Management.
+
+---
+
+## 2026-08-09 — M0.9 Authenticated Application Shell
+
+Branch `feat/m0-foundation`. Frontend composition only — **no backend change**, verified
+with `git status -- backend`.
+
+### Structure
+
+Authenticated pages now share `src/app/[locale]/(app)/layout.tsx`. `(app)` is a route
+group, so URLs are unchanged: `/id/dashboard`, not `/id/app/dashboard`. The layout verifies
+the session once by asking Laravel through the existing `fetchCurrentUser()`, redirects to
+the same-locale login on 401, and renders `AppShell`. Future pages inherit the check
+instead of each repeating one.
+
+Login stays outside the group and renders no shell — confirmed in the served HTML: no
+`<aside>`, no account menu, no navigation trigger.
+
+No `loading.tsx` was added at or above the authenticated boundary. The M0.7 defect it would
+reintroduce is recorded in D-022, and anonymous protection was re-verified as a real 307.
+
+### Composition
+
+`AppShell` now takes the already-resolved user rather than fetching its own. The header
+carries the mobile navigation trigger, application name, locale switch, and an account menu
+showing name and email with sign out. Desktop sidebar is 256px and hidden below `lg`; a
+`Sheet` drawer takes over there, rendering the **same** `SidebarNav`, so there is one menu
+definition rather than two that drift.
+
+Navigation filters generically on `requiredPermission` against effective permissions —
+never on role names. Dashboard has none, so it is visible to any authenticated user, and it
+remains the only destination: no links were created to modules that do not exist.
+
+The `["auth", "me"]` cache is seeded from the server layout via `HydrationBoundary`, so
+client components read the user the server already fetched. No second store, no context
+mirror, nothing in browser storage.
+
+**Search, quick create, and notifications were omitted, not stubbed.** Each depends on
+modules that do not exist; a disabled control invites "why is this greyed out?" and an
+enabled one would lie. They are documented as reserved header slots.
+
+The dashboard is a placeholder: heading, subtitle, and one sentence. Full visible text on
+the page is the shell chrome plus those three strings — no counts, charts, deadlines, or
+activity.
+
+### Verified
+
+Fourteen checks over a real cookie jar, redirects never followed. Anonymous `/` → `/id` →
+`/id/dashboard` → `/id/login`, and `/en/dashboard` → `/en/login`, all real 307s.
+Authenticated `/id/dashboard` returns 200 with sidebar, header, `<main>`, placeholder,
+user identity, locale switch, active `aria-current="page"`, and `lang="id"`; refresh keeps
+it; `/en/dashboard` renders English. The locale switch on `/en/dashboard` targets
+`/id/dashboard`, preserving the route. Logout returns 204, after which the dashboard
+redirects to login and replayed pre-logout cookies do too.
+
+Backend regression: Pint passes and all 38 tests pass, unchanged. Translation parity exact
+at 49 keys. Temporary user and authorization rows removed.
+
+Desktop sidebar collapse (72px rail) is deferred — see the open item.
+
+---
+
+## 2026-08-09 — M0.8 Authorization Foundation
+
+Branch `feat/m0-foundation`. `spatie/laravel-permission` **8.3.0**. Package foundation only:
+the real role matrix, Data Scope, and office isolation all remain M1.
+
+### Backend
+
+Config and migration published, then the migration was **corrected before it ran**: the
+package ships `unsignedBigInteger` for the morph key in both `model_has_permissions` and
+`model_has_roles`, which cannot hold a ULID. Both were changed to `ulid()`, applying the
+consequence D-023 already recorded. The column keeps its default semantic name `model_id`.
+
+```text
+roles.id / permissions.id          bigint      package-native, unchanged
+model_has_roles.model_id           char(26)    ULID
+model_has_permissions.model_id     char(26)    ULID
+```
+
+Package defaults preserved — `teams: false`, `enable_wildcard_permission: false`, cache
+store `default` (Redis), guard `web`. `User` gained `HasRoles` alongside `HasUlids`; no role
+or permission column was added to `users`.
+
+`GET /api/v1/me` now returns `roles` and `permissions`. Permissions are **effective** —
+resolved by the package across direct grants and role inheritance, then de-duplicated and
+sorted for stable output. Names only: no ids, pivots, or guard internals.
+
+### Frontend
+
+`CurrentUser` gained `roles: string[]` and `permissions: string[]`. Added a `can()` helper
+(exact string match, no wildcards, no role fallback), a `useCurrentUser` hook reading the
+existing `["auth", "me"]` query, and `PermissionGuard`. There is no second user store and
+nothing in browser storage. **Guards are presentation only** — every protected action is
+authorized again by the backend.
+
+### Verified
+
+38 backend tests pass on in-memory SQLite, so the ULID pivot works there as well as on
+PostgreSQL. Live PostgreSQL check: a role-derived permission makes `$user->can()` true
+through Laravel's Gate, an unrelated permission is false, a user with no role is denied, and
+`model_has_roles.model_id` holds the complete 26-character ULID. Over HTTP, `/api/v1/me`
+returned the role name and inherited permission for one user and empty arrays for another.
+All 20 M0.7 authentication checks still pass unchanged.
+
+No role seed, no `Gate::before` Super Admin bypass, no Data Scope, no business policies or
+tables. All temporary users, roles, and permissions were removed — every authorization
+table is back to zero rows.
+
+---
+
+## 2026-08-09 — O-019 User primary key aligned with the ULID strategy
+
+Branch `feat/m0-foundation`. Closes O-019. Done before M0.8, not during it: Spatie's
+polymorphic `model_has_roles` / `model_has_permissions` keys must match the User key type,
+so the correction had to land before the package is installed.
+
+### Cause
+
+The Laravel scaffold created `users.id` as an auto-incrementing bigint. The canonical key
+strategy for our own domain tables is ULID — `CLAUDE.md` section 11,
+`03_DATABASE_ERD.md` section 2, `06_API_CONVENTIONS.md` section 14. `users` is listed as a
+core table in the ERD, so the section 45 exemption for third-party package tables does not
+apply. The documents agree with each other; only the scaffold disagreed.
+
+### Change
+
+```text
+users.id          bigint            ->  char(26) ULID, primary key
+sessions.user_id  bigint nullable   ->  char(26) ULID nullable, index preserved
+User model                          ->  HasUlids
+CurrentUser.id    number            ->  string (opaque identifier)
+```
+
+The scaffold migration was corrected in place rather than layered with a conversion
+migration, so a clean clone builds the right schema from the first migration. That is a
+deliberate exception to D-019, permitted here because the users table held zero rows,
+nothing has shipped, and Spatie is not installed. Recorded as **D-023**.
+
+`sessions.user_id` had to change with it — a bigint there would silently fail to store
+`Auth::id()` once anyone logged in.
+
+### Verification
+
+Local schema rebuilt with `migrate:fresh` after confirming `APP_ENV=local`,
+`DB_DATABASE=notary_ppat_office`, zero users, and no business tables. PostgreSQL now shows
+`users.id char(26)` as primary key and `sessions.user_id char(26)` with its index intact;
+`preferred_locale`, `is_active`, and `last_login_at` survive.
+
+Backend suite 25 passing on in-memory SQLite, so the corrected migrations also build from
+scratch there. Full M0.7 flow re-run against a real ULID user: login, `/api/v1/me`
+returning `"id":"01kz…"` as a quoted string, protected dashboard in both locales, logout,
+401, and stale-cookie rejection. The session row was confirmed to hold the full 26-character
+ULID and to join back to `users`.
+
+Temporary user deleted; users table back to zero rows. Pint and all four frontend gates
+pass. No Spatie package or tables, no `personal_access_tokens`, no business tables.
+
+---
+
+## 2026-08-09 — M0.7 Authentication Foundation
+
+Branch `feat/m0-foundation`. Laravel Sanctum **4.3.3**, first-party SPA session
+authentication. No API token is issued anywhere.
+
+### Backend
+
+Sanctum installed with plain Composer, not `install:api`, which would have rewritten the
+existing API routing and added token infrastructure. Sanctum 4.3.3 only *publishes* its
+migration rather than loading it, so **no `personal_access_tokens` table exists**.
+`statefulApi()` enabled; `config/sanctum.php` and `config/cors.php` published.
+
+CORS names the frontend origin explicitly with `supports_credentials`, replacing the
+framework default of `allowed_origins: ['*']` with credentials off — a wildcard is invalid
+for credentialed requests and browsers reject it.
+
+New user columns from `10_M0_FOUNDATION.md` section 44: `preferred_locale` (default `id`),
+`is_active` (default true), `last_login_at`. `office_id` deliberately omitted — no offices
+table exists. `is_active` and `last_login_at` are not fillable.
+
+Routes: `GET /sanctum/csrf-cookie`, `POST /login`, `POST /logout`, `GET /api/v1/me`
+(`auth:sanctum`). `GET /api/v1/health` unchanged and still public.
+
+`is_active` is part of the credential lookup rather than a check after the password
+matches, so a disabled account fails identically to a wrong password and the response
+cannot be used to enumerate accounts. Login throttles on normalized email plus IP, five
+attempts, returning 429 with `Retry-After`.
+
+### Frontend
+
+Centralized Axios client (`withCredentials`, `withXSRFToken`), TanStack Query provider,
+typed auth service, localized `/id/login` and `/en/login` with React Hook Form and Zod,
+and a protected `/id/dashboard` / `/en/dashboard`.
+
+Route protection asks Laravel rather than trusting a cookie: the server component forwards
+the browser's cookies to `GET /api/v1/me` and redirects on 401. Cookie presence is never
+treated as authentication.
+
+### Verified against both servers running
+
+Twenty checks over a real cookie jar on `localhost` throughout. CSRF cookie issued
+(`XSRF-TOKEN` readable, session cookie HttpOnly); **`POST /login` without the CSRF header
+is rejected with 419**; `/` → `/id` → `/id/dashboard` → `/id/login` when anonymous; login
+204; `/api/v1/me` 200 with id, name, email, preferred_locale and nothing else; session
+survives repeated requests; dashboard renders in both locales; logout 204; `/api/v1/me`
+then 401; dashboard redirects again; replaying pre-logout cookies still redirects. Login
+throttling observed live as five 422s followed by 429.
+
+The temporary smoke user was created with a random password, never printed or committed,
+and deleted afterwards — the users table is back to zero rows.
+
+### Two corrections made during the work
+
+`[locale]/loading.tsx` was **removed**. It wrapped every child route in a Suspense
+boundary, so the protected dashboard streamed a 200 with a skeleton and resolved the
+redirect on the client — anonymous protection stopped being HTTP-verifiable. Without it
+the redirect is a real 307. `LoadingSkeleton` remains available for future data pages.
+
+The server-side session check now sends an `Origin` header. Sanctum chooses cookie versus
+token authentication by matching Origin/Referer against its stateful domains; a
+server-to-server fetch sends neither, so every request looked anonymous and the dashboard
+silently redirected even when signed in.
+
+No Spatie package, no roles or permissions, no business tables, no Docker change.
+
+---
+
+## 2026-08-09 — M0.6 UI Foundation
+
+Branch `feat/m0-foundation`. Frontend only. Reusable presentational foundations; the
+authenticated shell remains M0.9.
+
+### Added
+
+```text
+src/app/globals.css              semantic tokens from 04_UI_DESIGN_SYSTEM sections 5-8
+src/config/navigation.ts         menu config, per CLAUDE.md section 47
+src/components/layout/           AppShell, AppSidebar, AppHeader, PageContainer
+src/components/feedback/         LoadingSkeleton, BaseErrorState
+src/components/ui/               shadcn Button, Skeleton, Separator
+src/app/[locale]/loading.tsx     route loading boundary
+src/app/[locale]/error.tsx       route error boundary
+```
+
+Tokens carry the spec's own values — primary `#172554`, page `#F8FAFC`, card `#FFFFFF`,
+border `#E2E8F0` — converted to OKLCH with the source hex kept in comments. Added
+`success` / `warning` / `info` and the `notary` / `ppat` domain accents required by
+`10_M0_FOUNDATION.md` section 32. Dark-mode parity preserved; no theme switch shipped.
+
+AppShell is layout only: it does not read the current user, call `/api/v1/me`, inspect
+permissions, or guard routes. The sidebar shows the Dashboard placeholder alone —
+advertising modules with no routes would misrepresent what exists. The header carries
+application context and the M0.5 locale switch; search, notifications, quick create, and
+the user menu are omitted rather than faked.
+
+`error.tsx` never renders or logs the `Error` object Next.js hands it, so a server-side
+detail cannot reach the interface through it.
+
+### O-014 resolved
+
+Typography is now **Inter**, the only typeface named in `04_UI_DESIGN_SYSTEM.md`
+section 4, self-hosted through `next/font`. Geist is gone. No new decision was needed —
+the canonical document was never ambiguous; `D-017` had recorded Geist as an incidental
+shadcn preset default awaiting this milestone.
+
+Found while fixing it: `--font-sans: var(--font-sans)` in the scaffold's `globals.css` was
+self-referential, so **no** custom sans font had ever applied — the app had been rendering
+in the browser default. Verified in the production CSS that `font-family: Inter` now
+resolves.
+
+### Two findings worth recording
+
+**`loading.tsx` silently cost static rendering.** Adding it flipped `/id` and `/en` from
+prerendered to server-rendered on demand. Next.js gives `loading.tsx` no `params`, so a
+server component there cannot call `setRequestLocale`, and next-intl falls back to reading
+the locale from the request — which opts the whole segment out. Making `LoadingSkeleton` a
+client component, where messages come from `NextIntlClientProvider`, restored SSG. Bisected
+against the build output, not guessed.
+
+**A localized `not-found.tsx` was written and then removed.** Next.js uses the *root*
+not-found for unmatched URLs; a nested one only catches `notFound()` thrown inside its own
+segment, and the proxy guarantees the locale segment is always valid, so it never rendered.
+Making it work needs a catch-all route — a routing change outside M0.6. The built-in 404
+stays for now. See open item O-017.
+
+`pnpm format:check`, `lint`, `typecheck`, `build` all pass; both locales still prerender.
+Message parity exact at 25 keys. No backend, Docker, authentication, authorization, or
+business-module change.
+
+---
+
+## 2026-08-09 — M0.5 Internationalization Foundation
+
+Branch `feat/m0-foundation`. Frontend only. `next-intl` 4.13.5.
+
+### Added
+
+```text
+frontend/src/i18n/routing.ts      locales id + en, default id
+frontend/src/i18n/navigation.ts   locale-aware Link / router helpers
+frontend/src/i18n/request.ts      per-request messages
+frontend/src/proxy.ts             locale negotiation and prefixing
+frontend/src/app/[locale]/        layout + minimal foundation page
+frontend/src/components/locale-switcher.tsx
+frontend/messages/{id,en}.json    8 canonical namespaces
+```
+
+`src/app/layout.tsx` and `src/app/page.tsx` were removed; `[locale]/layout.tsx` is now the
+root layout and sets `<html lang>` from the active segment. The scaffold's hardcoded
+English strings and the `Create Next App` title are gone — every visible label resolves
+through a translation key.
+
+### Verified against a running dev server
+
+```text
+/            307 -> /id, including for an en-US browser
+/id          200, lang="id", Indonesian
+/en          200, lang="en", English
+/fr          307 -> /id/fr -> 404, never a third locale
+ID <-> EN    switch traverses /id <-> /en, content and lang follow
+refresh      /id stays Indonesian, /en stays English
+```
+
+Message parity: 13 keys each, no key missing in either direction. The three values that
+match across locales are the product name and the two language endonyms.
+
+`pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm format:check` all pass. Both locales
+prerender as static HTML.
+
+### Two deviations from library defaults, both deliberate
+
+**Locale detection is off** (`localeDetection: false`, `localeCookie: false`). By default
+next-intl negotiates from `accept-language` and a cookie, which made `/` non-deterministic
+— an English browser landed on `/en`, so Indonesian was not really the default. Measured
+before the change. The URL is now the only source of locale. Remembering a person's
+language belongs to `preferred_locale` on their profile in a later identity milestone.
+
+**The middleware file is `src/proxy.ts`, not `src/middleware.ts`.** Next.js 16.3 deprecates
+the `middleware` convention and warns on every build. next-intl still publishes the handler
+as `next-intl/middleware`, but it is a plain `(NextRequest) => NextResponse`, so only the
+file name changes.
+
+### Also
+
+`pnpm add next-intl` appended unresolved placeholders to `frontend/pnpm-workspace.yaml`
+for `@parcel/watcher` and `@swc/core`, which made every later `pnpm install` — and so
+`pnpm lint` — fail with `ERR_PNPM_IGNORED_BUILDS`. Both are optional to next-intl and ship
+prebuilt binaries, so both were denied, matching the existing `sharp: false` /
+`unrs-resolver: false` posture. `pnpm install --frozen-lockfile` now succeeds.
+
+No backend, Docker, or infrastructure change. No authentication, authorization, app shell,
+or business module.
+
+---
+
+## 2026-08-09 — M0.4 PostgreSQL & Redis Application Integration
+
+Branch `feat/m0-foundation`. Connectivity and migration only. No business schema, no
+authentication, no authorization.
+
+### Observed infrastructure
+
+```text
+PostgreSQL   18.4 (Debian 18.4-1.pgdg13+1)   server_version_num 180004   healthy
+Redis        8.10.0 standalone                                           healthy
+```
+
+Both containers were already running. `docker-compose.yml` was read but not modified, no
+container or volume was recreated, and `docker compose down -v` was never run.
+
+### Laravel → PostgreSQL
+
+Verified through Laravel's own configured connection over TCP `127.0.0.1:5432`, not merely
+by `psql` inside the container over a unix socket — the container-side check proves Docker
+is alive, the host-side check proves the application's path works.
+
+```text
+laravel driver        pgsql
+PDO driver            pgsql
+PDO server version    18.4
+current_database()    notary_ppat_office
+current_user          notary_app
+encoding              UTF8
+```
+
+### Migrations
+
+Only the three standard Laravel 13 scaffold migrations were present, unmodified since
+M0.3. No business or domain migration was created.
+
+```text
+0001_01_01_000000_create_users_table   Ran   [1]
+0001_01_01_000001_create_cache_table   Ran   [1]
+0001_01_01_000002_create_jobs_table    Ran   [1]
+```
+
+`php artisan migrate` — not `migrate:fresh`. No seeder was run. Nine tables now exist in
+`public`, all Laravel infrastructure:
+
+```text
+migrations   users   password_reset_tokens   sessions
+cache        cache_locks   jobs   job_batches   failed_jobs
+```
+
+A pattern check against the domain vocabulary — client, party, project, matter, workflow,
+document, task, notary, ppat, property, warkah, billing, deed, minuta, repertorium —
+returned no matches.
+
+### Laravel → Redis
+
+Two independent paths were exercised from the application, each with a unique namespaced
+M0.4 key, each deleted afterwards.
+
+```text
+Redis facade   default connection, database 0   write / read / verify / delete   PASS
+Cache store    Illuminate\Cache\RedisStore
+               cache connection, database 1     put / get / verify / forget      PASS
+```
+
+The client is **phpredis 6.1.0**, the compiled extension already supplied by Herd.
+Predis was not installed — it is unnecessary when phpredis is present and Laravel
+supports it directly.
+
+Cleanup verified by scanning both databases with `SCAN` for `*m0_4*` and `*probe*`: no
+matches, and `DBSIZE` is `0` for database 0 and database 1. Redis was never flushed;
+`FLUSHALL` and `FLUSHDB` were not run, and persistence configuration was untouched.
+
+### Driver bootstrap sanity
+
+Configuration resolves and each backing table is present and readable. No worker was
+started and no job was enqueued — `Queue::size()` is a COUNT.
+
+```text
+session   database   Illuminate\Session\DatabaseSessionHandler   sessions table present
+queue     database   Illuminate\Queue\DatabaseQueue              jobs table readable, 0 pending
+cache     redis      Illuminate\Cache\RedisStore                 database 1
+```
+
+Worth recording: the scaffold's `cache` and `cache_locks` tables were created by
+`0001_01_01_000001_create_cache_table` but are **unused**, because `CACHE_STORE=redis`.
+They are standard scaffold output and were left in place rather than removed.
+
+### Quality gate
+
+```text
+vendor/bin/pint --test   PASS
+php artisan test         PASS   3 passed, 4 assertions
+```
+
+No test was added and none was rewritten. `phpunit.xml` keeps Laravel's defaults —
+`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`, `CACHE_STORE=array`,
+`SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync` — so the suite stays runnable on a machine
+with no Docker at all. Deliberately **no** infrastructure-dependent test was introduced:
+that would couple the quality gate to a running container and turn an environment outage
+into a red suite. Connectivity is proven by explicit verification instead.
+
+The first run after `config:clear` took 29.6s; the two runs after it took 0.65s and 0.71s.
+Cold-start rebuild, not an infrastructure dependency.
+
+### Configuration
+
+All M0.4 configuration is local and lives in the gitignored `backend/.env`. `DB_PASSWORD`
+was set to the development-only credential that `docker-compose.yml` already defines; the
+value was read from the running container rather than assumed, and confirmed to be the
+compose fallback. It was **not** copied into `.env.example`, which keeps `APP_KEY=` and
+`DB_PASSWORD=` empty. `APP_KEY` was not altered. The file's LF endings and absence of a
+BOM were preserved.
+
+`php artisan config:clear` was run so no stale configuration could affect verification.
+
+### Not done — deferred by scope
+
+```text
+Business schema and models     M2 onward
+Sanctum, CSRF, CORS, login     M0.7
+/api/v1/me                     M0.7
+Spatie Laravel Permission      M0.8
+i18n, app shell, dashboard     M0.5, M0.6, M0.9
+```
+
+`frontend/` and `docker-compose.yml` unchanged, verified with `git diff`. No open item was
+closed: none is resolved by M0.4. No new decision was recorded — connectivity working as
+designed is not an architectural decision.
+
+---
+
+## 2026-08-09 — Backend EditorConfig alignment
+
+Branch `feat/m0-foundation`. Closes O-016, raised by M0.3 below. No new decision; D-011
+remains the canonical formatting decision and gained a scope note.
+
+### Cause
+
+The Laravel skeleton ships its own `backend/.editorconfig` declaring `root = true`. That
+directive halts EditorConfig's upward search, so the repository `.editorconfig` — and with
+it D-011 — stopped at the `backend/` boundary and never governed a single file inside it.
+
+Measured with the reference `editorconfig` resolver rather than inferred:
+
+```text
+backend/composer.json     indent_size=4     D-011 requires 2
+backend/package.json      indent_size=4     D-011 requires 2
+backend/vite.config.js    indent_size=4     D-011 requires 2
+```
+
+PHP was unaffected only by coincidence — both files happen to specify 4 spaces.
+
+### Fix
+
+```text
+deleted   backend/.editorconfig     18 lines
+```
+
+Deletion rather than editing. Removing only `root = true` would have left the file's
+`[*] indent_size = 4` block in place, and as the nearer file it still wins over the root
+file's `[*.{json,jsonc}]` rule — the override would have survived in a less visible form.
+
+Every rule the backend file carried already exists in the root file, with one exception:
+`[compose.yaml] indent_size = 4`, a Laravel Sail convention. No `compose.yaml` exists and
+`backend/` contains no YAML at all, so nothing regressed. Any future `compose.yaml` would
+take 2 spaces from the root `[*.{yml,yaml}]` rule, which is repository policy.
+
+### Verification
+
+Resolved properties after the fix:
+
+```text
+backend/**.php                4     backend/composer.json     2
+backend/**.blade.php          4     backend/package.json      2
+backend/phpunit.xml           4     backend/vite.config.js    2
+backend/README.md      trim off     backend/**.css            2
+frontend/**.tsx               2     docker-compose.yml        2
+```
+
+```text
+vendor/bin/pint --test    PASS
+php artisan test          PASS   3 passed, 4 assertions
+```
+
+No generated file was reformatted. Rewriting `composer.json`, `package.json`, or
+`vite.config.js` to 2 spaces would have produced a large diff for no functional gain, and
+Composer and npm both write their own indentation when they rewrite those files regardless
+of EditorConfig. The policy now applies to hand-edited files; the generated ones keep
+whatever their generator emits.
+
+`frontend/` and `docker-compose.yml` unchanged, verified with `git diff`.
+
+---
+
+## 2026-08-08 — M0.3 Backend Initialization
+
+Branch `feat/m0-foundation`. First backend application code in the repository.
+
+### Initialized
+
+```text
+Laravel Framework   13.24.0   (skeleton laravel/laravel v13.0.0)
+PHP runtime         8.4.23    development runtime only; project floor stays >= 8.3
+Composer            2.10.1
+Pest                4.7.8     with pest-plugin-laravel 4.1.0
+Laravel Pint        1.30.4    shipped with the skeleton
+```
+
+Command used:
+
+```bash
+composer create-project laravel/laravel backend "^13.0" --no-scripts --no-interaction
+```
+
+`--no-scripts` was deliberate, not incidental. The skeleton's `post-create-project-cmd`
+runs `key:generate`, creates `database/database.sqlite`, and then runs
+`artisan migrate --graceful`. M0.3 must not touch a database, so the scripts were skipped
+and `key:generate` was invoked on its own afterwards. No SQLite file exists and no
+migration ran. See D-019.
+
+The version constraint `"^13.0"` was explicit rather than relying on "latest", so the
+result cannot drift to Laravel 14 on a later clone.
+
+### Added
+
+| Path | Note |
+|---|---|
+| `backend/` | Laravel 13 application, default structure preserved |
+| `backend/routes/api.php` | Created manually; `install:api` was **not** run, because it installs Sanctum, which belongs to M0.7 |
+| `backend/app/Http/Controllers/HealthController.php` | Invokable controller, returns a bare status flag |
+| `backend/tests/Feature/HealthTest.php` | Pest feature test for the health endpoint |
+| `backend/tests/Pest.php` | Created by `pest --init` |
+
+`bootstrap/app.php` gained one line: `api: __DIR__.'/../routes/api.php'` inside
+`withRouting()`. The default `api` prefix yields the canonical URL.
+
+```text
+GET /api/v1/health   →   200   {"status":"ok"}
+```
+
+The response is asserted with `assertExactJson`, so any future addition of runtime,
+dependency, or configuration detail to this public endpoint fails the test.
+
+### Environment
+
+`backend/.env.example` aligned with `10_M0_FOUNDATION.md` section 48 — PostgreSQL
+connection, `SESSION_DRIVER=database`, `CACHE_STORE=redis`, `QUEUE_CONNECTION=database`,
+Redis host/port, and `FRONTEND_URL`. `APP_KEY` and `DB_PASSWORD` are empty placeholders.
+
+A local `APP_KEY` was generated into `backend/.env` with `php artisan key:generate`.
+`backend/.env` is ignored by `backend/.gitignore` and was verified unstaged. The key value
+is not recorded anywhere in the repository or in this changelog.
+
+`DB_PASSWORD` was deliberately left empty in the local `.env` as well. Supplying the
+development credential is part of M0.4, not M0.3.
+
+### Verification
+
+```text
+Laravel boot                  PASS   php artisan about
+Laravel 13 major              PASS   13.24.0
+APP_KEY configured            PASS   local only, not committed
+GET /api/v1/health            PASS   200, {"status":"ok"}, application/json
+  via 127.0.0.1 and localhost PASS
+  /api/api/v1/health          404    confirmed not created
+  /v1/health                  404    confirmed not created
+Health feature test           PASS
+php artisan test              PASS   3 passed, 4 assertions
+Pest                          PASS   4.7.8
+Pint                          PASS   1.30.4, --test clean
+```
+
+Pint was confirmed to be actually inspecting files rather than trivially passing: a
+deliberately misformatted throwaway file was rejected with eight fixers, then removed.
+
+The health test runs without PostgreSQL or Redis. `phpunit.xml` keeps Laravel's defaults —
+`CACHE_STORE=array`, `SESSION_DRIVER=array`, `QUEUE_CONNECTION=sync`, and an in-memory
+SQLite connection that no test touches.
+
+### Not done — deferred by scope
+
+```text
+Database connectivity test      M0.4
+Migrations                      M0.4
+Redis application integration   M0.4
+Sanctum, CSRF, CORS, login      M0.7
+Spatie Laravel Permission       M0.8
+/api/v1/me                      M0.7
+```
+
+No migration was executed. No database or Redis connection was opened. No Sanctum or
+Spatie package is present — verified against `composer.json` and `composer.lock`. Default
+Laravel migrations remain in source as untouched scaffold.
+
+`frontend/` and `docker-compose.yml` were not modified; both verified with `git diff`.
+Docker containers were not touched.
+
+### Open item raised
+
+O-016 — `backend/.editorconfig` declares `root = true`, so the repository `.editorconfig`
+does not apply inside `backend/`. See `DECISIONS.md`.
+
+---
+
+## 2026-08-08 — M0.2 clean-clone reproducibility fix
+
+Branch `feat/m0-foundation`. Follows the M0.2 initialization below.
+
+### Problem
+
+A clean clone at `D:\Projects\notary-ppat-office-management` failed typecheck even though
+`pnpm install --frozen-lockfile` succeeded and lint passed:
+
+```text
+src/app/layout.tsx(20,50): error TS2304: Cannot find name 'LayoutProps'.
+```
+
+### Root cause
+
+`LayoutProps<"/">` is correct for Next.js 16.3.0. It is a **generated** global type, not a
+hand-written one, and `tsconfig.json` already expects it:
+
+```text
+include:  next-env.d.ts
+          .next/types/**/*.ts
+          .next/dev/types/**/*.ts
+```
+
+`.gitignore` correctly excludes `/.next/` and `next-env.d.ts` because both are build
+artifacts. In a clean clone neither exists, so all three include globs match nothing and the
+global type is undefined. The original environment passed only because an earlier
+`next dev` / `next build` had left `.next/types/` behind — the check was never reproducible,
+it was merely incidentally satisfied.
+
+Confirmed by inspection: `.next/types/routes.d.ts` line 51 declares
+`type LayoutProps<LayoutRoute extends LayoutRoutes>`.
+
+### Fix
+
+`next typegen` exists in Next.js 16.3.0 and regenerates both `next-env.d.ts` and
+`.next/types/` without a full build. The typecheck script now generates route types first:
+
+```text
+before   "typecheck": "tsc --noEmit"
+after    "typecheck": "next typegen && tsc --noEmit"
+```
+
+A standalone `"typegen": "next typegen"` script was added so route types can be regenerated
+on their own.
+
+`layout.tsx` was **not** modified. Replacing `LayoutProps<"/">` with a hand-written children
+type would have silenced the symptom and discarded Next.js route-aware typing.
+
+### Verification
+
+Verified from a genuinely clean state — `.next/` and `next-env.d.ts` were deleted before the
+run, not merely assumed absent.
+
+```text
+pnpm typecheck   PASS   generates route types, then tsc --noEmit clean
+pnpm lint        PASS
+pnpm build       PASS   4 static routes
+```
+
+### Changed
+
+- `frontend/package.json` — `typecheck` script; added `typegen` script
+
+No generated artifact was committed. `.next/`, `next-env.d.ts`, and `node_modules/` remain
+ignored.
+
+---
+
+## 2026-08-08 — M0.2 Frontend Initialization
+
+Branch `feat/m0-foundation`. Records D-017 and D-018. First application code in the
+repository.
+
+### Generated versions
+
+```text
+next                 16.3.0     major 16 as required
+react                19.2.8
+react-dom            19.2.8
+typescript           5.9.3
+eslint               9.39.5
+eslint-config-next   16.3.0
+tailwindcss          4.3.3
+@tailwindcss/postcss 4.3.3
+packageManager       pnpm@11.20.0
+```
+
+`create-next-app@latest` resolved to 16.3.0, so the "stop if not major 16" gate passed. The
+`packageManager` field was written by the scaffold itself and already matched the verified
+workstation pnpm; no manual edit was needed.
+
+Scaffold flags: `--ts --tailwind --eslint --app --src-dir --import-alias "@/*"` as specified,
+plus `--use-pnpm`, `--disable-git`, and `--yes` to keep the run non-interactive. Experimental
+options were declined — no React Compiler, no Rspack, no Biome, no `--api`, no `--empty`.
+
+### shadcn/ui foundation
+
+Initialized foundation only. No components added. See D-017 for the two CLI questions that
+project documentation did not answer and how they were resolved.
+
+Created `src/lib/utils.ts` and updated `src/app/globals.css`. Added `@base-ui/react`,
+`class-variance-authority`, `clsx`, `lucide-react`, `shadcn`, `tailwind-merge`,
+`tw-animate-css`.
+
+### Acceptance criteria
+
+```text
+Next.js runs         PASS   HTTP 200, ready in 997ms, Turbopack
+TypeScript works     PASS   tsc --noEmit clean
+Tailwind works       PASS   v4 detected and validated by the shadcn CLI
+shadcn initialized   PASS   components.json written
+lint passes          PASS   eslint exit 0
+typecheck passes     PASS   exit 0
+build passes         PASS   4 static routes generated
+```
+
+The dev server was started only for the smoke test and shut down afterwards. Port 3000 was
+verified released with no stray node processes.
+
+### Added
+
+`frontend/` — 25 files. Scaffold output plus four additions:
+
+```text
+.env.example        public placeholders only
+.prettierrc.json    tabWidth 2, endOfLine lf, tailwind plugin
+.prettierignore
+package.json        typecheck, format, format:check scripts
+```
+
+One correction to scaffold output: `frontend/.gitignore` ships `.env*`, which would have
+excluded `.env.example` from version control. Added `!.env.example` so the placeholder file
+stays tracked.
+
+`frontend/AGENTS.md` and `frontend/CLAUDE.md` are standard scaffold output and were kept. See
+O-015.
+
+### Changed
+
+- `docs/DECISIONS.md` — added D-017, D-018, O-014, O-015
+
+### Not done
+
+- No next-intl, no locale routing, no TanStack Query, no Axios client.
+- No authentication, application shell, sidebar, or dashboard.
+- No business modules, no fake statistics, no database integration.
+- No backend, Docker, or legal-workflow documentation touched.
+- Not merged into `main`.
 
 ---
 

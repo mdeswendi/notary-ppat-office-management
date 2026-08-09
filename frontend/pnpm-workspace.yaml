@@ -1,0 +1,10 @@
+# Native postinstall scripts are denied by default. Both entries below arrived
+# with next-intl and are optional to it: @swc/core backs next-intl's opt-in
+# message extractor, and Next.js bundles its own SWC; @parcel/watcher is an
+# optional file watcher. Both ship prebuilt binaries as optional dependency
+# packages, so denying the build script costs no functionality.
+allowBuilds:
+  "@parcel/watcher": false
+  "@swc/core": false
+  sharp: false
+  unrs-resolver: false
