@@ -673,6 +673,186 @@ CI keeps `php-version: "8.3"`. Testing the minimum is what surfaced this, and ch
 
 ---
 
+## 2026-08-09 — M1.0A Identity & Access architecture lock
+
+Resolves the blockers raised by M1.0 planning. Documentation only — no schema,
+no code, no seed. Each decision is recorded before implementation precisely because
+getting any of them wrong later would propagate into every business Policy.
+
+### D-026 — One active Organization per deployment
+
+An Organization represents the legal-office group this installation manages. V1 runs
+exactly one active Organization.
+
+```text
+IS         the parent of every Office
+IS         extensible — the table stays plural
+IS NOT     a SaaS tenant
+IS NOT     selectable by ordinary users
+```
+
+No tenancy package, no tenant middleware, no organization selector, no global tenant
+scope. The application offers no routine way to create a second Organization; the first
+is created once by bootstrap (D-034).
+
+This closes a real gap: the Organization existed only as a schema block in
+`03_DATABASE_ERD.md` and was never defined as a product concept anywhere.
+
+### D-027 — Office parentage and one primary Office per user
+
+Each Office belongs to exactly one Organization; `organization_id` is required.
+
+Each operational user has **one primary Office**. `users.office_id` is required
+(non-null) for operational users. There is deliberately **no `user_offices`
+many-to-many table** in M1 — cross-office access is expressed through permissions and
+Data Scope, not through multiple memberships. One membership keeps the `OFFICE` scope
+answerable with a single comparison; a many-to-many would make "the user's office"
+ambiguous at exactly the point authorization needs it.
+
+The architecture stays *multi-office ready* without becoming multi-tenant.
+
+`10_M0_FOUNDATION.md` section 44 said `office_id` could be "nullable initially if
+needed" and M0 omitted it rather than create a foreign key pointing at nothing. That
+was correct then. The `users` table currently holds no persistent user, so M1 can
+establish the relationship directly without a nullable interim phase.
+
+### D-028 — Multiple role grants union their scopes
+
+When several roles grant the same permission at different scopes, the effective scopes
+are the **set union**, never collapsed to a single "widest" value.
+
+```text
+role A   permission X -> OWN
+role B   permission X -> ASSIGNED
+result   { OWN, ASSIGNED }
+```
+
+`OWN` and `ASSIGNED` are *resource relationships*, not rungs on a ladder. Treating the
+five scopes as a linear hierarchy would silently discard access the administrator
+actually granted — a record the user owns but is not assigned to, or the reverse.
+
+### D-029 — User overrides are the single per-user exception mechanism
+
+Roles remain the normal mechanism. `user_permission_overrides` is the exception, and
+there must be **at most one active override per `user_id` + `permission_id`**.
+
+```text
+1  find a non-expired override for the permission
+2  effect = DENY   -> denied, regardless of any role grant
+3  effect = ALLOW  -> replaces the role-derived result; the override's scope
+                      becomes authoritative, so it can widen OR narrow access
+4  no active override -> role grants, scopes unioned per D-028
+5  expires_at <= now  -> ignored
+```
+
+Expiry is evaluated at **check time**. A cleanup job may later purge or archive expired
+rows, but authorization correctness must never depend on that job having run.
+
+**Spatie direct user-permission assignment must not be exposed** in any management UI
+or API. The package keeps `Role`, `Permission`, and `Role → Permission`; its
+`model_has_permissions` table stays as package infrastructure and is neither dropped nor
+customized. Two competing per-user grant mechanisms would make precedence ambiguous, and
+ambiguity in an authorization path is a defect, not a detail.
+
+### D-030 — System Settings and Security Settings are distinct capabilities
+
+```text
+settings.view / settings.manage                    general system configuration
+security.settings.view / security.settings.manage  authentication and security
+```
+
+They are **not aliases**. The permission matrix carried a "System Settings" module row
+with no matching codes, while `security.settings.*` existed with no matching row — an
+implementer would eventually have collapsed the two. Granting `settings.manage` confers
+no `security.*` capability.
+
+Also locked: `organizations.view`, `organizations.update`, `offices.view`,
+`offices.create`, `offices.update`, `offices.disable`. No `organizations.create`, and no
+hard-delete permission for either — retirement uses `is_active`, per section 22 of
+`07_SECURITY_RULES.md`.
+
+### D-031 — `users.email_verified_at` is retained
+
+Kept, nullable, as framework-compatible account-security infrastructure. Its existence
+does **not** oblige M1 to implement email verification. The column was in the schema but
+missing from the ERD field list; the divergence is resolved by documenting the column
+rather than dropping it.
+
+### D-032 — SUPER_ADMIN has no authorization bypass — resolves O-020
+
+**Model B** of the three evaluated in M1.0. `SUPER_ADMIN` receives a broad explicit
+permission set and **no** `Gate::before` bypass.
+
+Holding the role must never automatically override record state, FINALIZED / LOCKED
+rules, legal approval requirements, sensitive-data handling, Data Scope, business rules,
+or the append-only audit restriction.
+
+Rationale: the matrix grants SUPER_ADMIN "F" on every module, which an explicit
+permission set satisfies exactly, and `02_MENU_AND_PERMISSIONS.md` section 4 already
+says the role *"should not be used as the normal day-to-day legal working account"* —
+it is not meant to exercise legal authority at all. A `Gate::before` bypass would grant
+precisely that, and would do so invisibly.
+
+The cost is a deliberate permission-sync step whenever the registry grows. That cost is
+the control.
+
+### D-033 — Audit storage stays out of M1
+
+No `audit_logs` table in M1. `03_DATABASE_ERD.md` section 32 places audit in migration
+batch 7, and that is the only explicit ordering statement in the canonical documents.
+
+M1 identity and security actions may use structured application logging where it already
+exists. **No parallel M1 audit table** may be created — a second audit store would
+fragment the append-only guarantee that section 18 depends on.
+
+`audit.view` and `audit.export` remain reserved registry capabilities even before the
+module exists.
+
+### D-034 — Deployment bootstrap is an interactive command
+
+A fresh deployment must never depend on a seeded admin address, a default password, a
+committed credential, or manual SQL.
+
+Once the permission registry and default roles exist, a one-time interactive Artisan
+command creates:
+
+```text
+Organization -> first Office -> first administrator User -> SUPER_ADMIN role
+             -> explicit permission set
+```
+
+Requirements for that implementation: hidden password input, no default password, no
+secret printed or logged, idempotent or refusing an unsafe second run, a documented
+local/test automation path, and no business data.
+
+Not implemented here.
+
+### M1 implementation order
+
+```text
+M1.0   Planning
+M1.0A  Architecture decision lock          <- this checkpoint
+M1.1   Organization & Office schema foundation
+M1.2   Canonical Permission Registry
+M1.3   Data Scope model + effective-access resolver foundation
+M1.4   Role Management
+M1.5   User domain / User Management
+M1.6   Permission Assignment / Matrix + bootstrap foundation
+M1.7   Permission-aware navigation
+M1.8   Profile + Preferred Language
+M1.9   Account Security
+M1.10  M1 quality gate
+```
+
+The registry precedes user management because a permission cannot protect an endpoint
+before it exists. The scope model precedes role management because
+`role_permission_scopes` is part of role-to-permission assignment.
+
+**M1.1 is schema and domain foundation only.** It must not expose management endpoints
+before the canonical permissions of M1.2 exist to protect them.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -692,7 +872,7 @@ items below appears in that list, and each was verified not to break something t
 | O-016 | Resolved | Backend EditorConfig aligned. |
 | O-017 | **No** | Unmatched URLs fall to the built-in Next.js 404. The DoD requires `/id/login`, `/en/login`, a protected dashboard, and language switching — all verified. A designed 404 for URLs that match no route is presentation, and fixing it needs a catch-all route, which is routing work for a later milestone. |
 | O-018 | **No** | `setRequestLocale` is deprecated but functional and load-bearing: it is what keeps `/id` and `/en` prerendered. Build, lint, and typecheck are clean, and the clean clone built without warning. Migration is blocked upstream — next-intl 4.13.5 contains no reference to `next/root-params`. Deferring a fix that cannot yet be written is not a defect. |
-| O-020 | **No** | No `SUPER_ADMIN` bypass exists, which is the safe state. The DoD asks that a permission architecture exist, and it does — role-derived permissions reach Laravel's Gate, verified by test and at runtime. Designing privileged-account semantics belongs to M1 security review. |
+| O-020 | **No** | No `SUPER_ADMIN` bypass exists, which is the safe state. The DoD asks that a permission architecture exist, and it does — role-derived permissions reach Laravel's Gate, verified by test and at runtime. Designing privileged-account semantics belongs to M1 security review. *(That review has since happened — see D-032. This row records the M0 assessment as made at the time.)* |
 | O-021 | **No** | Sidebar collapse is a desktop refinement. The DoD says nothing about it. Responsive navigation works: desktop sidebar plus a drawer below `lg`, sharing one menu definition. |
 | O-022 | **No** | Search, quick create, and notifications depend on modules that do not exist. Building them now would mean fabricated UI, which `10_M0_FOUNDATION.md` section 57 explicitly forbids. Their absence is the correct M0 state. |
 
@@ -717,7 +897,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-013 | pnpm not installed | **Resolved 2026-08-08.** `corepack enable pnpm` → pnpm 11.20.0. See D-015. |
 | O-021 | Desktop sidebar collapse (240–260px → 72px icon rail, `04_UI_DESIGN_SYSTEM.md` section 3) is not implemented. | Open, deliberately deferred at M0.9 under the "implement only if small and coherent" instruction. Dashboard is currently the only destination, so collapse would add a toggle, a width mode, label hiding, and tooltips or `aria-label`s to preserve accessible names — around a single row. Revisit when the sidebar carries the Notary and PPAT groups from section 11, where a narrow rail actually earns its complexity. |
 | O-022 | Search, quick create, and notifications from `04_UI_DESIGN_SYSTEM.md` section 10 are absent from the header rather than rendered disabled. | Open by design. Each needs a module that does not exist — nothing to search, no record type to create, no event to notify about. A visibly disabled control is dead UI that invites "why is this greyed out?", and an enabled one that does nothing is worse. They are reserved header slots, to be added when the first module gives them something real to do. Recorded so their absence reads as a decision rather than an oversight. |
-| O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | Open by design, recorded so it is a deliberate choice rather than a reflex. A `Gate::before` bypass makes every `can()` in the system return true for those users, silently defeating record-state rules, finalization locks, and sensitive-data permissions — exactly the controls `07_SECURITY_RULES.md` sections 20 and 23 exist to enforce. If it is introduced it needs explicit security review and its own decision entry, not a one-line addition to a service provider. |
+| O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |
 | O-017 | A localized not-found state does not render for unmatched URLs. Next.js uses the **root** not-found for those; a nested `[locale]/not-found.tsx` only catches `notFound()` thrown inside its own segment, and the proxy guarantees the locale segment is always valid. | Open. Written during M0.6, verified non-functional, and removed rather than left as dead code. Making it work requires a catch-all route under `[locale]`, which is a routing change beyond M0.6's presentational scope. The built-in Next.js 404 remains, as it did after M0.5. `BaseErrorState` is ready to render it when the catch-all is added. |

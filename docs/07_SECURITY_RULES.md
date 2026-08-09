@@ -129,6 +129,26 @@ role == PPAT_STAFF
 
 as the only authorization check.
 
+### No privileged role bypass
+
+`SUPER_ADMIN` is a default technical/system-administration role. It is granted
+a broad **explicit** permission set. It carries **no unconditional
+authorization bypass** (D-032):
+
+```text
+FORBIDDEN
+
+Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null);
+```
+
+Holding the role must never automatically override record state,
+FINALIZED / LOCKED rules, legal approval requirements, sensitive-data handling,
+Data Scope, business rules, or the append-only audit restriction. A bypass
+would make every `can()` in the system return true for those accounts, quietly
+defeating precisely the controls sections 20, 22, and 23 exist to enforce.
+
+A role name is never itself a capability check.
+
 ---
 
 ## 10. Data Scope
@@ -144,6 +164,29 @@ ALL
 ```
 
 A user may have permission to view a resource but still be restricted by scope.
+
+### Semantics
+
+```text
+OFFICE     record.office_id matches the user's primary office_id
+ALL        no office restriction within the deployment's Organization
+OWN        resource-specific ownership relation; the owning field is defined
+           by that resource's Policy
+ASSIGNED   resource-specific assignment / PIC relation; likewise Policy-defined
+TEAM       RESERVED — no Team entity exists. Not assignable, not seeded, and
+           rejected by validation until Team semantics are specified.
+```
+
+### Centralized resolution
+
+Authorization is **not** a raw permission lookup. Before any business Policy is
+written, a single centralized effective-access resolver must exist that answers
+"which permissions does this user hold, and at which scopes" from role grants
+and user overrides together.
+
+Policies consume that resolver. Controllers must never implement Data Scope
+independently — divergent copies of the rule are how authorization quietly
+develops holes. Resolution order is locked in `DECISIONS.md` D-028 and D-029.
 
 ---
 

@@ -579,7 +579,46 @@ permissions.assign
 
 ---
 
-## 20. Security Permissions
+## 19a. Organization & Office Permissions
+
+Locked by D-026 and D-027.
+
+```text
+organizations.view
+organizations.update
+
+offices.view
+offices.create
+offices.update
+offices.disable
+```
+
+There is deliberately no `organizations.create` and no hard-delete permission
+for either resource.
+
+V1 runs one active Organization per deployment, created once by the bootstrap
+process rather than through routine application use, so a creation capability
+would describe an operation the product does not offer. Offices and
+Organizations are retired with `offices.disable` and the `is_active` flag, in
+keeping with the delete policy in `07_SECURITY_RULES.md` section 22.
+
+---
+
+## 20. Settings Permissions
+
+Two distinct capability groups. They are **not** aliases and must never be
+treated as interchangeable — see D-030.
+
+General system settings — application and office-system configuration. This is
+the capability behind the **System Settings** row in the matrix above.
+
+```text
+settings.view
+settings.manage
+```
+
+Security settings — authentication and security configuration, session
+administration, and MFA.
 
 ```text
 security.settings.view
@@ -590,6 +629,8 @@ security.sessions.revoke
 
 security.mfa.manage
 ```
+
+Granting `settings.manage` must not imply any `security.*` capability.
 
 ---
 
@@ -635,6 +676,35 @@ Principal may have:
 notary.matters.view
 scope = OFFICE
 ```
+
+### Resolution rules
+
+Locked by D-028 and D-029. These are summarized here; `DECISIONS.md` is
+authoritative.
+
+```text
+multiple roles     effective scopes are the UNION of every role grant,
+                   never collapsed to a single "widest" value
+
+user override      at most one active override per user + permission
+                   DENY   denies regardless of role grants
+                   ALLOW  replaces the role-derived result, and its scope
+                          becomes authoritative — so an override can widen
+                          or narrow access
+                   expiry evaluated at check time; an expired override is
+                          ignored, not honoured until a cleanup job runs
+
+no override        role-derived grants, scopes unioned
+```
+
+`TEAM` is **reserved vocabulary and not assignable** until a Team entity is
+specified. M1 must not offer it in the UI, must not seed it, and must reject it
+in validation. It is kept in the list so the vocabulary stays stable.
+
+Scope meanings — `OFFICE` matches the record's `office_id` against the user's
+primary office; `ALL` applies no office restriction within the deployment's
+Organization; `OWN` and `ASSIGNED` are resource-specific relationships whose
+exact field each resource's Policy defines.
 
 ---
 

@@ -5,6 +5,52 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.0A Identity & Access architecture lock
+
+Branch `feat/m1-identity`. **Documentation only** — no migration, model, controller,
+route, page, or seed. Locks the decisions M1.0 planning found missing, before any of
+them can be baked into code.
+
+Nine decisions recorded, **D-026 … D-034**:
+
+```text
+D-026  one active Organization per deployment; not a SaaS tenant
+D-027  Office belongs to one Organization; users.office_id required;
+       no user_offices many-to-many
+D-028  multiple role grants UNION their scopes, never collapse to "widest"
+D-029  user_permission_overrides is the only per-user exception mechanism;
+       DENY wins, ALLOW replaces and its scope is authoritative,
+       expiry evaluated at check time; Spatie direct user permissions
+       are not exposed
+D-030  settings.* and security.settings.* are distinct, not aliases;
+       organizations.* and offices.* codes locked
+D-031  users.email_verified_at retained, nullable, verification not required
+D-032  SUPER_ADMIN gets explicit permissions and NO Gate::before bypass
+D-033  audit_logs stays out of M1 (ERD batch 7); no parallel audit table
+D-034  deployment bootstrap is a one-time interactive Artisan command
+```
+
+**O-020 is resolved** by D-032 — on the security review it asked for, not for tidiness.
+O-017, O-018, O-021, O-022 remain open; O-006 and O-019 stay resolved.
+
+Two documentation gaps closed rather than papered over: the Organization existed only
+as an ERD schema block with no product definition anywhere, and the permission matrix
+carried a "System Settings" row with no permission codes while `security.settings.*`
+existed with no matching row.
+
+Registry additions: `organizations.view/update`, `offices.view/create/update/disable`,
+`settings.view/manage`. No `organizations.create` and no hard-delete for either —
+retirement uses `is_active`.
+
+`TEAM` stays in the canonical scope vocabulary but is **not assignable** until a Team
+entity is specified: not offered in UI, not seeded, rejected by validation.
+
+Changed: `02_MENU_AND_PERMISSIONS.md`, `03_DATABASE_ERD.md`, `07_SECURITY_RULES.md`,
+`DECISIONS.md`, `CHANGELOG.md`. M1 order recorded with M1.1 as schema foundation only —
+no management endpoints before M1.2 supplies the permissions to protect them.
+
+---
+
 ## 2026-08-09 — M0 Foundation closed
 
 `feat/m0-foundation` merged into `main` with `--no-ff`, preserving the fourteen M0 commits.

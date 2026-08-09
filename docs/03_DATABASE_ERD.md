@@ -58,6 +58,11 @@ created_at
 updated_at
 ```
 
+V1 runs **one active Organization per deployment** (D-026). The table stays
+plural so the schema does not have to change if that ever evolves, but the
+application offers no routine way to create a second one, and there is no
+tenant middleware, tenant scope, or organization selector.
+
 ### offices
 
 ```text
@@ -77,6 +82,9 @@ created_at
 updated_at
 ```
 
+Every Office belongs to exactly one Organization; `organization_id` is required
+(D-027). Offices are retired with `is_active`, not deleted.
+
 ---
 
 ## 4. Users
@@ -88,6 +96,7 @@ id
 office_id
 name
 email
+email_verified_at
 phone
 password
 preferred_locale
@@ -97,6 +106,21 @@ created_at
 updated_at
 deleted_at
 ```
+
+`office_id` is **required for operational users** (D-027). Each user has one
+primary Office in V1; there is no `user_offices` membership table. Access
+across offices is expressed through permissions and Data Scope, not through
+multiple memberships.
+
+`email_verified_at` is nullable and is retained as framework-compatible
+account-security infrastructure. Its presence does **not** mean M1 requires
+email verification (D-031). It was previously absent from this list while
+present in the schema; the divergence is resolved in favour of keeping the
+column.
+
+Primary keys here are ULID (`CLAUDE.md` section 11, section 2 above). Spatie's
+`roles` and `permissions` keep their package-native integer keys, while the
+package morph column `model_id` is ULID to match `users.id` — see D-023.
 
 ---
 
@@ -148,6 +172,15 @@ Effect:
 ALLOW
 DENY
 ```
+
+This is the **only** per-user authorization exception mechanism the product
+exposes (D-029). Spatie's own direct user-permission assignment must not be
+surfaced in any management UI or API: two competing per-user grant mechanisms
+would make precedence ambiguous. The package's `model_has_permissions` table
+stays in place as package infrastructure and is not customized or dropped.
+
+Resolution order, scope combination, and expiry semantics are locked in D-028
+and D-029.
 
 ---
 
