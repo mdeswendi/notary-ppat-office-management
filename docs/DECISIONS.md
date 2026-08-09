@@ -827,6 +827,82 @@ local/test automation path, and no business data.
 
 Not implemented here.
 
+### D-035 — The canonical permission list is first-party PHP, not data
+
+`App\Domains\Authorization\PermissionRegistry` is the single source of truth for
+permission names. It holds **171** entries transcribed from
+`02_MENU_AND_PERMISSIONS.md` sections 7–21, grouped by source section, exposed flat
+through `all()` — de-duplicated and sorted.
+
+Not a seeder, not a config file, not a database table. A seeder runs once and leaves no
+authority behind; a config file invites per-environment drift, and permission names
+diverging between environments is an authorization bug that only appears in production.
+Code can be asserted against in CI, and it is: the count, the ordering, the absence of
+duplicates, and the absence of forbidden names are all tested.
+
+The registry performs **no database access** — enforced by a test that fails if a query
+is issued. It is readable before the container is booted and cannot become a runtime
+dependency of the authorization path.
+
+Registered now, though most of the modules do not exist. A permission name creates no
+route, controller, policy, table, menu entry, or grant — it is inert until something
+checks it. Registering the full surface at once means role configuration can be designed
+against the finished capability set rather than a moving target, which is what D-032
+requires for SUPER_ADMIN's explicit permission set.
+
+Three exclusions are deliberate and tested:
+
+- **`audit.update` and `audit.delete`** — section 21 lists them under "Do not create".
+  Audit records are append-only (`CLAUDE.md` section 31). A registered name would let a
+  role be configured to imply a capability that must never exist.
+- **`party.identity.nik.view_full`, `documents.view_sensitive`,
+  `documents.download_sensitive`** — superseded aliases (D-001). Registering an old name
+  would let a role be granted a permission nothing checks, which reads as access granted
+  and behaves as access denied.
+- **`organizations.create`, `organizations.delete`, `offices.delete`** — the single
+  Organization is a deployment concern (D-026, D-034), and Offices retire through
+  `is_active` because users reference them (D-027).
+
+The transcription was verified mechanically rather than by reading: every permission-like
+token inside the fenced blocks of sections 7–21 was extracted from the document and
+diffed against the registry in both directions. 171 = 171, zero in either difference.
+
+### D-036 — Synchronization is explicit, additive, and never prunes
+
+`php artisan permissions:sync` reconciles the registry into the `permissions` table. It
+is run deliberately as a deployment step — **never on boot, never during a request**.
+A test asserts that serving an HTTP request creates no permission rows.
+
+The command creates what the registry declares and is missing, inside one transaction,
+and clears the Spatie cache on both sides of the write. A partially applied permission
+set is worse than none, because roles would then be configured against a surface that
+only partly exists.
+
+Rows present in the database but absent from the registry are **reported and preserved,
+never deleted**. The command cannot distinguish an obsolete leftover from something an
+operator added deliberately, and a role may already depend on it — deleting one silently
+strips capability from every holder. Removal stays a human decision with the name in
+front of them.
+
+It grants nothing. No role, user, Organization, Office, or assignment is created, and
+existing assignments are untouched. Tested for each of those.
+
+Guard is `web`, resolved from `auth.defaults.guard`, which is the only guard configured.
+
+Verified against PostgreSQL, not only the SQLite test suite: first run created 171, the
+second created 0 with no duplicates, and an unmanaged probe row survived a sync and was
+reported by name before being removed.
+
+### D-037 — `offices.code` uniqueness will be `UNIQUE (organization_id, code)`
+
+Direction recorded for O-023. A code is a short handle that is only meaningful inside its
+Organization, so uniqueness is composite rather than global.
+
+**Not implemented here.** M1.2 adds no migration. The constraint belongs with the Office
+management submilestone that also needs the matching Form Request rule, so the database
+and the validation layer land together rather than disagreeing in between. It stays cheap
+to add while `offices` holds no rows.
+
 ### M1 implementation order
 
 ```text
@@ -897,7 +973,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-013 | pnpm not installed | **Resolved 2026-08-08.** `corepack enable pnpm` → pnpm 11.20.0. See D-015. |
 | O-021 | Desktop sidebar collapse (240–260px → 72px icon rail, `04_UI_DESIGN_SYSTEM.md` section 3) is not implemented. | Open, deliberately deferred at M0.9 under the "implement only if small and coherent" instruction. Dashboard is currently the only destination, so collapse would add a toggle, a width mode, label hiding, and tooltips or `aria-label`s to preserve accessible names — around a single row. Revisit when the sidebar carries the Notary and PPAT groups from section 11, where a narrow rail actually earns its complexity. |
 | O-022 | Search, quick create, and notifications from `04_UI_DESIGN_SYSTEM.md` section 10 are absent from the header rather than rendered disabled. | Open by design. Each needs a module that does not exist — nothing to search, no record type to create, no event to notify about. A visibly disabled control is dead UI that invites "why is this greyed out?", and an enabled one that does nothing is worse. They are reserved header slots, to be added when the first module gives them something real to do. Recorded so their absence reads as a decision rather than an oversight. |
-| O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | Open. Deliberately not encoded: a uniqueness constraint is a long-term product rule, and adding one inside a migration would have locked it in without review. Needs a decision before Office management lands in a later M1 submilestone, because the UI and Form Request validation both depend on it. Adding the constraint later is cheap while `offices` holds no rows; adding it after real offices exist is not. |
+| O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | **Direction fixed 2026-08-09 by D-037** — `UNIQUE (organization_id, code)`. Still **open for implementation**: M1.2 added no migration, and the constraint is scheduled to land with the Office management submilestone so the database rule and the Form Request rule arrive together instead of disagreeing in between. Adding it remains cheap while `offices` holds no rows. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |

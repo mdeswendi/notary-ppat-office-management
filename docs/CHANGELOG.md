@@ -5,6 +5,79 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.2 Canonical Permission Registry
+
+Branch `feat/m1-identity`. Registry and synchronization command only — **no migration, no
+table, no role, no seed, no assignment, no API, no UI, no bootstrap**.
+
+### What was added
+
+```text
+app/Domains/Authorization/PermissionRegistry.php     171 canonical permissions
+app/Console/Commands/SyncPermissionsCommand.php      php artisan permissions:sync
+```
+
+The registry is first-party PHP rather than a seeder, config file, or table (D-035), and
+touches no database — enforced by a test that fails if a query is issued. Names come from
+`02_MENU_AND_PERMISSIONS.md` sections 7–21, grouped by source section so each entry stays
+traceable to the document that authorizes it.
+
+Most of these protect modules that do not exist yet. That is the point: a permission name
+is inert until something checks it, and registering the whole surface at once lets role
+configuration be designed against the finished capability set instead of a moving target.
+
+```text
+projects 8   parties 8   companies 8   notary 25   ppat 31   properties 6
+documents 9  tasks 8     calendar 5    billing 17  reports 6  master data 14
+users & roles 11   organizations & offices 6   settings 2   security 5   audit 2
+```
+
+Deliberately **absent**, each covered by a test: `audit.update` and `audit.delete`
+(section 21 lists them under "Do not create"; audit is append-only), the three superseded
+aliases from D-001, and `organizations.create` / `organizations.delete` /
+`offices.delete`.
+
+### Synchronization
+
+`permissions:sync` is additive and idempotent (D-036). It creates what is missing inside
+one transaction, clears the Spatie cache on both sides of the write, and grants nothing —
+no role, user, Organization, Office, or assignment is created, and existing assignments
+are left alone.
+
+Rows in the table that the registry does not declare are **reported by name and
+preserved**, never pruned. The command cannot tell an obsolete leftover from something an
+operator added on purpose, and a role may already depend on it.
+
+It is a deployment step, never a request side effect — a test asserts that serving an
+HTTP request creates no permission rows.
+
+### Verified
+
+112 tests, 560 assertions, all passing — 55 new, and every M0 authentication,
+authorization, ULID and M1.1 schema test still green. Pint clean.
+
+Against **PostgreSQL**, not only the SQLite suite: `migrate:status` shows the same 8
+migrations as M1.1 with nothing pending, the first sync created 171 rows, the second
+created 0 with 171 distinct names all on guard `web`, and `roles`, `role_has_permissions`,
+`model_has_permissions`, `model_has_roles`, `users`, `organizations` and `offices` all
+remained at 0. A deliberately unmanaged probe row survived a sync, was reported by name,
+and was then removed. Spatie's cache is Redis-backed here, and a separate process
+(`permission:show`) read all 171 through it, so the invalidation is real rather than
+in-process only.
+
+The transcription itself was verified mechanically rather than by reading: every
+permission-like token inside the fenced blocks of sections 7–21 was extracted from the
+document and diffed against the registry in both directions — 171 = 171, zero in either
+difference, and the two "Do not create" names correctly detected and excluded.
+
+### Also recorded
+
+**O-023 direction fixed** as `UNIQUE (organization_id, code)` (D-037) — recorded only.
+No migration was added; the constraint is scheduled to land with Office management so the
+database rule and the Form Request rule arrive together.
+
+---
+
 ## 2026-08-09 — M1.1 Organization & Office schema foundation
 
 Branch `feat/m1-identity`. Schema and domain models only — **no API, UI, permission
