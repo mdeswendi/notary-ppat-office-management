@@ -5,7 +5,11 @@
  * the backend remains the security boundary regardless of what is exposed here.
  */
 export type CurrentUser = {
-  id: number;
+  /**
+   * ULID. An opaque identifier — never parse it, sort by it, or infer
+   * anything from its structure.
+   */
+  id: string;
   name: string;
   email: string;
   preferred_locale: string;

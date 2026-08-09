@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,6 +23,16 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * ULID primary key, per CLAUDE.md section 11.
+     *
+     * The trait supplies the generated identifier and sets the key as a
+     * non-incrementing string, so no manual id generation or `$keyType`
+     * override is needed. Identifiers are opaque: nothing may parse them or
+     * infer ordering from them.
+     */
+    use HasUlids;
 
     /**
      * Get the attributes that should be cast.

@@ -5,6 +5,55 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — O-019 User primary key aligned with the ULID strategy
+
+Branch `feat/m0-foundation`. Closes O-019. Done before M0.8, not during it: Spatie's
+polymorphic `model_has_roles` / `model_has_permissions` keys must match the User key type,
+so the correction had to land before the package is installed.
+
+### Cause
+
+The Laravel scaffold created `users.id` as an auto-incrementing bigint. The canonical key
+strategy for our own domain tables is ULID — `CLAUDE.md` section 11,
+`03_DATABASE_ERD.md` section 2, `06_API_CONVENTIONS.md` section 14. `users` is listed as a
+core table in the ERD, so the section 45 exemption for third-party package tables does not
+apply. The documents agree with each other; only the scaffold disagreed.
+
+### Change
+
+```text
+users.id          bigint            ->  char(26) ULID, primary key
+sessions.user_id  bigint nullable   ->  char(26) ULID nullable, index preserved
+User model                          ->  HasUlids
+CurrentUser.id    number            ->  string (opaque identifier)
+```
+
+The scaffold migration was corrected in place rather than layered with a conversion
+migration, so a clean clone builds the right schema from the first migration. That is a
+deliberate exception to D-019, permitted here because the users table held zero rows,
+nothing has shipped, and Spatie is not installed. Recorded as **D-023**.
+
+`sessions.user_id` had to change with it — a bigint there would silently fail to store
+`Auth::id()` once anyone logged in.
+
+### Verification
+
+Local schema rebuilt with `migrate:fresh` after confirming `APP_ENV=local`,
+`DB_DATABASE=notary_ppat_office`, zero users, and no business tables. PostgreSQL now shows
+`users.id char(26)` as primary key and `sessions.user_id char(26)` with its index intact;
+`preferred_locale`, `is_active`, and `last_login_at` survive.
+
+Backend suite 25 passing on in-memory SQLite, so the corrected migrations also build from
+scratch there. Full M0.7 flow re-run against a real ULID user: login, `/api/v1/me`
+returning `"id":"01kz…"` as a quoted string, protected dashboard in both locales, logout,
+401, and stale-cookie rejection. The session row was confirmed to hold the full 26-character
+ULID and to join back to `users`.
+
+Temporary user deleted; users table back to zero rows. Pint and all four frontend gates
+pass. No Spatie package or tables, no `personal_access_tokens`, no business tables.
+
+---
+
 ## 2026-08-09 — M0.7 Authentication Foundation
 
 Branch `feat/m0-foundation`. Laravel Sanctum **4.3.3**, first-party SPA session
