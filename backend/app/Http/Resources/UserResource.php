@@ -34,15 +34,24 @@ class UserResource extends JsonResource
     }
 
     /**
-     * Effective permission names: those granted directly plus those inherited
-     * through roles.
+     * Permission names for the interface to hint with.
      *
-     * `getAllPermissions()` is the package's own resolution of both paths, so
-     * inheritance is never recomputed here — and never in the browser. Names
-     * only: database ids, pivot rows, and guard internals stay server-side.
+     * **Presentation only, and not the authorization model.** This list comes
+     * from the package's `getAllPermissions()`, so it includes direct
+     * user-permission grants that D-029 and D-041 exclude from first-party
+     * authorization, and it carries no Data Scope — it cannot express a
+     * condition like "`roles.view` at `ALL`". It therefore does not agree with
+     * `EffectiveAccessResolver`, and no backend decision reads it: every
+     * endpoint authorizes independently through a Policy (D-048).
      *
-     * Sorted and de-duplicated so a permission reachable by more than one path
-     * appears once and the output order is stable.
+     * Known and tracked as O-026, to be resolved in M1.7 by deriving this from
+     * the resolver, scopes included, so the interface and the backend follow one
+     * calculation. Until then, treat a name here as a hint about what to show,
+     * never as proof of what is allowed.
+     *
+     * Names only: database ids, pivot rows, and guard internals stay
+     * server-side. Sorted and de-duplicated so a permission reachable by more
+     * than one path appears once and the output order is stable.
      *
      * @return array<int, string>
      */

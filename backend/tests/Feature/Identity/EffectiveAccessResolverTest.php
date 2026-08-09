@@ -558,8 +558,15 @@ it('ignores a permission attached directly to the user through the package', fun
 
     // The package really did record it — this test would be meaningless
     // otherwise — and the first-party resolver still refuses it.
+    //
+    // `can()` asserted true here until M1.4A, which is precisely the hole D-048
+    // closed: the package's Gate callback honoured this direct grant, so the
+    // most idiomatic check in Laravel disagreed with the resolver. Now both
+    // refuse, from opposite directions — the Gate because it no longer answers
+    // permission names at all, the resolver because direct grants are not a
+    // first-party path.
     expect($user->hasDirectPermission(RESOLVER_PERMISSION))->toBeTrue()
-        ->and($user->can(RESOLVER_PERMISSION))->toBeTrue()
+        ->and($user->can(RESOLVER_PERMISSION))->toBeFalse()
         ->and(resolveAccess($user, RESOLVER_PERMISSION)->granted)->toBeFalse();
 });
 

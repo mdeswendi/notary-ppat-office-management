@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -224,25 +225,29 @@ it('leaves an existing role and its assignments unchanged', function (): void {
 */
 
 it('makes the new permissions immediately resolvable', function (): void {
-    // A stale Spatie cache would leave the freshly created rows invisible to
-    // the authorization layer until the cache happened to expire.
+    // A stale Spatie cache would leave the freshly created rows invisible until
+    // it happened to expire. Read through `hasPermissionTo`, which resolves via
+    // the registrar's cached collection and so actually exercises that
+    // invalidation — `can()` was used here until M1.4A stopped the Gate
+    // answering permission names (D-048), and it never tested the cache anyway.
     $this->artisan('permissions:sync')->assertSuccessful();
 
     $user = User::factory()->create();
     $user->givePermissionTo('ppat.warkah.verify');
 
-    expect($user->can('ppat.warkah.verify'))->toBeTrue()
-        ->and($user->can('ppat.warkah.finalize'))->toBeFalse();
+    expect($user->hasPermissionTo('ppat.warkah.verify'))->toBeTrue()
+        ->and($user->hasPermissionTo('ppat.warkah.finalize'))->toBeFalse();
 });
 
-it('does not grant a permission the registry never declared', function (): void {
+it('does not create a permission the registry never declared', function (): void {
     $this->artisan('permissions:sync')->assertSuccessful();
 
-    $user = User::factory()->create();
+    // Asked of the package directly: the name is unknown to it, rather than
+    // merely ungranted.
+    expect(fn () => User::factory()->create()->hasPermissionTo('audit.update'))
+        ->toThrow(PermissionDoesNotExist::class);
 
-    expect($user->can('audit.update'))->toBeFalse()
-        ->and($user->can('audit.delete'))->toBeFalse()
-        ->and(Permission::query()->where('name', 'audit.update')->exists())->toBeFalse()
+    expect(Permission::query()->where('name', 'audit.update')->exists())->toBeFalse()
         ->and(Permission::query()->where('name', 'audit.delete')->exists())->toBeFalse();
 });
 

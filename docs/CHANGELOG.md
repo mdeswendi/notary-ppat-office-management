@@ -5,6 +5,83 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.4A Authorization gate hardening
+
+Branch `feat/m1-identity`. Resolves **O-027** before more endpoints are written. No
+migration, no schema change, no frontend change, no new authorization engine.
+
+### The hole
+
+spatie/laravel-permission registers a `Gate::before` callback that answers **any ability
+whose name matches a permission the user holds**, reading package state directly. So:
+
+```text
+$user->can('roles.view')        true — from a direct grant, no Data Scope, no
+                                override consulted, no registry check
+resolver->allowsGlobally(...)   false
+```
+
+Two answers to one question, and the idiomatic one was wrong. Nothing had exploited it —
+`RolePolicy`'s abilities are named `viewAny`, `view`, `create`, `update`, `delete`
+precisely so the callback could not answer them — but one `middleware('can:users.create')`
+would have bypassed canonical-registry validation, Data Scope, DENY overrides, and the
+exclusion of direct grants, all at once. `CLAUDE.md` section 24 was actively recommending
+that form.
+
+### The fix
+
+`config('permission.register_permission_check_method')` is now `false` — the package's own
+documented switch, whose stated purpose is "if you want to implement custom logic for
+checking permissions". Verified against the installed 8.3.0 source rather than assumed:
+`registerPermissions()` has exactly one caller, guarded by that flag, and nothing else in
+the package depends on it. **No vendor file was modified.**
+
+Roles, permissions, `role_has_permissions`, `model_has_roles`, `HasRoles`,
+`hasPermissionTo()`, `givePermissionTo()`, and every relationship are untouched — none of
+them route through the Gate. Laravel Policies work exactly as before, because a policy
+ability is not a permission code.
+
+### Documentation corrected
+
+`CLAUDE.md` section 24 recommended `$user->can('ppat.matters.create')` as the preferred
+backend check. It now shows that form as unsafe alongside the role-name check it always
+warned about, and requires a Policy delegating to the resolver. `07_SECURITY_RULES.md`
+section 9 gained the same boundary. Recorded as **D-048**.
+
+### Verified
+
+331 tests, 1085 assertions, all passing — 29 new plus 9 rewritten. Pint clean.
+`migrate:status` unchanged at 10. No frontend diff.
+
+The nine tests that asserted the old behaviour were **rewritten, not deleted**, each with
+a note on why the expectation changed — including the M0.8 test whose comment had called
+the Gate "what controllers and policies will use". The storage relationship it really
+tested is still asserted; only the reading of it moved.
+
+New enforcement: zero Gate before/after callbacks registered; a canonical permission name
+refused by the Gate even for a user who genuinely holds it at `ALL`; and a source scan of
+`app/` that fails the suite if any file authorizes a `resource.action` string through
+`can()`, `Gate::allows()`, `hasPermissionTo()`, and friends. That scan was itself checked
+against nine unsafe and six valid samples so it cannot pass vacuously.
+
+Every M1.3 rule re-asserted through the new seam: `ALL` still required for global records,
+`OFFICE`-only still refused, direct grants still ignored, active DENY still wins, active
+ALLOW at `ALL` still allows and at `OFFICE` still refuses, expired overrides still ignored,
+stale permissions still refused, `SUPER_ADMIN` still inert.
+
+Confirmed on **PostgreSQL** over the real Sanctum session flow: an administrator holding
+`roles.view` at `ALL` is allowed; the same permission at `OFFICE` only is refused; a direct
+package grant is refused; and `can('roles.view')` answers false for all three. Temporary
+data removed, 171 canonical permissions preserved.
+
+### O-026 stays open
+
+`/api/v1/me` still reports permissions via `getAllPermissions()`. That is a **presentation**
+defect affecting menu visibility, not a backend authorization one — no security decision
+reads it — and M1.7 owns it. M1.4A changed nothing there.
+
+---
+
 ## 2026-08-09 — M1.4 Role Management
 
 Branch `feat/m1-identity`. Role **records** only — no permission assignment, no scope

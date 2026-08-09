@@ -129,6 +129,29 @@ role == PPAT_STAFF
 
 as the only authorization check.
 
+### A permission code is not an authorization surface
+
+Holding a permission is one input to a decision, not the decision. Asking the
+framework or the package about a permission code directly —
+
+```text
+FORBIDDEN
+
+$user->can('ppat.deeds.approve')
+Gate::allows('ppat.deeds.approve')
+$user->hasPermissionTo('ppat.deeds.approve')
+$user->getAllPermissions()
+```
+
+— answers from package storage alone: no Data Scope, no `user_permission_overrides`,
+no canonical registry check, and direct user-permission grants counted despite
+D-029 excluding them. Such a check can allow what the resolver refuses.
+
+Backend authorization goes through a Policy or first-party service backed by
+`EffectiveAccessResolver` (section 10). The package's generic permission Gate
+integration is disabled so the calls above fail closed rather than quietly
+succeed — see `DECISIONS.md` D-048.
+
 ### No privileged role bypass
 
 `SUPER_ADMIN` is a default technical/system-administration role. It is granted

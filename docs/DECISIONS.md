@@ -1166,6 +1166,74 @@ zero members. Renaming one changes only the name. Both are asserted against all 
 assignment tables, because these are the invariants that make role administration safe to
 hand to an office manager.
 
+### D-048 — A canonical permission code is not an authorization surface
+
+Resolves O-027.
+
+`EffectiveAccessResolver` is the canonical first-party permission resolver. It is the
+only thing that answers "may this user do this", because it is the only thing that
+consults all five inputs the authorization model depends on: canonical registry
+membership, role-derived grants, Data Scope, `user_permission_overrides` with check-time
+expiry, and the exclusion of direct user-permission grants.
+
+**Spatie's generic permission Gate integration is not a first-party authorization
+surface, and is now disabled.** `config('permission.register_permission_check_method')`
+is `false` — the package's own documented switch for "if you want to implement custom
+logic for checking permissions", which is exactly this situation. Left enabled, it
+registers a `Gate::before` answering any ability whose name matches a held permission,
+straight from package state:
+
+```text
+$user->can('roles.view')          -> true from a direct grant, no scope checked,
+                                     no override consulted, no registry check
+resolver->allowsGlobally(...)     -> false
+```
+
+Two answers to the same question, and the more idiomatic one was wrong. Nothing had
+exploited it — `RolePolicy`'s abilities are named `viewAny`, `view`, `create`, `update`,
+`delete` precisely so the callback could not answer them — but the next endpoint written
+with `middleware('can:users.create')` would have bypassed the entire model in one line.
+
+Therefore:
+
+```text
+FORBIDDEN as first-party authorization
+    User::can('resource.action')          Gate::allows('resource.action')
+    User::cannot('resource.action')       Gate::denies('resource.action')
+    hasPermissionTo() / hasAnyPermission() / hasAllPermissions()
+    getAllPermissions() as a backend authority
+    any role-name comparison
+
+REQUIRED
+    Controller  $this->authorize('<ability>', <resource>)
+    Policy      delegates to EffectiveAccessResolver
+    Policy      enforces the scope the resource context requires
+```
+
+Laravel's Gate and Policy infrastructure stay in full use. Only the *ability name* changes
+meaning: `viewAny` is a policy ability, `roles.view` is a permission code, and the two must
+never be the same string.
+
+Data Scope remains mandatory where the resource context requires it — deployment-global
+records need `ALL` (D-044). Direct Spatie user-permission grants remain excluded (D-029,
+D-041); `model_has_permissions` keeps its schema and the package keeps its API, because
+`givePermissionTo()` and friends are storage operations, not authorization decisions.
+
+Package storage is untouched: roles, permissions, `role_has_permissions`,
+`model_has_roles`, `HasRoles`, and every relationship behave exactly as before. Nothing
+else in the package depends on the disabled callback — `registerPermissions()` has one
+caller, guarded by that flag. **No vendor file was modified.**
+
+Enforced rather than merely documented: a test asserts zero Gate before/after callbacks
+exist, another asserts a canonical name given to the Gate is refused even for a user who
+genuinely holds it at `ALL`, and a source scan of `app/` fails the suite if any file
+authorizes a `resource.action` string through those calls.
+
+**O-026 is a different problem and stays open.** `/api/v1/me` reporting permissions via
+`getAllPermissions()` is a *presentation* defect — it shapes menu visibility. O-027 was a
+*backend authorization* defect. No backend security decision reads the `/me` payload, and
+M1.4A did not change it; M1.7 owns that.
+
 ### M1 implementation order
 
 ```text
@@ -1240,7 +1308,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-024 | `user_permission_overrides` carries `created_at` but no `updated_at`, following the `03_DATABASE_ERD.md` section 5 field list (D-038). Because the table is unique on `(user_id, permission_id)`, changing an override means updating the existing row — and nothing then records when it changed or who changed it. | Open. Deliberate, not an oversight: the canonical field list is explicit, and inventing a column to fill a gap the ERD does not acknowledge would be the wrong fix. The real answer is the audit log, which D-033 places outside M1 entirely. Revisit when override management lands (M1.6) — either audit covers it by then, or the ERD needs `updated_at` and an `updated_by`, which is a documentation change before it is a migration. |
 | O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
 | O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |
-| O-027 | spatie/laravel-permission registers a `Gate::before` (`PermissionRegistrar::registerPermissions()`) that answers **any ability matching a held permission name**, consulting direct user grants and applying no Data Scope check. So `$user->can('roles.view')` or `middleware('can:roles.view')` returns true for a direct grant that `EffectiveAccessResolver` would refuse — a resolver bypass through the package's own convenience API. | Open, and currently unexploited: nothing in the application calls `can()` or `can:` on a canonical permission name, and `RolePolicy`'s abilities are named `viewAny`/`view`/`create`/`update`/`delete` precisely so the callback cannot answer them. The hazard is the next person who reaches for the idiomatic form — which `CLAUDE.md` section 24 actively recommends. Options for M1.6/M1.7: set `register_permission_check_method` to false and route every check through the resolver, or keep it and forbid `can()` on canonical names in review. Needs a decision before more endpoints are written, not after. |
+| O-027 | spatie/laravel-permission registers a `Gate::before` (`PermissionRegistrar::registerPermissions()`) that answers **any ability matching a held permission name**, consulting direct user grants and applying no Data Scope check. So `$user->can('roles.view')` or `middleware('can:roles.view')` returns true for a direct grant that `EffectiveAccessResolver` would refuse — a resolver bypass through the package's own convenience API. | **Resolved 2026-08-09 by D-048.** The first of the two options this item listed was taken: `register_permission_check_method` is now `false`, the package's own documented switch for applications implementing custom permission logic. No vendor file was touched and package storage is unchanged. The unsafe path is structurally gone rather than merely discouraged — the Gate no longer answers permission names at all, so those calls fail closed. `CLAUDE.md` section 24, which had actively recommended the idiomatic form, was corrected, as was `07_SECURITY_RULES.md` section 9. Three enforcement tests were added: zero Gate callbacks registered, a canonical name refused by the Gate even for a user genuinely holding it at `ALL`, and a source scan of `app/` that fails the suite on any reintroduction. The nine existing tests that asserted the old behaviour were rewritten rather than deleted, each carrying a note on why the expectation changed. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |

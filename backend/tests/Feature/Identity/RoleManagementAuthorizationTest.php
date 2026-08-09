@@ -198,16 +198,17 @@ it('ignores an expired DENY override', function (): void {
 */
 
 it('forbids a permission attached directly to the user through the package', function (string $endpoint): void {
-    // Spatie honours the direct grant and its own Gate::before would answer
-    // `can('roles.view')` with true. First-party authorization does not use
-    // that path (D-029, D-041), so the endpoint still refuses.
+    // Spatie still records the direct grant, and until M1.4A its own
+    // Gate::before answered `can('roles.view')` with true — the bypass D-048
+    // closed. The endpoint refused even then, because first-party authorization
+    // never used that path (D-029, D-041); now the Gate refuses as well.
     [$permission, $call] = roleEndpoints()[$endpoint];
 
     $user = User::factory()->create();
     $user->givePermissionTo(makePermission($permission));
 
     expect($user->hasDirectPermission($permission))->toBeTrue()
-        ->and($user->can($permission))->toBeTrue();
+        ->and($user->can($permission))->toBeFalse();
 
     $call($user, makeRole('EXISTING_ROLE'))->assertForbidden();
 })->with(['index', 'show', 'store', 'update', 'destroy']);
@@ -238,16 +239,15 @@ it('allows any role name once it holds the permission at ALL', function (string 
     $this->actingAs($user)->getJson('/api/v1/roles')->assertOk();
 })->with(['SUPER_ADMIN', 'ARCHIVE_STAFF', 'Notaris Pengganti', 'a role with spaces']);
 
-it('registers no Gate::before or Gate::after bypass of its own', function (): void {
-    // Spatie installs one Gate::before; the application adds none. Anything
-    // beyond the package's single callback would need explaining.
-    $gate = new ReflectionClass(app(Gate::class));
+it('registers no Gate::before or Gate::after callback at all', function (): void {
+    // The application never added one, and since M1.4A the package's own is not
+    // registered either (D-048). Zero before-callbacks means no code path can
+    // answer an ability ahead of the policy that consults the resolver.
+    $gate = app(Gate::class);
+    $reflection = new ReflectionClass($gate);
 
-    $before = $gate->getProperty('beforeCallbacks');
-    $after = $gate->getProperty('afterCallbacks');
-
-    expect($before->getValue(app(Gate::class)))->toHaveCount(1)
-        ->and($after->getValue(app(Gate::class)))->toBe([]);
+    expect($reflection->getProperty('beforeCallbacks')->getValue($gate))->toBe([])
+        ->and($reflection->getProperty('afterCallbacks')->getValue($gate))->toBe([]);
 });
 
 it('never compares a role name anywhere in the authorization path', function (): void {

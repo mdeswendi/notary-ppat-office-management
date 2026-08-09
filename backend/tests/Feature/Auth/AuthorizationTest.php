@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -68,7 +69,7 @@ it('stores the complete user ULID in the permission pivot', function (): void {
         ->and(strlen(trim((string) $modelId)))->toBe(26);
 });
 
-it('grants a permission through a role to Laravel authorization', function (): void {
+it('grants a permission through a role in package storage', function (): void {
     $user = User::factory()->create();
     $permission = Permission::create(['name' => TEST_PERMISSION]);
     $role = Role::create(['name' => TEST_ROLE]);
@@ -76,10 +77,33 @@ it('grants a permission through a role to Laravel authorization', function (): v
     $role->givePermissionTo($permission);
     $user->assignRole($role);
 
-    // The Gate, not a package-specific helper: this is what controllers and
-    // policies will use.
-    expect($user->can(TEST_PERMISSION))->toBeTrue()
-        ->and($user->hasDirectPermission(TEST_PERMISSION))->toBeFalse();
+    // Written as an M0.8 test asserting `$user->can(TEST_PERMISSION)` was true,
+    // with a comment calling the Gate "what controllers and policies will use".
+    // That expectation was withdrawn in M1.4A: the Gate answered from package
+    // state alone, with no Data Scope, no override handling, and no registry
+    // check, so it could allow what EffectiveAccessResolver refuses (D-048).
+    //
+    // The storage relationship it really tests is unchanged and still asserted;
+    // only the reading of it moved.
+    expect($role->hasPermissionTo(TEST_PERMISSION))->toBeTrue()
+        ->and($user->hasPermissionTo(TEST_PERMISSION))->toBeTrue()
+        ->and($user->hasDirectPermission(TEST_PERMISSION))->toBeFalse()
+        ->and($user->getPermissionsViaRoles()->pluck('name')->all())->toBe([TEST_PERMISSION]);
+});
+
+it('does not answer a canonical permission name through the Gate', function (): void {
+    // The M1.4A boundary, stated where M0.8 stated the opposite. Nothing is
+    // authorized by naming a permission to the Gate any more; permission checks
+    // go through a Policy that delegates to EffectiveAccessResolver.
+    $user = User::factory()->create();
+    $permission = Permission::create(['name' => TEST_PERMISSION]);
+    $role = Role::create(['name' => TEST_ROLE]);
+
+    $role->givePermissionTo($permission);
+    $user->assignRole($role);
+
+    expect($user->can(TEST_PERMISSION))->toBeFalse()
+        ->and(Gate::forUser($user)->allows(TEST_PERMISSION))->toBeFalse();
 });
 
 it('denies a permission the user was never granted', function (): void {
@@ -90,14 +114,16 @@ it('denies a permission the user was never granted', function (): void {
     $role->givePermissionTo(TEST_PERMISSION);
     $user->assignRole($role);
 
-    expect($user->can(TEST_OTHER_PERMISSION))->toBeFalse();
+    expect($user->hasPermissionTo(TEST_OTHER_PERMISSION))->toBeFalse()
+        ->and($user->can(TEST_OTHER_PERMISSION))->toBeFalse();
 });
 
 it('denies everything to a user with no role at all', function (): void {
     $user = User::factory()->create();
     Permission::create(['name' => TEST_PERMISSION]);
 
-    expect($user->can(TEST_PERMISSION))->toBeFalse();
+    expect($user->hasPermissionTo(TEST_PERMISSION))->toBeFalse()
+        ->and($user->can(TEST_PERMISSION))->toBeFalse();
 });
 
 it('returns empty roles and permissions for a user with no assignments', function (): void {
