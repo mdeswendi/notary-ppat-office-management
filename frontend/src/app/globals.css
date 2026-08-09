@@ -4,41 +4,66 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Semantic design tokens.
+ *
+ * Colour values come from docs/04_UI_DESIGN_SYSTEM.md sections 5 and 6. The
+ * source hex is kept in a comment next to each converted OKLCH value so the
+ * palette stays traceable to the specification.
+ *
+ * Components must use the semantic name (bg-primary, text-muted-foreground,
+ * border-border). Do not reintroduce raw hex values in component classes.
+ */
+
 @theme inline {
+  --font-sans: var(--font-sans-stack);
+  --font-heading: var(--font-sans-stack);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Status semantics — docs/04_UI_DESIGN_SYSTEM.md section 5. Status must
+     never be carried by colour alone; always pair with text or an icon. */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Domain accents — section 6. Subtle use only: badge, icon, small border,
+     section marker. Never a full-page background. */
+  --color-notary: var(--notary);
+  --color-notary-foreground: var(--notary-foreground);
+  --color-ppat: var(--ppat);
+  --color-ppat-foreground: var(--ppat-foreground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,82 +74,117 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* next/font sets --font-inter on <html>. */
+  --font-sans-stack:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Radius scale — section 8: button/input 6px, card 8-10px, modal 10-12px. */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --background: oklch(0.9842 0.0034 247.86); /* #F8FAFC page background */
+  --foreground: oklch(0.2077 0.0398 265.75); /* #0F172A */
+  --card: oklch(1 0 0); /* #FFFFFF card background */
+  --card-foreground: oklch(0.2077 0.0398 265.75);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2077 0.0398 265.75);
+
+  --primary: oklch(0.2823 0.0874 267.94); /* #172554 Deep Navy */
+  --primary-foreground: oklch(0.9842 0.0034 247.86);
+  --secondary: oklch(0.9683 0.0069 247.9); /* #F1F5F9 */
+  --secondary-foreground: oklch(0.2823 0.0874 267.94);
+  --muted: oklch(0.9683 0.0069 247.9);
+  --muted-foreground: oklch(0.5544 0.0407 257.42); /* #64748B secondary text */
+  --accent: oklch(0.9683 0.0069 247.9);
+  --accent-foreground: oklch(0.2823 0.0874 267.94);
+
+  --destructive: oklch(0.5771 0.2152 27.33); /* #DC2626 */
+  --destructive-foreground: oklch(0.9842 0.0034 247.86);
+  --success: oklch(0.6271 0.1699 149.21); /* #16A34A */
+  --success-foreground: oklch(0.9842 0.0034 247.86);
+  --warning: oklch(0.6658 0.1574 58.32); /* #D97706 */
+  --warning-foreground: oklch(0.9842 0.0034 247.86);
+  --info: oklch(0.5876 0.1389 241.97); /* #0284C7 */
+  --info-foreground: oklch(0.9842 0.0034 247.86);
+
+  --notary: oklch(0.4568 0.2146 277.02); /* #4338CA indigo */
+  --notary-foreground: oklch(0.9842 0.0034 247.86);
+  --ppat: oklch(0.5109 0.0861 186.39); /* #0F766E teal */
+  --ppat-foreground: oklch(0.9842 0.0034 247.86);
+
+  --border: oklch(0.9288 0.0126 255.51); /* #E2E8F0 */
+  --input: oklch(0.9288 0.0126 255.51);
+  --ring: oklch(0.2823 0.0874 267.94);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2077 0.0398 265.75);
+  --sidebar-primary: oklch(0.2823 0.0874 267.94);
+  --sidebar-primary-foreground: oklch(0.9842 0.0034 247.86);
+  --sidebar-accent: oklch(0.9683 0.0069 247.9);
+  --sidebar-accent-foreground: oklch(0.2823 0.0874 267.94);
+  --sidebar-border: oklch(0.9288 0.0126 255.51);
+  --sidebar-ring: oklch(0.2823 0.0874 267.94);
 }
 
+/*
+ * Dark-mode token parity is preserved from the shadcn scaffold so the
+ * foundation stays theme-ready. No theme switch is shipped at M0.6 —
+ * docs/10_M0_FOUNDATION.md section 34 requires light only for MVP.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --background: oklch(0.1288 0.0406 264.7); /* #020617 */
+  --foreground: oklch(0.9842 0.0034 247.86);
+  --card: oklch(0.2077 0.0398 265.75); /* #0F172A */
+  --card-foreground: oklch(0.9842 0.0034 247.86);
+  --popover: oklch(0.2077 0.0398 265.75);
+  --popover-foreground: oklch(0.9842 0.0034 247.86);
+
+  --primary: oklch(0.9288 0.0126 255.51);
+  --primary-foreground: oklch(0.2077 0.0398 265.75);
+  --secondary: oklch(0.2795 0.0368 260.03); /* #1E293B */
+  --secondary-foreground: oklch(0.9842 0.0034 247.86);
+  --muted: oklch(0.2795 0.0368 260.03);
+  --muted-foreground: oklch(0.7107 0.0351 256.79); /* #94A3B8 */
+  --accent: oklch(0.2795 0.0368 260.03);
+  --accent-foreground: oklch(0.9842 0.0034 247.86);
+
+  --destructive: oklch(0.6368 0.2078 25.33); /* #EF4444 */
+  --destructive-foreground: oklch(0.1288 0.0406 264.7);
+  --success: oklch(0.7227 0.192 149.58); /* #22C55E */
+  --success-foreground: oklch(0.1288 0.0406 264.7);
+  --warning: oklch(0.7686 0.1647 70.08); /* #F59E0B */
+  --warning-foreground: oklch(0.1288 0.0406 264.7);
+  --info: oklch(0.6847 0.1479 237.32); /* #0EA5E9 */
+  --info-foreground: oklch(0.1288 0.0406 264.7);
+
+  --notary: oklch(0.6801 0.1583 276.93); /* #818CF8 */
+  --notary-foreground: oklch(0.1288 0.0406 264.7);
+  --ppat: oklch(0.7845 0.1325 181.91); /* #2DD4BF */
+  --ppat-foreground: oklch(0.1288 0.0406 264.7);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.7107 0.0351 256.79);
+
+  --sidebar: oklch(0.2077 0.0398 265.75);
+  --sidebar-foreground: oklch(0.9842 0.0034 247.86);
+  --sidebar-primary: oklch(0.9288 0.0126 255.51);
+  --sidebar-primary-foreground: oklch(0.2077 0.0398 265.75);
+  --sidebar-accent: oklch(0.2795 0.0368 260.03);
+  --sidebar-accent-foreground: oklch(0.9842 0.0034 247.86);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.7107 0.0351 256.79);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    /* Body 14px — docs/04_UI_DESIGN_SYSTEM.md section 4. Office data needs a
+       denser baseline than the 16px consumer default. */
+    @apply bg-background text-foreground text-sm;
   }
 }

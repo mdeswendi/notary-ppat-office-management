@@ -5,6 +5,70 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.6 UI Foundation
+
+Branch `feat/m0-foundation`. Frontend only. Reusable presentational foundations; the
+authenticated shell remains M0.9.
+
+### Added
+
+```text
+src/app/globals.css              semantic tokens from 04_UI_DESIGN_SYSTEM sections 5-8
+src/config/navigation.ts         menu config, per CLAUDE.md section 47
+src/components/layout/           AppShell, AppSidebar, AppHeader, PageContainer
+src/components/feedback/         LoadingSkeleton, BaseErrorState
+src/components/ui/               shadcn Button, Skeleton, Separator
+src/app/[locale]/loading.tsx     route loading boundary
+src/app/[locale]/error.tsx       route error boundary
+```
+
+Tokens carry the spec's own values — primary `#172554`, page `#F8FAFC`, card `#FFFFFF`,
+border `#E2E8F0` — converted to OKLCH with the source hex kept in comments. Added
+`success` / `warning` / `info` and the `notary` / `ppat` domain accents required by
+`10_M0_FOUNDATION.md` section 32. Dark-mode parity preserved; no theme switch shipped.
+
+AppShell is layout only: it does not read the current user, call `/api/v1/me`, inspect
+permissions, or guard routes. The sidebar shows the Dashboard placeholder alone —
+advertising modules with no routes would misrepresent what exists. The header carries
+application context and the M0.5 locale switch; search, notifications, quick create, and
+the user menu are omitted rather than faked.
+
+`error.tsx` never renders or logs the `Error` object Next.js hands it, so a server-side
+detail cannot reach the interface through it.
+
+### O-014 resolved
+
+Typography is now **Inter**, the only typeface named in `04_UI_DESIGN_SYSTEM.md`
+section 4, self-hosted through `next/font`. Geist is gone. No new decision was needed —
+the canonical document was never ambiguous; `D-017` had recorded Geist as an incidental
+shadcn preset default awaiting this milestone.
+
+Found while fixing it: `--font-sans: var(--font-sans)` in the scaffold's `globals.css` was
+self-referential, so **no** custom sans font had ever applied — the app had been rendering
+in the browser default. Verified in the production CSS that `font-family: Inter` now
+resolves.
+
+### Two findings worth recording
+
+**`loading.tsx` silently cost static rendering.** Adding it flipped `/id` and `/en` from
+prerendered to server-rendered on demand. Next.js gives `loading.tsx` no `params`, so a
+server component there cannot call `setRequestLocale`, and next-intl falls back to reading
+the locale from the request — which opts the whole segment out. Making `LoadingSkeleton` a
+client component, where messages come from `NextIntlClientProvider`, restored SSG. Bisected
+against the build output, not guessed.
+
+**A localized `not-found.tsx` was written and then removed.** Next.js uses the *root*
+not-found for unmatched URLs; a nested one only catches `notFound()` thrown inside its own
+segment, and the proxy guarantees the locale segment is always valid, so it never rendered.
+Making it work needs a catch-all route — a routing change outside M0.6. The built-in 404
+stays for now. See open item O-017.
+
+`pnpm format:check`, `lint`, `typecheck`, `build` all pass; both locales still prerender.
+Message parity exact at 25 keys. No backend, Docker, authentication, authorization, or
+business-module change.
+
+---
+
 ## 2026-08-09 — M0.5 Internationalization Foundation
 
 Branch `feat/m0-foundation`. Frontend only. `next-intl` 4.13.5.

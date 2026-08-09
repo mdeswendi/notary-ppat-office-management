@@ -1,15 +1,30 @@
 {
   "common": {
     "appName": "Notary & PPAT Office Management System",
+    "officeLabel": "Kantor Notaris & PPAT",
     "foundationNotice": "Fondasi aplikasi siap. Modul bisnis belum tersedia.",
+    "loading": "Memuat...",
     "language": "Bahasa",
     "localeIndonesian": "Bahasa Indonesia",
-    "localeEnglish": "English"
+    "localeEnglish": "English",
+    "errorTitle": "Terjadi kesalahan",
+    "errorDescription": "Terjadi kesalahan yang tidak terduga. Silakan coba lagi.",
+    "notFoundTitle": "Halaman tidak ditemukan",
+    "notFoundDescription": "Halaman yang Anda cari tidak tersedia."
   },
   "auth": {},
-  "navigation": {},
-  "dashboard": {},
-  "actions": {},
+  "navigation": {
+    "mainLabel": "Navigasi utama",
+    "dashboard": "Dasbor"
+  },
+  "dashboard": {
+    "title": "Dasbor",
+    "foundationSubtitle": "Antarmuka fondasi"
+  },
+  "actions": {
+    "retry": "Coba lagi",
+    "backToDashboard": "Kembali ke Dasbor"
+  },
   "status": {},
   "validation": {},
   "legal": {}

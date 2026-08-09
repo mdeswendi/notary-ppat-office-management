@@ -1,15 +1,30 @@
 {
   "common": {
     "appName": "Notary & PPAT Office Management System",
+    "officeLabel": "Notary & PPAT Office",
     "foundationNotice": "Application foundation is ready. Business modules are not available yet.",
+    "loading": "Loading...",
     "language": "Language",
     "localeIndonesian": "Bahasa Indonesia",
-    "localeEnglish": "English"
+    "localeEnglish": "English",
+    "errorTitle": "Something went wrong",
+    "errorDescription": "An unexpected error occurred. Please try again.",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The page you are looking for is not available."
   },
   "auth": {},
-  "navigation": {},
-  "dashboard": {},
-  "actions": {},
+  "navigation": {
+    "mainLabel": "Main navigation",
+    "dashboard": "Dashboard"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "foundationSubtitle": "Foundation UI"
+  },
+  "actions": {
+    "retry": "Try again",
+    "backToDashboard": "Back to dashboard"
+  },
   "status": {},
   "validation": {},
   "legal": {}
