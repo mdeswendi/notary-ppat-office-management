@@ -8,15 +8,18 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
- * `is_active` and `last_login_at` are intentionally left out of the fillable
- * list: neither may ever be set from request input. Account state is changed
- * by administration, and the login timestamp is written by the application.
- * See docs/07_SECURITY_RULES.md section 34.
+ * `is_active`, `last_login_at`, and `office_id` are intentionally left out of
+ * the fillable list: none may ever be set from request input. Account state is
+ * changed by administration, the login timestamp is written by the
+ * application, and moving someone between offices is a User Management
+ * operation subject to backend authorization — not something a profile update
+ * should be able to do. See docs/07_SECURITY_RULES.md section 34.
  */
 #[Fillable(['name', 'email', 'password', 'preferred_locale'])]
 #[Hidden(['password', 'remember_token'])]
@@ -48,6 +51,17 @@ class User extends Authenticatable
      * infer ordering from them.
      */
     use HasUlids;
+
+    /**
+     * The user's primary office. Exactly one in V1 (D-027) — the Organization
+     * is reached through it rather than stored again on this table.
+     *
+     * @return BelongsTo<Office, $this>
+     */
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
 
     /**
      * Get the attributes that should be cast.

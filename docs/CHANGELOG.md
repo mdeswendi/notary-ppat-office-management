@@ -5,6 +5,69 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.1 Organization & Office schema foundation
+
+Branch `feat/m1-identity`. Schema and domain models only — **no API, UI, permission
+registry, role, Data Scope, seed, or bootstrap**.
+
+### Schema
+
+Three new migrations; no M0 migration was edited.
+
+```text
+organizations   ULID PK, name, legal_name (nullable), timezone,
+                default_locale, is_active
+offices         ULID PK, organization_id (required, RESTRICT), code, name,
+                address/city/province/postal_code/phone/email (nullable),
+                timezone, is_active
+users           + office_id  ULID, NON-NULL, indexed, RESTRICT
+```
+
+Defaults follow canon: `timezone` `Asia/Jakarta` (D-004), `default_locale` `id`,
+`is_active` true. Both foreign keys are **RESTRICT**, so deleting an Organization cannot
+silently take its Offices, and deleting an Office cannot silently take its people.
+
+`users.office_id` went in non-null directly (D-027): the table held zero rows, so no
+nullable interim phase and no fabricated placeholder Office were needed. No
+`organization_id` on `users` — the Organization is reached through the Office — and no
+`user_offices` pivot.
+
+### Models and factories
+
+`Organization` and `Office` use `HasUlids`, with `Organization hasMany Office`,
+`Office belongsTo Organization`, `Office hasMany User`, `User belongsTo Office`.
+`organization_id`, `office_id`, and `is_active` are deliberately **not fillable** —
+reparenting and retirement are authorized operations, not mass-assignable fields.
+
+`UserFactory` now builds User → Office → Organization when nothing is supplied, and
+reuses an explicitly supplied hierarchy instead of creating a second Organization. That
+is test convenience only; production creation is the bootstrap command's job (D-034).
+
+### Verified
+
+57 tests, 161 assertions, all passing — 20 new, and every M0 authentication,
+authorization, and ULID test still green. Migrations run from zero on in-memory SQLite
+and on PostgreSQL; a full rollback and re-migrate also passes, which exercises the
+`down()` methods. Runtime relationship smoke on PostgreSQL confirmed 26-character ULIDs
+and all four relation directions, then removed its rows.
+
+### Two things worth flagging
+
+**No uniqueness constraint was added to `offices.code`.** No canonical document defines
+one — the word "unique" appears nowhere in the specification — and a composite
+`organization_id + code` rule would be a long-term product rule invented inside a
+migration. Raised for decision as **O-023** rather than encoded silently.
+
+**Foreign keys do not imply indexes on PostgreSQL.** `constrained()` created the
+constraint but no index; both FK columns now carry an explicit `index()`, verified
+present as `users_office_id_index` and `offices_organization_id_index`.
+
+`Organization` and `Office` live in `app/Models` alongside `User` rather than under
+`app/Domains/Identity`, so the identity models stay in one place. Relocating the set is a
+deliberate refactor, not M1.1 work.
+
+---
+
 ## 2026-08-09 — M1.0A Identity & Access architecture lock
 
 Branch `feat/m1-identity`. **Documentation only** — no migration, model, controller,
