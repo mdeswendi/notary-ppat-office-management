@@ -32,6 +32,28 @@ namespace App\Domains\Authorization;
 final class PermissionRegistry
 {
     /**
+     * The guard every first-party permission belongs to.
+     *
+     * A permission's identity is `(name, guard_name)`, so the registry, the
+     * synchronization command, and the resolver must all name the same guard or
+     * nothing authorizes.
+     *
+     * Deliberately **not** `config('auth.defaults.guard')`. That value is
+     * mutable at runtime: `Illuminate\Auth\Middleware\Authenticate` calls
+     * `Auth::shouldUse()` on success, which rewrites the default guard for the
+     * rest of the request. Every authenticated API request passes through
+     * `auth:sanctum`, so reading the config inside a controller yields
+     * `sanctum` — a guard no permission row was ever written for, which would
+     * make authorization fail closed on every request while continuing to
+     * resolve correctly in tests and on the console (D-046).
+     *
+     * `web` is the session guard the first-party SPA authenticates against.
+     * Sanctum's stateful mode authenticates that same session; it is a wrapper
+     * over this guard, not a second permission namespace.
+     */
+    public const GUARD = 'web';
+
+    /**
      * Every canonical permission, grouped by the documentation section it comes
      * from. Grouping is for traceability and for the eventual permission matrix
      * UI; authorization itself only ever uses the flat list.

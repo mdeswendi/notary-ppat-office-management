@@ -5,6 +5,115 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.4 Role Management
+
+Branch `feat/m1-identity`. Role **records** only — no permission assignment, no scope
+assignment, no user management, no default-role seeding, **no migration**.
+
+### A defect in M1.3, found by building on it
+
+`EffectiveAccessResolver` read its guard from `config('auth.defaults.guard')`. That value
+is rewritten mid-request: `Illuminate\Auth\Middleware\Authenticate` calls
+`Auth::shouldUse()` on success, so inside any authenticated API request it reads `sanctum`
+rather than `web`. The resolver was therefore looking for permissions on a guard no row
+was ever written for, and **denying every authenticated request** — while passing all 48
+of its own tests, none of which issued an HTTP request through the auth middleware.
+
+Fixed by defining the guard once, as `PermissionRegistry::GUARD` (D-046), and using it in
+the resolver, the sync command, role creation, and both Form Requests. Two regression
+tests: one resolves access after deliberately calling `Auth::shouldUse('sanctum')`, one
+asserts the named guard exists and uses the `session` driver so a rename fails loudly.
+
+### Authorization
+
+Role management requires the canonical `roles.*` permission **and** the `ALL` Data Scope
+(D-044). A Role definition is owned by nobody, so `OWN`, `ASSIGNED`, `TEAM`, and `OFFICE`
+have no field to match against — `ALL` is the only predicate that can reach one.
+
+This is presence, not precedence: `{OFFICE, ALL}` passes because `ALL` is in the set, and
+`DataScope` still exposes no `widest`, `max`, `rank`, or `higherThan`. D-028 is untouched.
+
+`RolePolicy` runs every decision through the resolver, so all of M1.3's rules apply
+unchanged — including that Spatie's direct user-permission grants never participate.
+A test confirms the package honours such a grant and `can()` returns true for it, while
+the endpoint still answers 403.
+
+No role name is ever compared. A test greps the whole authorization path for `hasRole`,
+`SUPER_ADMIN`, `Gate::before`, and `Gate::after` and requires all four absent; another
+asserts the application registers no Gate callback of its own.
+
+### API and behaviour
+
+```text
+GET    /api/v1/roles          roles.view    + ALL
+POST   /api/v1/roles          roles.create  + ALL
+GET    /api/v1/roles/{role}   roles.view    + ALL
+PATCH  /api/v1/roles/{role}   roles.update  + ALL
+DELETE /api/v1/roles/{role}   roles.delete  + ALL
+```
+
+No nested permission, scope, or member routes — a test asserts the five URIs are all that
+exist. The resource exposes `id`, `name`, `guard_name`, `created_at`, `updated_at` and
+nothing about capability.
+
+Creating a role creates one row with zero permissions, zero scope rows, and zero members.
+Renaming changes only the name, asserted against all three assignment tables. Deleting a
+role somebody holds is refused with **409 Conflict** rather than cascading their access
+away silently (D-047); users are never detached automatically. The guard is never taken
+from request input.
+
+`roles` gained no table, column, or migration, and its key stays the package's integer
+(D-045). Role names are validated technically only — no casing rule, since an office may
+legitimately create `Notaris Pengganti` — and stored exactly as submitted.
+
+### Frontend
+
+`/[locale]/settings/roles`, reached by direct URL. The sidebar is unchanged:
+permission-aware navigation is its own milestone, and an always-visible Settings entry
+would show every user a link most cannot use.
+
+List, create, rename, and delete, with loading, empty, error, and forbidden states, delete
+confirmation, and field-level validation. The page does not hide itself based on the
+browser's permission list — that list cannot express "at `ALL`" (O-026) — so it asks the
+API and renders the answer, 403 included. 29 new `roles.*` keys, id and en at exact
+parity (74 = 74).
+
+### Verified
+
+**Backend** 301 tests, 1010 assertions, all passing — 94 new, every M0/M1.1/M1.2/M1.3 test
+still green. Pint clean. `migrate:status` unchanged at 10 migrations.
+
+**Frontend** format, lint (0 errors), typecheck, and production build all pass. The single
+lint warning is pre-existing in `login-form.tsx`.
+
+**PostgreSQL, over the real Sanctum session flow** — 26/26 checks. Logged in as an
+administrator holding `roles.*` at `ALL` and exercised list, create, detail, rename,
+delete, duplicate name (422), blank name (422), injected `guard_name` (ignored), missing id
+(404), non-numeric id (404), and assigned-role delete (409, role intact). Then repeated
+every endpoint as a user holding the same four permissions at `OFFICE` only — all 403 — as
+a user holding `roles.view` only as a direct package grant — 403 — and unauthenticated —
+401. All temporary data removed afterwards; the database returned to 171 canonical
+permissions and zero everywhere else.
+
+### Also recorded
+
+**O-026** — `/api/v1/me` reports permissions via `getAllPermissions()`, which includes
+direct grants and carries no Data Scope, so it does not agree with the resolver.
+Presentation-only and not relied on here; M1.7 should derive it from the resolver.
+
+**O-027** — Spatie's own `Gate::before` answers any ability named after a held permission,
+from direct grants and with no scope check, so `$user->can('roles.view')` bypasses the
+resolver. Currently unexploited — nothing calls it, and the policy's ability names are
+chosen so the callback cannot answer them — but it needs a decision before more endpoints
+are written.
+
+**O-024 and O-025** were re-read and neither blocks M1.4: O-024 concerns
+`user_permission_overrides`, which M1.4 does not touch, and O-025 concerns orphaned pivot
+rows after a user mass-delete, which M1.4 does not perform. O-025 did inform the smoke
+test's own cleanup, which removes `model_has_permissions` rows explicitly.
+
+---
+
 ## 2026-08-09 — M1.3 Data Scope model & effective-access resolver
 
 Branch `feat/m1-identity`. Authorization metadata and calculation only — **no Policy, no

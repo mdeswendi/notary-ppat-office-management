@@ -44,9 +44,51 @@
     "foundationSubtitle": "Foundation UI",
     "placeholderBody": "The application shell is ready. Dashboard summaries will appear once the modules behind them exist."
   },
+  "roles": {
+    "title": "Role Management",
+    "subtitle": "Manage the list of user roles in your office.",
+    "create": "Create Role",
+    "createTitle": "Create Role",
+    "createDescription": "A new role is created with no permissions. Permissions are configured in a later step.",
+    "editTitle": "Edit Role",
+    "editDescription": "Renaming a role changes neither its permissions nor who holds it.",
+    "deleteTitle": "Delete Role",
+    "deleteDescription": "The role \"{name}\" will be permanently deleted along with its permission configuration. This cannot be undone.",
+    "nameLabel": "Role Name",
+    "createdAtLabel": "Created",
+    "rowActions": "Actions",
+    "tableCaption": "List of roles",
+    "loading": "Loading roles...",
+    "retry": "Try again",
+    "emptyTitle": "No roles yet",
+    "emptyDescription": "No roles have been created. Create the first one to start configuring user permissions.",
+    "editAria": "Edit role {name}",
+    "deleteAria": "Delete role {name}",
+    "errorTitles": {
+      "forbidden": "Access denied",
+      "generic": "Could not load data"
+    },
+    "errors": {
+      "forbidden": "You do not have permission to manage roles.",
+      "assigned": "This role is still assigned to users and cannot be deleted. Remove it from everyone holding it first.",
+      "notFound": "Role not found. It may have already been deleted.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "A server error occurred. Please try again."
+    },
+    "validation": {
+      "nameRequired": "Role name is required.",
+      "nameTooLong": "Role name must be at most 255 characters.",
+      "nameTaken": "This role name is already in use."
+    }
+  },
   "actions": {
     "retry": "Try again",
-    "backToDashboard": "Back to dashboard"
+    "backToDashboard": "Back to dashboard",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting..."
   },
   "status": {},
   "validation": {

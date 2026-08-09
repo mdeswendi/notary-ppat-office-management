@@ -1038,6 +1038,134 @@ security surface with nothing to validate it against — and a stale authorizati
 fails in the direction that grants access. Spatie's own supported permission cache is
 untouched. Revisit only with a measured problem.
 
+### D-044 — Deployment-global records require the `ALL` Data Scope
+
+A Role definition belongs to nobody. It is not owned, not assigned, not held by
+an office, not part of a team. `ALL` is therefore the only Data Scope that can describe
+reaching one — the other four predicates have no field to match against.
+
+So all five role-management abilities require the canonical `roles.*` permission **and**
+`ALL` in the effective scope set:
+
+```text
+roles.view + ALL              allowed
+roles.view + {OFFICE, ALL}    allowed — ALL is present
+roles.view + OFFICE           denied
+roles.view + OWN              denied
+roles.view + ASSIGNED         denied
+roles.view + TEAM             denied
+active ALLOW override + ALL       allowed
+active ALLOW override + OFFICE    denied — the override replaces the role result
+active DENY override              denied
+```
+
+**This is not a ranking, and D-028 is untouched.** Nothing says `ALL` outranks `OFFICE`;
+it says this *kind of record* needs the unrestricted predicate. An office-scoped grant
+stays fully valid for office-scoped records. The check is presence — `hasScope(ALL)` —
+not comparison, and `DataScope` still exposes no `widest`, `max`, `rank`, or
+`higherThan`, asserted by test.
+
+Implemented as `EffectiveAccessResolver::allowsGlobally()`, one method reusable by the
+future Organization, Office, Settings, and Master Data policies, all of which manage
+deployment-global records. It is not a general authorization framework and should not
+grow into one.
+
+`RolePolicy` ability names (`viewAny`, `view`, `create`, `update`, `delete`) deliberately
+are not permission names — see O-027 for why that matters.
+
+M1.4 has no scope-assignment path at all, so the `TEAM` validation restriction recorded
+in D-042 has nothing to attach to here. It carries forward to the milestone that assigns
+scopes (M1.6).
+
+### D-045 — The package's Role record is the role record
+
+`roles` stays exactly as spatie/laravel-permission defines it: an auto-incrementing
+integer key, `name`, `guard_name`, timestamps. M1.4 added no table, no column, and no
+migration.
+
+No `code`, `slug`, or `display_name` was invented — no canonical document defines one, and
+a second name field immediately raises which one is authoritative. No `organization_id` or
+`office_id` either: one deployment runs one Organization (D-026), and role definitions are
+deployment-global rather than per-office copies.
+
+The integer key is returned to the frontend as-is. `06_API_CONVENTIONS.md` section 14 asks
+for ULIDs on *domain resources*; `roles` is a third-party table already exempted by D-023,
+and converting its key would mean editing vendor migrations. The client treats the value as
+an opaque handle and derives nothing from it.
+
+**A role name is not an authorization primitive.** Nothing anywhere compares one — a test
+greps the entire authorization path for `hasRole`, `SUPER_ADMIN`, `Gate::before`, and
+`Gate::after` and requires all four absent. This is what makes renaming safe.
+
+Validation is technical only: required, string, at most 255 characters, unique within the
+guard. No casing or shape is imposed, because an office may reasonably create
+`Notaris Pengganti`, and the submitted name is stored exactly as given rather than
+normalized — an interface that silently rewrites what someone typed is lying about what it
+saved.
+
+The nine names in `02_MENU_AND_PERMISSIONS.md` section 4 —
+
+```text
+SUPER_ADMIN  PRINCIPAL  OFFICE_MANAGER  NOTARY_STAFF  PPAT_STAFF
+FRONT_OFFICE  FINANCE  ARCHIVE_STAFF  AUDITOR
+```
+
+(`ARCHIVE_STAFF`, not `ARCHIVE`) — are a **default configuration**, not authorization
+logic and not protected records. They are not seeded by M1.4, not hardcoded in the
+frontend, and not enforced by any recurring synchronization command. Provisioning them is
+the deployment bootstrap's job (D-034), and any of them may be renamed or deleted like any
+other role.
+
+### D-046 — First-party authorization is defined against a fixed guard
+
+A permission's identity is `(name, guard_name)`, so the registry, the sync command, the
+resolver, and role creation must all name the same guard or nothing authorizes.
+`PermissionRegistry::GUARD` is that single definition, and it is the literal `web`.
+
+It is deliberately **not** `config('auth.defaults.guard')`. That value is mutable at
+runtime: on a successful check `Illuminate\Auth\Middleware\Authenticate` calls
+`Auth::shouldUse($guard)`, which rewrites the default guard for the remainder of the
+request. Every authenticated API request passes through `auth:sanctum`, so any code
+reading that config inside a controller, policy, action, or Form Request sees `sanctum`.
+
+Found while building M1.4, and it was not theoretical. The M1.3 resolver read the config
+and consequently looked for permissions on the `sanctum` guard on every authenticated
+request, found none, and denied everything — while passing all 48 of its own tests,
+because none of them issued an HTTP request through the auth middleware. The same trap
+would have made role creation write roles onto a guard nothing could ever grant, and
+uniqueness validation compare against a guard holding no roles at all.
+
+`web` is the session guard the SPA authenticates against. Sanctum's stateful mode
+authenticates that same session — it is a wrapper over this guard, not a second permission
+namespace. A test asserts the named guard exists and uses the `session` driver, so
+renaming it fails loudly instead of letting authorization go quiet, and a regression test
+resolves access after deliberately calling `Auth::shouldUse('sanctum')`.
+
+### D-047 — A role that somebody holds is not deleted
+
+`model_has_roles.role_id` cascades, so deleting a held role would strip capability from
+everyone holding it, and the first sign would be a user unable to do their job. The delete
+endpoint therefore refuses with **409 Conflict** — the request is well formed and the
+caller is authorized; the system's state is what blocks it.
+
+Detaching users automatically is deliberately not offered. That is a user-administration
+act and belongs to whoever manages those users, made explicitly. The check reads the pivot
+table rather than a `users` relation, since any model type may hold a role.
+
+Deleting a role nobody holds does remove its own permission grants and Data Scope rows
+through the existing foreign keys — those describe the role, and with the role gone they
+describe nothing (D-038). Canonical permission rows are never touched.
+
+Known limit, recorded rather than papered over: the check and the delete are not proof
+against a role being assigned in the instant between them. Closing that would require
+restricting the package's own pivot, which M1.4 must not modify, and no assignment path
+exists yet in any case — it arrives with User Management.
+
+Creating a role creates exactly one `roles` row with zero permissions, zero scope rows, and
+zero members. Renaming one changes only the name. Both are asserted against all three
+assignment tables, because these are the invariants that make role administration safe to
+hand to an office manager.
+
 ### M1 implementation order
 
 ```text
@@ -1111,6 +1239,8 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | **Direction fixed 2026-08-09 by D-037** — `UNIQUE (organization_id, code)`. Still **open for implementation**: M1.2 added no migration, and the constraint is scheduled to land with the Office management submilestone so the database rule and the Form Request rule arrive together instead of disagreeing in between. Adding it remains cheap while `offices` holds no rows. |
 | O-024 | `user_permission_overrides` carries `created_at` but no `updated_at`, following the `03_DATABASE_ERD.md` section 5 field list (D-038). Because the table is unique on `(user_id, permission_id)`, changing an override means updating the existing row — and nothing then records when it changed or who changed it. | Open. Deliberate, not an oversight: the canonical field list is explicit, and inventing a column to fill a gap the ERD does not acknowledge would be the wrong fix. The real answer is the audit log, which D-033 places outside M1 entirely. Revisit when override management lands (M1.6) — either audit covers it by then, or the ERD needs `updated_at` and an `updated_by`, which is a documentation change before it is a migration. |
 | O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
+| O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |
+| O-027 | spatie/laravel-permission registers a `Gate::before` (`PermissionRegistrar::registerPermissions()`) that answers **any ability matching a held permission name**, consulting direct user grants and applying no Data Scope check. So `$user->can('roles.view')` or `middleware('can:roles.view')` returns true for a direct grant that `EffectiveAccessResolver` would refuse — a resolver bypass through the package's own convenience API. | Open, and currently unexploited: nothing in the application calls `can()` or `can:` on a canonical permission name, and `RolePolicy`'s abilities are named `viewAny`/`view`/`create`/`update`/`delete` precisely so the callback cannot answer them. The hazard is the next person who reaches for the idiomatic form — which `CLAUDE.md` section 24 actively recommends. Options for M1.6/M1.7: set `register_permission_check_method` to false and route every check through the resolver, or keep it and forbid `can()` on canonical names in review. Needs a decision before more endpoints are written, not after. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |

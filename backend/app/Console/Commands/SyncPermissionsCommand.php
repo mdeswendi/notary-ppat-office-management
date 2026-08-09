@@ -28,7 +28,10 @@ class SyncPermissionsCommand extends Command
 
     public function handle(PermissionRegistrar $registrar): int
     {
-        $guard = (string) config('auth.defaults.guard');
+        // The registry's own guard, not `auth.defaults.guard` — the two agree
+        // on the console but not inside a request, and permissions written
+        // under one guard are invisible to a check made under another (D-046).
+        $guard = PermissionRegistry::GUARD;
 
         // Read through a cold cache. A stale cached collection would make the
         // "already present" check answer from a snapshot rather than the table.

@@ -797,3 +797,38 @@ it('treats ALL as a Data Scope and nothing more', function (): void {
     expect(resolveAccess($user, RESOLVER_PERMISSION)->scopeValues())->toBe(['ALL'])
         ->and(resolveAccess($user, 'notary.deeds.finalize')->granted)->toBeFalse();
 });
+
+/*
+|--------------------------------------------------------------------------
+| The guard the registry is written against
+|--------------------------------------------------------------------------
+*/
+
+it('resolves against the registry guard even after the auth middleware switches the default', function (): void {
+    // Regression. `Illuminate\Auth\Middleware\Authenticate` calls
+    // Auth::shouldUse() on success, which rewrites config('auth.defaults.guard')
+    // for the rest of the request. Every authenticated API request passes
+    // through auth:sanctum, so a resolver reading that config would look for
+    // permissions on the `sanctum` guard, find none, and deny everything --
+    // while still passing every test that never issued an HTTP request.
+    $user = User::factory()->create();
+    $permission = makePermission(RESOLVER_PERMISSION);
+    $role = makeRole('RESOLVER_ROLE');
+
+    $role->givePermissionTo($permission);
+    grantScope($role, $permission, DataScope::OWN);
+    $user->assignRole($role);
+
+    expect(resolveAccess($user, RESOLVER_PERMISSION)->scopeValues())->toBe(['OWN']);
+
+    auth()->shouldUse('sanctum');
+
+    expect(config('auth.defaults.guard'))->toBe('sanctum')
+        ->and(resolveAccess($user, RESOLVER_PERMISSION)->scopeValues())->toBe(['OWN']);
+});
+
+it('names a guard that exists and authenticates a session', function (): void {
+    // If the web guard is ever renamed, this fails loudly rather than letting
+    // authorization go quiet.
+    expect(config('auth.guards.'.PermissionRegistry::GUARD.'.driver'))->toBe('session');
+});

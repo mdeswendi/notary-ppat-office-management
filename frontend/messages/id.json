@@ -44,9 +44,51 @@
     "foundationSubtitle": "Antarmuka fondasi",
     "placeholderBody": "Kerangka aplikasi sudah siap. Ringkasan dasbor akan ditampilkan setelah modul terkait tersedia."
   },
+  "roles": {
+    "title": "Manajemen Peran",
+    "subtitle": "Kelola daftar peran pengguna di kantor Anda.",
+    "create": "Buat Peran",
+    "createTitle": "Buat Peran",
+    "createDescription": "Peran baru dibuat tanpa hak akses apa pun. Hak akses diatur pada tahap berikutnya.",
+    "editTitle": "Ubah Peran",
+    "editDescription": "Mengubah nama peran tidak mengubah hak akses maupun keanggotaan penggunanya.",
+    "deleteTitle": "Hapus Peran",
+    "deleteDescription": "Peran \"{name}\" akan dihapus permanen beserta konfigurasi hak aksesnya. Tindakan ini tidak dapat dibatalkan.",
+    "nameLabel": "Nama Peran",
+    "createdAtLabel": "Dibuat",
+    "rowActions": "Tindakan",
+    "tableCaption": "Daftar peran",
+    "loading": "Memuat daftar peran...",
+    "retry": "Coba lagi",
+    "emptyTitle": "Belum ada peran",
+    "emptyDescription": "Belum ada peran yang dibuat. Buat peran pertama untuk mulai mengatur hak akses pengguna.",
+    "editAria": "Ubah peran {name}",
+    "deleteAria": "Hapus peran {name}",
+    "errorTitles": {
+      "forbidden": "Akses ditolak",
+      "generic": "Gagal memuat data"
+    },
+    "errors": {
+      "forbidden": "Anda tidak memiliki hak akses untuk mengelola peran.",
+      "assigned": "Peran ini masih digunakan oleh pengguna sehingga tidak dapat dihapus. Lepaskan peran tersebut dari seluruh penggunanya terlebih dahulu.",
+      "notFound": "Peran tidak ditemukan. Kemungkinan sudah dihapus.",
+      "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
+      "server": "Terjadi kesalahan pada server. Silakan coba lagi."
+    },
+    "validation": {
+      "nameRequired": "Nama peran wajib diisi.",
+      "nameTooLong": "Nama peran maksimal 255 karakter.",
+      "nameTaken": "Nama peran ini sudah digunakan."
+    }
+  },
   "actions": {
     "retry": "Coba lagi",
-    "backToDashboard": "Kembali ke Dasbor"
+    "backToDashboard": "Kembali ke Dasbor",
+    "save": "Simpan",
+    "saving": "Menyimpan...",
+    "cancel": "Batal",
+    "delete": "Hapus",
+    "deleting": "Menghapus..."
   },
   "status": {},
   "validation": {

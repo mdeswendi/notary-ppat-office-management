@@ -50,7 +50,11 @@ class EffectiveAccessResolver
             return EffectiveAccess::denied();
         }
 
-        $guard = (string) config('auth.defaults.guard');
+        // Fixed, never read from `auth.defaults.guard`: the authentication
+        // middleware rewrites that value mid-request, and following it would
+        // send every authenticated request looking for permissions on a guard
+        // no row was written for. See PermissionRegistry::GUARD and D-046.
+        $guard = PermissionRegistry::GUARD;
 
         // Step 2 — a canonical name with no row grants nothing. The resolver
         // does not create the row: an authorization check must never mutate
@@ -72,6 +76,30 @@ class EffectiveAccessResolver
         // Steps 4 to 6 — role grants, scopes unioned (D-028). An empty union
         // is a denial, which EffectiveAccess::fromRoles() enforces.
         return EffectiveAccess::fromRoles($this->roleScopes($user, $permissionId, $guard));
+    }
+
+    /**
+     * May this user exercise a permission over a **deployment-global** record?
+     *
+     * Some records belong to nobody: a Role definition is not owned, assigned,
+     * office-held, or part of a team. `ALL` is the only Data Scope that
+     * describes reaching them, so a grant limited to `OWN`, `ASSIGNED`,
+     * `TEAM`, or `OFFICE` cannot manage one — those predicates have nothing to
+     * match against.
+     *
+     * This is resource-context validation, **not** a ranking. Nothing here
+     * says `ALL` outranks `OFFICE`; it says this particular kind of record
+     * needs the unrestricted predicate. An office-scoped grant remains fully
+     * valid for office-scoped records (D-028, D-044).
+     *
+     * Presence is what counts, so `{OFFICE, ALL}` passes — the user does hold
+     * `ALL` — while `{OFFICE}` alone does not.
+     */
+    public function allowsGlobally(User $user, string $permission): bool
+    {
+        $access = $this->resolve($user, $permission);
+
+        return $access->granted && $access->hasScope(DataScope::ALL);
     }
 
     /**

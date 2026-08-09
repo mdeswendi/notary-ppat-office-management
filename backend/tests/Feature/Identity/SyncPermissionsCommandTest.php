@@ -36,7 +36,7 @@ it('stores permissions on the default guard', function (): void {
 
     $guards = Permission::query()->pluck('guard_name')->unique()->values()->all();
 
-    expect($guards)->toBe([config('auth.defaults.guard')])
+    expect($guards)->toBe([PermissionRegistry::GUARD])
         ->and($guards)->toBe(['web']);
 });
 
