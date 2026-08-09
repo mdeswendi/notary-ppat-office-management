@@ -5,6 +5,73 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.10 Foundation Acceptance — **M0 COMPLETE**
+
+Branch `feat/m0-foundation`. No feature work; this milestone proves the foundation is
+reproducible and accepts it.
+
+### The one real defect found
+
+The README still described the **M0.1** state — it claimed the frontend and backend were
+not yet initialized and carried no setup, migration, or quality commands. A new developer
+could not have set the project up from it. That is a reproducibility failure, so it was
+rewritten before the clean-clone test and the clone was then set up by following it
+literally.
+
+The rewrite documents the D-019 gap explicitly: `composer install` creates neither `.env`
+nor `APP_KEY`, because those hooks only run on `create-project`, so both are manual on
+every clone. It also records that the frontend needs no environment file, that Docker runs
+only PostgreSQL and Redis, and that `docker compose down -v` destroys the named volumes.
+
+### Clean-clone verification
+
+Cloned fresh from `origin` into a separate directory — not copied — with no `node_modules`,
+`.next`, `vendor`, or `.env`. Following the README verbatim:
+
+```text
+docker compose up -d          idempotent; reused the running containers, volumes intact
+composer install              OK
+.env + key:generate           new APP_KEY, verified different from the primary checkout
+php artisan migrate:fresh     all 5 migrations from zero
+pint --test / artisan test    PASS — 38 tests, 119 assertions
+pnpm install --frozen-lockfile / format:check / lint / typecheck / build   PASS
+```
+
+Both servers booted from the clone, and a 22-point acceptance passed end to end:
+`/` → `/id`; both login pages render without the shell; anonymous dashboards return real
+307s to the same-locale login; CSRF-less login is rejected with 419; invalid credentials
+return a generic 422; login 204; `/api/v1/me` returns a 26-character ULID with `roles` and
+`permissions` and no credential fields; the session survives repeated requests; the
+authenticated shell renders in both locales; the locale switch preserves `/dashboard`;
+logout 204, then 401, then redirect; replayed pre-logout cookies still redirect.
+
+Compose sets `name: notary-ppat-office` explicitly, so project identity does not depend on
+the directory — which is why the clone reused the existing stack rather than building a
+second one. Recorded as **D-024**.
+
+### O-006 resolved on its own terms
+
+CI was deferred until executable quality gates existed on both sides. They now do, so
+`.github/workflows/quality.yml` was added, running exactly the README commands. The backend
+job pins **PHP 8.3**, the canonical minimum, while the workstation runs 8.4 — that gap is
+the point. No PostgreSQL or Redis service is needed because the Pest suite uses in-memory
+SQLite. No secrets, no deployment. Validated locally; **not yet observed running on
+GitHub**.
+
+### Open items
+
+O-017, O-018, O-020, O-021, and O-022 were each classified against the Definition of Done
+and **none blocks M0**. None was closed for checklist tidiness; the reasoning is recorded in
+`DECISIONS.md`.
+
+### Result
+
+All eighteen Definition of Done items in `10_M0_FOUNDATION.md` section 77 verified.
+**M0 Foundation is complete.** No business module exists — M1 begins with Identity & Access
+Management.
+
+---
+
 ## 2026-08-09 — M0.9 Authenticated Application Shell
 
 Branch `feat/m0-foundation`. Frontend composition only — **no backend change**, verified

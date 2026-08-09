@@ -608,9 +608,58 @@ it. The frontend `CurrentUser.id` is typed `string`.
 
 ---
 
+## 2026-08-09 — M0.10 Foundation Acceptance
+
+### D-024 — M0 Definition of Done verified from a clean clone
+
+Every item in `10_M0_FOUNDATION.md` section 77 was checked against a repository cloned
+fresh from `origin`, not against the working directory. Recorded because the distinction is
+what makes the result meaningful: the working directory had accumulated `node_modules`,
+`vendor`, a `.env`, and an `APP_KEY` that a new developer would not have.
+
+Two properties worth keeping:
+
+**The README was wrong and that counted as a failure.** It still described the M0.1 state —
+frontend and backend "belum diinisialisasi", no setup, migration, or quality commands. It
+was rewritten before the clone test, and the clone was then set up by following it
+literally. Future milestones should treat README drift the same way, as a reproducibility
+defect rather than a documentation nicety.
+
+**`docker-compose.yml` sets `name: notary-ppat-office` explicitly**, so Compose project
+identity does not depend on the directory name. The clean clone therefore observed the
+already-running containers instead of creating a second stack, and `docker compose up -d`
+was idempotent. Removing that `name:` key would silently break this.
+
+The clean clone generated its **own** `APP_KEY`, verified different from the primary
+checkout's. Migrations ran from zero, both quality gates passed, both servers booted, and a
+22-point full-stack acceptance passed end to end.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
+
+### M0 completion classification, assessed 2026-08-09
+
+Each open item was tested against the Definition of Done in
+`10_M0_FOUNDATION.md` section 77 — not against a general sense of tidiness. None of the
+items below appears in that list, and each was verified not to break something that does.
+
+| Item | Blocks M0? | Evidence |
+|---|---|---|
+| O-004 | No | Cosmetic milestone-label mismatch. Deferred since M0.1. |
+| O-010 | No | `gh` CLI absent. Git over HTTPS works; no DoD item needs it. |
+| O-014 | Resolved | Inter implemented in M0.6. |
+| O-015 | No | Scaffold `AGENTS.md` / `CLAUDE.md` in `frontend/`. Do not contradict the root constitution. |
+| O-016 | Resolved | Backend EditorConfig aligned. |
+| O-017 | **No** | Unmatched URLs fall to the built-in Next.js 404. The DoD requires `/id/login`, `/en/login`, a protected dashboard, and language switching — all verified. A designed 404 for URLs that match no route is presentation, and fixing it needs a catch-all route, which is routing work for a later milestone. |
+| O-018 | **No** | `setRequestLocale` is deprecated but functional and load-bearing: it is what keeps `/id` and `/en` prerendered. Build, lint, and typecheck are clean, and the clean clone built without warning. Migration is blocked upstream — next-intl 4.13.5 contains no reference to `next/root-params`. Deferring a fix that cannot yet be written is not a defect. |
+| O-020 | **No** | No `SUPER_ADMIN` bypass exists, which is the safe state. The DoD asks that a permission architecture exist, and it does — role-derived permissions reach Laravel's Gate, verified by test and at runtime. Designing privileged-account semantics belongs to M1 security review. |
+| O-021 | **No** | Sidebar collapse is a desktop refinement. The DoD says nothing about it. Responsive navigation works: desktop sidebar plus a drawer below `lg`, sharing one menu definition. |
+| O-022 | **No** | Search, quick create, and notifications depend on modules that do not exist. Building them now would mean fabricated UI, which `10_M0_FOUNDATION.md` section 57 explicitly forbids. Their absence is the correct M0 state. |
+
+No open item blocks M0. None was closed for the sake of a clean checklist.
 
 | ID | Item | Status |
 |---|---|---|
@@ -619,7 +668,7 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-003 | `CLAUDE.md` section 58 listed ten `/docs` files | **Resolved 2026-08-08.** Section 58 now lists all 14 entries and restates the 08/09 draft restriction and the `DECISIONS.md` precedence rule. |
 | O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Deferred 2026-08-08.** Cosmetic only. Must not block foundation development. Not to be touched during unrelated steps. |
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
-| O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Deferred 2026-08-08.** Deferred until the repository has executable quality gates for both frontend and backend — that is, until `pnpm lint/typecheck/build` and `pint --test` / `php artisan test` can actually run. Explicitly **not** a blocker for M0. |
+| O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Resolved 2026-08-09.** The deferral condition — executable quality gates on both sides — is now met, so the item was closed on its own recorded terms rather than because M0 was ending. `.github/workflows/quality.yml` runs exactly the commands README documents. The backend job pins **PHP 8.3**, the canonical minimum in D-005, while the workstation runs 8.4; that gap is the point, since it catches 8.4-only syntax before anyone else sees it. No PostgreSQL or Redis service is declared because the Pest suite runs on in-memory SQLite per `backend/phpunit.xml`. No secrets, no deployment. The workflow was validated locally — YAML parsed, every `pnpm` script confirmed to exist, no `secrets.*` reference — but **has not been observed running on GitHub**; the first push to the remote is its first real execution. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
 | O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
 | O-014 | The shadcn `nova` preset installs the **Geist** font. `04_UI_DESIGN_SYSTEM.md` recommends **Inter**. (The item originally cited section 6; the typography guidance is in section **4**.) | **Resolved 2026-08-09.** Inter implemented through `next/font`, self-hosted, no runtime external font request. Geist removed from source and build output. No new decision was required — Inter is the only typeface the design system names, and D-017 had already recorded Geist as an incidental preset default. Separately fixed while doing so: `--font-sans: var(--font-sans)` in the scaffold CSS was self-referential, so no custom sans had ever actually applied. |
