@@ -17,6 +17,7 @@
     "signingIn": "Memproses...",
     "signOut": "Keluar",
     "signingOut": "Memproses...",
+    "accountMenu": "Menu akun",
     "signedInAs": "Masuk sebagai",
     "email": "Email",
     "password": "Kata Sandi",
@@ -34,11 +35,14 @@
   },
   "navigation": {
     "mainLabel": "Navigasi utama",
+    "openNavigation": "Buka navigasi",
+    "closeNavigation": "Tutup navigasi",
     "dashboard": "Dasbor"
   },
   "dashboard": {
     "title": "Dasbor",
-    "foundationSubtitle": "Antarmuka fondasi"
+    "foundationSubtitle": "Antarmuka fondasi",
+    "placeholderBody": "Kerangka aplikasi sudah siap. Ringkasan dasbor akan ditampilkan setelah modul terkait tersedia."
   },
   "actions": {
     "retry": "Coba lagi",

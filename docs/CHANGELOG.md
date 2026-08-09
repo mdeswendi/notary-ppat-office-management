@@ -5,6 +5,66 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.9 Authenticated Application Shell
+
+Branch `feat/m0-foundation`. Frontend composition only — **no backend change**, verified
+with `git status -- backend`.
+
+### Structure
+
+Authenticated pages now share `src/app/[locale]/(app)/layout.tsx`. `(app)` is a route
+group, so URLs are unchanged: `/id/dashboard`, not `/id/app/dashboard`. The layout verifies
+the session once by asking Laravel through the existing `fetchCurrentUser()`, redirects to
+the same-locale login on 401, and renders `AppShell`. Future pages inherit the check
+instead of each repeating one.
+
+Login stays outside the group and renders no shell — confirmed in the served HTML: no
+`<aside>`, no account menu, no navigation trigger.
+
+No `loading.tsx` was added at or above the authenticated boundary. The M0.7 defect it would
+reintroduce is recorded in D-022, and anonymous protection was re-verified as a real 307.
+
+### Composition
+
+`AppShell` now takes the already-resolved user rather than fetching its own. The header
+carries the mobile navigation trigger, application name, locale switch, and an account menu
+showing name and email with sign out. Desktop sidebar is 256px and hidden below `lg`; a
+`Sheet` drawer takes over there, rendering the **same** `SidebarNav`, so there is one menu
+definition rather than two that drift.
+
+Navigation filters generically on `requiredPermission` against effective permissions —
+never on role names. Dashboard has none, so it is visible to any authenticated user, and it
+remains the only destination: no links were created to modules that do not exist.
+
+The `["auth", "me"]` cache is seeded from the server layout via `HydrationBoundary`, so
+client components read the user the server already fetched. No second store, no context
+mirror, nothing in browser storage.
+
+**Search, quick create, and notifications were omitted, not stubbed.** Each depends on
+modules that do not exist; a disabled control invites "why is this greyed out?" and an
+enabled one would lie. They are documented as reserved header slots.
+
+The dashboard is a placeholder: heading, subtitle, and one sentence. Full visible text on
+the page is the shell chrome plus those three strings — no counts, charts, deadlines, or
+activity.
+
+### Verified
+
+Fourteen checks over a real cookie jar, redirects never followed. Anonymous `/` → `/id` →
+`/id/dashboard` → `/id/login`, and `/en/dashboard` → `/en/login`, all real 307s.
+Authenticated `/id/dashboard` returns 200 with sidebar, header, `<main>`, placeholder,
+user identity, locale switch, active `aria-current="page"`, and `lang="id"`; refresh keeps
+it; `/en/dashboard` renders English. The locale switch on `/en/dashboard` targets
+`/id/dashboard`, preserving the route. Logout returns 204, after which the dashboard
+redirects to login and replayed pre-logout cookies do too.
+
+Backend regression: Pint passes and all 38 tests pass, unchanged. Translation parity exact
+at 49 keys. Temporary user and authorization rows removed.
+
+Desktop sidebar collapse (72px rail) is deferred — see the open item.
+
+---
+
 ## 2026-08-09 — M0.8 Authorization Foundation
 
 Branch `feat/m0-foundation`. `spatie/laravel-permission` **8.3.0**. Package foundation only:

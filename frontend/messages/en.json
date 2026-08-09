@@ -17,6 +17,7 @@
     "signingIn": "Signing in...",
     "signOut": "Sign Out",
     "signingOut": "Signing out...",
+    "accountMenu": "Account menu",
     "signedInAs": "Signed in as",
     "email": "Email",
     "password": "Password",
@@ -34,11 +35,14 @@
   },
   "navigation": {
     "mainLabel": "Main navigation",
+    "openNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
     "dashboard": "Dashboard"
   },
   "dashboard": {
     "title": "Dashboard",
-    "foundationSubtitle": "Foundation UI"
+    "foundationSubtitle": "Foundation UI",
+    "placeholderBody": "The application shell is ready. Dashboard summaries will appear once the modules behind them exist."
   },
   "actions": {
     "retry": "Try again",

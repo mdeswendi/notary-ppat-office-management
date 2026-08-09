@@ -31,7 +31,9 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
   {
     key: "dashboard",
     translationKey: "dashboard",
-    href: "/",
+    // The locale root redirects here, so link to the real route: linking to
+    // "/" would cost a redirect hop and the active state would never match.
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
 ];
