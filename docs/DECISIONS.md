@@ -530,6 +530,38 @@ palette.
 
 ---
 
+## 2026-08-09 — M0.7 Authentication Foundation
+
+### D-022 — Protected routes are verified server-side against Laravel
+
+The Sanctum cookie/session architecture itself is already canonical and is not restated
+here. Three consequences of implementing it are, because each one silently breaks
+authentication if it is undone later.
+
+**Protection asks Laravel; it never inspects a cookie.** A protected page forwards the
+browser's cookies to `GET /api/v1/me` and redirects on 401. The presence of a session
+cookie proves nothing — it may be stale, forged, or belong to an invalidated session — so
+it is never treated as authentication. This also keeps anonymous rejection verifiable over
+plain HTTP.
+
+**The server-side check must send an `Origin` header.** Sanctum chooses cookie versus token
+authentication by matching Origin/Referer against `SANCTUM_STATEFUL_DOMAINS`. A browser
+sends this automatically; a server-to-server fetch does not, and without it the session
+cookie is ignored and every request appears anonymous. `NEXT_PUBLIC_APP_URL` supplies the
+value and must remain listed in `SANCTUM_STATEFUL_DOMAINS`.
+
+**No `loading.tsx` may sit above a protected route.** A parent loading boundary makes
+Next.js stream a 200 with the fallback and deliver the redirect inside the stream, so
+protection degrades to a client-side redirect and stops being HTTP-verifiable. The
+locale-level `loading.tsx` added in M0.6 was removed for exactly this reason.
+
+Also recorded: Sanctum 4.3.3 only *publishes* its migration rather than loading it, so
+**no `personal_access_tokens` table exists**. First-party authentication is session-only
+and issues no token. Should third-party API tokens ever be required, that migration must
+be published deliberately — it is not an accident that the table is missing.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -551,6 +583,7 @@ Not decisions — conflicts or gaps that remain unresolved.
 | O-011 | Herd's `bin` was not on PATH, so `composer` and `laravel` failed with `'php' is not recognized` | **Resolved 2026-08-08.** Herd reinstalled; `C:\Users\User\.config\herd\bin` now present in the persisted USER PATH. `php`, `composer`, `laravel`, and `herd` all resolve. |
 | O-012 | Three Herd PHP extensions failed to load from a missing directory | **Resolved 2026-08-08.** The Herd reinstall fixed it. `php --version` is now warning-free, and `redis`, `mongodb`, and `herd` all appear in `php -m` — they load rather than merely being silenced. |
 | O-013 | pnpm not installed | **Resolved 2026-08-08.** `corepack enable pnpm` → pnpm 11.20.0. See D-015. |
+| O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | Open. Not touched during M0.7, which was scoped to adding authentication columns, and changing a primary key type is a migration-strategy decision rather than an authentication one. The table currently holds no rows, so the change is still cheap. M1 owns Identity & Access Management and is the right place to settle it. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |
 | O-017 | A localized not-found state does not render for unmatched URLs. Next.js uses the **root** not-found for those; a nested `[locale]/not-found.tsx` only catches `notFound()` thrown inside its own segment, and the proxy guarantees the locale segment is always valid. | Open. Written during M0.6, verified non-functional, and removed rather than left as dead code. Making it work requires a catch-all route under `[locale]`, which is a routing change beyond M0.6's presentational scope. The built-in Next.js 404 remains, as it did after M0.5. `BaseErrorState` is ready to render it when the catch-all is added. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |

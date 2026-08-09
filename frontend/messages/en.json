@@ -12,7 +12,26 @@
     "notFoundTitle": "Page not found",
     "notFoundDescription": "The page you are looking for is not available."
   },
-  "auth": {},
+  "auth": {
+    "signIn": "Sign In",
+    "signingIn": "Signing in...",
+    "signOut": "Sign Out",
+    "signingOut": "Signing out...",
+    "signedInAs": "Signed in as",
+    "email": "Email",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "rememberMe": "Remember me",
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "sessionExpired": "Your session has expired. Please sign in again.",
+      "tooManyAttempts": "Too many sign-in attempts. Please try again shortly.",
+      "unauthenticated": "Your session is no longer active. Please sign in again.",
+      "network": "Could not reach the server. Please check your connection.",
+      "server": "A server error occurred. Please try again."
+    }
+  },
   "navigation": {
     "mainLabel": "Main navigation",
     "dashboard": "Dashboard"
@@ -26,6 +45,10 @@
     "backToDashboard": "Back to dashboard"
   },
   "status": {},
-  "validation": {},
+  "validation": {
+    "emailRequired": "Email is required.",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordRequired": "Password is required."
+  },
   "legal": {}
 }

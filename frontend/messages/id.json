@@ -12,7 +12,26 @@
     "notFoundTitle": "Halaman tidak ditemukan",
     "notFoundDescription": "Halaman yang Anda cari tidak tersedia."
   },
-  "auth": {},
+  "auth": {
+    "signIn": "Masuk",
+    "signingIn": "Memproses...",
+    "signOut": "Keluar",
+    "signingOut": "Memproses...",
+    "signedInAs": "Masuk sebagai",
+    "email": "Email",
+    "password": "Kata Sandi",
+    "showPassword": "Tampilkan kata sandi",
+    "hidePassword": "Sembunyikan kata sandi",
+    "rememberMe": "Ingat saya",
+    "errors": {
+      "invalidCredentials": "Email atau kata sandi salah.",
+      "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      "tooManyAttempts": "Terlalu banyak percobaan masuk. Silakan coba beberapa saat lagi.",
+      "unauthenticated": "Sesi Anda tidak lagi aktif. Silakan masuk kembali.",
+      "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
+      "server": "Terjadi kesalahan pada server. Silakan coba lagi."
+    }
+  },
   "navigation": {
     "mainLabel": "Navigasi utama",
     "dashboard": "Dasbor"
@@ -26,6 +45,10 @@
     "backToDashboard": "Kembali ke Dasbor"
   },
   "status": {},
-  "validation": {},
+  "validation": {
+    "emailRequired": "Email wajib diisi.",
+    "emailInvalid": "Format email tidak valid.",
+    "passwordRequired": "Kata sandi wajib diisi."
+  },
   "legal": {}
 }

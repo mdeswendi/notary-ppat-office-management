@@ -5,6 +5,73 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M0.7 Authentication Foundation
+
+Branch `feat/m0-foundation`. Laravel Sanctum **4.3.3**, first-party SPA session
+authentication. No API token is issued anywhere.
+
+### Backend
+
+Sanctum installed with plain Composer, not `install:api`, which would have rewritten the
+existing API routing and added token infrastructure. Sanctum 4.3.3 only *publishes* its
+migration rather than loading it, so **no `personal_access_tokens` table exists**.
+`statefulApi()` enabled; `config/sanctum.php` and `config/cors.php` published.
+
+CORS names the frontend origin explicitly with `supports_credentials`, replacing the
+framework default of `allowed_origins: ['*']` with credentials off — a wildcard is invalid
+for credentialed requests and browsers reject it.
+
+New user columns from `10_M0_FOUNDATION.md` section 44: `preferred_locale` (default `id`),
+`is_active` (default true), `last_login_at`. `office_id` deliberately omitted — no offices
+table exists. `is_active` and `last_login_at` are not fillable.
+
+Routes: `GET /sanctum/csrf-cookie`, `POST /login`, `POST /logout`, `GET /api/v1/me`
+(`auth:sanctum`). `GET /api/v1/health` unchanged and still public.
+
+`is_active` is part of the credential lookup rather than a check after the password
+matches, so a disabled account fails identically to a wrong password and the response
+cannot be used to enumerate accounts. Login throttles on normalized email plus IP, five
+attempts, returning 429 with `Retry-After`.
+
+### Frontend
+
+Centralized Axios client (`withCredentials`, `withXSRFToken`), TanStack Query provider,
+typed auth service, localized `/id/login` and `/en/login` with React Hook Form and Zod,
+and a protected `/id/dashboard` / `/en/dashboard`.
+
+Route protection asks Laravel rather than trusting a cookie: the server component forwards
+the browser's cookies to `GET /api/v1/me` and redirects on 401. Cookie presence is never
+treated as authentication.
+
+### Verified against both servers running
+
+Twenty checks over a real cookie jar on `localhost` throughout. CSRF cookie issued
+(`XSRF-TOKEN` readable, session cookie HttpOnly); **`POST /login` without the CSRF header
+is rejected with 419**; `/` → `/id` → `/id/dashboard` → `/id/login` when anonymous; login
+204; `/api/v1/me` 200 with id, name, email, preferred_locale and nothing else; session
+survives repeated requests; dashboard renders in both locales; logout 204; `/api/v1/me`
+then 401; dashboard redirects again; replaying pre-logout cookies still redirects. Login
+throttling observed live as five 422s followed by 429.
+
+The temporary smoke user was created with a random password, never printed or committed,
+and deleted afterwards — the users table is back to zero rows.
+
+### Two corrections made during the work
+
+`[locale]/loading.tsx` was **removed**. It wrapped every child route in a Suspense
+boundary, so the protected dashboard streamed a 200 with a skeleton and resolved the
+redirect on the client — anonymous protection stopped being HTTP-verifiable. Without it
+the redirect is a real 307. `LoadingSkeleton` remains available for future data pages.
+
+The server-side session check now sends an `Origin` header. Sanctum chooses cookie versus
+token authentication by matching Origin/Referer against its stateful domains; a
+server-to-server fetch sends neither, so every request looked anonymous and the dashboard
+silently redirected even when signed in.
+
+No Spatie package, no roles or permissions, no business tables, no Docker change.
+
+---
+
 ## 2026-08-09 — M0.6 UI Foundation
 
 Branch `feat/m0-foundation`. Frontend only. Reusable presentational foundations; the

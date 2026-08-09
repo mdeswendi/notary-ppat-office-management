@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { QueryProvider } from "@/providers/query-provider";
 import { routing } from "@/i18n/routing";
 
 import "../globals.css";
@@ -52,7 +53,9 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
     <html lang={locale} className={`${inter.variable} h-full antialiased`}>
       {/* Background and text colour come from the base layer in globals.css. */}
       <body className="flex min-h-full flex-col">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
