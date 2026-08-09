@@ -287,23 +287,39 @@ it('records a creation timestamp but no update timestamp', function (): void {
         ->and(UserPermissionOverride::UPDATED_AT)->toBeNull();
 });
 
-it('removes overrides when their subject is deleted', function (): void {
+it('keeps an override when its subject is soft-deleted', function (): void {
+    // M1.5 gave User soft deletes, so `delete()` no longer reaches the foreign
+    // key at all — the row is still there, merely hidden. This test asserted a
+    // cascade before that change; the cascade is still asserted below, against
+    // the operation that actually triggers it.
     $user = User::factory()->create();
     makeOverride($user, makePermission('projects.view'), UserPermissionEffect::DENY, createdBy: User::factory()->create());
 
     $user->delete();
+
+    expect(User::query()->whereKey($user->getKey())->exists())->toBeFalse()
+        ->and(User::withTrashed()->whereKey($user->getKey())->exists())->toBeTrue()
+        ->and($user->fresh()->deleted_at)->not->toBeNull()
+        ->and(UserPermissionOverride::query()->count())->toBe(1);
+});
+
+it('removes overrides when their subject is deleted outright', function (): void {
+    $user = User::factory()->create();
+    makeOverride($user, makePermission('projects.view'), UserPermissionEffect::DENY, createdBy: User::factory()->create());
+
+    $user->forceDelete();
 
     expect(UserPermissionOverride::query()->count())->toBe(0);
 });
 
 it('refuses to delete a user who authored an override', function (): void {
     // Provenance restricts rather than cascades. The permission registry
-    // defines no users.delete capability at all, so this mainly states that
-    // position at the database level.
+    // defines no users.delete capability and no endpoint deletes a user, so a
+    // hard delete is the only thing that can reach this constraint.
     $author = User::factory()->create();
     makeOverride(User::factory()->create(), makePermission('projects.view'), UserPermissionEffect::DENY, createdBy: $author);
 
-    $author->delete();
+    $author->forceDelete();
 })->throws(QueryException::class);
 
 it('refuses mass assignment of override metadata', function (): void {
@@ -350,7 +366,13 @@ it('migrates, rolls back, and re-migrates cleanly', function (): void {
             'id', 'user_id', 'permission_id', 'effect', 'scope', 'expires_at', 'created_by', 'created_at',
         ]))->toBeTrue();
 
-        $this->artisan('migrate:rollback', ['--database' => 'migration_probe', '--step' => 2])->assertSuccessful();
+        // Rolled back far enough to undo these two migrations, computed rather
+        // than hardcoded — a fixed step count silently starts testing the wrong
+        // migrations as soon as a later milestone adds one.
+        $this->artisan('migrate:rollback', [
+            '--database' => 'migration_probe',
+            '--step' => rollbackStepsTo('create_role_permission_scopes_table'),
+        ])->assertSuccessful();
 
         expect($probe->hasTable('role_permission_scopes'))->toBeFalse()
             ->and($probe->hasTable('user_permission_overrides'))->toBeFalse()

@@ -1234,6 +1234,113 @@ authorizes a `resource.action` string through those calls.
 *backend authorization* defect. No backend security decision reads the `/me` payload, and
 M1.4A did not change it; M1.7 owns that.
 
+### D-049 — A User is an Office-owned resource, so all five scopes mean something
+
+Unlike a Role definition, a user record has an owner field: `users.office_id` is
+required (D-027). `OFFICE` is therefore a working predicate here, and user management
+does **not** require `ALL` the way role management does (D-044).
+
+```text
+users.view      ALL       every user in the deployment
+                OFFICE    target.office_id == actor.office_id
+                OWN       target.id == actor.id
+                ASSIGNED  nothing — a user is not assigned to anybody
+                TEAM      nothing — no Team entity exists (D-042)
+
+users.create    ALL       any active Office
+                OFFICE    the actor's own Office only
+users.update    ALL       any user, and may move them to any active Office
+                OFFICE    same-Office targets only, and the Office may not change
+users.disable   ALL / OFFICE as above
+```
+
+**`OWN` is not an administrative predicate.** It grants visibility of oneself and nothing
+more: `users.update` at `OWN` would otherwise let anyone edit their own administrative
+record, including moving themselves to another Office. Editing your own details is
+self-service with its own capability (M1.8), not administration.
+
+Still union, never ranking (D-028). `{OWN, OFFICE}` matches the actor plus their
+colleagues. `{OFFICE, ALL}` matches everyone because `ALL` independently matches
+everyone, not because it outranks `OFFICE`.
+
+Implemented in `App\Domains\Identity\UserVisibility`, which turns scopes into a SQL
+constraint. **The record check runs that same constraint against a single key** rather
+than reimplementing the rule, so the list and the detail endpoint cannot drift apart —
+the failure mode where a record is hidden from a listing yet still fetchable by id.
+Filtering happens in the query, so an office-scoped caller's SQL never selects another
+Office's rows and the pagination total leaks no count.
+
+A filter narrows what is already visible; it never widens it. Passing another Office's id
+to `?office_id=` returns nothing rather than bypassing the predicate.
+
+An Office must be **active** to receive a user. Retiring an Office is not a reason to
+delete or rewrite the people already in it, but it is a reason not to add more.
+
+### D-050 — Users are retired, never deleted
+
+The permission registry defines no `users.delete`, so M1.5 exposes no deletion: no
+`DELETE /api/v1/users/{user}`, no restore, no hard delete. Accounts are turned off with
+`users.disable`.
+
+`deleted_at` exists anyway, and `User` uses `SoftDeletes`, because the canonical ERD
+carries the column and because a legal office cannot afford the alternative: a person's
+account is referenced by the Minuta Akta they prepared and the audit trail they appear
+in, so the record must survive them leaving. The column is foundation, not a feature —
+nothing in the product calls `delete()` on a user today.
+
+This also lowers the practical risk in **O-025**: Spatie's morph pivots have no foreign
+key on `model_id`, so a hard delete would orphan a user's role and permission rows. With
+no deletion path and soft deletes in place, the product cannot reach that state. O-025
+stays open because the underlying package behaviour is unchanged, and whoever eventually
+builds a purge path must still detach package assignments explicitly.
+
+### D-051 — Initial password only, and no password lifecycle
+
+An account cannot exist without a password, so `POST /api/v1/users` accepts one, hashed
+by the model's `hashed` cast and never returned, echoed, or logged. Validation uses
+Laravel's own `Password::default()` — no password policy is canonicalized anywhere in the
+specification, and inventing complexity rules, expiry, or history here would be inventing
+account security.
+
+`PATCH` does not accept a password at all. Changing somebody else's credentials is a
+security operation, not an edit to an administrative form.
+
+Nothing else about password lifecycle exists: no temporary-password flag, no
+`must_change_password` column, no expiry, no history, no email delivery, no invitation
+flow.
+
+**`users.reset_password` stays in the registry, unimplemented.** The capability is
+canonical; the flow is not — no document defines how a reset is delivered, whether the
+administrator sees the new secret, or how the user is notified. Implementing it would
+mean designing an account-security flow inside a user-management milestone. Deferred to
+M1.9, and the permission is neither removed nor renamed in the meantime.
+
+Role assignment is likewise absent (M1.6): a new account holds zero roles, zero direct
+permissions, and zero overrides, and an update touches none of the three. Granting
+capability from a screen that never asked about capability is how authorization drifts
+away from anybody's intent.
+
+### D-052 — Activation is a deliberate act with its own endpoint
+
+`is_active` is not writable through `PATCH /api/v1/users/{user}`. It changes only through
+`POST .../disable` and `POST .../enable`, both requiring `users.disable` and the same
+Office predicate as any other administration.
+
+Splitting it out means turning off somebody's access can never happen as a side effect of
+editing their phone number, and it makes the audit question — who disabled this account —
+answerable against one operation rather than a diff. Both directions are idempotent.
+
+**Disabling your own account is refused with 409**, at every scope including `ALL`. The
+actor is authorized, so 403 would be a lie; what blocks it is that the operation ends the
+requester's own access and, if they are the only active administrator, leaves nobody able
+to undo it. Reactivation is another authorized user's job. This is a technical safety
+rule — no role name is consulted, and it is not a privileged-account exception.
+
+Existing sessions are deliberately not revoked. `LoginRequest` already folds `is_active`
+into the credential lookup, so a disabled account cannot authenticate again; terminating
+sessions already open is session management, which M1.9 owns and which needs its own
+design.
+
 ### M1 implementation order
 
 ```text
@@ -1306,7 +1413,8 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-022 | Search, quick create, and notifications from `04_UI_DESIGN_SYSTEM.md` section 10 are absent from the header rather than rendered disabled. | Open by design. Each needs a module that does not exist — nothing to search, no record type to create, no event to notify about. A visibly disabled control is dead UI that invites "why is this greyed out?", and an enabled one that does nothing is worse. They are reserved header slots, to be added when the first module gives them something real to do. Recorded so their absence reads as a decision rather than an oversight. |
 | O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | **Direction fixed 2026-08-09 by D-037** — `UNIQUE (organization_id, code)`. Still **open for implementation**: M1.2 added no migration, and the constraint is scheduled to land with the Office management submilestone so the database rule and the Form Request rule arrive together instead of disagreeing in between. Adding it remains cheap while `offices` holds no rows. |
 | O-024 | `user_permission_overrides` carries `created_at` but no `updated_at`, following the `03_DATABASE_ERD.md` section 5 field list (D-038). Because the table is unique on `(user_id, permission_id)`, changing an override means updating the existing row — and nothing then records when it changed or who changed it. | Open. Deliberate, not an oversight: the canonical field list is explicit, and inventing a column to fill a gap the ERD does not acknowledge would be the wrong fix. The real answer is the audit log, which D-033 places outside M1 entirely. Revisit when override management lands (M1.6) — either audit covers it by then, or the ERD needs `updated_at` and an `updated_by`, which is a documentation change before it is a migration. |
-| O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
+| O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. **Risk reduced at M1.5** — `User` now uses `SoftDeletes` and no deletion endpoint exists (D-050), so the product cannot reach the orphaning state. Still open: the package behaviour is unchanged, and any future purge path must detach package assignments explicitly. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
+| O-028 | `users.reset_password` is canonical and registered, but no endpoint implements it. No document defines the reset *flow* — how a new secret reaches the person, whether the administrator ever sees it, what notification follows — so M1.5 registered the gap rather than inventing an account-security design inside a user-management milestone (D-051). | Open, deliberately. Scheduled for **M1.9 Account Security**, alongside session revocation, which the same milestone needs. The permission stays in the registry unchanged: removing it would break the M1.6 permission matrix's view of the capability surface, and renaming it would orphan any role configured against it. Until then, a forgotten password is an operational problem with no in-product answer, which is worth stating plainly. |
 | O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |
 | O-027 | spatie/laravel-permission registers a `Gate::before` (`PermissionRegistrar::registerPermissions()`) that answers **any ability matching a held permission name**, consulting direct user grants and applying no Data Scope check. So `$user->can('roles.view')` or `middleware('can:roles.view')` returns true for a direct grant that `EffectiveAccessResolver` would refuse — a resolver bypass through the package's own convenience API. | **Resolved 2026-08-09 by D-048.** The first of the two options this item listed was taken: `register_permission_check_method` is now `false`, the package's own documented switch for applications implementing custom permission logic. No vendor file was touched and package storage is unchanged. The unsafe path is structurally gone rather than merely discouraged — the Gate no longer answers permission names at all, so those calls fail closed. `CLAUDE.md` section 24, which had actively recommended the idiomatic form, was corrected, as was `07_SECURITY_RULES.md` section 9. Three enforcement tests were added: zero Gate callbacks registered, a canonical name refused by the Gate even for a user genuinely holding it at `ALL`, and a source scan of `app/` that fails the suite on any reintroduction. The nine existing tests that asserted the old behaviour were rewritten rather than deleted, each carrying a note on why the expectation changed. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |

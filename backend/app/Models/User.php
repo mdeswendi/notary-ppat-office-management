@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -21,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
  * operation subject to backend authorization — not something a profile update
  * should be able to do. See docs/07_SECURITY_RULES.md section 34.
  */
-#[Fillable(['name', 'email', 'password', 'preferred_locale'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'preferred_locale'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -51,6 +52,17 @@ class User extends Authenticatable
      * infer ordering from them.
      */
     use HasUlids;
+
+    /**
+     * Retiring a person must never destroy the record their work references.
+     *
+     * There is no `users.delete` permission and no deletion endpoint, so
+     * nothing in the product calls this today (D-050). It exists because the
+     * canonical ERD carries `deleted_at`, and because a soft delete keeps
+     * Spatie's foreign-key-less morph pivots from being orphaned if a removal
+     * path is ever built — see O-025. Accounts are retired with `is_active`.
+     */
+    use SoftDeletes;
 
     /**
      * The user's primary office. Exactly one in V1 (D-027) — the Organization

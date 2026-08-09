@@ -5,6 +5,116 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.5 User domain & User Management
+
+Branch `feat/m1-identity`. User **records** only — no role assignment, no permission
+matrix, no password reset, no session management, no profile self-service, no
+permission-aware navigation.
+
+### Schema
+
+One migration completing `users` against `03_DATABASE_ERD.md` section 4: `phone`
+(nullable, unformatted — no country prefix imposed) and `deleted_at`. Nothing removed;
+`email_verified_at` stays per D-031. No `organization_id`, `role_id`, `tenant_id`, or
+`team_id`, and no membership pivot — one primary Office per user (D-027).
+
+### Users are retired, not deleted
+
+`User` gained `SoftDeletes` and the table gained `deleted_at`, but there is **no deletion
+of any kind** — the registry defines no `users.delete`, so no endpoint exists and `DELETE`
+answers 405 (D-050). Accounts are turned off with `users.disable`. The column is
+foundation: a person's account is referenced by the Minuta Akta they prepared and the
+audit trail they appear in, so the record must outlive their employment.
+
+This lowered the practical risk in **O-025** — with no deletion path, the product cannot
+orphan Spatie's foreign-key-less morph pivots. The item stays open because the package
+behaviour is unchanged.
+
+### Authorization
+
+A User is Office-owned, so unlike a Role definition all three record predicates work
+(D-049): `ALL` reaches everyone, `OFFICE` matches `target.office_id`, `OWN` matches the
+actor. `ASSIGNED` and `TEAM` reach nobody. `OWN` is deliberately **not** an administrative
+predicate — it grants sight of yourself, never the right to edit your own administrative
+record, which is M1.8's subject.
+
+`UserVisibility` turns scopes into a SQL constraint, and **the record check runs that same
+constraint against a single key** rather than reimplementing it — so a user hidden from
+the list can never remain fetchable by id. Filtering happens in the query, so an
+office-scoped caller's SQL never selects another Office's rows and the pagination total
+leaks no count. A `?office_id=` filter narrows what is visible and cannot widen it.
+
+Every decision goes through `UserPolicy` → `EffectiveAccessResolver` (D-048). No raw
+`can()`, no role names, no `Gate::before`.
+
+### API
+
+```text
+GET    /api/v1/users              users.view      list, search, paginate
+POST   /api/v1/users              users.create    + destination Office authorized
+GET    /api/v1/users/{user}       users.view
+PATCH  /api/v1/users/{user}       users.update    + destination Office if moving
+POST   /api/v1/users/{user}/disable   users.disable
+POST   /api/v1/users/{user}/enable    users.disable
+GET    /api/v1/users/options      users.create OR users.update — form metadata
+```
+
+Administrative update owns four fields: name, email, phone, Office. Password,
+`preferred_locale`, `is_active`, `email_verified_at`, `last_login_at`, roles, and
+permissions are all discarded rather than ignored, since `validated()` returns only the
+declared rules.
+
+Activation is separate so that turning off somebody's access is never a side effect of
+editing their phone number (D-052), and **self-disable is refused with 409** at every
+scope including `ALL` — the actor is authorized, so 403 would be a lie; what blocks it is
+that it ends their own access and may leave nobody able to undo it.
+
+Creation accepts an initial password, hashed and never returned, validated with Laravel's
+own `Password::default()` (D-051). A new account holds zero roles, zero direct
+permissions, and zero overrides.
+
+**`users.reset_password` stays registered and unimplemented** — the capability is
+canonical, the flow is not. Recorded as **O-028** for M1.9.
+
+### Frontend
+
+`/[locale]/settings/users`, reached by direct URL; the sidebar is unchanged. List with
+debounced search and pagination, create and edit dialogs, and activation confirmations,
+with loading, empty, no-matches, error, and forbidden states. Status is never carried by
+colour alone. The Office selector is filled from the scope-filtered options endpoint, so
+an office-scoped administrator simply sees one option — a convenience, not the control.
+
+No role selector, no permission selector, no scope selector, no reset-password button, no
+locale editing. 68 new `users.*` keys; id and en at exact parity (137 = 137).
+
+### Verified
+
+**Backend** 434 tests, 1346 assertions, all passing — 97 new, every earlier test still
+green. Pint clean. `migrate:status` 11 migrations, nothing pending.
+
+Three M1.3 tests changed meaning and were **rewritten rather than deleted**: `User::delete()`
+is now a soft delete, so the override cascade and the `created_by` restriction are asserted
+against `forceDelete()`, which is what those foreign keys actually govern, plus a new test
+that a soft delete preserves the override. Both rollback probes now compute their step
+count from the migration filenames instead of hardcoding it, so adding a migration no
+longer silently makes them test the wrong thing.
+
+**Frontend** format, lint (0 errors), typecheck, and build all pass. The single warning is
+pre-existing in `login-form.tsx`.
+
+**PostgreSQL, over the real Sanctum session flow** — 47/47 checks. An `ALL` administrator
+listed across Offices, created in another Office, reassigned, hit 422 on a duplicate email,
+was refused self-disable with 409, disabled a user and confirmed they could no longer log
+in, then re-enabled and confirmed they could. An `OFFICE` administrator saw only their own
+Office, was refused a cross-office detail, create, update, move, and disable, and was
+offered exactly one Office. An `OWN` user saw only themselves and was refused an
+administrative edit of their own record. A user holding all four permissions as direct
+package grants was refused everything. `DELETE` answered 405; reset-password and role
+routes answered 404. Users created through the API held zero roles. All temporary data
+removed; 171 canonical permissions preserved.
+
+---
+
 ## 2026-08-09 — M1.4A Authorization gate hardening
 
 Branch `feat/m1-identity`. Resolves **O-027** before more endpoints are written. No

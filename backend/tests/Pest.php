@@ -113,3 +113,54 @@ function resolveAccess(User $user, string $permission): EffectiveAccess
 {
     return app(EffectiveAccessResolver::class)->resolve($user, $permission);
 }
+
+/**
+ * How many rollback steps reach back to a given migration, inclusive.
+ *
+ * Rollback probes want to undo a specific migration and assert that everything
+ * before it survives. A hardcoded `--step` silently starts testing different
+ * migrations the moment a later milestone adds one, so the count is derived
+ * from the migration filenames instead.
+ */
+function rollbackStepsTo(string $migrationNameFragment): int
+{
+    $migrations = collect(glob(database_path('migrations').'/*.php'))
+        ->map(fn (string $path): string => basename($path))
+        ->sort()
+        ->values();
+
+    $index = $migrations->search(fn (string $name): bool => str_contains($name, $migrationNameFragment));
+
+    if ($index === false) {
+        throw new RuntimeException("No migration matching [{$migrationNameFragment}].");
+    }
+
+    return $migrations->count() - $index;
+}
+
+/**
+ * Give a user one canonical permission at one Data Scope, through a role.
+ *
+ * Each (permission, scope) pair gets its own role, so calling this repeatedly
+ * builds a genuine multi-role union — which is how D-028 is meant to be
+ * exercised — while keeping `role_permission_scopes` unique on
+ * (role_id, permission_id).
+ */
+function grantPermissionScope(User $user, string $permission, DataScope $scope): Role
+{
+    $permissionModel = Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+
+    $role = Role::firstOrCreate([
+        'name' => 'TEST_'.str_replace('.', '_', strtoupper($permission)).'_'.$scope->value,
+        'guard_name' => 'web',
+    ]);
+
+    if (! $role->hasPermissionTo($permissionModel)) {
+        $role->givePermissionTo($permissionModel);
+        grantScope($role, $permissionModel, $scope);
+    }
+
+    $user->assignRole($role);
+
+    return $role;
+}
