@@ -5,6 +5,99 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — M1.3 Data Scope model & effective-access resolver
+
+Branch `feat/m1-identity`. Authorization metadata and calculation only — **no Policy, no
+role seeding, no permission assignment, no API, no UI, no frontend change**.
+
+### Schema
+
+Two migrations; no earlier migration was edited.
+
+```text
+role_permission_scopes      id ULID, role_id bigint, permission_id bigint,
+                            scope varchar(20), timestamps
+                            UNIQUE (role_id, permission_id), both FKs CASCADE
+
+user_permission_overrides   id ULID, user_id ULID, permission_id bigint,
+                            effect varchar(10), scope varchar(20) NULL,
+                            expires_at NULL, created_by ULID, created_at
+                            UNIQUE (user_id, permission_id)
+                            user_id + permission_id CASCADE, created_by RESTRICT
+```
+
+ULID primary keys because the tables are ours; bigint references because Spatie's keys
+are the package's (D-038). CASCADE rather than M1.1's RESTRICT — these are derived
+authorization metadata, and an orphan row in an authorization table is worse than no row.
+`created_by` restricts, because it points at the override's author rather than its
+subject. No `updated_at` on overrides, per `03_DATABASE_ERD.md` section 5; see O-024.
+
+### The resolver
+
+```text
+app/Domains/Authorization/Enums/{DataScope, UserPermissionEffect, AccessSource}.php
+app/Domains/Authorization/EffectiveAccess.php
+app/Domains/Authorization/EffectiveAccessResolver.php
+app/Models/{RolePermissionScope, UserPermissionOverride}.php
+```
+
+One question answered: which permission does this user hold, and at which Data Scopes.
+Deliberately not "may this user touch this record" — that needs ownership fields,
+assignment relationships, record state, and legal workflow rules, none of which exist yet
+(D-040).
+
+Fail-closed throughout (D-039). A name outside the registry is denied even when a role
+grants it with scope metadata attached, because `permissions:sync` preserves stale rows
+and the table is therefore not the authority. A role grant carrying **no scope row** is
+denied rather than read as `ALL` — the difference between an administrator forgetting a
+field and a privilege escalation.
+
+Multi-role scopes are a distinct union in canonical order, never collapsed to a widest
+value (D-028). `OWN + ALL` stays `{OWN, ALL}`. `DataScope` exposes no `widest`, `max`,
+`rank`, or `higherThan`, and a reflection test asserts none appears on the enum, the value
+object, or the resolver.
+
+Overrides follow D-029: active DENY wins outright, active ALLOW *replaces* the role
+result with its own authoritative scope, and expiry is evaluated at check time by binding
+the current instant into the query — strictly, so an override expiring exactly now is
+already expired. Spatie's direct-user permissions are excluded from first-party
+resolution (D-041); the resolver reads the role pivots and never `model_has_permissions`,
+and never uses `can()` or `getAllPermissions()`.
+
+Two queries for the role path regardless of how many roles a user holds, and no caching
+of results (D-043).
+
+### Verified
+
+205 tests, 808 assertions, all passing — 93 new, and every M0, M1.1, and M1.2 test still
+green. Pint clean. No frontend diff against the M1.2 commit.
+
+Migration reversibility is covered by a test that migrates, rolls back, and re-migrates
+on its own throwaway SQLite file, so nothing else is disturbed. Independently confirmed
+on **PostgreSQL**: rollback dropped both tables, re-migrate restored them, and the 171
+canonical permissions were untouched throughout.
+
+A real-engine smoke run built Organization → Office → User with two roles granting
+`projects.view` at `ASSIGNED` and `OFFICE`, and confirmed in order: the union
+`{ASSIGNED, OFFICE}`; unchanged by a directly attached package permission that Spatie
+itself honours; active DENY denies; active ALLOW replaces with `{OWN}`; expired override
+falls back to the role union; future expiry is honoured again; `ALLOW` with a null scope
+fails closed; a stale name stays denied. All temporary data was removed and the database
+returned to exactly its prior state — 171 permissions, everything else zero.
+
+### Worth flagging
+
+Cleanup surfaced a package behaviour worth recording: Spatie's morph pivots have no
+foreign key on `model_id`, so a mass-delete of a user leaves `model_has_permissions` rows
+behind. Harmless today — nothing in the product deletes users, and no first-party path
+reads that table — but recorded as **O-025** before someone writes a deletion path.
+
+`TEAM` resolves like any other scope and is never converted to `OFFICE`, but no Team
+entity was created and none was inferred from Office or role membership (D-042). It stays
+unenforceable at record level until Team semantics are specified.
+
+---
+
 ## 2026-08-09 — M1.2 Canonical Permission Registry
 
 Branch `feat/m1-identity`. Registry and synchronization command only — **no migration, no

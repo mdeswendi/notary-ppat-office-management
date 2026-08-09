@@ -903,6 +903,141 @@ management submilestone that also needs the matching Form Request rule, so the d
 and the validation layer land together rather than disagreeing in between. It stays cheap
 to add while `offices` holds no rows.
 
+### D-038 — Authorization metadata tables are first-party ULID over package bigint
+
+`role_permission_scopes` and `user_permission_overrides` are ours, so their primary keys
+are ULIDs (`CLAUDE.md` section 11). Their references to `roles` and `permissions` stay
+`unsignedBigInteger`, matching the package's native `$table->id()`. Converting the
+package's keys would mean editing vendor migrations, which D-023 already ruled out; a
+mixed-key table is the honest consequence of owning one side of the relationship and not
+the other.
+
+```text
+role_permission_scopes      id ULID, role_id bigint, permission_id bigint,
+                            scope varchar(20), timestamps
+                            UNIQUE (role_id, permission_id)
+                            role_id, permission_id -> CASCADE
+
+user_permission_overrides   id ULID, user_id ULID, permission_id bigint,
+                            effect varchar(10), scope varchar(20) NULL,
+                            expires_at NULL, created_by ULID, created_at
+                            UNIQUE (user_id, permission_id)
+                            user_id, permission_id -> CASCADE
+                            created_by -> RESTRICT
+```
+
+**CASCADE here, RESTRICT in M1.1.** These rows are derived authorization metadata, not
+legal records: a scope row describing a deleted role describes nothing, and an orphan row
+in an authorization table is worse than no row. `created_by` is the exception, because it
+points at the override's *author* rather than its subject — provenance should not vanish
+quietly. The registry defines no `users.delete` capability at all, so that restriction
+mostly states the position at the database level.
+
+**No `updated_at` on overrides**, following the `03_DATABASE_ERD.md` section 5 field
+list. See O-024 for what that costs.
+
+`scope` is nullable because DENY needs no scope to deny. Both columns are `VARCHAR`
+carrying stable machine codes backed by PHP enums rather than PostgreSQL native `ENUM`,
+per `CLAUDE.md` section 13.
+
+Only the unique indexes are declared. They already cover every query the resolver makes,
+and an index for a query nobody has written yet is a guess.
+
+### D-039 — Authorization metadata that cannot be trusted grants nothing
+
+Every branch of `EffectiveAccessResolver` that cannot produce a confident grant produces
+a denial. Explicitly:
+
+```text
+name not in PermissionRegistry            denied — the registry is the authority,
+                                          not the table, which keeps stale rows (D-036)
+canonical name with no database row       denied — the sync has not been run; the
+                                          resolver does not create it mid-check
+role holds permission, no scope row       denied for that grant
+stored scope is not a canonical value     that grant contributes nothing
+ALLOW override with scope NULL            denied
+ALLOW override with unrecognized scope    denied
+override with unrecognized effect         denied, and does *not* fall through to roles
+```
+
+The load-bearing one is the third. Data Scope is required metadata, so reading its
+absence as `ALL` would turn an administrator forgetting a field into a privilege
+escalation — silently, and in the direction that hurts.
+
+The last one matters for the same reason: a row that exists and cannot be understood must
+not quietly become "no override", because that would let a corrupt DENY behave as an
+absent DENY.
+
+An authorization check never writes. A missing permission row is an operator's unrun
+sync, not something to paper over inside a request.
+
+### D-040 — One resolver, capability metadata only
+
+`App\Domains\Authorization\EffectiveAccessResolver` is the single answer to "which
+permission does this user hold, and at which Data Scopes"
+(`07_SECURITY_RULES.md` section 10). Future Policies consume it; controllers never work
+out Data Scope themselves, because divergent copies of an authorization rule are how
+holes appear quietly.
+
+It deliberately does **not** answer whether a user may touch a particular record. That
+needs ownership fields, assignment relationships, record state, and legal workflow rules
+— none of which exist yet. `OWN` and `ASSIGNED` are returned as metadata precisely
+because their meaning differs per resource: no generic `created_by` or `pic_user_id`
+convention is canonical, and inventing one here would bake a guess into every domain at
+once. `OFFICE` is likewise returned without consulting the user's office, since no record
+type exists yet to compare against.
+
+`ALL` is a Data Scope and nothing more. It lifts the record restriction for one
+permission and confers nothing else — not record state, finalization locks,
+sensitive-data access, legal workflow, or any other permission.
+
+Eloquent models exist for both tables under `app/Models` alongside `User`, `Office`, and
+`Organization`; the enums, value object, and resolver live under
+`app/Domains/Authorization`. That split follows `10_M0_FOUNDATION.md` section 9 — the
+domain folders hold our business logic, and the framework's own structure is left where
+Laravel puts it.
+
+Both models are **fully guarded**: every column is an authorization decision, so no mass
+assignment path exists for request input to reach. M1.3 exposes no API, Form Request,
+Policy, or UI for either table.
+
+### D-041 — Spatie direct-user permissions are outside first-party access
+
+D-029 kept them out of any management UI or API. M1.3 adds the enforcement: the resolver
+reads `model_has_roles` and `role_has_permissions` and never `model_has_permissions`.
+
+It therefore does not use `$user->can()` or `getAllPermissions()`. Both fold direct
+grants in with role grants, and neither carries Data Scope — the answer they give is the
+wrong shape as well as the wrong set. A regression test attaches a permission directly
+through the package, confirms the package itself honours it, and confirms the first-party
+resolver still denies.
+
+Roles are also filtered by the configured guard, so a role from another guard cannot leak
+a grant into the `web` one.
+
+### D-042 — TEAM is representable but not yet enforceable
+
+`TEAM` stays in `DataScope` so the vocabulary is stable, and the resolver returns it
+unchanged when a scope row carries it. It is never silently converted to `OFFICE`.
+
+No Team entity, table, membership, or inferred relationship exists, and M1.3 created
+none. `02_MENU_AND_PERMISSIONS.md` section 22 keeps it **not assignable, not seeded, and
+rejected by validation** — so whichever submilestone adds role management must reject it
+in its Form Request, and any Policy that meets `TEAM` in an effective scope set must fail
+closed rather than approximate it. Record-level TEAM evaluation is unavailable until Team
+semantics are specified.
+
+### D-043 — Effective access is not cached in M1.3
+
+The resolver reads the database on every check, going around Spatie's cached permission
+collection so an authorization change is visible on the next request.
+
+No custom cache, no Redis key for resolution results. Role management and override
+management do not exist yet, so an invalidation rule written now would be one more
+security surface with nothing to validate it against — and a stale authorization cache
+fails in the direction that grants access. Spatie's own supported permission cache is
+untouched. Revisit only with a measured problem.
+
 ### M1 implementation order
 
 ```text
@@ -974,6 +1109,8 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-021 | Desktop sidebar collapse (240–260px → 72px icon rail, `04_UI_DESIGN_SYSTEM.md` section 3) is not implemented. | Open, deliberately deferred at M0.9 under the "implement only if small and coherent" instruction. Dashboard is currently the only destination, so collapse would add a toggle, a width mode, label hiding, and tooltips or `aria-label`s to preserve accessible names — around a single row. Revisit when the sidebar carries the Notary and PPAT groups from section 11, where a narrow rail actually earns its complexity. |
 | O-022 | Search, quick create, and notifications from `04_UI_DESIGN_SYSTEM.md` section 10 are absent from the header rather than rendered disabled. | Open by design. Each needs a module that does not exist — nothing to search, no record type to create, no event to notify about. A visibly disabled control is dead UI that invites "why is this greyed out?", and an enabled one that does nothing is worse. They are reserved header slots, to be added when the first module gives them something real to do. Recorded so their absence reads as a decision rather than an oversight. |
 | O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | **Direction fixed 2026-08-09 by D-037** — `UNIQUE (organization_id, code)`. Still **open for implementation**: M1.2 added no migration, and the constraint is scheduled to land with the Office management submilestone so the database rule and the Form Request rule arrive together instead of disagreeing in between. Adding it remains cheap while `offices` holds no rows. |
+| O-024 | `user_permission_overrides` carries `created_at` but no `updated_at`, following the `03_DATABASE_ERD.md` section 5 field list (D-038). Because the table is unique on `(user_id, permission_id)`, changing an override means updating the existing row — and nothing then records when it changed or who changed it. | Open. Deliberate, not an oversight: the canonical field list is explicit, and inventing a column to fill a gap the ERD does not acknowledge would be the wrong fix. The real answer is the audit log, which D-033 places outside M1 entirely. Revisit when override management lands (M1.6) — either audit covers it by then, or the ERD needs `updated_at` and an `updated_by`, which is a documentation change before it is a migration. |
+| O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |
