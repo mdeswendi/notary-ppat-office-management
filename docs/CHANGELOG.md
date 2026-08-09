@@ -5,6 +5,49 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-09 — Composer lock aligned with PHP 8.3
+
+Branch `feat/m0-foundation`. Fixes the backend CI failure that the first real GitHub Actions
+runs exposed. Frontend job was already passing and is untouched.
+
+### Cause
+
+The workstation runs PHP 8.4.23; the project supports `^8.3`. Composer resolves against the
+PHP it runs on, so the committed lockfile selected Symfony 8.1.x, which requires
+`php >=8.4.1`. CI on PHP 8.3.33 reported `Your lock file does not contain a compatible set
+of packages`. The reported blocker named one package; `composer prohibits php 8.3.33`
+showed **sixteen**.
+
+### Fix
+
+Added `config.platform.php = "8.3.0"` to `backend/composer.json` and re-resolved narrowly:
+
+```bash
+composer update "symfony/*" --with-all-dependencies --minimal-changes
+```
+
+Result — 16 Symfony packages downgraded 8.1.x → 7.4.x, `symfony/polyfill-php83` added,
+**zero upgrades, zero removals, zero non-Symfony changes**. Laravel 13.24.0, Sanctum 4.3.3,
+Spatie 8.3.0, Pest 4.7.8, Pint 1.30.4, and PHPUnit 12.5.33 are all unchanged. Laravel 13
+already accepts `symfony/* ^7.4.0 || ^8.0.0`, so no requirement was relaxed to achieve this.
+
+The project floor stays `php: ^8.3` and CI stays on PHP 8.3. Raising either would have
+hidden the defect rather than fixed it — no required dependency needs 8.4. Recorded as
+**D-025**.
+
+### Verified
+
+`composer prohibits php 8.3.0` and `php 8.3.33` both report no prohibitions;
+`composer validate --strict` passes; a clean `composer install` from the committed
+`composer.json` + `composer.lock` alone (no vendor, no `.env`) succeeds and installs Symfony
+packages requiring only `php >=8.2`. On the local 8.4 runtime, Pint passes and all 38 tests
+pass. Frontend has no tracked change and all four gates still pass.
+
+Local checks cannot prove a PHP 8.3 runtime — the CLI here is 8.4. **GitHub Actions remains
+the verification**, and O-006 stays open operationally until a real run passes.
+
+---
+
 ## 2026-08-09 — M0.10 Foundation Acceptance — **M0 COMPLETE**
 
 Branch `feat/m0-foundation`. No feature work; this milestone proves the foundation is

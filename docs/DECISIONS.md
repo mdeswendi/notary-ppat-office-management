@@ -636,6 +636,43 @@ checkout's. Migrations ran from zero, both quality gates passed, both servers bo
 
 ---
 
+## 2026-08-09 — Composer resolution baseline
+
+### D-025 — Dependency resolution is pinned to the minimum supported PHP
+
+```json
+"config": { "platform": { "php": "8.3.0" } }
+```
+
+The project supports `php: ^8.3` (D-005), but the workstation runs 8.4.23. Composer resolves
+against the PHP it is running on, so the lockfile generated locally selected Symfony 8.1.x,
+which requires `php >=8.4.1`. Everything worked locally and the committed lockfile was
+simply **not installable on the minimum supported version**. The first real CI run on PHP
+8.3.33 caught it: `Your lock file does not contain a compatible set of packages.`
+
+`config.platform.php` fixes the resolution baseline at the supported floor, so a lockfile
+produced on a newer runtime cannot silently exclude the version the project claims to
+support. Laravel 13 accepts `symfony/* ^7.4.0 || ^8.0.0`, so the correct set exists — the
+resolver just had no reason to prefer it.
+
+**The value is a resolution baseline, not a claim about the local runtime.** Development
+continues on PHP 8.4; only dependency selection is constrained. Raising the project floor to
+8.4 would have been the wrong fix: no required dependency needs it, and it would have
+narrowed supported deployments to satisfy an artefact of where the lock happened to be
+generated.
+
+Consequences to keep in mind:
+
+- Running `composer update` on any machine now produces the same 8.3-compatible set.
+- A package that genuinely requires a newer PHP can no longer be installed by accident; it
+  will fail resolution, which is the intended signal.
+- If the project floor is ever raised, this value moves with it — the two must agree.
+
+CI keeps `php-version: "8.3"`. Testing the minimum is what surfaced this, and changing CI to
+8.4 would have hidden the defect rather than fixed it.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -668,7 +705,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-003 | `CLAUDE.md` section 58 listed ten `/docs` files | **Resolved 2026-08-08.** Section 58 now lists all 14 entries and restates the 08/09 draft restriction and the `DECISIONS.md` precedence rule. |
 | O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Deferred 2026-08-08.** Cosmetic only. Must not block foundation development. Not to be touched during unrelated steps. |
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
-| O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Resolved 2026-08-09.** The deferral condition — executable quality gates on both sides — is now met, so the item was closed on its own recorded terms rather than because M0 was ending. `.github/workflows/quality.yml` runs exactly the commands README documents. The backend job pins **PHP 8.3**, the canonical minimum in D-005, while the workstation runs 8.4; that gap is the point, since it catches 8.4-only syntax before anyone else sees it. No PostgreSQL or Redis service is declared because the Pest suite runs on in-memory SQLite per `backend/phpunit.xml`. No secrets, no deployment. The workflow was validated locally — YAML parsed, every `pnpm` script confirmed to exist, no `secrets.*` reference — but **has not been observed running on GitHub**; the first push to the remote is its first real execution. |
+| O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Resolved 2026-08-09.** The deferral condition — executable quality gates on both sides — is now met, so the item was closed on its own recorded terms rather than because M0 was ending. `.github/workflows/quality.yml` runs exactly the commands README documents. The backend job pins **PHP 8.3**, the canonical minimum in D-005, while the workstation runs 8.4; that gap is the point, since it catches 8.4-only syntax before anyone else sees it. No PostgreSQL or Redis service is declared because the Pest suite runs on in-memory SQLite per `backend/phpunit.xml`. No secrets, no deployment. **Implemented during M0.10, but not yet verified green on GitHub.** Its first real runs did their job immediately: the frontend job passed while the backend job failed at `composer install`, exposing a committed lockfile that could not install on PHP 8.3 — see D-025. That fix is pushed; operational verification of this item stays open until an actual GitHub run passes. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
 | O-009 | No GitHub remote existed; `gh` CLI is not installed | **Resolved 2026-08-08.** Private repository created through the browser; `origin` added and `main` pushed. Local and remote both at `93ff35b`. See D-012. |
 | O-014 | The shadcn `nova` preset installs the **Geist** font. `04_UI_DESIGN_SYSTEM.md` recommends **Inter**. (The item originally cited section 6; the typography guidance is in section **4**.) | **Resolved 2026-08-09.** Inter implemented through `next/font`, self-hosted, no runtime external font request. Geist removed from source and build output. No new decision was required — Inter is the only typeface the design system names, and D-017 had already recorded Geist as an incidental preset default. Separately fixed while doing so: `--font-sans: var(--font-sans)` in the scaffold CSS was self-referential, so no custom sans had ever actually applied. |
