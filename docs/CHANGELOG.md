@@ -5,6 +5,118 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-10 — M1.6 Permission Matrix & deployment bootstrap
+
+Branch `feat/m1-identity`. Authorization configuration becomes editable, and a fresh
+deployment becomes provisionable. **No migration** — every table M1.6 needs already
+existed.
+
+### Configuring authorization
+
+```text
+GET  /api/v1/permissions                  permissions.view   + ALL
+GET  /api/v1/roles/{role}/permissions     permissions.view   + ALL
+PUT  /api/v1/roles/{role}/permissions     permissions.assign + ALL
+GET  /api/v1/users/{user}/roles           permissions.view   + ALL
+PUT  /api/v1/users/{user}/roles           permissions.assign + ALL
+```
+
+A grant and its Data Scope are written, re-scoped, and removed **together** (D-053). The
+resolver ignores a grant without scope metadata (D-039), so a half-applied save would
+produce a role that looks configured everywhere and does nothing — the write path cannot
+create one, and tests assert grants and scope rows stay equal across every kind of edit.
+
+Saves are complete replacements. Rejected and tested: non-canonical permissions, stale
+rows the sync preserved, other-guard permissions, duplicate codes, and any scope the
+permission does not allow. **`TEAM` is never assignable** — the catalogue never offers it,
+the endpoint rejects it, and a legacy `TEAM` row is reported as-is rather than
+reinterpreted as `OFFICE` (D-042).
+
+Role assignment is guarded by `permissions.assign`, **not `users.update`** (D-055):
+granting a role changes what somebody can do, and a test gives a user every `users.*`
+permission at `ALL` to confirm the role endpoints still refuse them.
+
+### The lockout invariant
+
+M1.6 makes the configuration editable, which means it can be edited into a state nobody
+can edit back. Every mutation of role permissions, role membership, or activation now runs
+inside a transaction that ends by asking whether an **active, non-deleted** user still
+resolves `permissions.assign` at `ALL`. If not: rollback and **409** (D-056).
+
+Capability-based, never name-based — a custom role satisfies it, the `SUPER_ADMIN` name
+alone does not. Disabled and soft-deleted users do not count. Losing your own access is
+allowed while somebody else keeps theirs. The precise rule is that *this operation must not
+be what causes the loss*, so an unprovisioned deployment is not made inexplicably
+read-only.
+
+This also hardened M1.5's activation: disabling the last administrator is the same lockout
+by another route, and is now refused too.
+
+### Bootstrap
+
+`php artisan app:bootstrap` — interactive, one-time, transactional. Creates one
+Organization, one Office, the canonical permissions, the nine default roles, and the first
+administrator, whose capability comes solely through a role.
+
+`SUPER_ADMIN` receives **every canonical permission explicitly, each at `ALL`** — no
+wildcard, no `Gate::before`, no name check (D-057). The other eight roles are created
+**empty**: the high-level matrix grades modules `F`/`V`/`A`/`—`, which cannot become 171
+codes and scopes without inventing the mapping, and invented authorization is worse than
+absent authorization.
+
+No default password and no password option; the secret is typed at a hidden prompt and
+never printed or stored in plaintext. Re-running changes nothing, and nothing
+resynchronizes default roles — a deleted or renamed one stays that way (D-058).
+`SyncCanonicalPermissions` was extracted from the M1.2 command so bootstrap reuses it
+in-process; `permissions:sync` behaves exactly as before.
+
+### Frontend
+
+`/[locale]/settings/roles/[id]` — the matrix, reached from the roles list. Permission
+codes are loaded from the backend catalogue; **none of the 171 appear in frontend source**.
+A permission is off, or on with an explicitly chosen scope: nothing defaults to `ALL`,
+because the widest reach should never be what you get by not deciding. Scope choices come
+from the backend rules, so `TEAM` never appears and a global permission shows `ALL` alone.
+`users.reset_password` is badged as not yet available (O-028). Malformed stored
+configuration is surfaced rather than hidden.
+
+Role membership moved onto the user list as its own dialog. No direct-permission control,
+no per-user scope, no override editing. 62 new keys; id and en at exact parity (195 = 195).
+
+### Verified
+
+**Backend** 569 tests, 2026 assertions — 134 new. Pint clean. `migrate:status` unchanged
+at 11.
+
+**Real PostgreSQL**, on an isolated `notary_ppat_m16` database created and dropped for the
+purpose: the bootstrap suite (24), matrix (68), continuity (19), and role assignment (23)
+all pass against the real engine. The working development database was never used for
+bootstrap testing.
+
+**HTTP smoke over the real Sanctum session flow** — 35/35, as an administrator provisioned
+exactly as bootstrap provisions one: catalogue of 171 with no `TEAM` and
+`users.reset_password` flagged deferred, the administrator role holding all 171 at `ALL`, a
+default role starting empty and then configured, `TEAM` / global-`OFFICE` / stale /
+duplicate all rejected with 422, membership assigned and read back, both lockout attempts
+refused with 409 and rolled back, a capability-less user refused everywhere, anonymous 401,
+and direct-permission, override, and reset-password routes all 404. Temporary data removed;
+171 canonical permissions preserved.
+
+**Frontend** format, lint (0 errors), typecheck, and build all pass.
+
+### Also recorded
+
+**O-029** — `user_permission_overrides` still has no administrative surface, and no
+milestone owns that work. Recorded rather than quietly assumed: a per-user exception
+overrides the role result outright and expires, which needs an audit trail and a
+considered design, not a checkbox added because the table exists.
+
+**O-028** stays open (reset password, M1.9). **O-026** stays open (`/me` permission
+presentation, M1.7) and M1.6 depends on none of it — every endpoint authorizes through the
+resolver.
+
+---
+
 ## 2026-08-09 — M1.5 User domain & User Management
 
 Branch `feat/m1-identity`. User **records** only — no role assignment, no permission

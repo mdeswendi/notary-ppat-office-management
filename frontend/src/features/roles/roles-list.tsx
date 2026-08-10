@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
+
+import { Link } from "@/i18n/navigation";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
@@ -128,6 +130,15 @@ export function RolesList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("permissionsAria", { name: role.name })}
+                        render={<Link href={`/settings/roles/${role.id}`} />}
+                      >
+                        <KeyRound aria-hidden="true" />
+                        {t("permissions")}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon-sm"

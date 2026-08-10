@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Pencil, Plus, Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserRolesDialog } from "@/features/permissions/user-roles-dialog";
 import { UserActivationDialog } from "@/features/users/user-activation-dialog";
 import { UserFormDialog } from "@/features/users/user-form-dialog";
 import { toUserErrorKey } from "@/features/users/user-errors";
@@ -38,6 +39,7 @@ export function UsersList() {
   const [activation, setActivation] = useState<{ user: ManagedUser; activate: boolean } | null>(
     null,
   );
+  const [roles, setRoles] = useState<ManagedUser | null>(null);
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -180,6 +182,14 @@ export function UsersList() {
                       <Button
                         variant="ghost"
                         size="icon-sm"
+                        aria-label={t("rolesAria", { name: user.name })}
+                        onClick={() => setRoles(user)}
+                      >
+                        <KeyRound aria-hidden="true" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
                         aria-label={
                           user.is_active
                             ? t("disableAria", { name: user.name })
@@ -247,6 +257,10 @@ export function UsersList() {
           activate={activation.activate}
           onClose={() => setActivation(null)}
         />
+      ) : null}
+
+      {roles ? (
+        <UserRolesDialog key={roles.id} user={roles} onClose={() => setRoles(null)} />
       ) : null}
     </>
   );

@@ -62,6 +62,8 @@
     "retry": "Try again",
     "emptyTitle": "No roles yet",
     "emptyDescription": "No roles have been created. Create the first one to start configuring user permissions.",
+    "permissions": "Permissions",
+    "permissionsAria": "Manage permissions for role {name}",
     "editAria": "Edit role {name}",
     "deleteAria": "Delete role {name}",
     "errorTitles": {
@@ -79,6 +81,73 @@
       "nameRequired": "Role name is required.",
       "nameTooLong": "Role name must be at most 255 characters.",
       "nameTaken": "This role name is already in use."
+    }
+  },
+  "permissions": {
+    "title": "Role Permissions",
+    "subtitle": "Choose what this role may do, and how far each permission reaches.",
+    "loading": "Loading permissions...",
+    "retry": "Try again",
+    "searchLabel": "Search permission codes",
+    "searchPlaceholder": "Search permission codes",
+    "grantedSummary": "{granted} of {total} permissions enabled",
+    "saved": "Permission changes saved.",
+    "unsaved": "You have unsaved changes.",
+    "noMatches": "No permission code matches \"{search}\".",
+    "backToRoles": "Back to roles",
+    "scopeNone": "Choose a scope",
+    "scopeLabelFor": "Data scope for {code}",
+    "deferredBadge": "Not yet available",
+    "deferredHint": "This permission code is registered, but the feature behind it is not built yet and is planned for Account Security.",
+    "unsyncedBadge": "Not synchronized",
+    "malformedTitle": "Some configuration cannot be used",
+    "malformedDescription": "The entries below are stored but grant nothing. Re-enable them with a valid scope, or remove them.",
+    "malformedReasons": {
+      "MISSING_SCOPE": "has no data scope",
+      "INVALID_SCOPE": "has an unrecognized data scope",
+      "NOT_CANONICAL": "is not a canonical permission",
+      "SCOPE_WITHOUT_GRANT": "has a scope but no permission grant"
+    },
+    "scopes": {
+      "OWN": "Own records",
+      "ASSIGNED": "Assigned records",
+      "TEAM": "Team",
+      "OFFICE": "Same office",
+      "ALL": "Whole deployment"
+    },
+    "groups": {
+      "projects": "Projects",
+      "parties": "Parties",
+      "companies": "Companies",
+      "notary": "Notary",
+      "ppat": "PPAT",
+      "properties": "Properties",
+      "documents": "Documents",
+      "tasks": "Tasks",
+      "calendar": "Calendar",
+      "billing": "Billing",
+      "reports": "Reports",
+      "master_data": "Master Data",
+      "users_and_roles": "Users & Roles",
+      "organizations_and_offices": "Organizations & Offices",
+      "settings": "Settings",
+      "security": "Security",
+      "audit": "Audit"
+    },
+    "userRolesTitle": "User Roles",
+    "userRolesDescription": "Choose the roles \"{name}\" holds. What each role can do is configured on the role's own page.",
+    "noRoles": "There are no roles to choose from yet. Create one first.",
+    "errorTitles": {
+      "forbidden": "Access denied",
+      "generic": "Could not load data"
+    },
+    "errors": {
+      "forbidden": "You do not have permission to manage permissions.",
+      "lastAdministrator": "The change was rolled back. At least one active user must still be able to administer authorization.",
+      "notFound": "Not found. It may have been deleted.",
+      "validation": "Please check the configuration you selected.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "A server error occurred. Please try again."
     }
   },
   "users": {
@@ -112,6 +181,7 @@
     "noMatchesTitle": "No users found",
     "noMatchesDescription": "No users match \"{search}\".",
     "editAria": "Edit user {name}",
+    "rolesAria": "Manage roles for {name}",
     "disableAria": "Disable user {name}",
     "enableAria": "Enable user {name}",
     "disableTitle": "Disable User",

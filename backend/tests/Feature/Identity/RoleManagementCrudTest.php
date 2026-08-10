@@ -402,14 +402,24 @@ it('introduces no additional role table or column', function (): void {
     expect($columns)->toBe(['created_at', 'guard_name', 'id', 'name', 'updated_at']);
 });
 
-it('exposes no nested permission, scope, or member routes', function (): void {
+it('exposes no role member route and no scope route', function (): void {
+    // M1.6 added the permission matrix endpoints under this prefix; they are
+    // guarded by permissions.view / permissions.assign rather than roles.*
+    // (D-054). Membership is still addressed from the user side, and Data Scope
+    // has no route of its own — it is part of a permission grant, never a
+    // separate resource.
     $roleRoutes = collect(app('router')->getRoutes()->getRoutes())
-        ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_starts_with($uri, 'api/v1/roles'))
-        ->values()
-        ->all();
+        ->map(fn ($route): string => implode('|', $route->methods()).' '.$route->uri())
+        ->filter(fn (string $route): bool => str_contains($route, 'api/v1/roles'))
+        ->unique()->values()->sort()->values()->all();
 
-    sort($roleRoutes);
-
-    expect($roleRoutes)->toBe(['api/v1/roles', 'api/v1/roles', 'api/v1/roles/{role}', 'api/v1/roles/{role}', 'api/v1/roles/{role}']);
+    expect($roleRoutes)->toBe([
+        'DELETE api/v1/roles/{role}',
+        'GET|HEAD api/v1/roles',
+        'GET|HEAD api/v1/roles/{role}',
+        'GET|HEAD api/v1/roles/{role}/permissions',
+        'POST api/v1/roles',
+        'PUT api/v1/roles/{role}/permissions',
+        'PUT|PATCH api/v1/roles/{role}',
+    ]);
 });

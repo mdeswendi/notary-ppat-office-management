@@ -415,20 +415,33 @@ it('exposes exactly the M1.5 user routes and nothing more', function (): void {
         'GET|HEAD api/v1/users',
         'GET|HEAD api/v1/users/options',
         'GET|HEAD api/v1/users/{user}',
+        'GET|HEAD api/v1/users/{user}/roles',
         'POST api/v1/users',
         'POST api/v1/users/{user}/disable',
         'POST api/v1/users/{user}/enable',
+        'PUT api/v1/users/{user}/roles',
         'PUT|PATCH api/v1/users/{user}',
     ]);
 });
 
-it('offers no password reset and no role assignment endpoint', function (): void {
-    // users.reset_password stays in the registry; the flow is M1.9's to design.
+it('offers no password reset endpoint', function (): void {
+    // users.reset_password stays in the registry; the flow is M1.9's to design
+    // (O-028). M1.6 registers it in the matrix as deferred rather than building
+    // an endpoint to make the matrix look complete.
     [$actor, $officeA] = userAdministrator();
 
     $target = User::factory()->for($officeA)->create();
 
     $this->actingAs($actor)->postJson("/api/v1/users/{$target->getKey()}/reset-password")->assertNotFound();
-    $this->actingAs($actor)->postJson("/api/v1/users/{$target->getKey()}/roles", ['role' => 'X'])->assertNotFound();
-    $this->actingAs($actor)->putJson("/api/v1/users/{$target->getKey()}/roles", ['roles' => []])->assertNotFound();
+});
+
+it('does not put role assignment behind the user-management capability', function (): void {
+    // The route exists as of M1.6, but it is permission administration: a full
+    // user administrator with no permissions.assign is refused (D-055).
+    [$actor, $officeA] = userAdministrator();
+
+    $target = User::factory()->for($officeA)->create();
+
+    $this->actingAs($actor)->getJson("/api/v1/users/{$target->getKey()}/roles")->assertForbidden();
+    $this->actingAs($actor)->putJson("/api/v1/users/{$target->getKey()}/roles", ['role_ids' => []])->assertForbidden();
 });

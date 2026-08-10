@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,5 +38,9 @@ class AppServiceProvider extends ServiceProvider
         // finding both policies in one place beats knowing which of two
         // mechanisms applies to which model.
         Gate::policy(User::class, UserPolicy::class);
+
+        // The authorization configuration itself: the permission catalogue,
+        // role grants, and role membership all authorize through this.
+        Gate::policy(Permission::class, PermissionPolicy::class);
     }
 }
