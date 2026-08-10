@@ -5,6 +5,7 @@
     "foundationNotice": "Application foundation is ready. Business modules are not available yet.",
     "loading": "Loading...",
     "language": "Language",
+    "languageSaveFailed": "Your language choice could not be saved. Please try again.",
     "localeIndonesian": "Bahasa Indonesia",
     "localeEnglish": "English",
     "errorTitle": "Something went wrong",
@@ -18,6 +19,8 @@
     "signOut": "Sign Out",
     "signingOut": "Signing out...",
     "accountMenu": "Account menu",
+    "myProfile": "My Profile",
+    "preferences": "Preferences",
     "signedInAs": "Signed in as",
     "email": "Email",
     "password": "Password",
@@ -84,6 +87,41 @@
       "nameRequired": "Role name is required.",
       "nameTooLong": "Role name must be at most 255 characters.",
       "nameTaken": "This role name is already in use."
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Manage your details and language preference.",
+    "loading": "Loading profile...",
+    "errorTitle": "Could not load your profile",
+    "saved": "Your profile has been saved.",
+    "personalTitle": "Personal Information",
+    "personalDescription": "How you appear to colleagues inside the application.",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone",
+    "phoneHint": "Optional. Write it however your office normally does.",
+    "emailLabel": "Email",
+    "emailReadOnly": "Your email is used to sign in and can only be changed by an administrator.",
+    "workTitle": "Work Context",
+    "workDescription": "Set by an administrator; you cannot change these yourself.",
+    "officeLabel": "Office",
+    "rolesLabel": "Roles",
+    "noRoles": "No roles yet",
+    "languageTitle": "Language Preference",
+    "languageDescription": "The language you return to when you sign in again.",
+    "languageHint": "Opening an address with a different language prefix is still honoured and does not change this preference.",
+    "errors": {
+      "unauthenticated": "Your session is no longer active. Please sign in again.",
+      "sessionExpired": "Your session has expired. Please sign in again.",
+      "invalidCredentials": "Please check the details you entered.",
+      "tooManyAttempts": "Too many requests. Please try again shortly.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "A server error occurred. Please try again."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "nameTooLong": "Name must be at most 255 characters.",
+      "phoneTooLong": "Phone must be at most 50 characters."
     }
   },
   "permissions": {

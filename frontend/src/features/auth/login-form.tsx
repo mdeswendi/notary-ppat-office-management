@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "@/i18n/navigation";
 import { toApiErrorKey, type ApiErrorKey } from "@/lib/api/errors";
+import { landingLocale } from "@/lib/i18n/landing-locale";
 import { authQueryKeys, getCurrentUser, login } from "@/services/auth";
 
 export function LoginForm() {
@@ -52,10 +53,14 @@ export function LoginForm() {
     onSuccess: (user) => {
       queryClient.setQueryData(authQueryKeys.me, user);
 
-      // Locale-aware: resolves to /id/dashboard or /en/dashboard. The user's
-      // stored preference is not applied here — the URL stays authoritative
-      // for the active locale, per D-020.
-      router.replace("/dashboard");
+      // The one place a stored preference decides a locale (D-069). Until now
+      // nobody had identified themselves, so the URL was all there was to go
+      // on; from here the person's own choice applies, whichever localized
+      // login page they arrived at.
+      //
+      // From this redirect onward the URL is authoritative again: opening
+      // /en/... later is honoured and never rewritten back to the preference.
+      router.replace("/dashboard", { locale: landingLocale(user.preferred_locale) });
       router.refresh();
     },
     onError: (error: unknown) => {

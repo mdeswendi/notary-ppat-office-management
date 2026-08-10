@@ -99,6 +99,112 @@ remain open and untouched.
 
 ---
 
+## 2026-08-10 — M1.8 Profile & language preference
+
+Branch `feat/m1-identity`. Self-service profile and a persistent interface
+language. **No migration** — `phone` and `deleted_at` arrived with M1.5 and
+`preferred_locale` has existed since M0.
+
+### Self-service, not administration
+
+```text
+GET   /api/v1/profile     authentication only
+PATCH /api/v1/profile     authentication only
+```
+
+No permission guards either, and none was invented — the registry has no
+`profile.view` and adding one so a menu entry could render would put a fake
+capability in a catalogue whose value is that it describes real ones (D-066). The
+target is always the caller: there is no `/profile/{user}` and no query string
+that introduces one.
+
+Deliberately **not** routed through `UserPolicy`, which excludes `OWN` from
+administrative update on purpose (D-049). Bending that to fit self-service would
+weaken the rule it exists to state.
+
+Editable: `name`, `phone`, `preferred_locale`. Everything else is **rejected with
+422 rather than silently dropped** — an interface that appears to accept a change
+it never made is worse than one that declines. `email` and `office` are shown as
+plain text rather than disabled inputs, because a disabled field still reads as
+"editable, just not now" (D-067).
+
+A profile save touches no pivot: role memberships, direct permissions, scope
+metadata, and overrides are asserted unchanged, and the `/me` authorization
+projection is asserted byte-identical before and after each editable field.
+
+### Language
+
+D-020 kept the URL the only source of the active locale and left this gap
+explicitly open; M1.8 fills it without reopening detection (D-069).
+
+Exactly **one** moment a stored preference decides a locale: the redirect after
+signing in. `preferred_locale = en` lands on `/en/dashboard` even from
+`/id/login`. After that the URL is authoritative again — opening `/en/...` with a
+stored `id` shows English, is never rewritten, and never quietly updates the
+preference. Typing a URL is a navigation, not a declaration about future
+sessions.
+
+The Language Switcher **is** an explicit declaration, so it persists first and
+navigates second. Navigating first would leave the interface in English while the
+stored preference silently stayed Indonesian on a failed request; on error
+nothing moves and the failure is reported. One mutation path serves both the
+header switcher and the profile page, so the two cannot drift.
+
+A stored value the routing configuration does not recognize falls back to `id`,
+and **reading it never repairs it** — writing to the database as a side effect of
+a page load is how a silent fix becomes impossible to explain later.
+
+`localeDetection` and `localeCookie` stay off; nothing touches `localStorage`,
+`sessionStorage`, `navigator.language`, or `accept-language`.
+
+### Frontend
+
+`/[locale]/profile`, reached from the account menu — not a Settings destination,
+since Settings holds administration and this is its opposite. Personal
+information, read-only work context, and a language section. **Preferences**
+links to that section rather than a second screen holding one control. There is
+**no Security entry**: M1.9 owns it, and a menu item leading nowhere is worse
+than an absent one.
+
+Saving name or phone refetches `["auth","me"]`, so the header and account menu
+stop showing a stale name without a sign-out. 44 new keys; id and en at exact
+parity (231 = 231).
+
+### Verified
+
+**Backend** 642 tests, 2478 assertions — 44 new. Pint clean. `migrate:status`
+unchanged at 11.
+
+**Frontend** format, lint (0 errors), typecheck, and build all pass, with the new
+route present. The repository has no frontend test framework and this did not add
+one; a scratchpad harness compiled the real `landing-locale.ts` with the project's
+own TypeScript and ran 23 checks over it and the routing configuration, including
+a source scan proven capable of finding a known string and of stripping comments
+before reporting nothing.
+
+**PostgreSQL, over the real Sanctum session flow** — 40/40. Read the profile,
+edited name, phone, and language, and confirmed all seven forbidden fields and
+four malformed locale codes answer 422. `/me` showed the new name and language
+while permissions, scopes, and roles stayed byte-identical; the original password
+still signed in; a planted unsupported `preferred_locale` was reported as-is and
+**not** repaired by reading it; no `NEXT_LOCALE` cookie was ever set. Temporary
+data removed; 171 canonical permissions preserved.
+
+One fixture bug worth noting: the first run failed a union assertion because the
+fixture gave a single role two scopes for one permission, which
+`UNIQUE(role_id, permission_id)` correctly prevents — the union is *across* roles
+(D-028, D-053). The fixture was wrong, not the product.
+
+### Also recorded
+
+**O-030** — self-service email change has no defined flow and is deferred to
+M1.9, which owns the neighbouring questions. Until then an address is corrected
+by an administrator through User Management, which is deliberate and attributable.
+
+**O-028** and **O-029** remain open, untouched.
+
+---
+
 ## 2026-08-10 — M1.6 Permission Matrix & deployment bootstrap
 
 Branch `feat/m1-identity`. Authorization configuration becomes editable, and a fresh

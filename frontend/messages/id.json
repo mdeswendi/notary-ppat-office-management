@@ -5,6 +5,7 @@
     "foundationNotice": "Fondasi aplikasi siap. Modul bisnis belum tersedia.",
     "loading": "Memuat...",
     "language": "Bahasa",
+    "languageSaveFailed": "Pilihan bahasa gagal disimpan. Silakan coba lagi.",
     "localeIndonesian": "Bahasa Indonesia",
     "localeEnglish": "English",
     "errorTitle": "Terjadi kesalahan",
@@ -18,6 +19,8 @@
     "signOut": "Keluar",
     "signingOut": "Memproses...",
     "accountMenu": "Menu akun",
+    "myProfile": "Profil Saya",
+    "preferences": "Preferensi",
     "signedInAs": "Masuk sebagai",
     "email": "Email",
     "password": "Kata Sandi",
@@ -84,6 +87,41 @@
       "nameRequired": "Nama peran wajib diisi.",
       "nameTooLong": "Nama peran maksimal 255 karakter.",
       "nameTaken": "Nama peran ini sudah digunakan."
+    }
+  },
+  "profile": {
+    "title": "Profil Saya",
+    "subtitle": "Kelola data diri dan preferensi bahasa Anda.",
+    "loading": "Memuat profil...",
+    "errorTitle": "Gagal memuat profil",
+    "saved": "Perubahan profil tersimpan.",
+    "personalTitle": "Data Diri",
+    "personalDescription": "Data ini tampil bagi rekan kerja Anda di dalam aplikasi.",
+    "nameLabel": "Nama",
+    "phoneLabel": "Telepon",
+    "phoneHint": "Opsional. Tuliskan sesuai kebiasaan kantor Anda.",
+    "emailLabel": "Email",
+    "emailReadOnly": "Email digunakan untuk masuk dan hanya dapat diubah oleh administrator.",
+    "workTitle": "Konteks Kerja",
+    "workDescription": "Ditetapkan oleh administrator dan tidak dapat Anda ubah sendiri.",
+    "officeLabel": "Kantor",
+    "rolesLabel": "Peran",
+    "noRoles": "Belum ada peran",
+    "languageTitle": "Preferensi Bahasa",
+    "languageDescription": "Bahasa yang digunakan saat Anda masuk kembali.",
+    "languageHint": "Membuka alamat dengan awalan bahasa lain tetap dihormati dan tidak mengubah preferensi ini.",
+    "errors": {
+      "unauthenticated": "Sesi Anda tidak lagi aktif. Silakan masuk kembali.",
+      "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali.",
+      "invalidCredentials": "Periksa kembali data yang Anda masukkan.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Silakan coba beberapa saat lagi.",
+      "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
+      "server": "Terjadi kesalahan pada server. Silakan coba lagi."
+    },
+    "validation": {
+      "nameRequired": "Nama wajib diisi.",
+      "nameTooLong": "Nama maksimal 255 karakter.",
+      "phoneTooLong": "Nomor telepon maksimal 50 karakter."
     }
   },
   "permissions": {

@@ -1622,6 +1622,106 @@ Effective permissions stay in the TanStack Query cache and nowhere else: not Red
 Zustand, and never `localStorage` or `sessionStorage`. Persisting them would create a copy
 that outlives the session that earned it.
 
+### D-066 — Self-service profile needs authentication, not a permission
+
+Every authenticated user reaches `/api/v1/profile`. No canonical permission
+guards it, and none was invented: the registry has no `profile.view`, and adding
+one so a menu entry could render would put a fake capability in a catalogue whose
+whole value is that it describes real ones.
+
+The target is always `$request->user()`. There is no `/profile/{user}`, no id
+parameter, and no query string that introduces one — administrative access to
+somebody else's record is M1.5's `users.*`, deliberately separate.
+
+Deliberately **not** routed through `UserPolicy`. That policy excludes `OWN` from
+administrative update on purpose (D-049), because editing your own
+administrative record is self-service rather than administration. Bending it to
+fit would weaken the rule it exists to state, so self-service is simply not a
+`UserPolicy` question at all.
+
+Editable: `name`, `phone`, `preferred_locale`. Everything else is **rejected
+with 422 rather than silently dropped** — `email`, `office_id`, `is_active`,
+`password`, `roles`, `permissions`, `email_verified_at`, `last_login_at`,
+`deleted_at`. `validated()` would discard them anyway; refusing says so, because
+an interface that appears to accept a change it never made is worse than one
+that declines.
+
+A profile save touches no pivot. Role memberships, direct permissions, Data
+Scope metadata, and overrides are asserted unchanged, and the effective
+authorization projection from `/api/v1/me` is asserted byte-identical before and
+after each of the three editable fields. Changing your display name must never
+change what you can do.
+
+### D-067 — Email and Office are read-only to their owner
+
+Both are displayed on the profile and neither is editable there.
+
+`email` is the authentication identifier, and `email_verified_at` already exists
+in the schema. Changing an address needs a verification flow — how the new
+address is confirmed, what happens to the session in between, what the old
+address is told — and no document specifies one. Inventing it inside a profile
+milestone would be designing account security by accident. Deferred to Account
+Security review (**O-030**).
+
+`office_id` decides which records a person's Data Scopes reach (D-049). Letting
+somebody move themselves between Offices would let them relocate their own
+access, which is precisely why M1.5 made it an administrative operation.
+
+Both are rendered as plain text rather than disabled inputs: a disabled field
+still reads as "editable, just not right now", and text does not.
+
+### D-068 — Stored locale codes are exactly `id` and `en`
+
+Bare codes, never a regional tag (`id-ID`), never a display name (`Indonesia`),
+never a different case. `SupportedLocales` is the backend's boundary and
+`src/i18n/routing.ts` is the frontend's; a test asserts the two agree rather than
+trusting that they do, because two files naming the same pair is how they start
+to disagree.
+
+Indonesian is the default and the fallback.
+
+### D-069 — Preference decides the landing locale; the URL decides everything else
+
+D-020 made the URL the only source of the active locale, and that is unchanged:
+`localeDetection` and `localeCookie` stay off, nothing is read from
+`localStorage` or `sessionStorage`, and no `accept-language` header is consulted.
+This milestone fills the gap D-020 explicitly left for it.
+
+There is exactly **one** moment a stored preference decides a locale: the
+redirect immediately after signing in. Until then nobody has identified
+themselves, so the URL was all there was to go on; from there, the person's own
+choice applies — whichever localized login page they arrived at. `preferred_locale = en`
+lands on `/en/dashboard` even from `/id/login`.
+
+After that redirect the URL is authoritative again. Opening `/en/...` with a
+stored preference of `id` shows English and is **never rewritten**, and never
+quietly updates the preference either. Typing a URL is a navigation, not a
+declaration about future sessions.
+
+A stored value the routing configuration does not recognize falls back to `id`
+rather than producing a path with no route. **Reading it never repairs it** —
+`/me` and login are read paths, and writing to the database as a side effect of a
+page load is how a silent "fix" becomes impossible to explain later. Correcting
+the row is the user's own explicit choice.
+
+Using the Language Switcher **is** that explicit choice, so it persists the
+preference and then navigates once to the same page in the new locale, preserving
+pathname and query string. **Persist first, navigate second**: navigating first
+would leave the interface speaking English while the stored preference silently
+stayed Indonesian if the request failed, and a screen that lies about what was
+saved is worse than one that reports the failure. On error nothing moves.
+
+Selecting the locale already displayed is not assumed to be a no-op — somebody
+may have typed `/en/...` while their preference is still `id`, and choosing EN
+then genuinely records EN.
+
+Signed out, the switcher changes the URL only. There is nowhere to persist a
+preference for somebody who has not identified themselves, and inventing a cookie
+for it is exactly what D-020 rejected.
+
+One mutation path serves both the header switcher and the profile page, so the
+two cannot drift into different persistence behaviour.
+
 ### M1 implementation order
 
 ```text
@@ -1695,6 +1795,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-023 | `offices.code` has **no uniqueness constraint**. No canonical document defines one — "unique" appears nowhere in the specification — so M1.1 implemented the column plain rather than inventing a rule. A composite `organization_id + code` uniqueness is the likely intent, since a code is only meaningful as a short handle within its Organization. | **Direction fixed 2026-08-09 by D-037** — `UNIQUE (organization_id, code)`. Still **open for implementation**: M1.2 added no migration, and the constraint is scheduled to land with the Office management submilestone so the database rule and the Form Request rule arrive together instead of disagreeing in between. Adding it remains cheap while `offices` holds no rows. |
 | O-024 | `user_permission_overrides` carries `created_at` but no `updated_at`, following the `03_DATABASE_ERD.md` section 5 field list (D-038). Because the table is unique on `(user_id, permission_id)`, changing an override means updating the existing row — and nothing then records when it changed or who changed it. | Open. Deliberate, not an oversight: the canonical field list is explicit, and inventing a column to fill a gap the ERD does not acknowledge would be the wrong fix. The real answer is the audit log, which D-033 places outside M1 entirely. Revisit when override management lands (M1.6) — either audit covers it by then, or the ERD needs `updated_at` and an `updated_by`, which is a documentation change before it is a migration. |
 | O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. **Risk reduced at M1.5** — `User` now uses `SoftDeletes` and no deletion endpoint exists (D-050), so the product cannot reach the orphaning state. Still open: the package behaviour is unchanged, and any future purge path must detach package assignments explicitly. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
+| O-030 | Self-service **email change** has no flow. `email` is the authentication identifier and `email_verified_at` exists in the schema, but no document defines how a new address is verified, what happens to the live session while it is pending, or whether the old address is notified. M1.8 made email read-only on the profile rather than invent one (D-067). | Open. Belongs with **M1.9 Account Security**, which owns the neighbouring questions — password change, session revocation, and re-verification — and would otherwise end up designing this one twice. Until then an address is corrected by an administrator through User Management, which is a real answer rather than a gap: `users.update` already permits it, and the change is deliberate and attributable. |
 | O-029 | `user_permission_overrides` has schema, resolver semantics (D-029), and no administrative surface. M1.6 built the Permission Matrix and role assignment but deliberately did **not** expose per-user ALLOW/DENY overrides or their expiry, and no milestone currently owns that work. | Open, and deliberately unclaimed rather than quietly assumed. A per-user exception is a different mechanism from a role grant: it overrides the role result outright, it expires, and it is the one place where one person's access diverges from their colleagues' — which is exactly the kind of thing that needs an audit trail (D-033) and a considered UI, not a checkbox added because the table exists. It also carries O-024's gap: editing an override records neither when nor by whom. Needs an explicitly scoped administration task before any surface is built; until then overrides are settable only by direct database access, which is an honest limitation rather than a hidden one. |
 | O-028 | `users.reset_password` is canonical and registered, but no endpoint implements it. No document defines the reset *flow* — how a new secret reaches the person, whether the administrator ever sees it, what notification follows — so M1.5 registered the gap rather than inventing an account-security design inside a user-management milestone (D-051). | Open, deliberately. Scheduled for **M1.9 Account Security**, alongside session revocation, which the same milestone needs. The permission stays in the registry unchanged: removing it would break the M1.6 permission matrix's view of the capability surface, and renaming it would orphan any role configured against it. Until then, a forgotten password is an operational problem with no in-product answer, which is worth stating plainly. |
 | O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | **Resolved 2026-08-10 by D-062.** `/api/v1/me` now reports effective access from the resolver itself, with exact Data Scopes alongside each permission. Direct package grants, stale codes, grants missing scope metadata, expired overrides, and malformed ALLOW overrides are all excluded, and DENY and ALLOW overrides and multi-role unions are all reflected — verified by 28 backend tests and confirmed over a real session against PostgreSQL. Single-permission and bulk resolution share one decision function (D-061), so the payload cannot drift from the checks that guard endpoints. The frontend `can()`, `canWithScope()`, `PermissionGuard`, and navigation filtering all consume that projection and never a role name (D-063). It was never a vulnerability — the list was presentation-only and every endpoint authorized independently — but the browser and the backend now answer the same question the same way. Superseded note: | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |

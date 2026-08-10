@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -16,6 +17,12 @@ Route::prefix('v1')->group(function (): void {
     // requests. No bearer token is involved.
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('me', MeController::class)->name('api.v1.me');
+
+        // The authenticated user's own account. No permission guards these and
+        // no id is accepted — the target is always the caller (D-066).
+        // Administrative access to somebody else's record is `users.*`.
+        Route::get('profile', [ProfileController::class, 'show'])->name('api.v1.profile.show');
+        Route::patch('profile', [ProfileController::class, 'update'])->name('api.v1.profile.update');
 
         // Role definitions. `whereNumber` because roles keep the package's
         // integer key: without it a non-numeric id would reach PostgreSQL as
