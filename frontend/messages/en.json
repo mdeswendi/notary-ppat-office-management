@@ -37,7 +37,10 @@
     "mainLabel": "Main navigation",
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "settingsUsers": "Users",
+    "settingsRoles": "Roles & Permissions"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -91,6 +94,7 @@
     "searchLabel": "Search permission codes",
     "searchPlaceholder": "Search permission codes",
     "grantedSummary": "{granted} of {total} permissions enabled",
+    "readOnly": "Read only",
     "saved": "Permission changes saved.",
     "unsaved": "You have unsaved changes.",
     "noMatches": "No permission code matches \"{search}\".",

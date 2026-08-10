@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Authorization\Enums\DataScope;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -140,57 +141,88 @@ it('returns empty roles and permissions for a user with no assignments', functio
                 'preferred_locale' => $user->preferred_locale,
                 'roles' => [],
                 'permissions' => [],
+                'permission_scopes' => [],
             ],
         ]);
 });
 
-it('exposes role names and role-derived permissions through the current user endpoint', function (): void {
+it('exposes role names and effectively granted permissions through the current user endpoint', function (): void {
+    // Written at M0.8 asserting that a role grant alone produced a permission
+    // here. M1.7 changed the field's meaning: it now reports what
+    // EffectiveAccessResolver grants, and a grant with no Data Scope grants
+    // nothing (D-039, D-062). The scope row is what the test was always
+    // really about — the capability actually being usable.
     $user = User::factory()->create();
-    $role = Role::create(['name' => TEST_ROLE]);
-    $role->givePermissionTo(Permission::create(['name' => TEST_PERMISSION]));
+    $role = makeRole(TEST_ROLE);
+    $permission = makePermission('projects.view');
+
+    $role->givePermissionTo($permission);
+    grantScope($role, $permission, DataScope::OFFICE);
     $user->assignRole($role);
 
     $response = $this->actingAs($user)->getJson('/api/v1/me')->assertOk();
 
     expect($response->json('data.roles'))->toBe([TEST_ROLE])
-        // Inherited through the role, never assigned directly.
-        ->and($response->json('data.permissions'))->toBe([TEST_PERMISSION]);
+        ->and($response->json('data.permissions'))->toBe(['projects.view'])
+        ->and($response->json('data.permission_scopes'))->toBe(['projects.view' => ['OFFICE']]);
 });
 
-it('includes direct permissions alongside inherited ones', function (): void {
+it('omits a role grant that carries no Data Scope', function (): void {
     $user = User::factory()->create();
-    $role = Role::create(['name' => TEST_ROLE]);
-    $role->givePermissionTo(Permission::create(['name' => TEST_PERMISSION]));
-    Permission::create(['name' => TEST_OTHER_PERMISSION]);
+    $role = makeRole(TEST_ROLE);
 
+    $role->givePermissionTo(makePermission('projects.view'));
     $user->assignRole($role);
-    $user->givePermissionTo(TEST_OTHER_PERMISSION);
 
     $response = $this->actingAs($user)->getJson('/api/v1/me')->assertOk();
 
-    // Sorted, so the assertion is order-stable.
-    expect($response->json('data.permissions'))
-        ->toBe([TEST_OTHER_PERMISSION, TEST_PERMISSION]);
+    expect($response->json('data.roles'))->toBe([TEST_ROLE])
+        ->and($response->json('data.permissions'))->toBe([]);
 });
 
-it('does not duplicate a permission reachable by more than one path', function (): void {
+it('excludes a permission attached directly through the package', function (): void {
+    // The exact inverse of the M0.8 test this replaces, which asserted direct
+    // grants appeared alongside inherited ones. That was O-026: the browser saw
+    // capability the resolver refuses, because `getAllPermissions()` counts
+    // direct grants that D-029 and D-041 exclude. `/me` now reports effective
+    // access, so the two agree.
     $user = User::factory()->create();
-    $permission = Permission::create(['name' => TEST_PERMISSION]);
+    $role = makeRole(TEST_ROLE);
+    $inherited = makePermission('projects.view');
 
-    $firstRole = Role::create(['name' => TEST_ROLE]);
-    $secondRole = Role::create(['name' => TEST_ROLE.'_SECOND']);
-    $firstRole->givePermissionTo($permission);
-    $secondRole->givePermissionTo($permission);
+    $role->givePermissionTo($inherited);
+    grantScope($role, $inherited, DataScope::OWN);
+    $user->assignRole($role);
 
-    // Reachable three ways: two roles and a direct grant.
-    $user->assignRole($firstRole);
-    $user->assignRole($secondRole);
+    $user->givePermissionTo(makePermission('projects.create'));
+
+    $response = $this->actingAs($user)->getJson('/api/v1/me')->assertOk();
+
+    expect($user->hasDirectPermission('projects.create'))->toBeTrue()
+        ->and($response->json('data.permissions'))->toBe(['projects.view'])
+        ->and($response->json('data.permission_scopes'))->toBe(['projects.view' => ['OWN']]);
+});
+
+it('lists a permission once and unions the scopes reaching it', function (): void {
+    // Replaces an M0.8 de-duplication test that counted three paths including a
+    // direct grant. Two roles now union their scopes (D-028); the direct grant
+    // contributes nothing at all.
+    $user = User::factory()->create();
+    $permission = makePermission('projects.view');
+
+    foreach ([DataScope::OWN, DataScope::OFFICE] as $index => $scope) {
+        $role = makeRole(TEST_ROLE.'_'.$index);
+        $role->givePermissionTo($permission);
+        grantScope($role, $permission, $scope);
+        $user->assignRole($role);
+    }
+
     $user->givePermissionTo($permission);
 
-    $permissions = $this->actingAs($user)->getJson('/api/v1/me')->json('data.permissions');
+    $response = $this->actingAs($user)->getJson('/api/v1/me')->assertOk();
 
-    expect($permissions)->toBe([TEST_PERMISSION])
-        ->and(count($permissions))->toBe(1);
+    expect($response->json('data.permissions'))->toBe(['projects.view'])
+        ->and($response->json('data.permission_scopes'))->toBe(['projects.view' => ['OWN', 'OFFICE']]);
 });
 
 it('never exposes authorization internals through the current user endpoint', function (): void {

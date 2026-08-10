@@ -8,6 +8,7 @@ import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteRoleDialog } from "@/features/roles/delete-role-dialog";
@@ -88,11 +89,16 @@ export function RolesList() {
 
   return (
     <>
+      {/* Role administration is deployment-global, so each control needs the
+          ALL scope specifically. Hiding them is courtesy; the API refuses
+          regardless. */}
       <div className="flex items-center justify-end">
-        <Button onClick={openCreate}>
-          <Plus aria-hidden="true" />
-          {t("create")}
-        </Button>
+        <PermissionGuard permission="roles.create" scope="ALL">
+          <Button onClick={openCreate}>
+            <Plus aria-hidden="true" />
+            {t("create")}
+          </Button>
+        </PermissionGuard>
       </div>
 
       {roles.length === 0 ? (
@@ -130,31 +136,37 @@ export function RolesList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={t("permissionsAria", { name: role.name })}
-                        render={<Link href={`/settings/roles/${role.id}`} />}
-                      >
-                        <KeyRound aria-hidden="true" />
-                        {t("permissions")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("editAria", { name: role.name })}
-                        onClick={() => openEdit(role)}
-                      >
-                        <Pencil aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("deleteAria", { name: role.name })}
-                        onClick={() => setDeleting(role)}
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
+                      <PermissionGuard permission="permissions.view" scope="ALL">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={t("permissionsAria", { name: role.name })}
+                          render={<Link href={`/settings/roles/${role.id}`} />}
+                        >
+                          <KeyRound aria-hidden="true" />
+                          {t("permissions")}
+                        </Button>
+                      </PermissionGuard>
+                      <PermissionGuard permission="roles.update" scope="ALL">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("editAria", { name: role.name })}
+                          onClick={() => openEdit(role)}
+                        >
+                          <Pencil aria-hidden="true" />
+                        </Button>
+                      </PermissionGuard>
+                      <PermissionGuard permission="roles.delete" scope="ALL">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("deleteAria", { name: role.name })}
+                          onClick={() => setDeleting(role)}
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </td>
                 </tr>

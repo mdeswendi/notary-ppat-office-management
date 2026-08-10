@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrentUser } from "@/features/auth/use-current-user";
 import { toPermissionErrorKey } from "@/features/permissions/permission-errors";
+import { canWithScope } from "@/lib/permissions/can";
+import { authQueryKeys } from "@/services/auth";
 import { getUserRoles, permissionQueryKeys, saveUserRoles } from "@/services/permissions";
 import { getRoles, roleQueryKeys } from "@/services/roles";
 import type { ManagedUser } from "@/types/user";
@@ -65,10 +68,20 @@ export function UserRolesDialog({ user, onClose }: UserRolesDialogProps) {
   const persisted = membership.data?.roles.map((role) => role.id) ?? [];
   const working = selected ?? persisted;
 
+  // Viewing membership and changing it are separate capabilities, so a reader
+  // sees the list without a Save button that would only be refused (D-063).
+  const { data: currentUser } = useCurrentUser();
+  const canAssign = canWithScope(currentUser, "permissions.assign", "ALL");
+
   const mutation = useMutation({
     mutationFn: () => saveUserRoles(user.id, working),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: permissionQueryKeys.userRoles(user.id) });
+
+      // The edited user may be the administrator doing the editing, so their
+      // own effective access can have changed. Refetching keeps the interface
+      // honest without requiring a sign-out (D-065).
+      await queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
       onClose();
     },
   });
@@ -131,6 +144,7 @@ export function UserRolesDialog({ user, onClose }: UserRolesDialogProps) {
                   <Checkbox
                     id={inputId}
                     checked={working.includes(role.id)}
+                    disabled={!canAssign}
                     onCheckedChange={(checked) => toggle(role.id, checked === true)}
                   />
                   <Label htmlFor={inputId} className="cursor-pointer font-normal">
@@ -146,13 +160,17 @@ export function UserRolesDialog({ user, onClose }: UserRolesDialogProps) {
           <Button type="button" variant="outline" onClick={onClose} disabled={mutation.isPending}>
             {tActions("cancel")}
           </Button>
-          <Button
-            type="button"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || loading || failed}
-          >
-            {mutation.isPending ? tActions("saving") : tActions("save")}
-          </Button>
+          {canAssign ? (
+            <Button
+              type="button"
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || loading || failed}
+            >
+              {mutation.isPending ? tActions("saving") : tActions("save")}
+            </Button>
+          ) : (
+            <span className="text-muted-foreground self-center text-xs">{t("readOnly")}</span>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

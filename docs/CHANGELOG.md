@@ -5,6 +5,100 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-10 — M1.7 Permission-aware navigation, resolving O-026
+
+Branch `feat/m1-identity`. **No migration.** The interface now derives what it shows from
+the same authorization model the backend enforces with.
+
+### O-026, resolved
+
+`GET /api/v1/me` built its `permissions` array from Spatie's `getAllPermissions()`. That
+counted direct user-permission grants the model excludes (D-029, D-041), carried no Data
+Scope, and ignored overrides — so the browser and the backend could disagree about what
+somebody could do. Presentation-only, so never a vulnerability; a defect nonetheless.
+
+The endpoint now reports **effective access** from `EffectiveAccessResolver` (D-062):
+
+```text
+permissions        canonical codes the account effectively holds, canonical order
+permission_scopes  each one's exact Data Scope set, documentation order
+roles              unchanged, and still presentation only
+```
+
+A permission appears only when granted. Excluded exactly as the resolver excludes them:
+direct package grants, stale codes, grants missing scope metadata, expired overrides,
+malformed ALLOW overrides, and canonical names with no row. DENY and ALLOW overrides and
+multi-role unions are all reflected. The endpoint stays read-only — a test asserts every
+statement it issues is a `select`, and the expired override it sets up is still there
+afterwards.
+
+### One rule, two entry points
+
+`resolve()` and the new `resolveAll()` load plain `AuthorizationState` and hand it to the
+same private `decide()` (D-061). Nothing about allow/deny, scopes, or ordering exists
+twice, so the projection cannot drift from the check that guards an endpoint. A test
+resolves **every** canonical permission both ways against a fixture carrying multi-role
+unions, an active DENY, an active ALLOW, an expired override, a scope-less grant, a corrupt
+scope value, a stale permission, and a direct grant — and requires identical answers,
+scope order and source included.
+
+`resolveAll()` costs **four queries regardless of registry size**; a test asserts resolving
+171 permissions is no more expensive than resolving one.
+
+### Presentation follows it
+
+`can()`, `canWithScope()`, `PermissionGuard` (now scope-aware), and navigation filtering
+all read the projection, never a role name (D-063). `canWithScope` is exact membership:
+`{OFFICE}` does not satisfy `ALL`, `{OFFICE, ALL}` does. There is no "wide enough" helper
+and no ordering anywhere.
+
+Record-level predicates are deliberately **not** reproduced in React — an office-scoped
+administrator sees an Edit control, and whether a particular colleague is theirs to edit is
+the Policy's answer when the request arrives.
+
+Navigation requires two independent conditions: the destination must be **implemented** and
+the account must hold the permission (D-064). Bootstrap gives `SUPER_ADMIN` all 171
+permissions, so permission alone would light up Projects, Notary, PPAT, and Billing and
+link to routes that 404. Parents render only when a child survives; desktop and mobile
+share one filtered result. Users needs `users.view` at any scope; Roles needs `roles.view`
+at `ALL`.
+
+Saving the matrix or role membership invalidates `["auth", "me"]` (D-065), so an
+administrator who changes their own access sees the interface follow immediately rather
+than after signing out. The matrix and the membership dialog render read-only when the
+account may view but not assign.
+
+### Verified
+
+**Backend** 598 tests, 2306 assertions — 28 new. Pint clean. `migrate:status` unchanged
+at 11.
+
+Five M0.7/M0.8 `/me` tests changed meaning and were **rewritten, not deleted**, each noting
+why — including one that asserted direct grants appeared alongside inherited ones, which was
+O-026 itself and is now asserted in the inverse.
+
+**Frontend** format, lint (0 errors), typecheck, and build all pass. The repository has no
+frontend test framework and M1.7 did not add one; instead a scratchpad harness runs the
+**real** `navigation.ts` and `can.ts` under Node with the `@/` alias resolved — 31/31 across
+helper semantics, TEAM treated as an exact value, the parent-menu rule, role names conferring
+nothing, and a fully-privileged administrator still seeing only implemented destinations.
+
+**PostgreSQL, over a real Sanctum session** — 22/22: an OFFICE user holding `users.view` and
+not `roles.view`, a global user the reverse, a multi-role union, an active DENY, an active
+ALLOW replacing role scopes, an expired override falling back, a direct package grant
+excluded, and a stale permission excluded. Temporary data removed; 171 canonical permissions
+preserved.
+
+### Also recorded
+
+**D-059** and **D-060** were implemented at M1.6 and cited by its code but never written
+down. Both are now recorded — a citation pointing at nothing is worse than no citation.
+
+**O-028** (reset password, M1.9) and **O-029** (override administration, unowned) both
+remain open and untouched.
+
+---
+
 ## 2026-08-10 — M1.6 Permission Matrix & deployment bootstrap
 
 Branch `feat/m1-identity`. Authorization configuration becomes editable, and a fresh

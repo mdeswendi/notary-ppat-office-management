@@ -1496,6 +1496,132 @@ tested for both, along with the absence of any scheduled task that could undo th
 in-process rather than shelling out to another Artisan invocation, which would have run
 outside the caller's transaction. `permissions:sync` still behaves exactly as before.
 
+### D-059 — Permission synchronization is a service the command wraps
+
+`SyncCanonicalPermissions` holds the reconciliation; `permissions:sync` is the reporting
+layer around it. Extracted at M1.6 so the deployment bootstrap could reuse it **in
+process** — shelling out to a second `artisan` invocation would have run outside the
+caller's transaction, which is exactly what a bootstrap must not do.
+
+Behaviour is unchanged from D-036: additive, idempotent, never pruning, reporting rows it
+does not recognize rather than deleting them.
+
+*(Recorded at M1.7. M1.6's code already cited this number; the decision was implemented
+but never written down, and a citation pointing at nothing is worse than no citation.)*
+
+### D-060 — A bootstrap password is never accepted on a command line
+
+`app:bootstrap` takes the administrator password only from a hidden interactive prompt.
+There is **no `--password` option, no argument, and no default**, and a test asserts the
+command definition exposes neither.
+
+An option would put the secret in shell history, in process listings, and in whatever CI
+log captured the invocation — three places nobody remembers to clear. The password is
+hashed on the way in and never printed, logged, or stored in plaintext.
+
+*(Recorded at M1.7, for the same reason as D-059.)*
+
+### D-061 — One decision function answers for one permission and for all of them
+
+`EffectiveAccessResolver` exposes `resolve()` for a single permission and `resolveAll()`
+for the whole registry, but both load a plain {@see AuthorizationState} and hand it to the
+same private `decide()`. Allow/deny, scope union, ordering, and every fail-closed branch
+exist **once**.
+
+This is structural, not a convention. A separate projection for the interface would have
+been a second implementation of D-028 and D-029, and the first time the two disagreed the
+symptom would be a screen offering an action the backend refuses — or worse, hiding one it
+allows. A test resolves every canonical permission both ways against a fixture carrying
+multi-role unions, an active DENY, an active ALLOW, an expired override, a grant missing
+its scope, a corrupt scope value, a stale permission, and a direct package grant, and
+requires the two answers to match exactly, including scope order and source.
+
+`resolveAll()` loads its state in **four queries regardless of registry size** — the
+permission rows, the active overrides, the user's roles, and the scope rows. A test
+asserts resolving 171 permissions costs no more queries than resolving one; anything
+proportional would mean the projection re-derives state per permission.
+
+No caching. Role and override administration now exist, so a stale authorization cache
+fails in the direction that grants access.
+
+### D-062 — `/api/v1/me` reports effective access — resolves O-026
+
+`permissions` is the list of canonical codes the account **effectively holds**, and
+`permission_scopes` maps each to its exact Data Scope set. Both come from
+`EffectiveAccessResolver`, the same component every Policy consults.
+
+Until M1.7 the field was Spatie's `getAllPermissions()`. That counted direct
+user-permission grants the authorization model excludes (D-029, D-041), carried no Data
+Scope, and ignored overrides entirely — so the browser and the backend could disagree
+about what somebody could do. It was presentation-only and therefore never a
+vulnerability, but it was a defect, and it was O-026.
+
+A permission appears only when granted; denials are absent rather than present and empty.
+Excluded exactly as the resolver excludes them: direct package grants, stale codes, grants
+missing scope metadata, expired overrides, malformed ALLOW overrides, and canonical names
+with no database row. Ordering is canonical for permissions and documentation order for
+scopes, so the payload is stable between requests.
+
+`roles` remains, and remains **presentation only**. Nothing may decide visibility from a
+role name.
+
+The endpoint stays read-only: it runs no sync, repairs nothing, and cleans no expired
+override. A test asserts every statement it issues is a `select`.
+
+### D-063 — Frontend authorization is presentation, and says so
+
+`can()`, `canWithScope()`, `PermissionGuard`, and navigation filtering all read the
+effective projection. They exist so the interface offers what the account can actually do
+— not to enforce anything. Every route and endpoint is authorized again on the server, and
+a browser editing its own state gains nothing.
+
+`canWithScope()` is **exact membership, never comparison**. `{OFFICE}` does not satisfy a
+required `ALL`; `{OFFICE, ALL}` does, because `ALL` is present. There is deliberately no
+"wide enough" helper and no ordering anywhere in the frontend, mirroring D-028.
+
+**Record-level predicates are not reproduced in React.** An office-scoped administrator
+sees an Edit control; whether a *particular* colleague is within their Office is decided by
+the Policy when the request arrives. Duplicating that into the browser would be a second
+authorization engine with all the drift that implies, and hiding a control the backend
+would have allowed is its own kind of bug.
+
+Where a capability splits into read and write — the permission matrix, role membership —
+the read-only state is rendered rather than a disabled Save that would only be refused.
+
+### D-064 — A registered permission is not a shipped feature
+
+Bootstrap gives `SUPER_ADMIN` all 171 canonical permissions (D-057), and the registry
+deliberately contains permissions for modules that do not exist (D-035). Navigation
+therefore requires **two independent conditions**: the destination must be implemented,
+and the account must hold the permission.
+
+Without that split, provisioning an administrator would light up Projects, Notary, PPAT,
+Billing, and every other future module, linking to routes that 404. `navigation.ts` carries
+an explicit `implemented` flag; an entry that is `false` never renders whatever the account
+may do, and a test confirms a fully-privileged administrator still sees only Dashboard,
+Users, and Roles.
+
+A parent menu renders only when at least one of its children survives filtering
+(`02_MENU_AND_PERMISSIONS.md` section 23). An empty Settings menu is worse than no Settings
+menu: it advertises something and then does nothing.
+
+Desktop and mobile share one filtered result, so a destination hidden on one is hidden on
+the other by construction rather than by discipline.
+
+### D-065 — The current user is refetched after authorization changes
+
+Saving the permission matrix or a user's role membership invalidates `["auth", "me"]`.
+
+Authorization can change under the person doing the changing: the continuity guard permits
+an administrator to remove their own access while another remains (D-056), and role edits
+routinely affect roles the editor holds. Without a refetch the interface would keep
+offering controls the backend has begun refusing, and the only cure would be signing out —
+which reads as a broken session rather than a permission change.
+
+Effective permissions stay in the TanStack Query cache and nowhere else: not Redux, not
+Zustand, and never `localStorage` or `sessionStorage`. Persisting them would create a copy
+that outlives the session that earned it.
+
 ### M1 implementation order
 
 ```text
@@ -1571,7 +1697,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-025 | Spatie's `model_has_permissions` and `model_has_roles` key models by a polymorphic `model_id` with **no foreign key**, so deleting a user through a mass-delete query leaves their pivot rows behind. Observed directly during the M1.3 PostgreSQL smoke test: `model_has_roles` cleaned up only because deleting the *roles* cascaded, while the direct-permission row survived and had to be removed by hand. **Risk reduced at M1.5** — `User` now uses `SoftDeletes` and no deletion endpoint exists (D-050), so the product cannot reach the orphaning state. Still open: the package behaviour is unchanged, and any future purge path must detach package assignments explicitly. | Open, and low urgency. No first-party authorization path reads `model_has_permissions` (D-041), and the registry defines no `users.delete` capability, so nothing in the product deletes a user today. It becomes real if user deletion is ever built: that path must detach package assignments explicitly — Spatie's model events do it for `$user->delete()` but not for `User::query()->where(...)->delete()`. Worth stating before someone writes the mass-delete version. |
 | O-029 | `user_permission_overrides` has schema, resolver semantics (D-029), and no administrative surface. M1.6 built the Permission Matrix and role assignment but deliberately did **not** expose per-user ALLOW/DENY overrides or their expiry, and no milestone currently owns that work. | Open, and deliberately unclaimed rather than quietly assumed. A per-user exception is a different mechanism from a role grant: it overrides the role result outright, it expires, and it is the one place where one person's access diverges from their colleagues' — which is exactly the kind of thing that needs an audit trail (D-033) and a considered UI, not a checkbox added because the table exists. It also carries O-024's gap: editing an override records neither when nor by whom. Needs an explicitly scoped administration task before any surface is built; until then overrides are settable only by direct database access, which is an honest limitation rather than a hidden one. |
 | O-028 | `users.reset_password` is canonical and registered, but no endpoint implements it. No document defines the reset *flow* — how a new secret reaches the person, whether the administrator ever sees it, what notification follows — so M1.5 registered the gap rather than inventing an account-security design inside a user-management milestone (D-051). | Open, deliberately. Scheduled for **M1.9 Account Security**, alongside session revocation, which the same milestone needs. The permission stays in the registry unchanged: removing it would break the M1.6 permission matrix's view of the capability surface, and renaming it would orphan any role configured against it. Until then, a forgotten password is an operational problem with no in-product answer, which is worth stating plainly. |
-| O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |
+| O-026 | `GET /api/v1/me` builds its `permissions` array from Spatie's `getAllPermissions()`. That includes **direct user-permission grants**, which D-041 excludes from first-party authorization, and it carries **no Data Scope**, so it cannot express conditions like "`roles.view` at `ALL`". The browser's permission list and `EffectiveAccessResolver` therefore do not agree. | **Resolved 2026-08-10 by D-062.** `/api/v1/me` now reports effective access from the resolver itself, with exact Data Scopes alongside each permission. Direct package grants, stale codes, grants missing scope metadata, expired overrides, and malformed ALLOW overrides are all excluded, and DENY and ALLOW overrides and multi-role unions are all reflected — verified by 28 backend tests and confirmed over a real session against PostgreSQL. Single-permission and bulk resolution share one decision function (D-061), so the payload cannot drift from the checks that guard endpoints. The frontend `can()`, `canWithScope()`, `PermissionGuard`, and navigation filtering all consume that projection and never a role name (D-063). It was never a vulnerability — the list was presentation-only and every endpoint authorized independently — but the browser and the backend now answer the same question the same way. Superseded note: | Open. Not a vulnerability — the list is presentation-only and every endpoint authorizes independently (CLAUDE.md section 28) — but it is a correctness gap that will mislead menu visibility. M1.4 deliberately does not consume it: the roles page asks the API and renders whatever it answers, including 403. Resolve in M1.7, which owns permission-aware navigation: `/me` should report effective access from the resolver, scopes included, so what the interface shows and what the backend allows are derived from one calculation. |
 | O-027 | spatie/laravel-permission registers a `Gate::before` (`PermissionRegistrar::registerPermissions()`) that answers **any ability matching a held permission name**, consulting direct user grants and applying no Data Scope check. So `$user->can('roles.view')` or `middleware('can:roles.view')` returns true for a direct grant that `EffectiveAccessResolver` would refuse — a resolver bypass through the package's own convenience API. | **Resolved 2026-08-09 by D-048.** The first of the two options this item listed was taken: `register_permission_check_method` is now `false`, the package's own documented switch for applications implementing custom permission logic. No vendor file was touched and package storage is unchanged. The unsafe path is structurally gone rather than merely discouraged — the Gate no longer answers permission names at all, so those calls fail closed. `CLAUDE.md` section 24, which had actively recommended the idiomatic form, was corrected, as was `07_SECURITY_RULES.md` section 9. Three enforcement tests were added: zero Gate callbacks registered, a canonical name refused by the Gate even for a user genuinely holding it at `ALL`, and a source scan of `app/` that fails the suite on any reintroduction. The nine existing tests that asserted the old behaviour were rewritten rather than deleted, each carrying a note on why the expectation changed. |
 | O-020 | `02_MENU_AND_PERMISSIONS.md` section 4 defines a `SUPER_ADMIN` role, but no bypass exists and none was added at M0.8. Whoever seeds that role in M1 will be tempted to reach for `Gate::before(fn ($user) => $user->hasRole('SUPER_ADMIN') ? true : null)`, which is the package's own documented shortcut. | **Resolved 2026-08-09 by D-032.** Model B chosen after the security review this item asked for: SUPER_ADMIN receives a broad **explicit** permission set and no unconditional bypass. The reasoning the item anticipated held — a `Gate::before` bypass would defeat record-state rules, finalization locks, and sensitive-data permissions — and the role is documented as technical administration that "should not be used as the normal day-to-day legal working account", so it was never meant to carry legal authority. Prohibition is now written into `07_SECURITY_RULES.md` section 9. |
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |

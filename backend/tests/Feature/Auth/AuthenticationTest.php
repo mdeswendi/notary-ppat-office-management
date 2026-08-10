@@ -57,7 +57,10 @@ it('returns the current user for a session authenticated request', function (): 
                 // Present since M0.8. Empty here because this user holds no
                 // assignments; AuthorizationTest covers populated cases.
                 'roles' => [],
+                // Effective access since M1.7, not Spatie's raw grant list
+                // (D-062). Scopes travel with the permissions they qualify.
                 'permissions' => [],
+                'permission_scopes' => [],
             ],
         ]);
 });

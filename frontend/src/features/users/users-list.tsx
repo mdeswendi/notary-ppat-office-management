@@ -6,6 +6,7 @@ import { KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff } from "lucide-r
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -99,10 +100,15 @@ export function UsersList() {
           />
         </div>
 
-        <Button onClick={() => setForm({ user: null })}>
-          <Plus aria-hidden="true" />
-          {t("create")}
-        </Button>
+        {/* Only the capability is checked here. Whether a *particular* target
+            is within the actor's Office is a Policy predicate, and duplicating
+            it in React would be a second authorization engine (D-063). */}
+        <PermissionGuard permission="users.create">
+          <Button onClick={() => setForm({ user: null })}>
+            <Plus aria-hidden="true" />
+            {t("create")}
+          </Button>
+        </PermissionGuard>
       </div>
 
       {query.isPending ? (
@@ -171,38 +177,46 @@ export function UsersList() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("editAria", { name: user.name })}
-                        onClick={() => setForm({ user })}
-                      >
-                        <Pencil aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={t("rolesAria", { name: user.name })}
-                        onClick={() => setRoles(user)}
-                      >
-                        <KeyRound aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={
-                          user.is_active
-                            ? t("disableAria", { name: user.name })
-                            : t("enableAria", { name: user.name })
-                        }
-                        onClick={() => setActivation({ user, activate: !user.is_active })}
-                      >
-                        {user.is_active ? (
-                          <ShieldOff aria-hidden="true" />
-                        ) : (
-                          <ShieldCheck aria-hidden="true" />
-                        )}
-                      </Button>
+                      <PermissionGuard permission="users.update">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("editAria", { name: user.name })}
+                          onClick={() => setForm({ user })}
+                        >
+                          <Pencil aria-hidden="true" />
+                        </Button>
+                      </PermissionGuard>
+                      {/* Membership is permission administration, so it needs
+                          permissions.view at ALL — not users.update (D-055). */}
+                      <PermissionGuard permission="permissions.view" scope="ALL">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("rolesAria", { name: user.name })}
+                          onClick={() => setRoles(user)}
+                        >
+                          <KeyRound aria-hidden="true" />
+                        </Button>
+                      </PermissionGuard>
+                      <PermissionGuard permission="users.disable">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={
+                            user.is_active
+                              ? t("disableAria", { name: user.name })
+                              : t("enableAria", { name: user.name })
+                          }
+                          onClick={() => setActivation({ user, activate: !user.is_active })}
+                        >
+                          {user.is_active ? (
+                            <ShieldOff aria-hidden="true" />
+                          ) : (
+                            <ShieldCheck aria-hidden="true" />
+                          )}
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </td>
                 </tr>

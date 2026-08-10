@@ -37,7 +37,10 @@
     "mainLabel": "Navigasi utama",
     "openNavigation": "Buka navigasi",
     "closeNavigation": "Tutup navigasi",
-    "dashboard": "Dasbor"
+    "dashboard": "Dasbor",
+    "settings": "Pengaturan",
+    "settingsUsers": "Pengguna",
+    "settingsRoles": "Peran & Hak Akses"
   },
   "dashboard": {
     "title": "Dasbor",
@@ -91,6 +94,7 @@
     "searchLabel": "Cari kode hak akses",
     "searchPlaceholder": "Cari kode hak akses",
     "grantedSummary": "{granted} dari {total} hak akses aktif",
+    "readOnly": "Hanya baca",
     "saved": "Perubahan hak akses tersimpan.",
     "unsaved": "Ada perubahan yang belum disimpan.",
     "noMatches": "Tidak ada kode hak akses yang cocok dengan \"{search}\".",

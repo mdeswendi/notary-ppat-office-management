@@ -11,9 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrentUser } from "@/features/auth/use-current-user";
 import { toPermissionErrorKey } from "@/features/permissions/permission-errors";
 import { Link } from "@/i18n/navigation";
+import { canWithScope } from "@/lib/permissions/can";
 import { cn } from "@/lib/utils";
+import { authQueryKeys } from "@/services/auth";
 import {
   getPermissionCatalogue,
   getRolePermissions,
@@ -33,9 +36,11 @@ type Draft = Record<string, string>;
  * truth and a copy here would drift.
  *
  * A permission is either off, or on with **an explicitly chosen scope**. Nothing
- * defaults to `ALL`: the widest reach should never be what you get by not
- * deciding. Enabling one selects the narrowest scope the backend allows, and the
- * choice is always visible in the row.
+ * defaults to `ALL`, because unrestricted reach should never be what you get by
+ * not deciding. Enabling one takes the first entry of the backend's
+ * deterministically ordered `allowed_scopes` as its initial selection — a
+ * presentation default, not a ranking, since the architecture has none — and the
+ * chosen scope is always visible in the row.
  *
  * The scope choices come from the same rules the write endpoint enforces, so
  * `TEAM` is never offered anywhere and a global permission such as `roles.view`
@@ -52,6 +57,12 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Reading the configuration and changing it are separate capabilities, so a
+  // reader gets the matrix without the controls that would only be refused
+  // (D-063). The backend rejects a PUT either way.
+  const { data: currentUser } = useCurrentUser();
+  const canSave = canWithScope(currentUser, "permissions.assign", "ALL");
 
   const catalogue = useQuery({
     queryKey: permissionQueryKeys.catalogue,
@@ -103,6 +114,13 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
         queryKey: permissionQueryKeys.rolePermissions(roleId),
       });
       await queryClient.invalidateQueries({ queryKey: roleQueryKeys.all });
+
+      // The saved role may be one this administrator holds, so their own
+      // effective access can have changed — including losing the ability to
+      // save again, which the continuity guard permits while another
+      // administrator remains. Refetching keeps the interface honest without
+      // requiring a sign-out (D-065).
+      await queryClient.invalidateQueries({ queryKey: authQueryKeys.me });
     },
   });
 
@@ -198,16 +216,24 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
               ),
             })}
           </p>
-          <Button
-            variant="outline"
-            disabled={!dirty || mutation.isPending}
-            onClick={() => setDraft(null)}
-          >
-            {tActions("cancel")}
-          </Button>
-          <Button disabled={!dirty || mutation.isPending} onClick={() => mutation.mutate()}>
-            {mutation.isPending ? tActions("saving") : tActions("save")}
-          </Button>
+          {canSave ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={!dirty || mutation.isPending}
+                onClick={() => setDraft(null)}
+              >
+                {tActions("cancel")}
+              </Button>
+              <Button disabled={!dirty || mutation.isPending} onClick={() => mutation.mutate()}>
+                {mutation.isPending ? tActions("saving") : tActions("save")}
+              </Button>
+            </>
+          ) : (
+            <span className="text-muted-foreground border-border rounded border px-2 py-1 text-xs">
+              {t("readOnly")}
+            </span>
+          )}
         </div>
       </div>
 
@@ -278,6 +304,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                       <Checkbox
                         id={inputId}
                         checked={enabled}
+                        disabled={!canSave}
                         onCheckedChange={(checked) =>
                           update(
                             permission.code,
@@ -315,7 +342,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                       </label>
                       <select
                         id={`${inputId}-scope`}
-                        disabled={!enabled}
+                        disabled={!enabled || !canSave}
                         value={scope ?? ""}
                         onChange={(event) => update(permission.code, event.target.value)}
                         className={cn(
