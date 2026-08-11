@@ -5,8 +5,12 @@ use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
+use App\Http\Controllers\Api\V1\SecurityController;
+use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRoleController;
+use App\Http\Controllers\Api\V1\UserSecurityController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +27,52 @@ Route::prefix('v1')->group(function (): void {
         // Administrative access to somebody else's record is `users.*`.
         Route::get('profile', [ProfileController::class, 'show'])->name('api.v1.profile.show');
         Route::patch('profile', [ProfileController::class, 'update'])->name('api.v1.profile.update');
+
+        /*
+         * The caller's own account security. Same boundary as `profile`: no
+         * permission, no id parameter, target is always the caller. Requiring a
+         * `security.*` permission here would let a user be forbidden from
+         * changing their own password, which is not a policy anybody wants.
+         *
+         * Two named rate limiters, defined in AppServiceProvider. Every route
+         * taking `current_password` shares `security.password` deliberately, so
+         * the rule cannot be used as an oracle by rotating between endpoints;
+         * the two-factor setup routes take no password and are limited
+         * separately.
+         */
+        Route::get('security', [SecurityController::class, 'show'])->name('api.v1.security.show');
+
+        Route::put('security/password', [SecurityController::class, 'updatePassword'])
+            ->middleware('throttle:security.password')->name('api.v1.security.password');
+
+        Route::post('security/email', [SecurityController::class, 'requestEmailChange'])
+            ->middleware('throttle:security.password')->name('api.v1.security.email.request');
+        Route::post('security/email/verify', [SecurityController::class, 'verifyEmailChange'])
+            ->middleware('throttle:security.two-factor')->name('api.v1.security.email.verify');
+        Route::delete('security/email', [SecurityController::class, 'cancelEmailChange'])
+            ->name('api.v1.security.email.cancel');
+
+        // Two-factor enrolment. `store` issues a secret and changes nothing
+        // about login; `confirm` is where it takes effect. Turning it off and
+        // replacing recovery codes both re-prove the password, so those two sit
+        // in the password bucket rather than the setup one.
+        Route::post('security/two-factor', [TwoFactorController::class, 'store'])
+            ->middleware('throttle:security.two-factor')->name('api.v1.security.two-factor.store');
+        Route::post('security/two-factor/confirm', [TwoFactorController::class, 'confirm'])
+            ->middleware('throttle:security.two-factor')->name('api.v1.security.two-factor.confirm');
+        Route::delete('security/two-factor', [TwoFactorController::class, 'destroy'])
+            ->middleware('throttle:security.password')->name('api.v1.security.two-factor.destroy');
+        Route::post('security/two-factor/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])
+            ->middleware('throttle:security.password')->name('api.v1.security.two-factor.recovery-codes');
+
+        // The caller's own signed-in devices. `sessions/others` precedes
+        // `sessions/{session}` so the literal path wins.
+        Route::get('security/sessions', [SessionController::class, 'index'])
+            ->name('api.v1.security.sessions.index');
+        Route::delete('security/sessions/others', [SessionController::class, 'destroyOthers'])
+            ->middleware('throttle:security.password')->name('api.v1.security.sessions.others');
+        Route::delete('security/sessions/{session}', [SessionController::class, 'destroy'])
+            ->name('api.v1.security.sessions.destroy');
 
         // Role definitions. `whereNumber` because roles keep the package's
         // integer key: without it a non-numeric id would reach PostgreSQL as
@@ -61,6 +111,27 @@ Route::prefix('v1')->group(function (): void {
             ->whereUlid('user')->name('api.v1.users.disable');
         Route::post('users/{user}/enable', [UserController::class, 'enable'])
             ->whereUlid('user')->name('api.v1.users.enable');
+
+        /*
+         * Administering another user's account security.
+         *
+         * Each behind its own canonical permission: `users.reset_password`,
+         * `security.sessions.view`, `security.sessions.revoke`, and
+         * `security.mfa.manage`. Nothing here returns a password, a reset token,
+         * a two-factor secret, a recovery code, or a raw session id — an
+         * administrator restores or removes access, never acquires it (D-071).
+         */
+        Route::post('users/{user}/password-reset', [UserSecurityController::class, 'sendPasswordReset'])
+            ->whereUlid('user')->middleware('throttle:security.admin')
+            ->name('api.v1.users.password-reset');
+
+        Route::get('users/{user}/sessions', [UserSecurityController::class, 'sessions'])
+            ->whereUlid('user')->name('api.v1.users.sessions.index');
+        Route::delete('users/{user}/sessions', [UserSecurityController::class, 'revokeSessions'])
+            ->whereUlid('user')->name('api.v1.users.sessions.destroy');
+
+        Route::delete('users/{user}/two-factor', [UserSecurityController::class, 'disableTwoFactor'])
+            ->whereUlid('user')->name('api.v1.users.two-factor.destroy');
 
         Route::apiResource('users', UserController::class)
             ->except('destroy')

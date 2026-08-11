@@ -405,34 +405,42 @@ it('exposes no user deletion', function (): void {
     expect(User::withTrashed()->whereKey($target->getKey())->exists())->toBeTrue();
 });
 
-it('exposes exactly the M1.5 user routes and nothing more', function (): void {
+it('exposes exactly the expected user routes and nothing more', function (): void {
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_starts_with($route->uri(), 'api/v1/users'))
         ->map(fn ($route): string => implode('|', $route->methods()).' '.$route->uri())
         ->unique()->values()->sort()->values()->all();
 
+    // Still no DELETE on a user: accounts are retired, not removed (D-050).
+    // The four security routes joined in M1.9, each behind its own canonical
+    // permission rather than folded into `users.update`.
     expect($routes)->toBe([
+        'DELETE api/v1/users/{user}/sessions',
+        'DELETE api/v1/users/{user}/two-factor',
         'GET|HEAD api/v1/users',
         'GET|HEAD api/v1/users/options',
         'GET|HEAD api/v1/users/{user}',
         'GET|HEAD api/v1/users/{user}/roles',
+        'GET|HEAD api/v1/users/{user}/sessions',
         'POST api/v1/users',
         'POST api/v1/users/{user}/disable',
         'POST api/v1/users/{user}/enable',
+        'POST api/v1/users/{user}/password-reset',
         'PUT api/v1/users/{user}/roles',
         'PUT|PATCH api/v1/users/{user}',
     ]);
 });
 
-it('offers no password reset endpoint', function (): void {
-    // users.reset_password stays in the registry; the flow is M1.9's to design
-    // (O-028). M1.6 registers it in the matrix as deferred rather than building
-    // an endpoint to make the matrix look complete.
+it('does not put password reset behind the user-management capability', function (): void {
+    // The route exists as of M1.9, but it is its own capability: a full user
+    // administrator with no users.reset_password is refused (D-071).
     [$actor, $officeA] = userAdministrator();
 
     $target = User::factory()->for($officeA)->create();
 
-    $this->actingAs($actor)->postJson("/api/v1/users/{$target->getKey()}/reset-password")->assertNotFound();
+    $this->actingAs($actor)
+        ->postJson("/api/v1/users/{$target->getKey()}/password-reset")
+        ->assertForbidden();
 });
 
 it('does not put role assignment behind the user-management capability', function (): void {

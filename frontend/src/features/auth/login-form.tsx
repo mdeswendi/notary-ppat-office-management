@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TwoFactorChallengeForm } from "@/features/auth/two-factor-challenge-form";
 import { useRouter } from "@/i18n/navigation";
 import { toApiErrorKey, type ApiErrorKey } from "@/lib/api/errors";
 import { landingLocale } from "@/lib/i18n/landing-locale";
@@ -25,6 +26,10 @@ export function LoginForm() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+
+  // The password was accepted but the account requires a second factor. Nothing
+  // is authenticated while this is true.
+  const [challengeRequired, setChallengeRequired] = useState(false);
 
   // Built here so validation messages resolve in the active locale. The
   // backend Form Request stays authoritative; this only improves feedback.
@@ -44,13 +49,27 @@ export function LoginForm() {
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
-      await login(values);
+      const { twoFactorRequired } = await login(values);
+
+      // No session exists yet for an account with two-factor, so there is
+      // nothing to identify. Asking /api/v1/me here would answer 401 and read
+      // as a failed login rather than a half-finished one (D-075).
+      if (twoFactorRequired) {
+        return null;
+      }
 
       // Documented flow: the session is established, then the identity comes
       // from /api/v1/me and seeds the query cache.
       return getCurrentUser();
     },
     onSuccess: (user) => {
+      if (!user) {
+        setChallengeRequired(true);
+        form.resetField("password");
+
+        return;
+      }
+
       queryClient.setQueryData(authQueryKeys.me, user);
 
       // The one place a stored preference decides a locale (D-069). Until now
@@ -75,6 +94,20 @@ export function LoginForm() {
   });
 
   const isSubmitting = mutation.isPending || form.formState.isSubmitting;
+
+  // Swapped out entirely rather than layered on top: leaving the password
+  // fields mounted and disabled would suggest the credentials step is still
+  // live, when the only thing outstanding is the second factor.
+  if (challengeRequired) {
+    return (
+      <TwoFactorChallengeForm
+        onExpired={() => {
+          setChallengeRequired(false);
+          setErrorKey(null);
+        }}
+      />
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">

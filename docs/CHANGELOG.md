@@ -5,6 +5,117 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-11 — M1.9 Account Security, resolving O-028 and O-030
+
+Branch `feat/m1-identity`. **One forward migration**, adding seven columns to `users`.
+No new canonical permission — the count stays at **171**. The four codes this milestone
+needed (`users.reset_password`, `security.sessions.view`, `security.sessions.revoke`,
+`security.mfa.manage`) were already in the registry and had been waiting for an
+implementation.
+
+### The rule the administrative surface is shaped around
+
+An administrator **restores** access and never **acquires** it (D-071). They can trigger
+a reset, end sessions, and remove a second factor. There is no endpoint in the
+application that lets them choose a password, see a temporary one, read a reset token, or
+read or set a two-factor secret.
+
+The reason is specific to this domain: someone who can silently become another user can
+sign a deed as them, and in a Notary office that is not a recoverable mistake.
+
+Self-service is the mirror of it and needs **no permission at all** — `security.*`
+describes administering other people, and requiring one to change your own password would
+mean an account could be forbidden from securing itself. Enforced structurally, as D-066
+did for the profile: no self-service route accepts an id.
+
+### Password
+
+`PasswordRules` is now the single source for every place a password is set — creation,
+bootstrap, self-service change, reset completion (D-070). Four copies of
+`Password::default()` would look identical right up to the day one was tightened and the
+weakest path quietly became the policy.
+
+Changing a password revokes every **other** session and regenerates the current session
+id (D-072). Completing a **reset** revokes everything and creates **no session**:
+auto-login there would turn one emailed link into a complete bypass of MFA. Roles,
+permissions, scopes, overrides, Office, profile, locale, and two-factor configuration all
+survive both — a password reset is not an account reset, and tests assert each of them.
+
+### Two-factor
+
+RFC 6238 via `pragmarx/google2fa`, QR via `bacon/bacon-qr-code`. **No cryptography was
+written** (D-076).
+
+An account with two-factor is **never logged in by its password alone** (D-075).
+`POST /login` answers `202 {"two_factor": true}` and creates nothing;
+`POST /login/two-factor-challenge` is what creates the session. After the password step,
+`/api/v1/me` answers 401 and `last_login_at` is untouched — the tests assert this
+directly, because the distinction is the entire security value.
+
+`two_factor_secret` and `two_factor_confirmed_at` are separate columns on purpose:
+enrolment counts only once a code verifies, so closing the setup dialog cannot lock
+somebody out. Secret and recovery codes are encrypted at rest; recovery codes are also
+hashed and consumed one at a time, returned raw **exactly once** and unrecoverable
+afterwards — including to the user and to any administrator.
+
+### Email address
+
+Two-step, and the current address holds until the new one is proven (D-073). Only a
+SHA-256 of the token is stored, the link goes to the **new** address, and confirmation
+needs the token *and* a signed-in session, so a forwarded email cannot move an account.
+Resolves **O-030**.
+
+### Sessions
+
+Enumerable because `SESSION_DRIVER=database`, which is what makes "sign out everywhere"
+real rather than aspirational (D-074). **A raw session id never leaves the server** — the
+API works in SHA-256 digests, which name a row without being usable as one. Payloads,
+CSRF tokens, and full user-agent strings are never exposed.
+
+**Disabling an account now ends its open sessions.** M1.5 left this to M1.9 and in doing
+so left a real hole: no *new* session could start, but every open one kept working until
+it expired.
+
+### Rate limiting
+
+Named limiters, because bucket sharing is deliberate in one case and a bug in the other.
+Laravel's unnamed throttle keys authenticated requests on the user id alone, so every
+route carrying it would share one budget by accident — mistyping a password three times
+would block starting an enrolment. Everything taking `current_password` shares
+`security.password` **on purpose**, so the rule cannot be used as an oracle by rotating
+between endpoints.
+
+### Verification
+
+```text
+Backend      775 tests, 3024 assertions — 133 new (baseline was 642)
+Pint         passed
+Frontend     lint, typecheck, build all clean
+Migration    applied to PostgreSQL 18.4; 12 migrations, all Ran
+Smoke        66/66 steps over real HTTP + Sanctum cookies, 0 failures
+Teardown     fixtures removed; permissions still 171, users 0, sessions 0
+```
+
+The 133 split across seven files: password change (12), sessions (16), email change (19),
+two-factor enrolment (23), two-factor login (20), administrative security (24), and
+surface/leakage scans (19). Two M1.5 inventory assertions were updated rather than
+deleted — the `users` column list and the `api/v1/users` route list both grew, and both
+exist precisely to make that growth visible.
+
+The smoke ran the browser's own flow — CSRF cookie, cookie jar, XSRF header, no bearer
+token — and confirmed the properties that matter end to end: no session after the
+password step for a two-factor account, a spent recovery code refused, the other device
+signed out by a password change, the reset token absent from every administrative
+response, disabling ending live access immediately, and a completed reset creating no
+session.
+
+The first smoke run **failed** at steps 43–48 with 429s. That was not a test artifact —
+it was the shared-throttle defect described above, found because the smoke exercised the
+endpoints in the order a real person would. Fixed with named limiters, then covered by
+two tests so it cannot return.
+
+---
+
 ## 2026-08-10 — M1.7 Permission-aware navigation, resolving O-026
 
 Branch `feat/m1-identity`. **No migration.** The interface now derives what it shows from

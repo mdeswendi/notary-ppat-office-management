@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Domains\Identity\Actions\StartAuthenticatedSession;
+use App\Domains\Identity\TwoFactorChallenge;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
@@ -17,23 +20,34 @@ use Illuminate\Support\Facades\Auth;
  */
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(
+        private readonly TwoFactorChallenge $challenge,
+        private readonly StartAuthenticatedSession $startSession,
+    ) {}
+
     /**
      * Log in and start an authenticated session.
      *
-     * Returns no body: the identity contract lives at `GET /api/v1/me`, which
-     * the SPA calls next. Keeping one shape for the current user avoids two
-     * places that must agree.
+     * Two outcomes. Without two-factor, the password is enough and a session
+     * starts. With it, the response says a second factor is required and **no
+     * session is created** — `two_factor: true` is a statement about what must
+     * happen next, not a half-open door (D-075).
+     *
+     * The success path returns no body: the identity contract lives at
+     * `GET /api/v1/me`, which the SPA calls next. Keeping one shape for the
+     * current user avoids two places that must agree.
      */
-    public function store(LoginRequest $request): Response
+    public function store(LoginRequest $request): Response|JsonResponse
     {
-        $request->authenticate();
+        $user = $request->authenticate();
 
-        // Prevents session fixation: the pre-login session id is discarded.
-        $request->session()->regenerate();
+        if ($user->hasConfirmedTwoFactor()) {
+            $this->challenge->begin($request, $user, $request->boolean('remember'));
 
-        $request->user()->forceFill([
-            'last_login_at' => now(),
-        ])->save();
+            return response()->json(['two_factor' => true], 202);
+        }
+
+        $this->startSession->handle($request, $user, $request->boolean('remember'));
 
         return response()->noContent();
     }

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Languages, LogOut, UserRound } from "lucide-react";
+import { Languages, LogOut, ShieldCheck, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,14 +62,20 @@ export function UserMenu({ user }: { user: CurrentUser }) {
         <DropdownMenuSeparator />
 
         {/* Available to everyone signed in — self-service needs no permission
-            (D-066). Preferences points at the language section of the same
-            page rather than a second screen that would only hold one control.
+            (D-066, D-071). Preferences points at the language section of the
+            same page rather than a second screen that would only hold one
+            control.
 
-            There is no Security entry: M1.9 owns that, and a menu item leading
-            nowhere is worse than an absent one. */}
+            Security is a sibling of Profile, not a Settings destination:
+            Settings administers other people, and this is the opposite. */}
         <DropdownMenuItem render={<Link href="/profile" />} className="gap-2">
           <UserRound aria-hidden="true" />
           {t("myProfile")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem render={<Link href="/security" />} className="gap-2">
+          <ShieldCheck aria-hidden="true" />
+          {t("accountSecurity")}
         </DropdownMenuItem>
 
         <DropdownMenuItem render={<Link href="/profile#preferences" />} className="gap-2">

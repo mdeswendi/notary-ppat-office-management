@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff } from "lucide-react";
+import { KeyRound, LockKeyhole, Pencil, Plus, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserRolesDialog } from "@/features/permissions/user-roles-dialog";
 import { UserActivationDialog } from "@/features/users/user-activation-dialog";
 import { UserFormDialog } from "@/features/users/user-form-dialog";
+import { UserSecurityDialog } from "@/features/users/user-security-dialog";
 import { toUserErrorKey } from "@/features/users/user-errors";
 import { getUsers, userQueryKeys } from "@/services/users";
 import type { ManagedUser } from "@/types/user";
@@ -41,6 +42,7 @@ export function UsersList() {
     null,
   );
   const [roles, setRoles] = useState<ManagedUser | null>(null);
+  const [security, setSecurity] = useState<ManagedUser | null>(null);
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -217,6 +219,21 @@ export function UsersList() {
                           )}
                         </Button>
                       </PermissionGuard>
+                      {/* Account security is its own set of capabilities, not a
+                          corner of user editing: password reset, session
+                          revocation, and two-factor removal each answer to a
+                          different permission (D-071). The dialog shows only
+                          the parts this account may use. */}
+                      <PermissionGuard permission="users.reset_password">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={t("security.openAria", { name: user.name })}
+                          onClick={() => setSecurity(user)}
+                        >
+                          <LockKeyhole aria-hidden="true" />
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </td>
                 </tr>
@@ -275,6 +292,10 @@ export function UsersList() {
 
       {roles ? (
         <UserRolesDialog key={roles.id} user={roles} onClose={() => setRoles(null)} />
+      ) : null}
+
+      {security ? (
+        <UserSecurityDialog key={security.id} user={security} onClose={() => setSecurity(null)} />
       ) : null}
     </>
   );

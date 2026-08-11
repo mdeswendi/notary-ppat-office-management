@@ -16,11 +16,22 @@ export async function getCsrfCookie(): Promise<void> {
 }
 
 /**
- * Establish a session. Returns nothing — the identity contract is `getCurrentUser`.
+ * Submit the password step.
+ *
+ * Two outcomes, and the difference matters. Without two-factor the session now
+ * exists and the identity contract is `getCurrentUser`. With it, **no session
+ * was created**: the backend answers 202 with `two_factor: true`, and the
+ * caller must send the second factor before anything is authenticated.
+ *
+ * The return value says which happened. Treating a 202 as success would leave
+ * the interface believing somebody is signed in when the server does not agree.
  */
-export async function login(credentials: LoginCredentials): Promise<void> {
+export async function login(credentials: LoginCredentials): Promise<{ twoFactorRequired: boolean }> {
   await getCsrfCookie();
-  await apiClient.post("/login", credentials);
+
+  const response = await apiClient.post<{ two_factor?: boolean } | null>("/login", credentials);
+
+  return { twoFactorRequired: response.data?.two_factor === true };
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {

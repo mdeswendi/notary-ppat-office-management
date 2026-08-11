@@ -112,6 +112,78 @@ class UserPolicy
     }
 
     /**
+     * Trigger a password-reset email for somebody else.
+     *
+     * Its own capability, `users.reset_password`, rather than a corner of
+     * `users.update`. Being able to edit a colleague's phone number is a
+     * different kind of power from being able to start a credential recovery on
+     * their account, and the registry names them separately for that reason.
+     *
+     * Self-targeting is not blocked. An administrator asking for a reset on
+     * their own account gets what any user would — a link in their own mailbox
+     * — which is no privilege at all (D-071).
+     */
+    public function resetPassword(User $actor, User $target): bool
+    {
+        return $this->visibility->permitsAdministration(
+            $actor,
+            $this->resolver->resolve($actor, 'users.reset_password'),
+            $target,
+        );
+    }
+
+    /**
+     * See where another person is signed in.
+     *
+     * `security.sessions.view` — not `users.view`. Reading somebody's account
+     * record and reading their live device list are different disclosures: the
+     * second carries IP addresses and activity times, which is surveillance
+     * detail, so it is gated separately (D-074).
+     */
+    public function viewSessions(User $actor, User $target): bool
+    {
+        return $this->visibility->permitsAdministration(
+            $actor,
+            $this->resolver->resolve($actor, 'security.sessions.view'),
+            $target,
+        );
+    }
+
+    /**
+     * End another person's sessions.
+     *
+     * Separate from viewing them, because looking and acting are separate
+     * decisions — a support role may need to answer "is anyone signed in?"
+     * without being able to sign that person out mid-signing.
+     */
+    public function revokeSessions(User $actor, User $target): bool
+    {
+        return $this->visibility->permitsAdministration(
+            $actor,
+            $this->resolver->resolve($actor, 'security.sessions.revoke'),
+            $target,
+        );
+    }
+
+    /**
+     * Remove another person's two-factor authentication.
+     *
+     * The recovery path for a lost phone and lost recovery codes. `manage` here
+     * means **remove and nothing else**: there is no endpoint that reads a
+     * secret, sets one, or issues recovery codes for somebody else, so the worst
+     * this permission can do is return an account to password-only — visibly,
+     * and in the log (D-076).
+     */
+    public function manageTwoFactor(User $actor, User $target): bool
+    {
+        return $this->visibility->permitsAdministration(
+            $actor,
+            $this->resolver->resolve($actor, 'security.mfa.manage'),
+            $target,
+        );
+    }
+
+    /**
      * Reading the Office choices a User Management form may offer. Anyone who
      * may create or update a user needs them.
      */

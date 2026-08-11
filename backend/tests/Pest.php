@@ -4,10 +4,12 @@ use App\Domains\Authorization\EffectiveAccess;
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Authorization\Enums\UserPermissionEffect;
+use App\Domains\Identity\TwoFactor;
 use App\Models\RolePermissionScope;
 use App\Models\User;
 use App\Models\UserPermissionOverride;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PragmaRX\Google2FA\Google2FA;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -146,6 +148,45 @@ function rollbackStepsTo(string $migrationNameFragment): int
  * exercised — while keeping `role_permission_scopes` unique on
  * (role_id, permission_id).
  */
+/**
+ * A currently valid TOTP code, produced by the same library the application
+ * verifies with.
+ *
+ * Deliberately not a hand-rolled implementation: a test that computes TOTP
+ * differently from the product would either pass on a bug or fail on correct
+ * code, and neither tells you anything (D-076).
+ */
+function totpFor(string $secret): string
+{
+    return app(Google2FA::class)->getCurrentOtp($secret);
+}
+
+/**
+ * Put a user into the confirmed two-factor state, bypassing the enrolment
+ * endpoints.
+ *
+ * Returns the secret and the raw recovery codes, which the product itself
+ * discloses exactly once and never again.
+ *
+ * @return array{0: string, 1: array<int, string>}
+ */
+function enrolTwoFactor(User $user): array
+{
+    $twoFactor = app(TwoFactor::class);
+
+    $secret = $twoFactor->generateSecret();
+    $raw = $twoFactor->generateRecoveryCodes();
+
+    $user->forceFill([
+        'two_factor_secret' => $secret,
+        'two_factor_confirmed_at' => now(),
+        'two_factor_setup_expires_at' => null,
+        'two_factor_recovery_codes' => $twoFactor->hashRecoveryCodes($raw),
+    ])->save();
+
+    return [$secret, $raw];
+}
+
 function grantPermissionScope(User $user, string $permission, DataScope $scope): Role
 {
     $permissionModel = Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);

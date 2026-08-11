@@ -101,10 +101,16 @@ it('leaves the users table with exactly the canonical columns', function (): voi
     $columns = Schema::getColumnListing('users');
     sort($columns);
 
+    // The account-security columns joined in M1.9. Listed here rather than
+    // exempted, so a future migration cannot slip an extra credential column
+    // onto this table without the inventory saying so.
     expect($columns)->toBe([
         'created_at', 'deleted_at', 'email', 'email_verified_at', 'id', 'is_active',
-        'last_login_at', 'name', 'office_id', 'password', 'phone', 'preferred_locale',
-        'remember_token', 'updated_at',
+        'last_login_at', 'name', 'office_id', 'password',
+        'pending_email', 'pending_email_requested_at', 'pending_email_token',
+        'phone', 'preferred_locale', 'remember_token',
+        'two_factor_confirmed_at', 'two_factor_recovery_codes', 'two_factor_secret',
+        'two_factor_setup_expires_at', 'updated_at',
     ]);
 });
 

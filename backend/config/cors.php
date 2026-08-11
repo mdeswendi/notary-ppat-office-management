@@ -27,7 +27,7 @@ return [
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => array_values(array_filter(array_unique([
-        env('FRONTEND_URL', 'http://localhost:3000'),
+        config('app.frontend_url'),
         // Documented development variant. Cookies are host scoped, so a single
         // flow must not mix localhost and 127.0.0.1.
         'http://127.0.0.1:3000',

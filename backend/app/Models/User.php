@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domains\Identity\SupportedLocales;
+use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -23,7 +25,16 @@ use Spatie\Permission\Traits\HasRoles;
  * should be able to do. See docs/07_SECURITY_RULES.md section 34.
  */
 #[Fillable(['name', 'email', 'phone', 'password', 'preferred_locale'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden([
+    'password',
+    'remember_token',
+    // Account-security state. Hidden at the model so no resource, log line, or
+    // debug dump can leak it by accident — the explicit attribute lists in the
+    // resources are the first defence, this is the second (D-076).
+    'pending_email_token',
+    'two_factor_secret',
+    'two_factor_recovery_codes',
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -76,6 +87,53 @@ class User extends Authenticatable
     }
 
     /**
+     * Is two-factor authentication actually in force for this account?
+     *
+     * A secret alone is not enough. Enrolment that was started and never
+     * confirmed must not require a code at login, or somebody who closed the
+     * setup dialog would be locked out of their own account (D-076).
+     */
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
+    }
+
+    /**
+     * Is there an enrolment in progress that has not expired?
+     */
+    public function hasPendingTwoFactorSetup(): bool
+    {
+        return $this->two_factor_confirmed_at === null
+            && $this->two_factor_secret !== null
+            && $this->two_factor_setup_expires_at !== null
+            && $this->two_factor_setup_expires_at->isFuture();
+    }
+
+    /**
+     * Security mail follows the language the person chose for the interface.
+     *
+     * A password-reset mail is the wrong moment to make somebody read a second
+     * language. Laravel calls this for every notification, so it applies to the
+     * reset link and the email-change confirmation alike.
+     */
+    public function preferredLocale(): string
+    {
+        return SupportedLocales::supports($this->preferred_locale)
+            ? $this->preferred_locale
+            : SupportedLocales::DEFAULT;
+    }
+
+    /**
+     * Send the reset link through this application's notification rather than
+     * the framework's, whose URL points at a `password.reset` web route that
+     * does not exist here — the interface is a separate Next.js application.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordLink($token));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -87,6 +145,15 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+
+            // Encrypted at rest: a database dump must not hand over the ability
+            // to mint valid TOTP codes, nor the recovery-code hashes' plaintext
+            // structure.
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_setup_expires_at' => 'datetime',
+            'pending_email_requested_at' => 'datetime',
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Domains\Identity\Actions;
 
 use App\Domains\Authorization\AuthorizationContinuity;
 use App\Domains\Identity\Exceptions\CannotDisableSelf;
+use App\Domains\Identity\SessionRegistry;
 use App\Models\User;
 
 /**
@@ -25,14 +26,18 @@ use App\Models\User;
  * remaining administrator is the same lockout reached by another route — the
  * deployment would keep working and become permanently unconfigurable.
  *
- * Existing sessions are deliberately not revoked here. `LoginRequest` already
- * refuses a disabled account at authentication, so no new session can be
- * established; terminating the ones already open is session management, which
- * is M1.9's subject and needs its own design.
+ * **Disabling now ends the account's open sessions.** M1.5 left this out, and it
+ * left a real hole: `LoginRequest` refuses a disabled account at authentication,
+ * so no *new* session could start, but every session already open kept working
+ * until it expired. Disabling somebody during an incident has to take effect
+ * immediately, not whenever their cookie happens to lapse (D-074).
  */
 class SetUserActivation
 {
-    public function __construct(private readonly AuthorizationContinuity $continuity) {}
+    public function __construct(
+        private readonly AuthorizationContinuity $continuity,
+        private readonly SessionRegistry $sessions,
+    ) {}
 
     public function handle(User $actor, User $target, bool $active): User
     {
@@ -45,6 +50,10 @@ class SetUserActivation
         // as the change, so it reads the state the change produced.
         if (! $active) {
             $this->continuity->protecting(fn () => $this->apply($target, false));
+
+            // After the invariant has held, so a refused disable does not sign
+            // anybody out. Nothing spared: this is the whole point.
+            $this->sessions->revokeAll($target);
         } else {
             $this->apply($target, true);
         }
