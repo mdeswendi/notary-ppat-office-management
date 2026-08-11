@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Office;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +23,19 @@ class UserFactory extends Factory
      *
      * @return array<string, mixed>
      */
+    /**
+     * `office_id` is required (D-027), so the factory builds the whole chain —
+     * User → Office → Organization — when the caller supplies nothing.
+     *
+     * `User::factory()->for($office)` overrides it, so tests that already have
+     * a hierarchy reuse it instead of creating a second organization.
+     *
+     * This is test and development convenience only. Production never creates
+     * an Organization or Office as a side effect of making a user; that is the
+     * bootstrap command's job (D-034).
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [
@@ -30,6 +44,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'office_id' => Office::factory(),
         ];
     }
 

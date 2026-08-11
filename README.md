@@ -163,9 +163,29 @@ pnpm dev
 
 Buka <http://localhost:3000>. Pengguna anonim diarahkan ke `/id/login`.
 
-Belum ada pengguna bawaan dan **tidak ada seeder akun** — seluruh manajemen pengguna, role,
-dan permission adalah pekerjaan M1. Untuk mencoba secara lokal, buat satu pengguna melalui
-`php artisan tinker`.
+Belum ada pengguna bawaan dan **tidak ada seeder akun**. Siapkan deployment baru dengan:
+
+```bash
+# dari backend/
+php artisan app:bootstrap
+```
+
+Perintah itu membuat satu Organization, satu Office, sembilan role bawaan, seluruh 171
+permission kanonik, dan administrator pertama. Perintah berjalan interaktif dan menanyakan
+kata sandi tanpa menampilkannya — kata sandi tidak pernah diterima sebagai argumen baris
+perintah (D-060).
+
+Perintah ini **sekali jalan**. Deployment yang sudah terisi ditolak, bukan ditimpa
+(D-058), jadi menjalankannya lagi tidak akan mengembalikan role yang sudah sengaja dihapus.
+
+Bila hanya perlu menyinkronkan katalog permission tanpa mem-bootstrap apa pun:
+
+```bash
+php artisan permissions:sync
+```
+
+Perintah itu aditif dan idempoten — menambah permission kanonik yang belum ada, tidak
+pernah menghapus, dan aman dijalankan berulang.
 
 ## Perintah Mutu
 

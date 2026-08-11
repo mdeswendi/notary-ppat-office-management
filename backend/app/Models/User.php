@@ -3,23 +3,38 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domains\Identity\SupportedLocales;
+use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
- * `is_active` and `last_login_at` are intentionally left out of the fillable
- * list: neither may ever be set from request input. Account state is changed
- * by administration, and the login timestamp is written by the application.
- * See docs/07_SECURITY_RULES.md section 34.
+ * `is_active`, `last_login_at`, and `office_id` are intentionally left out of
+ * the fillable list: none may ever be set from request input. Account state is
+ * changed by administration, the login timestamp is written by the
+ * application, and moving someone between offices is a User Management
+ * operation subject to backend authorization — not something a profile update
+ * should be able to do. See docs/07_SECURITY_RULES.md section 34.
  */
-#[Fillable(['name', 'email', 'password', 'preferred_locale'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'preferred_locale'])]
+#[Hidden([
+    'password',
+    'remember_token',
+    // Account-security state. Hidden at the model so no resource, log line, or
+    // debug dump can leak it by accident — the explicit attribute lists in the
+    // resources are the first defence, this is the second (D-076).
+    'pending_email_token',
+    'two_factor_secret',
+    'two_factor_recovery_codes',
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -50,6 +65,75 @@ class User extends Authenticatable
     use HasUlids;
 
     /**
+     * Retiring a person must never destroy the record their work references.
+     *
+     * There is no `users.delete` permission and no deletion endpoint, so
+     * nothing in the product calls this today (D-050). It exists because the
+     * canonical ERD carries `deleted_at`, and because a soft delete keeps
+     * Spatie's foreign-key-less morph pivots from being orphaned if a removal
+     * path is ever built — see O-025. Accounts are retired with `is_active`.
+     */
+    use SoftDeletes;
+
+    /**
+     * The user's primary office. Exactly one in V1 (D-027) — the Organization
+     * is reached through it rather than stored again on this table.
+     *
+     * @return BelongsTo<Office, $this>
+     */
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
+    /**
+     * Is two-factor authentication actually in force for this account?
+     *
+     * A secret alone is not enough. Enrolment that was started and never
+     * confirmed must not require a code at login, or somebody who closed the
+     * setup dialog would be locked out of their own account (D-076).
+     */
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return $this->two_factor_confirmed_at !== null && $this->two_factor_secret !== null;
+    }
+
+    /**
+     * Is there an enrolment in progress that has not expired?
+     */
+    public function hasPendingTwoFactorSetup(): bool
+    {
+        return $this->two_factor_confirmed_at === null
+            && $this->two_factor_secret !== null
+            && $this->two_factor_setup_expires_at !== null
+            && $this->two_factor_setup_expires_at->isFuture();
+    }
+
+    /**
+     * Security mail follows the language the person chose for the interface.
+     *
+     * A password-reset mail is the wrong moment to make somebody read a second
+     * language. Laravel calls this for every notification, so it applies to the
+     * reset link and the email-change confirmation alike.
+     */
+    public function preferredLocale(): string
+    {
+        return SupportedLocales::supports($this->preferred_locale)
+            ? $this->preferred_locale
+            : SupportedLocales::DEFAULT;
+    }
+
+    /**
+     * Send the reset link through this application's notification rather than
+     * the framework's, whose URL points at a `password.reset` web route that
+     * does not exist here — the interface is a separate Next.js application.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordLink($token));
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -61,6 +145,15 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+
+            // Encrypted at rest: a database dump must not hand over the ability
+            // to mint valid TOTP codes, nor the recovery-code hashes' plaintext
+            // structure.
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_setup_expires_at' => 'datetime',
+            'pending_email_requested_at' => 'datetime',
         ];
     }
 }

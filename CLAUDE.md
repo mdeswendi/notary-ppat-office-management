@@ -787,13 +787,46 @@ if ($user->role === 'PPAT_STAFF') {
 }
 ```
 
-Preferred:
+Also bad — a permission code is not an authorization surface on its own:
 
 ```php
 $user->can('ppat.matters.create');
+Gate::allows('ppat.matters.create');
+$user->hasPermissionTo('ppat.matters.create');
+$user->getAllPermissions();
 ```
 
-and appropriate Laravel Policies / business rules.
+These read package state directly. They carry no Data Scope, ignore
+`user_permission_overrides`, never check the canonical registry, and count
+Spatie's direct user-permission grants, which the authorization model excludes.
+
+Required:
+
+```php
+// Controller — a Policy ability, never a permission code
+$this->authorize('create', PPATMatter::class);
+```
+
+```php
+// Policy — delegates to the one resolver
+public function create(User $user): bool
+{
+    return $this->resolver->resolve($user, 'ppat.matters.create')->granted;
+}
+```
+
+Backend authorization must go through a Policy or a first-party authorization
+service backed by `EffectiveAccessResolver`. Never authorize a canonical
+permission code directly through `User::can()`, `Gate::allows()`,
+`hasPermissionTo()`, `getAllPermissions()`, or a role-name check.
+
+The resolver returns the effective Data Scope set alongside the grant; where the
+resource context requires a particular scope, the Policy must check it —
+deployment-global records require `ALL`.
+
+See `docs/DECISIONS.md` D-048. This is enforced: the package's generic permission
+Gate integration is disabled, so the calls above fail closed, and a test scans
+`app/` for them.
 
 ---
 
@@ -1436,6 +1469,7 @@ At minimum test:
 Frontend changes should pass:
 
 ```text
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm build
@@ -1457,10 +1491,16 @@ Before declaring a task complete:
 Frontend:
 
 ```text
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+This list must never be weaker than `.github/workflows/quality.yml`. It was, once:
+`format:check` was missing here while CI enforced it, so work that passed every
+documented command still failed CI. Adding a gate to the workflow means adding it
+here in the same change.
 
 Backend:
 

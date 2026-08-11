@@ -1,0 +1,21 @@
+{
+    "Reset your password": "Atur ulang kata sandi Anda",
+    "Password reset": "Pengaturan ulang kata sandi",
+    "A password reset was requested for your account.": "Ada permintaan pengaturan ulang kata sandi untuk akun Anda.",
+    "Choose a new password": "Pilih kata sandi baru",
+    "If you did not request this, no action is needed and your current password will remain unchanged.": "Jika Anda tidak meminta hal ini, tidak ada tindakan yang perlu dilakukan dan kata sandi Anda saat ini tetap tidak berubah.",
+
+    "Confirm your new email address": "Konfirmasi alamat email baru Anda",
+    "Email address change": "Perubahan alamat email",
+    "A request was made to change the email address on your account to this one.": "Ada permintaan untuk mengubah alamat email pada akun Anda menjadi alamat ini.",
+    "Confirm this address": "Konfirmasi alamat ini",
+    "If you did not request this, no action is needed and your current address will remain unchanged.": "Jika Anda tidak meminta hal ini, tidak ada tindakan yang perlu dilakukan dan alamat email Anda saat ini tetap tidak berubah.",
+
+    "This link expires in :minutes minutes.": "Tautan ini kedaluwarsa dalam :minutes menit.",
+
+    "Hello!": "Halo!",
+    "Regards": "Hormat kami",
+    "Whoops!": "Maaf!",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below into your web browser:": "Jika Anda kesulitan mengeklik tombol \":actionText\", salin dan tempel URL berikut ke peramban Anda:",
+    "All rights reserved.": "Seluruh hak cipta dilindungi."
+}

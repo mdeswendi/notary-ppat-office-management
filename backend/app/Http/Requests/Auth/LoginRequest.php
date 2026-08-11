@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
@@ -37,7 +38,13 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Authenticate against the web guard using a session, never a token.
+     * Verify the credentials and return the user they belong to.
+     *
+     * **No session is created here.** The provider is consulted directly rather
+     * than through `attempt()`, because an account with two-factor enabled must
+     * not be logged in by its password alone — the controller decides between
+     * starting a session and starting a challenge, and it cannot do that if the
+     * session already exists (D-075).
      *
      * `is_active` is part of the credential lookup rather than a check made
      * after a successful password comparison. A disabled account therefore
@@ -47,7 +54,7 @@ class LoginRequest extends FormRequest
      * @throws ValidationException
      * @throws ThrottleRequestsException
      */
-    public function authenticate(): void
+    public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
@@ -57,7 +64,10 @@ class LoginRequest extends FormRequest
             'is_active' => true,
         ];
 
-        if (! Auth::guard('web')->attempt($credentials, $this->boolean('remember'))) {
+        $provider = Auth::guard('web')->getProvider();
+        $user = $provider->retrieveByCredentials($credentials);
+
+        if (! $user instanceof User || ! $provider->validateCredentials($user, $credentials)) {
             RateLimiter::hit($this->throttleKey(), self::DECAY_SECONDS);
 
             // One generic message for every failure mode, so the response
@@ -68,6 +78,8 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        return $user;
     }
 
     /**

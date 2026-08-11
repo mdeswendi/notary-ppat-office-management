@@ -118,7 +118,38 @@ return [
      * Set this to false if you want to implement custom logic for checking permissions.
      */
 
-    'register_permission_check_method' => true,
+    /*
+     * FALSE, deliberately — this application implements custom permission logic,
+     * which is exactly the case the package documents this switch for.
+     *
+     * Left at true, the package registers a `Gate::before` callback that answers
+     * ANY ability whose name matches a permission the user holds. That callback
+     * reads Spatie's own state directly, so it:
+     *
+     *   - honours direct user-permission grants, which D-029 and D-041 exclude
+     *     from first-party authorization;
+     *   - applies no Data Scope, so it cannot express the conditions D-044
+     *     requires;
+     *   - never consults PermissionRegistry, so a stale permission row would
+     *     authorize;
+     *   - ignores user_permission_overrides entirely, so an active DENY would
+     *     not deny.
+     *
+     * The result was that `$user->can('roles.view')` could return true for
+     * access that EffectiveAccessResolver refuses — a bypass of the whole
+     * authorization model through the framework's most idiomatic call. Disabling
+     * it makes that call fail closed instead of quietly succeeding (O-027, D-048).
+     *
+     * Nothing else in the package depends on this: `registerPermissions()` has a
+     * single caller, guarded by this flag. Role and permission storage,
+     * HasRoles, hasPermissionTo(), givePermissionTo(), and every relationship
+     * are untouched — none of them route through the Gate.
+     *
+     * Laravel Policies still work normally, and remain the way to authorize:
+     * their abilities are named `viewAny`, `view`, `create`, … and delegate to
+     * EffectiveAccessResolver.
+     */
+    'register_permission_check_method' => false,
 
     /*
      * When set to true, Laravel\Octane\Events\OperationTerminated event listener will be registered

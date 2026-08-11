@@ -1277,6 +1277,13 @@ updated_at
 If the organization/office migration does not exist yet at the start of M0, do not create a
 fake foreign key. Correct migration order is preferable.
 
+> **Cross-milestone note, added 2026-08-09.** M0 followed this guidance and omitted
+> `office_id` entirely rather than adding a nullable column pointing at a table that did
+> not exist. The "nullable initially if needed" allowance above described the M0 position
+> and is now superseded for M1: **D-027** makes `users.office_id` required for operational
+> users, since `offices` arrives in M1.1 and the `users` table holds no persistent user.
+> This note records the transition; it does not alter what M0 delivered.
+
 ---
 
 ## 45. ULID

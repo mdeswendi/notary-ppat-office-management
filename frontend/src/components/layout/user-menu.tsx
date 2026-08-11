@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { LogOut, UserRound } from "lucide-react";
+import { Languages, LogOut, ShieldCheck, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { logout } from "@/services/auth";
 import type { CurrentUser } from "@/types/auth";
 
@@ -58,6 +58,30 @@ export function UserMenu({ user }: { user: CurrentUser }) {
           <span className="truncate text-sm font-medium">{user.name}</span>
           <span className="text-muted-foreground truncate text-xs">{user.email}</span>
         </div>
+
+        <DropdownMenuSeparator />
+
+        {/* Available to everyone signed in — self-service needs no permission
+            (D-066, D-071). Preferences points at the language section of the
+            same page rather than a second screen that would only hold one
+            control.
+
+            Security is a sibling of Profile, not a Settings destination:
+            Settings administers other people, and this is the opposite. */}
+        <DropdownMenuItem render={<Link href="/profile" />} className="gap-2">
+          <UserRound aria-hidden="true" />
+          {t("myProfile")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem render={<Link href="/security" />} className="gap-2">
+          <ShieldCheck aria-hidden="true" />
+          {t("accountSecurity")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem render={<Link href="/profile#preferences" />} className="gap-2">
+          <Languages aria-hidden="true" />
+          {t("preferences")}
+        </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 

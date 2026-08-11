@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | Where the Next.js application lives. Security emails — password reset and
+    | email-change verification — must land on a page a person can actually use,
+    | which is the frontend, not this API. Same value CORS allows as an origin,
+    | read from one place so the two can never drift apart.
+    |
+    */
+
+    'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
