@@ -5,6 +5,82 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-11 — M2.0 Party architecture lock, resolving O-004
+
+Branch `feat/m2-parties`, from `main` at `501401f`. **Documentation only.** No migration, no
+model, no endpoint, no permission. Migration count stays 13; canonical permission count stays
+**171**; backend 783 tests / 3043 assertions unchanged.
+
+The milestone exists so that M2.1 transcribes an architecture instead of inventing one while
+writing migrations.
+
+### The decision that shapes the rest
+
+**One Party aggregate. "Client" is a word, not a table** (D-078). A `clients` table would
+freeze a role into a master record, which CLAUDE.md section 17 already refuses for Party
+roles — the same person is a seller in one matter and a director in another. Subtypes take
+`party_id` as both primary key and foreign key, so "exactly one subtype per Party" and "no
+orphan subtype" are enforced by the schema rather than by convention. `party_type` is
+immutable; a wrong type is archived and recreated, visibly.
+
+**This resolves O-004**, which had been deferred since M0.1 as a cosmetic label mismatch
+between "Party / Individual / Company" and "Client Database". It was cosmetic right up until
+the milestone that would have turned the second reading into a duplicate table.
+
+### Sensitive identity, locked two-tier
+
+The live registry carries four canonical codes (D-001) that the planning material did not
+account for. Read from the registry rather than assumed, they form two tiers (D-082):
+
+```text
+parties.identity.view            opens the surface — NIK and NPWP stay masked
+parties.identity.update          mutation; confers no full readback
+parties.identity.nik.view_full   raw NIK only
+parties.identity.npwp.view_full  raw NPWP / tax identifier only
+```
+
+Neither tier-2 code implies the other. Company tax identity uses the existing NPWP code — no
+`companies.identity.*` family invented.
+
+**A browser not authorized for a raw identifier never receives it** — absent from the payload,
+not hidden by CSS. `07_SECURITY_RULES.md` section 12 said "avoid returning full values when
+unnecessary", which is weaker than what M2.1 must build, so it was strengthened rather than
+left to be discovered later.
+
+Format validation for NIK and NPWP is **deferred**: no canonical document freezes either
+format, and encoding a guess would reject real identifiers.
+
+### Four ERD fields dropped, each with a reason
+
+`parties.status` and `companies.status` competed with `deleted_at` for lifecycle authority;
+`companies.phone` / `companies.email` duplicated the Party contact fields that `individuals`
+does not carry; `company_people.is_current` duplicated what `effective_until` already says.
+Each is a second source of truth whose disagreement would be invisible. `deleted_at` is now
+the sole archive authority (D-081), and `03_DATABASE_ERD.md` section 6 carries a pointer so
+the blueprint cannot be read as current.
+
+### Also locked
+
+Party is Office-owned; `OWN`, `ASSIGNED`, and `TEAM` **grant nothing** and fail closed
+(D-080) — `OWN` must not become `created_by`, since typing in a record is not a claim on the
+person it describes. Company relationships preserve history and never overwrite a predecessor
+(D-083); management and ownership map to their existing separate permission surfaces without
+inventing corporate-law cardinality. Duplicate detection is advisory and Office-scoped, never
+auto-merging, which is also why no `UNIQUE` constraint is placed on any identifier — it would
+be a cross-office existence oracle (D-084).
+
+### Boundary
+
+No Project, Matter, Document, Property, Warkah, global Search, or audit-log module. Project
+remains M3. Six open questions are recorded rather than assumed — none blocks M2.1, and the
+two most likely to tempt improvisation while writing migrations (the keyed dedup fingerprint
+and NIK/NPWP formats) are named explicitly.
+
+New document: `12_M2_PARTY_ARCHITECTURE.md`. `docs/10` and `docs/11` were already taken, so
+it takes the next free number rather than overwriting either.
+
+---
+
 ## 2026-08-11 — M1.10 M1 Quality Gate, resolving O-023
 
 Branch `feat/m1-identity`. **One forward migration** (13 total). Permission count unchanged

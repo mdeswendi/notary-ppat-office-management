@@ -1991,6 +1991,196 @@ before the canonical permissions of M1.2 exist to protect them.
 
 ---
 
+## 2026-08-11 — M2.0 Party architecture lock
+
+Branch `feat/m2-parties`. Documentation only — no schema, model, endpoint, or permission
+results from these decisions. Full reasoning in `12_M2_PARTY_ARCHITECTURE.md`.
+
+### D-078 — One Party aggregate; "Client" is a word, not a table
+
+Every person and organization the office knows is exactly one row in `parties`, with
+person-specific data in `individuals` and organization-specific data in `companies`. There
+is **no `clients` table**, no `Client` model duplicating Party, and no `client_id` running
+parallel to `party_id`.
+
+A Party becomes a client through use. The same person is a seller in one matter and a
+company director in another, and the same organization is a client on Monday and a
+counterparty on Thursday — CLAUDE.md section 17 already refuses to freeze a role into the
+base Party record, and a `clients` table would be that same mistake under a different name.
+
+Subtype tables take `party_id` as **both** primary key and foreign key. That one choice
+enforces the invariants structurally rather than by convention: exactly one subtype per
+Party, no subtype without a Party, and no way to write two Individual rows for one Party.
+No surrogate id is added to a subtype.
+
+**`party_type` is immutable after creation.** An Individual is never converted in place into
+a Company. The subtypes differ in identity semantics, validation, relationships, and every
+future legal reference that will point at them, so an in-place conversion would silently
+reinterpret existing data and anything already referring to it. A record created with the
+wrong type is archived and recreated — visibly. M2 therefore ships no type-conversion
+workflow and no merge workflow.
+
+### D-079 — `display_name` is derived, never a third name
+
+`parties.display_name` is a normalized display and index value owned by the aggregate, not
+an independently editable field that can drift from the subtype.
+
+```text
+Individual   derives from the individual's canonical full name
+Company      derives from short_name when intentionally present, otherwise legal_name
+```
+
+The Company precedence is a choice, not an inheritance: a short name exists because somebody
+wanted the organization displayed that way. Subtype-name changes and the `display_name`
+update occur in one transaction — otherwise a rename leaves the directory showing the old
+name while the detail page shows the new one, and the directory is what people search.
+
+### D-080 — Party is Office-owned, and OWN/ASSIGNED/TEAM grant nothing
+
+`parties.office_id → offices.id`, required. No `organization_id` on Party — the Organization
+is reached through the Office, as D-027 established for User. No `tenant_id`, no
+`party_offices` pivot, no global Party table detached from Office ownership, and no automatic
+cross-office sharing. Cross-office reach is a Data Scope question, never a copied row.
+
+Data Scopes remain predicates, never ranks (D-028). For Party-domain resources:
+
+```text
+OFFICE      party.office_id == actor.office_id
+ALL         any Office in the deployment
+OWN         grants nothing
+ASSIGNED    grants nothing
+TEAM        grants nothing
+```
+
+The three that grant nothing matter most. `OWN` must not become `created_by`: a Party is a
+shared office directory record, and the colleague who typed it in has no special claim on the
+human it describes. `ASSIGNED` must not be invented into existence — no Party assignment
+entity exists, so there is nothing to match, and creating one to give the word work would be
+building a feature to justify a scope. `TEAM` must never alias to `OFFICE`; no Team entity
+exists (D-042), and quietly equating them would grant access nobody configured. All three
+fail closed.
+
+Creation is authorized against the **intended target Office**: `OFFICE` may create in the
+actor's own, `ALL` may create elsewhere where the API exposes the choice, and the other three
+grant nothing. Office selection is never a frontend-only rule.
+
+A `company_people` relationship must not silently bridge Offices: the Company Party and the
+Individual Party must share an `office_id`. `ALL` governs visibility and administrative
+reach; it does not redefine domain ownership.
+
+### D-081 — `deleted_at` is the only archive authority
+
+Party-domain records are archived, never hard-deleted through ordinary operations, and the
+**aggregate root** carries the state. Archiving an Individual or a Company archives the Party;
+subtypes are not independently soft-deleted, because a live Party root with an archived
+subtype is a state nothing could render honestly.
+
+The historical ERD gave `parties` **and** `companies` a `status` column alongside
+`deleted_at`. Both `status` columns are dropped. Two sources of truth for "is this record
+active" is how a record ends up archived-but-visible, and the disagreement is invisible until
+somebody notices the wrong thing on a screen. If a future business state genuinely differs
+from archived, it gets its own column and its own name.
+
+No restore capability in M2: the registry defines `parties.archive` and `companies.archive`
+but no restore permission, and inventing one is out of scope.
+
+Same reasoning removes `company_people.is_current`, which duplicates what `effective_until`
+already says. Current-ness is a query, not a column.
+
+### D-082 — Sensitive identity is two-tier, per field, enforced at serialization
+
+The registry carries four canonical codes (D-001), and they form two tiers:
+
+```text
+parties.identity.view            tier 1 — open the identity surface
+parties.identity.update          tier 1 — mutate sensitive identity
+parties.identity.nik.view_full   tier 2 — reveal raw NIK only
+parties.identity.npwp.view_full  tier 2 — reveal raw NPWP / tax identifier only
+```
+
+`parties.identity.view` **alone** opens the surface with NIK and NPWP still masked — access
+to the surface is not access to the values. Each tier-2 code authorizes exactly one
+identifier and implies nothing about the other. `parties.identity.update` authorizes
+mutation and confers no full readback of identifiers the actor may not otherwise see: writing
+a value is not licence to read a different one. `parties.view` implies neither surface access
+nor reveal, and `companies.view` implies no raw tax-identifier reveal.
+
+**Company tax identity uses `parties.identity.npwp.view_full`.** No `companies.identity.*`
+family is invented; the identity surface belongs to the aggregate, which is why the registry
+places these codes in the `parties` group.
+
+**A browser not authorized for a raw identifier never receives it.** Not hidden by CSS, not
+masked in React — absent from the payload. Masking is presentation computed server-side;
+the mask is never the stored value. This is the difference between privacy and the appearance
+of it, and it is a backend serialization guarantee rather than a UI convention. A reveal
+control must fetch from the identity surface, never unhide a value the page already holds.
+
+Raw identifiers never appear in logs, exception text, telemetry, `display_name`, URLs, cache
+keys, or browser storage. At rest they use framework encryption primitives — **no custom
+cryptography**, for the reason M1.9 refused to hand-roll TOTP. Any future equality-search
+fingerprint must be a documented keyed construction, never an unkeyed hash (a 16-digit NIK
+is brute-forceable in seconds) and never API-visible.
+
+**NIK and NPWP format validation is deferred**, because no canonical document in this
+repository freezes either format and general knowledge is not authority. Encoding a guess
+would reject real identifiers.
+
+### D-083 — Company relationships keep history; categories map to two permission surfaces
+
+`company_people` links a Company Party to an Individual Party and **never duplicates the
+person's name** — the name lives in one place and stays correct when it changes.
+
+History is preserved. A director change ends the existing relationship by setting
+`effective_until` and inserts a new row; it never overwrites. "Who was the director in March"
+must remain answerable, because deeds executed in March depend on the answer.
+
+Relationship categories map to the existing permission surfaces:
+
+```text
+DIRECTOR, COMMISSIONER, AUTHORIZED_PERSON   -> companies.management.*
+SHAREHOLDER, BENEFICIAL_OWNER               -> companies.shareholders.*
+```
+
+The split categorises by what the relationship is *about* — who acts for the organization
+versus who owns it — and invents no Indonesian corporate law. Nothing here asserts how many
+directors a company may have, whether a commissioner is required, that shareholdings total
+100%, or how beneficial ownership is determined. Ownership data is not visible merely because
+a user can view ordinary Company details, and a frontend tab is never the boundary.
+
+### D-084 — Duplicate detection is advisory and Office-scoped
+
+Detection surfaces candidates to a human. It does not auto-merge, does not overwrite, does
+not delete a candidate, and does not assert that two records are the same person — an
+assertion the software has no standing to make.
+
+Candidates are confined to the actor's own Office by default. An `OFFICE`-scoped user must
+never learn that a matching identifier exists in an Office they cannot see.
+
+That constraint is also why **no `UNIQUE` constraint is placed on `nik`, `npwp`, `tax_id`, or
+`registration_number`**. A unique index asserts that two rows sharing a value are the same
+entity and that the value is always known and correct — none of which holds for optional,
+sometimes-mistyped, Office-scoped identifiers. It would also become a cross-office existence
+oracle, since a rejected insert reveals a match the user is not entitled to know about. They
+remain excellent duplicate *signals*; promoting one to an authoritative key needs its own
+decision.
+
+### M2 implementation order
+
+```text
+M2.0   Planning + Party architecture lock       <- this checkpoint
+M2.1   Party schema + authorization foundation
+M2.2   Individual Management
+M2.3   Company Management
+M2.4   Company relationships / management / shareholders
+M2.5   Party directory + duplicate detection + integration polish
+M2.6   M2 quality gate
+```
+
+M2.1 is schema, authorization predicates, and constraints only — not CRUD UI. **Project
+remains M3**: M2 builds no Project, no Matter, and no Party-to-Project assignment.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -2021,7 +2211,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-001 | `01_ARCHITECTURE.md` section 2 did not reflect D-003 | **Resolved 2026-08-08.** Section 2 now carries the canonical 12-entry structure and cross-references `10_M0_FOUNDATION.md` and D-003. See D-010. |
 | O-002 | `CLAUDE.md` stated the technology stack without versions | **Resolved 2026-08-08.** Section 3 now states Next.js 16.x, Node >= 20.9, Laravel 13.x, PHP >= 8.3, and adds Database and Infrastructure subsections (PostgreSQL 18.x, Redis 8.x, private file storage). |
 | O-003 | `CLAUDE.md` section 58 listed ten `/docs` files | **Resolved 2026-08-08.** Section 58 now lists all 14 entries and restates the 08/09 draft restriction and the `DECISIONS.md` precedence rule. |
-| O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Deferred 2026-08-08.** Cosmetic only. Must not block foundation development. Not to be touched during unrelated steps. |
+| O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Resolved 2026-08-11 by D-078.** The canonical milestone name is **M2 — Party / Individual / Company**. "Client Database" is retained only as a user-facing description: a descriptive subtitle such as "Clients & Parties" may appear in navigation and product documentation. What the resolution actually settles is not a label but a schema question — **"Client" must never become a second persistence entity beside Party.** There is no `clients` table, no `Client` model, and no `client_id` parallel to `party_id`; a Party becomes a client through use. Deferring this was correct while it looked cosmetic, and closing it now is right because M2 is the milestone where the wrong reading would have produced a duplicate table. |
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
 | O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Resolved 2026-08-09.** The deferral condition — executable quality gates on both sides — is now met, so the item was closed on its own recorded terms rather than because M0 was ending. `.github/workflows/quality.yml` runs exactly the commands README documents. The backend job pins **PHP 8.3**, the canonical minimum in D-005, while the workstation runs 8.4; that gap is the point, since it catches 8.4-only syntax before anyone else sees it. No PostgreSQL or Redis service is declared because the Pest suite runs on in-memory SQLite per `backend/phpunit.xml`. No secrets, no deployment. **Operationally verified green 2026-08-09.** The route there is worth keeping, because the workflow proved its value by failing: implemented during M0.10 → first real runs passed the frontend job but failed the backend job at `composer install`, exposing a committed lockfile that could not install on PHP 8.3 → corrected by pinning Composer's resolution baseline to the supported minimum (D-025) → both jobs green on the feature branch → both jobs green on the `main` merge commit `8be0ad0`. Had CI been pinned to the workstation's PHP 8.4, that lockfile defect would have shipped unnoticed. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |

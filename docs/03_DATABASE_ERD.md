@@ -186,6 +186,18 @@ and D-029.
 
 ## 6. Party Model
 
+> **Superseded in four places by D-081 and D-078 (M2.0).** The field lists below are the
+> original blueprint. `12_M2_PARTY_ARCHITECTURE.md` section 5 is authoritative for M2 and
+> departs from them deliberately:
+>
+> - `parties.status` — **dropped**; it competes with `deleted_at` for lifecycle authority
+> - `companies.status` — **dropped**; archive is an aggregate operation
+> - `companies.phone`, `companies.email` — **dropped**; duplicate `parties.primary_phone`
+>   and `parties.primary_email`, and `individuals` carries no such pair
+> - `company_people.is_current` — **dropped**; derivable from `effective_until`
+>
+> Everything else below is retained and classified in that document's section 7.
+
 ### parties
 
 ```text

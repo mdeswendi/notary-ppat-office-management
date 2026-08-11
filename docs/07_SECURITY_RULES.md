@@ -251,6 +251,26 @@ Full reveal requires explicit permission.
 
 Avoid returning full values in APIs when unnecessary.
 
+**Strengthened by D-082 (M2.0).** For Party-domain data the rule is stricter than
+"avoid when unnecessary": a browser that is not authorized for a raw identifier
+**never receives it**. Masking is computed server-side and enforced at
+serialization — not hidden by CSS, not masked in React, absent from the payload.
+A reveal control must fetch from the identity surface rather than unhide a value
+the page already holds; if the page already holds it, the payload was wrong.
+
+Reveal is authorized **per field**, in two tiers:
+
+```text
+parties.identity.view            opens the identity surface; NIK and NPWP stay masked
+parties.identity.update          mutation; confers no full readback
+parties.identity.nik.view_full   raw NIK only
+parties.identity.npwp.view_full  raw NPWP / tax identifier only
+```
+
+Neither tier-2 code implies the other, and `parties.view` / `companies.view`
+imply neither surface access nor reveal. See `12_M2_PARTY_ARCHITECTURE.md`
+sections 10 and 11 for the storage contract and the threat review.
+
 ---
 
 ## 13. File Storage
