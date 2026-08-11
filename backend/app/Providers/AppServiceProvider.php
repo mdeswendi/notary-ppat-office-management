@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Company;
+use App\Models\Individual;
 use App\Models\User;
+use App\Policies\CompanyPolicy;
+use App\Policies\IndividualPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
@@ -45,6 +49,12 @@ class AppServiceProvider extends ServiceProvider
         // The authorization configuration itself: the permission catalogue,
         // role grants, and role membership all authorize through this.
         Gate::policy(Permission::class, PermissionPolicy::class);
+
+        // The Party domain (M2.1). Registered here with the rest rather than
+        // relying on auto-discovery, so one file answers "which policy guards
+        // what" for every model in the application.
+        Gate::policy(Individual::class, IndividualPolicy::class);
+        Gate::policy(Company::class, CompanyPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

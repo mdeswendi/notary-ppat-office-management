@@ -1,9 +1,15 @@
 # M2 — Party / Individual / Company Architecture
 
-**Status:** Architecture lock. Documentation only — no schema, model, endpoint, or
-permission exists as a result of this document.
+**Status:** Architecture lock, **partly implemented**.
 
-**Locked at:** 2026-08-11, branch `feat/m2-parties`, from `main` at `501401f`.
+**Locked at:** 2026-08-11 (M2.0), branch `feat/m2-parties`, from `main` at `501401f`.
+
+**Implemented at:** 2026-08-11 (M2.1) — schema, models, sensitive storage, structural
+invariants, and authorization predicates. Sections 4, 13, and 14 were revised to describe
+what the code actually enforces rather than what the lock intended; section 4's original
+wording overstated what `party_id` PK/FK gives, and that correction is called out where it
+happened. **Still unimplemented:** every HTTP surface (sections 11 and 17), the frontend
+(section 18), and duplicate detection (section 15).
 
 **Numbering note:** the M2.0 specification suggested `10_M2_PARTY_ARCHITECTURE.md`, but
 `10_M0_FOUNDATION.md` and `11_LEGAL_REFERENCES.md` already occupy those slots. This document
@@ -72,24 +78,53 @@ Role belongs to the *relationship* with a Project or Matter — CLAUDE.md sectio
 says so for Party roles, and a `clients` table would be the same mistake wearing a different
 name.
 
-Subtype tables use `party_id` as **both** primary key and foreign key. That single choice
-enforces one-to-one structurally: no surrogate id, so no way to write two Individual rows
-for one Party, and no orphan subtype row.
+Subtype tables use `party_id` as **both** primary key and foreign key: no surrogate id, so
+no way to write two Individual rows for one Party and no orphan subtype row.
+
+**That is not by itself enough**, and M2.1 corrected this section's original wording rather
+than let it stand. PK/FK alone permits one Party to hold *both* an Individual and a Company
+row, and says nothing about whether a subtype agrees with its Party's `party_type`. Section
+4 now states exactly which mechanism enforces which invariant.
 
 ---
 
 ## 4. Subtype invariants
 
-Four invariants, locked (**D-078**):
+Four invariants, locked (**D-078**), and **implemented in M2.1**. What enforces each is
+stated precisely, because a domain rule documented as a database constraint is a rule
+somebody will later assume they cannot break:
 
-1. **Exactly one subtype per Party.** A Party is an Individual or a Company, never both,
-   never neither once created through the application.
-2. **No subtype without a Party**, guaranteed by `party_id` being the subtype's primary key
-   and a foreign key.
-3. **No Party without a subtype** through any normal application flow. Creation is
-   transactional (section 12); a Party row that outlives a failed subtype insert is a defect,
-   not a state.
-4. **`party_type` is immutable after creation.**
+| # | Invariant | Enforcement |
+|---|---|---|
+| 1 | Exactly one subtype per Party — never both | **DATABASE** |
+| 2 | No subtype without a Party | **DATABASE** |
+| 3 | Subtype agrees with `parties.party_type` | **DATABASE** |
+| 4a | `party_type` immutable *while a subtype exists* | **DATABASE** |
+| 4b | `party_type` immutable in all other cases | **DOMAIN** (`Party::booted()`) |
+| 5 | No Party without a subtype | **DOMAIN TRANSACTION** |
+
+The database half rests on one mechanism. `parties` carries `UNIQUE (id, party_type)`, and
+each subtype table carries a pinned `party_type` column held at its own value by a CHECK,
+completing a composite foreign key `(party_id, party_type) -> parties (id, party_type)`.
+From that single constraint:
+
+- a subtype row can only attach to a Party whose type matches — invariant 3;
+- a Party already holding a Company row cannot hold an Individual row, because its
+  `party_type` is one value and the other subtype's reference would not resolve —
+  invariant 1;
+- `parties.party_type` cannot be updated while any subtype row points at it, because the
+  update would break that reference — invariant 4a. This holds against raw SQL, not merely
+  against Eloquent.
+
+**Invariant 5 is honestly domain-only.** No practical constraint makes a parent row require
+a child, so a Party that outlives a failed subtype insert is prevented by the transaction in
+section 12 — and by nothing else. It is a defect state, not a representable one, but the
+database will not stop you creating it from a console. Saying so is the point; M2.2 and M2.3
+own the Actions that keep it true.
+
+`Party::booted()` refuses a `party_type` change before it reaches SQL. That is not redundant
+with 4a: it covers the Party that has no subtype yet, and it fails with a message that
+explains itself rather than a foreign-key violation.
 
 Immutability deserves its reasoning. An Individual and a Company differ in identity
 semantics, validation, relationships, and every future legal reference that will point at
@@ -472,7 +507,13 @@ Where PostgreSQL can enforce the subtype of each endpoint structurally rather th
 application convention, it should — M2.1 owns the exact constraint form, but a generic FK to
 `parties` plus a hopeful comment is not sufficient.
 
-**Same-office invariant** (**D-080**): a relationship must not silently bridge Offices.
+**Same-office invariant** (**D-080**), **DATABASE enforced as of M2.1**: a relationship
+cannot silently bridge Offices. `company_people.office_id` is a *constraint carrier* — two
+composite foreign keys reference `parties (id, office_id)` through that one column, so both
+endpoints must agree with it and therefore with each other. A cross-office relationship is
+unrepresentable, not merely discouraged. The subtype of each endpoint is likewise structural:
+`company_party_id` references `companies.party_id` and `individual_party_id` references
+`individuals.party_id`.
 
 ```text
 company Party.office_id == individual Party.office_id

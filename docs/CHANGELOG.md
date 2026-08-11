@@ -5,6 +5,81 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-11 — M2.1 Party schema and authorization foundation
+
+Branch `feat/m2-parties`. **Four forward migrations** (17 total). Permission count unchanged
+at **171**. Backend **896 tests / 3235 assertions** — 113 new. No API surface and no frontend
+change: M2.1 makes M2.2 and M2.3 mechanical, it does not build them.
+
+### The correction M2.1 had to make to M2.0
+
+M2.0 claimed `party_id` as PK/FK "enforces one-to-one structurally". **It does not, quite.**
+That gives no-orphan-subtype and no-duplicate-subtype, but it permits one Party to hold *both*
+an Individual and a Company row, and says nothing about whether a subtype agrees with its
+Party's `party_type`. The wording is corrected in place rather than left to be believed.
+
+The gap is now closed by the database, not by convention. `parties` carries
+`UNIQUE (id, party_type)`; each subtype pins its own `party_type` and completes a composite
+foreign key back to it. One constraint yields three invariants: a subtype must match its
+Party's type, a Party cannot hold both subtypes, and `party_type` cannot be updated while any
+subtype exists — against raw SQL, not merely against Eloquent.
+
+**One invariant stays honestly domain-only.** No practical constraint makes a parent row
+require a child, so "no Party without a subtype" rests on the transaction M2.2 and M2.3 will
+own. The architecture document now carries an enforcement table saying which is which, because
+a domain rule documented as a database constraint is one somebody will later assume they
+cannot break.
+
+### Same-office relationships, enforced rather than intended
+
+`company_people.office_id` is a constraint carrier: two composite foreign keys reference
+`parties (id, office_id)` through that **one** column, so both endpoints must agree with it
+and therefore with each other. A cross-office relationship is unrepresentable. Endpoint
+subtypes are structural too — the foreign keys target `companies.party_id` and
+`individuals.party_id`, so a relationship cannot point at an arbitrary Party.
+
+### Sensitive identity
+
+NIK, Individual NPWP, and Company `tax_id` are `encrypted` casts and hidden at the model.
+Ordinary `toArray()` and `toJson()` carry none of them, proven by test — the moment a raw
+identifier enters serialization it is also in a log line, a cache entry, and any response that
+serialized the model without thinking.
+
+Authorization is two-tier per D-082 and tested directly against the policies: opening the
+identity surface reveals nothing, NIK reveal implies nothing about NPWP and the reverse,
+`identity.update` confers no readback, and `companies.view` reveals no tax identifier. The
+Company NPWP uses the canonical `parties.identity.npwp.view_full` — no `companies.identity.*`
+family was invented.
+
+### Scope metadata made truthful
+
+Party permissions previously fell into the permissive default in `PermissionScopeRules` and
+were offered at `OWN`, `ASSIGNED`, `OFFICE`, and `ALL`. Three of those the resolver could never
+honour, so the Permission Matrix was offering grants that would save and then do nothing. They
+now offer **OFFICE and ALL only** (D-080), and the unsupported three fail closed in
+`PartyVisibility`.
+
+The deferred list is deliberately **unchanged**. Party is absent from navigation entirely,
+exactly as `projects.*` is, so it needs no badge — adding one would contradict the semantics
+M1.10 settled and imply Party is partially shipped.
+
+### Verification
+
+```text
+Backend        896 tests, 3235 assertions — 113 new (baseline 783)
+Pint           passed
+Migrations     17, all applied
+Disposable DB  full chain from empty PostgreSQL; 13 invariants proven there; dropped
+Frontend       format:check, lint, typecheck, build all clean — zero runtime files changed
+Scans          authorization, role-name, no-Client, no-M3, no-party-route: all pass
+```
+
+The PostgreSQL run proved what SQLite cannot: the CHECK constraints on `party_type`,
+`entity_type`, and `relationship_type`, and that stored NIK and `tax_id` are ciphertext rather
+than readable identifiers.
+
+---
+
 ## 2026-08-11 — M2.0 Party architecture lock, resolving O-004
 
 Branch `feat/m2-parties`, from `main` at `501401f`. **Documentation only.** No migration, no
