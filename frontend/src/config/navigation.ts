@@ -1,4 +1,12 @@
-import { KeyRound, LayoutDashboard, Settings, Users, type LucideIcon } from "lucide-react";
+import {
+  Contact,
+  KeyRound,
+  LayoutDashboard,
+  Settings,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 import { can, canWithScope } from "@/lib/permissions/can";
 import type { CurrentUser, DataScope } from "@/types/auth";
@@ -56,6 +64,27 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // No permission: no canonical document defines one for the Dashboard, and
     // inventing a gate for the landing page would lock people out of the only
     // destination they have.
+  },
+  {
+    key: "parties",
+    translationKey: "parties",
+    icon: Contact,
+    implemented: true,
+    children: [
+      {
+        key: "parties.individuals",
+        translationKey: "partiesIndividuals",
+        href: "/parties/individuals",
+        icon: UserRound,
+        implemented: true,
+        // Any effective Party scope opens the list; the query narrows the rows
+        // (D-080). OWN, ASSIGNED, and TEAM reach nothing, so the backend refuses
+        // outright rather than serving a reliably empty page.
+        requiredPermission: "parties.view",
+      },
+      // Companies deliberately absent: the route does not exist until M2.3, and
+      // registering a permission is not shipping a feature (D-064).
+    ],
   },
   {
     key: "settings",

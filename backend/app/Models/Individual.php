@@ -5,6 +5,7 @@ namespace App\Models;
 use Database\Factories\IndividualFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,6 +63,32 @@ class Individual extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    /**
+     * Resolve only live Individuals from a route.
+     *
+     * Two things fall out of joining to a non-archived Party, and both are
+     * deliberate:
+     *
+     * An **archived** Individual becomes unreachable through every ordinary
+     * route — list, detail, update, identity, and reveal all 404 rather than
+     * operating on a record the office has retired (D-081).
+     *
+     * A **Company** Party id used on an Individual route also 404s, because no
+     * `individuals` row exists for it. That is the right answer rather than 403:
+     * telling the caller "wrong type" would confirm a record exists in a
+     * namespace they were not asking about, and possibly in an Office they
+     * cannot see.
+     *
+     * @param  Builder<Individual>  $query
+     * @return Builder<Individual>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return $query
+            ->where($this->getRouteKeyName(), $value)
+            ->whereHas('party');
+    }
 
     /**
      * @return BelongsTo<Party, $this>

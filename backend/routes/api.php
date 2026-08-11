@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\IndividualController;
+use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -136,5 +138,43 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('users', UserController::class)
             ->except('destroy')
             ->whereUlid('user');
+
+        /*
+         * Individuals — the first Party-domain business surface (M2.2).
+         *
+         * `options` precedes `{individual}` so the literal path wins. Every route
+         * is bound to the Party ULID and resolves the Individual subtype only, so
+         * a Company id answers 404 rather than leaking that it exists.
+         *
+         * No DELETE and no restore: Party records are archived, never destroyed,
+         * and no restore permission exists to authorize one (D-081).
+         *
+         * The identity surface sits under its own path because it answers to its
+         * own permissions. Reveal is POST rather than GET so a raw identifier
+         * cannot land in a cached response, a browser history entry, or a URL —
+         * and carries its own named limiter, kept clear of the `security.*`
+         * buckets so neither can exhaust the other (D-082).
+         */
+        Route::get('individuals/options', [IndividualController::class, 'options'])
+            ->name('api.v1.individuals.options');
+
+        Route::post('individuals/{individual}/archive', [IndividualController::class, 'archive'])
+            ->whereUlid('individual')->name('api.v1.individuals.archive');
+
+        Route::get('individuals/{individual}/identity', [IndividualIdentityController::class, 'show'])
+            ->whereUlid('individual')->name('api.v1.individuals.identity.show');
+        Route::patch('individuals/{individual}/identity', [IndividualIdentityController::class, 'update'])
+            ->whereUlid('individual')->name('api.v1.individuals.identity.update');
+
+        Route::post('individuals/{individual}/identity/nik/reveal', [IndividualIdentityController::class, 'revealNik'])
+            ->whereUlid('individual')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.individuals.identity.nik.reveal');
+        Route::post('individuals/{individual}/identity/npwp/reveal', [IndividualIdentityController::class, 'revealNpwp'])
+            ->whereUlid('individual')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.individuals.identity.npwp.reveal');
+
+        Route::apiResource('individuals', IndividualController::class)
+            ->except('destroy')
+            ->whereUlid('individual');
     });
 });

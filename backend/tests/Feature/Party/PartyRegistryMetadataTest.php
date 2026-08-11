@@ -49,15 +49,15 @@ it('keeps the relationship category mapping pointed at real permissions', functi
     }
 });
 
-it('exposes no party API surface yet', function (): void {
-    // M2.1 is schema and authorization only. The registry's implementation
-    // status must not imply a reachable surface that does not exist — the stale
-    // claim M1.10 had to correct (D-077).
+it('exposes no company API surface yet', function (): void {
+    // At M2.1 this asserted that *no* Party surface existed, which was true then.
+    // M2.2 shipped Individuals, so the assertion narrowed to what is still true
+    // rather than being deleted: Company remains unreachable until M2.3, which
+    // is what keeps `companies.*` honestly deferred (D-077).
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'parties')
-            || str_contains($uri, 'individuals')
-            || str_contains($uri, 'companies'));
+        ->filter(fn (string $uri): bool => str_contains($uri, 'companies')
+            || str_contains($uri, 'clients'));
 
     expect($routes)->toBeEmpty();
 });

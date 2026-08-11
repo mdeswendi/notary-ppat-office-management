@@ -116,6 +116,19 @@ class PartyVisibility
     }
 
     /**
+     * Does this grant reach beyond the actor's own Office?
+     *
+     * Exact membership of `ALL`, never a comparison (D-028). Used by form
+     * metadata so the Office choices offered are exactly the ones
+     * {@see permitsCreationIn()} would accept — a dropdown that offers a
+     * destination the Policy then refuses is a trap, not a feature.
+     */
+    public function reachesAllOffices(EffectiveAccess $access): bool
+    {
+        return in_array(DataScope::ALL, $this->usable($access), true);
+    }
+
+    /**
      * Does the actor hold this permission at any scope that reaches a Party?
      *
      * Used for list-level abilities: a grant carrying only OWN, ASSIGNED, or

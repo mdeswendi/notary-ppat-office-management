@@ -120,9 +120,24 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->flatMap(fn (array $group): array => $group['permissions'])
         ->firstWhere('code', 'security.settings.view');
 
+    // The Company codes joined at M2.2: shipping Individuals put "Clients &
+    // Parties" in the navigation, so the namespace now looks implemented and an
+    // administrator granting `companies.view` would reasonably expect something.
+    $expected = [
+        'security.settings.view',
+        'security.settings.manage',
+        'companies.view',
+        'companies.create',
+        'companies.update',
+        'companies.archive',
+        'companies.management.view',
+        'companies.management.update',
+        'companies.shareholders.view',
+        'companies.shareholders.update',
+    ];
+
     expect($entry['deferred'])->toBeTrue()
-        ->and($response->json('meta.deferred'))
-        ->toBe(['security.settings.view', 'security.settings.manage']);
+        ->and($response->json('meta.deferred'))->toBe($expected);
 
     // Everything else is actionable, or at least not flagged otherwise.
     $deferredCodes = collect($response->json('data.groups'))
@@ -131,7 +146,11 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->pluck('code')
         ->all();
 
-    expect($deferredCodes)->toBe(['security.settings.view', 'security.settings.manage']);
+    sort($deferredCodes);
+    $sortedExpected = $expected;
+    sort($sortedExpected);
+
+    expect($deferredCodes)->toBe($sortedExpected);
 });
 
 it('no longer defers a permission whose flow has since been built', function (): void {

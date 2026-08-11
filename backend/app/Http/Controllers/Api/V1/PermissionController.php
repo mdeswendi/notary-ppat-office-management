@@ -96,9 +96,29 @@ class PermissionController extends Controller
      *
      * `security.settings.*` remains deferred because no global security-settings
      * surface exists — verified against the route table, not assumed.
+     *
+     * **`companies.*` joined the list at M2.2**, and the reason is the flag's
+     * whole purpose rather than an oversight. Before M2.2 the Party module was
+     * absent from navigation, so `companies.view` needed no badge for the same
+     * reason `projects.create` does not. M2.2 ships Individuals — navigation now
+     * shows "Clients & Parties", the namespace looks implemented, and an
+     * administrator granting `companies.view` would reasonably expect something.
+     * Nothing happens: Company surfaces are M2.3 and M2.4.
+     *
+     * `parties.*` and `parties.identity.*` are deliberately **not** here. M2.2
+     * gives every one of them a reachable route, and a test checks that claim
+     * against the router rather than trusting this list.
      */
     private const DEFERRED = [
         'security.settings.view',
         'security.settings.manage',
+        'companies.view',
+        'companies.create',
+        'companies.update',
+        'companies.archive',
+        'companies.management.view',
+        'companies.management.update',
+        'companies.shareholders.view',
+        'companies.shareholders.update',
     ];
 }

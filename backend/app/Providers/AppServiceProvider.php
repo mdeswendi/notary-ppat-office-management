@@ -95,6 +95,33 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('security.admin', fn (Request $request): Limit => Limit::perMinute(10)
             ->by($this->throttleIdentity($request)));
+
+        $this->registerIdentityRevealRateLimiters();
+    }
+
+    /**
+     * Rate limits for sensitive identity reveal (M2.2).
+     *
+     * **Deliberately separate from the `security.*` buckets.** M1.9 shipped a
+     * shared unnamed throttle and produced exactly the defect this avoids:
+     * spending one route's budget silently disabled an unrelated one. Somebody
+     * revealing identifiers while working through a directory must not find
+     * their own password change refused, and vice versa.
+     *
+     * **NIK and NPWP share one bucket, on purpose.** They are the same kind of
+     * disclosure against the same record, so a caller enumerating identity data
+     * should not get twice the budget by alternating fields. This is the same
+     * reasoning that made every `current_password` route share one bucket — the
+     * sharing is chosen where it closes a hole and avoided where it opens one.
+     *
+     * Keyed on the actor. The limit is a brake on bulk disclosure, never a
+     * substitute for authorization: an unauthorized caller is refused by the
+     * Policy whether or not any budget remains.
+     */
+    private function registerIdentityRevealRateLimiters(): void
+    {
+        RateLimiter::for('party.identity.reveal', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by($this->throttleIdentity($request)));
     }
 
     /**
