@@ -41,15 +41,21 @@ export async function changePassword(input: ChangePasswordInput): Promise<void> 
 export async function requestEmailChange(
   input: RequestEmailChangeInput,
 ): Promise<SecurityOverview> {
-  const response = await apiClient.post<{ data: SecurityOverview }>("/api/v1/security/email", input);
+  const response = await apiClient.post<{ data: SecurityOverview }>(
+    "/api/v1/security/email",
+    input,
+  );
 
   return response.data.data;
 }
 
 export async function verifyEmailChange(token: string): Promise<SecurityOverview> {
-  const response = await apiClient.post<{ data: SecurityOverview }>("/api/v1/security/email/verify", {
-    token,
-  });
+  const response = await apiClient.post<{ data: SecurityOverview }>(
+    "/api/v1/security/email/verify",
+    {
+      token,
+    },
+  );
 
   return response.data.data;
 }
@@ -72,7 +78,9 @@ export async function cancelEmailChange(): Promise<SecurityOverview> {
  * `TwoFactorEnrolment`.
  */
 export async function beginTwoFactorEnrolment(): Promise<TwoFactorEnrolment> {
-  const response = await apiClient.post<{ data: TwoFactorEnrolment }>("/api/v1/security/two-factor");
+  const response = await apiClient.post<{ data: TwoFactorEnrolment }>(
+    "/api/v1/security/two-factor",
+  );
 
   return response.data.data;
 }

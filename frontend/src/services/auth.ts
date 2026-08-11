@@ -26,7 +26,9 @@ export async function getCsrfCookie(): Promise<void> {
  * The return value says which happened. Treating a 202 as success would leave
  * the interface believing somebody is signed in when the server does not agree.
  */
-export async function login(credentials: LoginCredentials): Promise<{ twoFactorRequired: boolean }> {
+export async function login(
+  credentials: LoginCredentials,
+): Promise<{ twoFactorRequired: boolean }> {
   await getCsrfCookie();
 
   const response = await apiClient.post<{ two_factor?: boolean } | null>("/login", credentials);

@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  SecurityError,
-  SecuritySection,
-} from "@/features/security/security-section";
+import { SecurityError, SecuritySection } from "@/features/security/security-section";
 import { toApiErrorKey } from "@/lib/api/errors";
 import {
   getOwnSessions,

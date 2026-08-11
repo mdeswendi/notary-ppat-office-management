@@ -120,7 +120,10 @@ export function UserSecurityDialog({ user, onClose }: { user: ManagedUser; onClo
         ) : null}
 
         {notice ? (
-          <p role="status" className="border-border bg-muted/40 rounded-md border px-3 py-2 text-sm">
+          <p
+            role="status"
+            className="border-border bg-muted/40 rounded-md border px-3 py-2 text-sm"
+          >
             {notice}
           </p>
         ) : null}
