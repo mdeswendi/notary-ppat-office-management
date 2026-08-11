@@ -118,10 +118,11 @@ it('marks a registered but unimplemented permission as deferred', function (): v
 
     $entry = collect($response->json('data.groups'))
         ->flatMap(fn (array $group): array => $group['permissions'])
-        ->firstWhere('code', 'users.reset_password');
+        ->firstWhere('code', 'security.settings.view');
 
     expect($entry['deferred'])->toBeTrue()
-        ->and($response->json('meta.deferred'))->toBe(['users.reset_password']);
+        ->and($response->json('meta.deferred'))
+        ->toBe(['security.settings.view', 'security.settings.manage']);
 
     // Everything else is actionable, or at least not flagged otherwise.
     $deferredCodes = collect($response->json('data.groups'))
@@ -130,7 +131,42 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->pluck('code')
         ->all();
 
-    expect($deferredCodes)->toBe(['users.reset_password']);
+    expect($deferredCodes)->toBe(['security.settings.view', 'security.settings.manage']);
+});
+
+it('no longer defers a permission whose flow has since been built', function (): void {
+    // `users.reset_password` carried the deferred badge from M1.5 until M1.9
+    // built the flow (O-028). A badge that outlives its reason trains people to
+    // ignore the badge, so M1.10 removes it — and this test keeps it removed.
+    $response = $this->actingAs(matrixAdministrator())->getJson('/api/v1/permissions')->assertOk();
+
+    $entry = collect($response->json('data.groups'))
+        ->flatMap(fn (array $group): array => $group['permissions'])
+        ->firstWhere('code', 'users.reset_password');
+
+    expect($entry['deferred'])->toBeFalse()
+        ->and($response->json('meta.deferred'))->not->toContain('users.reset_password');
+});
+
+it('defers only permissions that genuinely have no endpoint', function (): void {
+    // The list is checked against the router rather than trusted: a deferred
+    // code with a live route would understate what an administrator is granting.
+    $deferred = collect(app('router')->getRoutes()->getRoutes())
+        ->map(fn ($route): string => $route->uri())
+        ->filter(fn (string $uri): bool => str_contains($uri, 'security/settings'));
+
+    expect($deferred)->toBeEmpty();
+
+    // And the converse: every implemented security capability is NOT deferred.
+    $response = $this->actingAs(matrixAdministrator())->getJson('/api/v1/permissions')->assertOk();
+
+    $flags = collect($response->json('data.groups'))
+        ->flatMap(fn (array $group): array => $group['permissions'])
+        ->keyBy('code');
+
+    foreach (['security.sessions.view', 'security.sessions.revoke', 'security.mfa.manage'] as $code) {
+        expect($flags[$code]['deferred'])->toBeFalse();
+    }
 });
 
 /*

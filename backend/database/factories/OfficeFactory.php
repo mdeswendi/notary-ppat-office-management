@@ -22,8 +22,9 @@ class OfficeFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            // No uniqueness constraint exists on this column, so the factory
-            // does not assert one either.
+            // Unique per run, which satisfies `UNIQUE (organization_id, code)`
+            // without the factory having to know which Organization it will be
+            // attached to (D-037).
             'code' => strtoupper(fake()->unique()->bothify('OFC-###')),
             'name' => fake()->city().' Office',
             'address' => fake()->streetAddress(),

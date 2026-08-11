@@ -82,9 +82,23 @@ class PermissionController extends Controller
     /**
      * Canonical permissions with no implementation behind them yet.
      *
-     * `users.reset_password` is registered because the capability is canonical,
-     * but the reset *flow* is not defined anywhere, so M1.5 deferred it to M1.9
-     * rather than invent an account-security design (O-028, D-051).
+     * The flag exists to stop an administrator granting a capability and
+     * wondering why nothing happens. It therefore covers permissions sitting
+     * *inside a module the interface otherwise presents as working* — not every
+     * unimplemented code. `projects.create` needs no flag because Projects is
+     * absent from the navigation entirely (D-064); `security.settings.view`
+     * does, because its neighbours `security.sessions.*` and
+     * `security.mfa.manage` are live, so the namespace looks implemented.
+     *
+     * `users.reset_password` was here from M1.5 until M1.9 built the flow
+     * (O-028, D-071). Removing it is the point of keeping this list honest: a
+     * permanently stale "deferred" badge trains people to ignore the badge.
+     *
+     * `security.settings.*` remains deferred because no global security-settings
+     * surface exists — verified against the route table, not assumed.
      */
-    private const DEFERRED = ['users.reset_password'];
+    private const DEFERRED = [
+        'security.settings.view',
+        'security.settings.manage',
+    ];
 }

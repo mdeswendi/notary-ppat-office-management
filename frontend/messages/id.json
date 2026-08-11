@@ -238,7 +238,7 @@
     "scopeNone": "Pilih cakupan",
     "scopeLabelFor": "Cakupan data untuk {code}",
     "deferredBadge": "Belum tersedia",
-    "deferredHint": "Kode hak akses ini sudah terdaftar, tetapi fiturnya belum tersedia dan direncanakan pada tahap Keamanan Akun.",
+    "deferredHint": "Kode hak akses ini sudah terdaftar, tetapi belum ada fitur yang menggunakannya. Memberikannya tidak mengubah apa pun sampai fitur itu ada.",
     "unsyncedBadge": "Belum disinkronkan",
     "malformedTitle": "Ada konfigurasi yang tidak dapat digunakan",
     "malformedDescription": "Konfigurasi berikut tersimpan tetapi tidak memberikan akses apa pun. Aktifkan kembali dengan cakupan yang benar, atau hapus.",

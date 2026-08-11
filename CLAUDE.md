@@ -1469,6 +1469,7 @@ At minimum test:
 Frontend changes should pass:
 
 ```text
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm build
@@ -1490,10 +1491,16 @@ Before declaring a task complete:
 Frontend:
 
 ```text
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm build
 ```
+
+This list must never be weaker than `.github/workflows/quality.yml`. It was, once:
+`format:check` was missing here while CI enforced it, so work that passed every
+documented command still failed CI. Adding a gate to the workflow means adding it
+here in the same change.
 
 Backend:
 

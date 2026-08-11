@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Authorization\DefaultRoleRegistry;
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Authorization\Enums\AccessSource;
 use App\Domains\Authorization\Enums\DataScope;
@@ -299,6 +300,52 @@ it('never authorizes a canonical permission name in application code', function 
     }
 
     expect($offenders)->toBe([]);
+});
+
+it('never branches on a role name in application code', function (): void {
+    // `DefaultRoleRegistry` has always claimed "a test greps for exactly that".
+    // Until M1.10 no such test existed — the scan above covers permission codes
+    // only, so `hasRole('SUPER_ADMIN')` would have passed it untouched. D-032
+    // and D-045 forbid role-name authorization; this is the guard that makes
+    // that enforceable rather than merely stated.
+    $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path()));
+
+    $offenders = [];
+    $scanned = 0;
+
+    foreach ($files as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $scanned++;
+
+        $relative = str_replace(app_path().DIRECTORY_SEPARATOR, '', $file->getPathname());
+        $code = preg_replace('#/\*.*?\*/|//[^\n]*#s', '', file_get_contents($file->getPathname()));
+
+        // Role membership is for display and administration, never a decision.
+        if (preg_match('/->(hasRole|hasAnyRole|hasAllRoles)\s*\(/i', $code)) {
+            $offenders[] = "{$relative}: role membership predicate";
+        }
+
+        // The default role names may appear in exactly one place: the registry
+        // that declares them for bootstrap. Anywhere else is a branch waiting
+        // to happen.
+        if (str_contains($relative, 'DefaultRoleRegistry.php')) {
+            continue;
+        }
+
+        foreach (DefaultRoleRegistry::all() as $roleName) {
+            if (str_contains($code, "'{$roleName}'") || str_contains($code, "\"{$roleName}\"")) {
+                $offenders[] = "{$relative}: literal role name {$roleName}";
+            }
+        }
+    }
+
+    // Sentinel: a scan that silently walks nothing reports clean for every rule
+    // it enforces, which is worse than not scanning (M1.8 shipped that once).
+    expect($scanned)->toBeGreaterThan(50)
+        ->and($offenders)->toBe([]);
 });
 
 it('keeps the resolver the only thing the role policy consults', function (): void {

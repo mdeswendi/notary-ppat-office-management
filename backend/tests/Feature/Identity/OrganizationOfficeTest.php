@@ -193,3 +193,92 @@ it('keeps office reassignment out of mass assignment', function (): void {
 it('does not create an office membership pivot', function (): void {
     expect(Schema::hasTable('user_offices'))->toBeFalse();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Office code uniqueness — D-037, closing O-023
+|--------------------------------------------------------------------------
+*/
+
+it('rejects two offices with the same code inside one organization', function (): void {
+    $organization = Organization::factory()->create();
+
+    Office::factory()->for($organization)->create(['code' => 'PUSAT']);
+
+    expect(fn () => Office::factory()->for($organization)->create(['code' => 'PUSAT']))
+        ->toThrow(QueryException::class);
+
+    expect(Office::query()->where('code', 'PUSAT')->count())->toBe(1);
+});
+
+it('permits the same office code in two different organizations', function (): void {
+    // Composite, not global. A code is a short handle that only means anything
+    // inside its Organization, so one deployment's naming must not constrain
+    // another's (D-037).
+    $first = Organization::factory()->create();
+    $second = Organization::factory()->create();
+
+    Office::factory()->for($first)->create(['code' => 'PUSAT']);
+    Office::factory()->for($second)->create(['code' => 'PUSAT']);
+
+    expect(Office::query()->where('code', 'PUSAT')->count())->toBe(2);
+});
+
+it('still permits different codes inside one organization', function (): void {
+    // The constraint must not have been written as uniqueness on
+    // `organization_id` alone, which would let an Organization hold one office.
+    $organization = Organization::factory()->create();
+
+    Office::factory()->for($organization)->create(['code' => 'PUSAT']);
+    Office::factory()->for($organization)->create(['code' => 'CABANG']);
+
+    expect(Office::query()->where('organization_id', $organization->getKey())->count())->toBe(2);
+});
+
+it('carries the composite unique index on the offices table', function (): void {
+    $organization = Organization::factory()->create();
+    Office::factory()->for($organization)->create(['code' => 'PUSAT']);
+
+    // Asserted through behaviour above and through the schema here, because a
+    // constraint enforced only by application code would pass the first test
+    // while leaving the database open to a direct insert.
+    expect(fn () => DB::table('offices')->insert([
+        'id' => (string) Str::ulid(),
+        'organization_id' => $organization->getKey(),
+        'code' => 'PUSAT',
+        'name' => 'Duplicate by raw insert',
+        'timezone' => 'Asia/Jakarta',
+        'is_active' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]))->toThrow(QueryException::class);
+});
+
+it('migrates, rolls back, and re-migrates the uniqueness constraint cleanly', function (): void {
+    // On its own throwaway SQLite file, so rolling back cannot disturb the
+    // suite's database or anything on PostgreSQL.
+    $file = tempnam(sys_get_temp_dir(), 'm110').'.sqlite';
+    touch($file);
+
+    config(['database.connections.m110_probe' => [
+        'driver' => 'sqlite',
+        'database' => $file,
+        'prefix' => '',
+        'foreign_key_constraints' => true,
+    ]]);
+
+    try {
+        $steps = rollbackStepsTo('add_office_code_uniqueness');
+
+        $this->artisan('migrate', ['--database' => 'm110_probe', '--force' => true])->assertSuccessful();
+        $this->artisan('migrate:rollback', ['--database' => 'm110_probe', '--step' => $steps, '--force' => true])
+            ->assertSuccessful();
+        $this->artisan('migrate', ['--database' => 'm110_probe', '--force' => true])->assertSuccessful();
+
+        // Survived the round trip rather than merely not erroring.
+        expect(Schema::connection('m110_probe')->hasTable('offices'))->toBeTrue();
+    } finally {
+        DB::purge('m110_probe');
+        @unlink($file);
+    }
+});

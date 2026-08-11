@@ -238,7 +238,7 @@
     "scopeNone": "Choose a scope",
     "scopeLabelFor": "Data scope for {code}",
     "deferredBadge": "Not yet available",
-    "deferredHint": "This permission code is registered, but the feature behind it is not built yet and is planned for Account Security.",
+    "deferredHint": "This permission code is registered, but no feature honours it yet. Granting it changes nothing until one does.",
     "unsyncedBadge": "Not synchronized",
     "malformedTitle": "Some configuration cannot be used",
     "malformedDescription": "The entries below are stored but grant nothing. Re-enable them with a valid scope, or remove them.",
