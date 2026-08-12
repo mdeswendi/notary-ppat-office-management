@@ -49,20 +49,18 @@ it('keeps the relationship category mapping pointed at real permissions', functi
     }
 });
 
-it('exposes no relationship or client API surface', function (): void {
-    // This assertion has narrowed twice rather than being deleted, which is the
-    // point: at M2.1 no Party surface existed, at M2.2 Individuals shipped, and
-    // at M2.3 Companies did. What survives is what is still true — relationship
-    // behaviour is M2.4 (D-083), and "Client" is never a second entity (D-078).
+it('exposes no client API surface', function (): void {
+    // This assertion has narrowed three times rather than being deleted, which
+    // is the point: at M2.1 no Party surface existed, M2.2 shipped Individuals,
+    // M2.3 shipped Companies, and M2.4 shipped relationships. What survives is
+    // what is still true and always will be — "Client" is a word, not a table
+    // (D-078), and `company_people` is never addressed as a top-level resource.
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
     expect($uris->filter(fn (string $uri): bool => str_contains($uri, 'clients')))->toBeEmpty()
         ->and($uris->filter(fn (string $uri): bool => str_contains($uri, 'company-people')
-            || str_contains($uri, 'company_people')
-            || str_contains($uri, 'management')
-            || str_contains($uri, 'shareholders')
-            || str_contains($uri, 'directors')))->toBeEmpty();
+            || str_contains($uri, 'company_people')))->toBeEmpty();
 });
 
 it('leaves the deferred list unchanged', function (): void {

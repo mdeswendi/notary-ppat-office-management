@@ -4,7 +4,7 @@ import { AxiosError } from "axios";
  * Translation keys under the `companies.errors` namespace.
  */
 export type CompanyErrorKey =
-  "forbidden" | "notFound" | "validation" | "tooManyAttempts" | "network" | "server";
+  "forbidden" | "notFound" | "validation" | "conflict" | "tooManyAttempts" | "network" | "server";
 
 /**
  * Map a failed Company request onto a message the interface can show.
@@ -38,6 +38,10 @@ export function toCompanyErrorKey(error: unknown): CompanyErrorKey {
       return "forbidden";
     case 404:
       return "notFound";
+    case 409:
+      // A relationship that has already ended. Its own message, because
+      // "something went wrong" describes a state that is simply already true.
+      return "conflict";
     case 422:
       return "validation";
     case 429:

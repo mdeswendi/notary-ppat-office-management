@@ -2164,6 +2164,55 @@ oracle, since a rejected insert reveals a match the user is not entitled to know
 remain excellent duplicate *signals*; promoting one to an authoritative key needs its own
 decision.
 
+### D-085 — Relationship history is append-and-close: the API offers add and end, and nothing else
+
+**D-083 says history is preserved. This says what the API may therefore expose**, because a
+data-model rule that no interface enforces is one a later milestone will break without
+noticing: nothing in D-083's wording forbids a `PATCH` that rewrites `relationship_type` on
+an existing row, and such an endpoint would contradict its intent while satisfying its letter.
+
+The public mutation surface for `company_people` is exactly two operations:
+
+```text
+add     POST   .../{category}                       a new row
+end     POST   .../{category}/{relationship}/end    writes effective_until, nothing else
+```
+
+There is **no `DELETE` and no generic `PATCH` or `PUT`** on a relationship, at any level —
+not on the nested path, and not on `company_people` as a resource of its own. Superseding a
+relationship is end-then-add: two rows, both readable. Reappointing the same person after a
+gap is likewise a second row, not a reopened first one.
+
+Three fields are the historical fact and are immutable once written:
+
+```text
+company_party_id      individual_party_id      relationship_type
+```
+
+"Who was the director in March" must stay answerable because deeds executed in March depend
+on the answer, and a director who was *later* recorded as a commissioner did not retroactively
+attend that signing as one.
+
+**Ending is not idempotent.** A relationship that already carries an `effective_until`
+answers **409**, not a silent success — a second end is a request to change a recorded end
+date, which is an amendment. M2.4 builds no amendment workflow, and quietly overwriting the
+date would be the software correcting a legal record on its own initiative. If corrections
+are genuinely needed, they need their own decision covering who may make them and what is
+retained.
+
+**The end date is supplied, never defaulted.** Defaulting to today would have the application
+inventing a fact about when an appointment ceased. The person recording it knows; the software
+asks.
+
+`effective_until IS NULL` remains the only definition of current-ness (D-081), and no rule
+compares either date to today: `12_M2_PARTY_ARCHITECTURE.md` section 13 imposes no
+date-transition rules, so none is enforced — including any requirement that an end date fall
+after a start date.
+
+Archiving neither endpoint touches these rows. Retiring a person from the directory is not a
+statement about their past appointments, and archiving a Company does not unmake its history —
+`ArchiveCompany` leaves `company_people` alone deliberately.
+
 ### M2 implementation order
 
 ```text

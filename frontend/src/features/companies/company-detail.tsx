@@ -18,6 +18,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { CompanyIdentitySection } from "@/features/companies/company-identity-section";
+import { CompanyManagementSection } from "@/features/companies/company-management-section";
+import { CompanyShareholdersSection } from "@/features/companies/company-shareholders-section";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
 import { Link, useRouter } from "@/i18n/navigation";
 import { can } from "@/lib/permissions/can";
@@ -39,6 +41,7 @@ import { archiveCompany, companyQueryKeys, getCompany } from "@/services/compani
  */
 export function CompanyDetail({ companyId }: { companyId: string }) {
   const t = useTranslations("companies");
+  const tRelationships = useTranslations("companyRelationships");
   const tActions = useTranslations("actions");
 
   const { data: user } = useCurrentUser();
@@ -134,6 +137,35 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
           canUpdate={can(user, "parties.identity.update")}
         />
       </section>
+
+      {/*
+        Management and Shareholders are rendered only for a holder of that
+        category's view permission, and each fetches its own endpoint. Neither
+        appears in the Company payload, so holding one capability cannot cause
+        the other's data to be requested — the permission split is the boundary,
+        not the tab (D-083).
+      */}
+      {can(user, "companies.management.view") ? (
+        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+          <h2 className="text-base font-medium">{tRelationships("managementSection")}</h2>
+
+          <CompanyManagementSection
+            companyId={company.id}
+            canUpdate={can(user, "companies.management.update")}
+          />
+        </section>
+      ) : null}
+
+      {can(user, "companies.shareholders.view") ? (
+        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+          <h2 className="text-base font-medium">{tRelationships("shareholdersSection")}</h2>
+
+          <CompanyShareholdersSection
+            companyId={company.id}
+            canUpdate={can(user, "companies.shareholders.update")}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -597,6 +597,20 @@ resources carry masked values only, so there is nothing in them to un-hide.
 See `07_SECURITY_RULES.md` section 12 and `12_M2_PARTY_ARCHITECTURE.md`
 section 11.
 
+**Historical collections use add-and-close, not CRUD.** Where a resource records
+history rather than current state — `company_people` is the first, from M2.4 —
+the surface offers exactly two mutations, and no `DELETE`, `PUT`, or `PATCH`
+exists on an existing row at any level:
+
+```text
+POST /api/v1/companies/{company}/management                       add
+POST /api/v1/companies/{company}/management/{relationship}/end    close
+```
+
+Closing writes the end date and nothing else; closing an already-closed row is a
+**409**, not a silent success, because it asks to change a recorded fact. See
+`DECISIONS.md` D-085.
+
 ---
 
 ## 34. Audit

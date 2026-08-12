@@ -772,11 +772,21 @@ it('offers the canonical entity type codes and nothing else', function (): void 
 |--------------------------------------------------------------------------
 */
 
-it('exposes no company relationship routes', function (): void {
+it('keeps relationship surfaces behind their own permissions', function (): void {
+    // At M2.3 this asserted that no relationship route existed at all, which was
+    // true then. M2.4 built them, so the assertion narrowed to what M2.3 was
+    // really protecting: `companies.view` reaches the Company and nothing about
+    // who runs or owns it (D-083). Routes that never existed stay 404.
     [$actor, $office] = companyActor('companies.view', DataScope::ALL);
     $company = makeCompanyIn($office);
 
-    foreach (['people', 'management', 'shareholders', 'directors', 'company-people'] as $segment) {
+    foreach (['management', 'shareholders'] as $segment) {
+        $this->actingAs($actor)
+            ->getJson("/api/v1/companies/{$company->party_id}/{$segment}")
+            ->assertForbidden();
+    }
+
+    foreach (['people', 'directors', 'company-people'] as $segment) {
         $this->actingAs($actor)
             ->getJson("/api/v1/companies/{$company->party_id}/{$segment}")
             ->assertNotFound();

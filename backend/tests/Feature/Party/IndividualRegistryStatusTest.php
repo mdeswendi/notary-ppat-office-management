@@ -40,18 +40,18 @@ it('marks every party permission as implemented', function (string $code): void 
     'parties.identity.nik.view_full', 'parties.identity.npwp.view_full',
 ]);
 
-it('keeps every company relationship permission deferred', function (string $code): void {
-    // At M2.2 this covered all eight `companies.*` codes, which was true then.
-    // M2.3 shipped the Company lifecycle, so the assertion narrowed to what is
-    // still true rather than being deleted — relationships are M2.4 (D-083), and
-    // `CompanyRegistryStatusTest` now owns the positive half of the claim.
+it('marks every company permission implemented once its surface exists', function (string $code): void {
+    // This assertion has tracked the milestone honestly rather than being
+    // deleted: at M2.2 all eight `companies.*` codes were deferred, at M2.3 the
+    // four lifecycle codes were not, and at M2.4 none of them is — every one has
+    // a reachable route. That the expectation inverted is the badge working.
     $response = $this->actingAs(matrixReader())->getJson('/api/v1/permissions')->assertOk();
 
     $entry = collect($response->json('data.groups'))
         ->flatMap(fn (array $group): array => $group['permissions'])
         ->firstWhere('code', $code);
 
-    expect($entry['deferred'])->toBeTrue();
+    expect($entry['deferred'])->toBeFalse();
 })->with([
     'companies.management.view', 'companies.management.update',
     'companies.shareholders.view', 'companies.shareholders.update',
@@ -67,11 +67,10 @@ it('checks the implemented claim against the router, not the list', function ():
     expect($uris->contains(fn (string $u): bool => $u === 'api/v1/individuals'))->toBeTrue()
         ->and($uris->contains(fn (string $u): bool => str_contains($u, 'individuals/{individual}/identity')))->toBeTrue();
 
-    // And nothing relationship-shaped is reachable, which is what keeps the four
-    // remaining Company codes deferred. Company *lifecycle* routes now exist, so
-    // this no longer asserts the absence of everything Company-shaped.
-    expect($uris->filter(fn (string $u): bool => str_contains($u, 'management')
-        || str_contains($u, 'shareholders')))->toBeEmpty();
+    // The Company relationship surfaces exist as of M2.4, so this no longer
+    // asserts their absence — `CompanyRelationshipRegistryTest` owns that claim
+    // in its positive form. What stays here is the Individual half.
+    expect($uris->contains(fn (string $u): bool => $u === 'api/v1/individuals/{individual}'))->toBeTrue();
 });
 
 it('still offers only OFFICE and ALL for party permissions', function (): void {

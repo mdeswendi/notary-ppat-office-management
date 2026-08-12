@@ -45,11 +45,11 @@ it('marks every Company lifecycle permission as implemented', function (string $
     expect(companyMatrixEntries()[$code]['deferred'])->toBeFalse();
 })->with(['companies.view', 'companies.create', 'companies.update', 'companies.archive']);
 
-it('keeps every relationship permission deferred', function (string $code): void {
-    // Sharper than before M2.3: Companies is a live surface now, so granting
-    // `companies.management.view` and getting no directors section is exactly
-    // the surprise the badge prevents. Relationships are M2.4 (D-083).
-    expect(companyMatrixEntries()[$code]['deferred'])->toBeTrue();
+it('marks every relationship permission implemented as of M2.4', function (string $code): void {
+    // M2.3 deferred these because Companies had become a live surface with no
+    // relationship section behind it. M2.4 built both surfaces, so the badge
+    // would now be the stale kind that trains people to ignore badges (D-077).
+    expect(companyMatrixEntries()[$code]['deferred'])->toBeFalse();
 })->with([
     'companies.management.view', 'companies.management.update',
     'companies.shareholders.view', 'companies.shareholders.update',
@@ -75,11 +75,12 @@ it('checks the implemented claim against the router, not the list', function ():
         ->and($uris->contains(fn (string $u): bool => $u === 'api/v1/companies/{company}/archive'))->toBeTrue()
         ->and($uris->contains(fn (string $u): bool => str_contains($u, 'companies/{company}/identity')))->toBeTrue();
 
-    // And the converse: nothing relationship-shaped is reachable, which is what
-    // keeps those four permissions honestly deferred.
-    expect($uris->filter(fn (string $u): bool => str_contains($u, 'management')
-        || str_contains($u, 'shareholders')
-        || str_contains($u, 'company-people')))->toBeEmpty();
+    // Relationship surfaces landed at M2.4, so this no longer asserts their
+    // absence; what stays true is that `company_people` is never addressed as a
+    // top-level resource. `CompanyRelationshipRegistryTest` owns the positive
+    // claim for the relationship routes.
+    expect($uris->filter(fn (string $u): bool => str_contains($u, 'company-people')
+        || str_contains($u, 'company_people')))->toBeEmpty();
 });
 
 it('still offers only OFFICE and ALL for company permissions', function (string $code): void {

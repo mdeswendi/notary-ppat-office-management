@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
+use App\Http\Controllers\Api\V1\CompanyManagementController;
+use App\Http\Controllers\Api\V1\CompanyShareholderController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -216,6 +218,47 @@ Route::prefix('v1')->group(function (): void {
         Route::post('companies/{company}/identity/tax-id/reveal', [CompanyIdentityController::class, 'revealTaxId'])
             ->whereUlid('company')->middleware('throttle:party.identity.reveal')
             ->name('api.v1.companies.identity.tax-id.reveal');
+
+        /*
+         * Company relationships — who runs the organization, and who owns it
+         * (M2.4).
+         *
+         * Two families rather than one, because they answer to two permissions
+         * and always have: `companies.management.*` and
+         * `companies.shareholders.*` are independent capabilities, and neither
+         * implies the other (D-083). Each route points at a controller whose
+         * category is fixed by its class, so no request can choose which surface
+         * it is talking to.
+         *
+         * **Add and end, and nothing else.** No `DELETE` and no generic `PATCH`:
+         * `company_people` is history, and "who was the director in March" must
+         * stay answerable because deeds executed in March depend on it.
+         * Superseding a relationship is end-then-add — two rows, both readable.
+         *
+         * `options` precedes `{relationship}` so the literal path wins. Both are
+         * guarded by the category's *update* permission: picking a person is
+         * part of recording a relationship, and requiring `parties.view` for it
+         * would grant the whole Party directory for a narrower task.
+         */
+        Route::get('companies/{company}/management', [CompanyManagementController::class, 'index'])
+            ->whereUlid('company')->name('api.v1.companies.management.index');
+        Route::post('companies/{company}/management', [CompanyManagementController::class, 'store'])
+            ->whereUlid('company')->name('api.v1.companies.management.store');
+        Route::get('companies/{company}/management/options', [CompanyManagementController::class, 'options'])
+            ->whereUlid('company')->name('api.v1.companies.management.options');
+        Route::post('companies/{company}/management/{relationship}/end', [CompanyManagementController::class, 'end'])
+            ->whereUlid('company')->whereUlid('relationship')
+            ->name('api.v1.companies.management.end');
+
+        Route::get('companies/{company}/shareholders', [CompanyShareholderController::class, 'index'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.index');
+        Route::post('companies/{company}/shareholders', [CompanyShareholderController::class, 'store'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.store');
+        Route::get('companies/{company}/shareholders/options', [CompanyShareholderController::class, 'options'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.options');
+        Route::post('companies/{company}/shareholders/{relationship}/end', [CompanyShareholderController::class, 'end'])
+            ->whereUlid('company')->whereUlid('relationship')
+            ->name('api.v1.companies.shareholders.end');
 
         Route::apiResource('companies', CompanyController::class)
             ->except('destroy')

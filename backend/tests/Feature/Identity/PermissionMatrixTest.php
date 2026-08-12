@@ -120,19 +120,17 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->flatMap(fn (array $group): array => $group['permissions'])
         ->firstWhere('code', 'security.settings.view');
 
-    // The Company lifecycle codes joined at M2.2 and left at M2.3, which is the
-    // flag working rather than the list churning: M2.2 put "Clients & Parties"
-    // in the navigation without shipping Companies, and M2.3 shipped them.
-    // Relationships stay deferred, and more sharply than before — Companies is a
-    // live surface now, so granting `companies.management.view` and getting no
-    // directors section is exactly the surprise the badge prevents (D-083).
+    // The Company codes joined at M2.2, the lifecycle four left at M2.3, and the
+    // relationship four left at M2.4 — the flag tracking reality rather than the
+    // list churning. Each departure happened in the milestone that gave the code
+    // a reachable route, and a router-backed test in the Party suite holds each
+    // claim to it (D-077).
+    //
+    // What remains is the flag's original case: `security.settings.*` neighbours
+    // live capabilities and has no surface of its own.
     $expected = [
         'security.settings.view',
         'security.settings.manage',
-        'companies.management.view',
-        'companies.management.update',
-        'companies.shareholders.view',
-        'companies.shareholders.update',
     ];
 
     expect($entry['deferred'])->toBeTrue()

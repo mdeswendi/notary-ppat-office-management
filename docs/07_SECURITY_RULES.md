@@ -308,6 +308,12 @@ masked too: reaching it is not seeing the values, and `parties.identity.update`
 returns masks rather than echoing what was submitted, so writing a value confers
 no readback of another.
 
+**A relationship view permission is not a sensitive identity permission.** The
+Company management and ownership surfaces (M2.4) name the people involved and
+carry **no identifier at all — not even a mask**, because a mask is still a
+statement about a sensitive value. The same holds for the candidate list those
+surfaces use to pick a person: an id and a display name, nothing more.
+
 Any future sensitive surface follows the same shape.
 
 ---

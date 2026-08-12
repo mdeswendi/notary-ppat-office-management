@@ -5,6 +5,119 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-12 — M2.4 Company relationships
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**1197 tests / 4132 assertions** — 78 new. Eight API routes, two new Company detail sections,
+i18n 535/535 exact. One new decision, **D-085**.
+
+M2.1 built `company_people` and then deliberately left it alone. Everything M2.4 needed was
+already there — both endpoints structurally constrained to their subtypes, the same-Office
+invariant carried by two composite foreign keys through one column, no soft-delete column,
+and history expressed as effective dates. The schema review found no defect and no migration
+was required.
+
+### Two surfaces, independent in both directions
+
+Management (`DIRECTOR`, `COMMISSIONER`, `AUTHORIZED_PERSON`) answers to
+`companies.management.*`. Ownership (`SHAREHOLDER`, `BENEFICIAL_OWNER`) answers to
+`companies.shareholders.*`. Neither implies the other, and neither implies or is implied by
+`companies.view` — who runs an organization, who owns it, and the organization's own details
+are three separate questions.
+
+That independence is structural rather than asserted. The two controllers share an abstract
+base, and **the category is a property of the subclass, never a request parameter** — the
+route points at a class, and the class knows what it is. Each surface rejects the other's
+types with a 422. In the interface each section fetches its own endpoint behind its own
+permission check, with its own query key, and the ordinary Company payload carries no
+relationship data at all, so holding one capability cannot cause the other's data to be
+requested.
+
+### Append-and-close, now a property of the API (D-085)
+
+D-083 already said history is preserved. It did not say what the API may therefore expose,
+and that gap mattered: nothing in its wording forbids a `PATCH` that rewrites
+`relationship_type` on an existing row, which would contradict its intent while satisfying
+its letter. **D-085 closes that** — the public mutation surface is add and end, there is no
+`DELETE` and no generic `PATCH` or `PUT` at any level, and `company_party_id`,
+`individual_party_id`, and `relationship_type` are immutable once written. Superseding a
+relationship is end-then-add: two rows, both readable.
+
+Ending writes `effective_until` and nothing else. **It is not idempotent**: a second end
+answers 409, because it asks to change a recorded end date, which is an amendment, and
+quietly overwriting it would be the software correcting a legal record on its own initiative.
+The end date is supplied by the caller and never defaulted to today — defaulting would invent
+a fact about when an appointment ceased.
+
+A relationship id used under the wrong Company, or on the wrong category's surface, answers
+**404** rather than 403. A 403 would confirm the record is real and say which category it
+belongs to, which is exactly what the permission split withholds.
+
+### Same-Office, even for ALL
+
+A relationship may only connect a Company and an Individual owned by the same Office, and
+that holds for an `ALL`-scoped actor too: `ALL` grants reach and administrative visibility,
+never the right to redefine domain ownership (D-080). The database makes a cross-office row
+unrepresentable; the application refuses the candidate first, with a **generic 422 that does
+not disclose whether that person exists** — the candidate list is same-Office precisely so it
+cannot be used to probe another Office's directory.
+
+### A narrower permission, and therefore a narrower payload
+
+Picking a person is part of recording a relationship, so the candidate options endpoint is
+authorized by the category's *update* permission rather than `parties.view` — requiring the
+whole Party directory capability for a person-picker would grant far more than the task
+needs. The price of asking for less is that the payload gives less: **an id and a display
+name, and nothing else.** No identity, no masks, no contact details, no other companies.
+
+The relationship resources are equally narrow. A relationship view permission is not a
+sensitive identity permission (D-082), so neither surface carries NIK, NPWP, birth data, or
+even a mask — a mask is still a statement about a sensitive value.
+
+### Nothing about Indonesian corporate law
+
+No director cap and no minimum. No required commissioner. No rule that one person holds one
+role. No ownership total, no per-row cap at 100, no majority inference, and **beneficial
+ownership is never derived from a shareholding** — it is recorded when somebody records it.
+`ownership_percentage` is bounded only by its column, `decimal(7,4)`, and the smoke
+deliberately records holdings summing to 175.5% to prove nothing objects. No date-transition
+rule either, including any requirement that an end date follow a start date, because
+`12_M2_PARTY_ARCHITECTURE.md` section 13 imposes none.
+
+### History survives archiving
+
+Archiving an Individual leaves their relationship rows exactly as they are — not ended, not
+retyped, not deleted. Retiring somebody from the directory is not a statement about their
+past appointments, and the relationship lists still show their name, flagged archived, read
+from the retained Party. Archiving a Company likewise leaves `company_people` untouched while
+making the ordinary relationship routes answer 404.
+
+### Permission Matrix
+
+The four relationship codes moved from *deferred* to implemented, which **empties the Party
+domain from that list entirely** — what remains is `security.settings.*`, the flag's original
+case. Four prior-milestone assertions were narrowed rather than deleted; each stated something
+true when written that M2.4 deliberately changed.
+
+### Verification
+
+The specified 66-step smoke ran over real HTTP against **PostgreSQL 18** with the real Sanctum
+SPA cookie flow. **66 / 66 passed.** It exercised the whole history story end to end: appoint
+a director, end them, be refused a second end with 409, appoint a successor, and confirm the
+first row still names the first person with its original type and end date — two `DIRECTOR`
+rows coexisting because no cardinality rule was invented. Of 97 recorded responses, none
+contained a raw identifier. Teardown restored the pre-smoke baseline exactly, by table count
+and by row identity.
+
+### Deferred, unchanged
+
+Duplicate detection and identifier search remain M2.5, as does the reverse
+Individual → Companies view — the relation exists, but adding it because the data is reachable
+would be broadening scope on the strength of a foreign key. Amendment of a recorded
+relationship stays undesigned.
+
+---
+
 ## 2026-08-12 — M2.3 Company management
 
 Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend

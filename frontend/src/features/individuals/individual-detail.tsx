@@ -29,7 +29,12 @@ import { archiveIndividual, getIndividual, individualQueryKeys } from "@/service
  * Two sections, and only two: **Profile** and **Identity**. There is deliberately
  * no Companies, Documents, Projects, Matters, or Timeline tab — those modules do
  * not exist, and an empty tab is a promise the product cannot keep (D-064).
- * Company relationships arrive with M2.4 and get their section then.
+ *
+ * M2.4 built company relationships but deliberately **not** the reverse view
+ * here: it is centred on managing relationships from the Company, and adding an
+ * Individual → Companies section because the relation is reachable would be
+ * broadening scope on the strength of a foreign key. That belongs to M2.5's
+ * integration work.
  *
  * The Identity section is a separate component with its own query, so a caller
  * who may view the record but not its identity simply does not load it — the

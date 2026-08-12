@@ -543,6 +543,12 @@ existing relationship is ended by setting `effective_until`, and the new one is 
 "Who was the director in March" must remain answerable, because deeds executed in March
 depend on the answer.
 
+**M2.4 made that a property of the API, not only of the data** (**D-085**): the public
+mutation surface is add and end, there is no `DELETE` and no generic `PATCH`,
+`company_party_id` / `individual_party_id` / `relationship_type` are immutable once written,
+and ending an already-ended relationship answers 409 rather than silently rewriting a
+recorded end date. The end date is supplied by the caller, never defaulted to today.
+
 Where PostgreSQL can enforce the subtype of each endpoint structurally rather than by
 application convention, it should — M2.1 owns the exact constraint form, but a generic FK to
 `parties` plus a hopeful comment is not sufficient.
@@ -737,10 +743,36 @@ end up storing.
 
 **No `DELETE` and no restore**, for the same reasons as Individuals.
 
-The relationship subresource under `/api/v1/companies/{company}/…` remains M2.4. Nothing
-under `company-people`, `management`, `shareholders`, or `directors` is routable, and
-**no `/api/v1/clients`** — that would be the duplicate persistence surface section 3 exists
-to prevent. All checked by probe against the router rather than assumed.
+**Company relationships are built (M2.4).** Two families rather than one, because they answer
+to two independent permissions:
+
+```text
+GET   /api/v1/companies/{company}/management                       companies.management.view
+POST  /api/v1/companies/{company}/management                       companies.management.update
+GET   /api/v1/companies/{company}/management/options               companies.management.update
+POST  /api/v1/companies/{company}/management/{relationship}/end    companies.management.update
+
+GET   /api/v1/companies/{company}/shareholders                     companies.shareholders.view
+POST  /api/v1/companies/{company}/shareholders                     companies.shareholders.update
+GET   /api/v1/companies/{company}/shareholders/options             companies.shareholders.update
+POST  /api/v1/companies/{company}/shareholders/{relationship}/end  companies.shareholders.update
+```
+
+**Add and end, and nothing else** (**D-085**). No `DELETE`, no generic `PATCH` or `PUT`, at
+any level — `company_people` is history. Each surface rejects the other category's types with
+a 422, and a relationship id used under the wrong Company or the wrong category answers
+**404** rather than 403: a 403 would confirm the record is real and say which category it
+belongs to, which is what the permission split withholds.
+
+`options` returns same-Office, non-archived candidate Individuals as **an id and a display
+name only**, plus that category's type codes. It is authorized by the category's *update*
+permission rather than `parties.view` — picking a person is part of recording a relationship,
+and requiring the whole directory capability for it would grant far more than the task needs.
+The narrower requirement is what obliges the narrower payload.
+
+**No `/api/v1/clients`** — that would be the duplicate persistence surface section 3 exists to
+prevent — and `company_people` is never addressed as a top-level resource. Both checked by
+probe against the router rather than assumed.
 
 **Identifier semantics.** An Individual or Company is addressed by its **Party ULID**. One
 public identifier per aggregate; no second id for the subtype. Route model binding must
@@ -786,10 +818,16 @@ pages beside it in the sidebar. Navigation carries "Clients & Parties" as a grou
 capabilities, and one does not imply the other. The Companies entry was added at M2.3, when
 the route landed, not when the permission was registered (D-064).
 
-Each detail page has **two sections only**: Individual shows Profile and Identity, Company
-shows Overview and Identity. No Management or Shareholders section on the Company page —
-M2.4 owns relationships, and an empty tab is a promise the product cannot keep. The API
-sends no relationship data either, so nothing there could render one.
+The Individual detail page has **two sections**: Profile and Identity. The Company detail page
+gained two more at M2.4 — **Overview, Identity, Management, and Ownership** — each appearing
+only for a holder of its own view permission and fetching its own endpoint. The ordinary
+Company payload carries no relationship data, so holding one capability cannot cause the
+other's data to be requested: the permission split is the boundary, not the tab.
+
+**No reverse Companies section on the Individual page.** The relation exists in the database,
+but M2.4 is centred on Company relationship management, and adding the reverse view because
+the data is reachable would be broadening scope on the strength of a foreign key. It belongs
+to M2.5's integration work.
 
 **Not under `/settings/`.** Settings administers the deployment; the Party directory is
 operational shared-office data that most staff use daily. Placing it in Settings would put a
@@ -871,6 +909,26 @@ forever; asking the updated record what it should be called cannot get it wrong.
 
 **M2.3 does not own** company relationships (M2.4), duplicate detection or identifier search
 (M2.5), or Office transfer, which stays undesigned and is refused rather than approximated.
+
+**M2.4 delivered:** the two Company relationship surfaces — management and ownership — as
+add-and-end history (D-085). Eight routes, two new sections on the Company detail page, and
+the candidate options endpoint. **No migration** — M2.1's `company_people` carried everything
+this needed, including the database-enforced same-Office invariant. **No permission** — the
+count stays at 171, and the four `companies.management.*` / `companies.shareholders.*` codes
+moved from *deferred* to implemented, which emptied the Party domain from that list entirely.
+
+Two properties are worth naming because they are easy to lose. **The categories are
+independent in both directions**: `companies.management.view` reaches no ownership data and
+`companies.shareholders.view` reaches no management data, at the API and in the interface,
+which is why each section has its own query key and neither appears in the Company payload.
+And **`ALL` never creates a cross-Office relationship** — it grants reach, not the right to
+redefine domain ownership, so an `ALL`-scoped actor selecting another Office's Individual is
+refused with a generic 422 that does not disclose whether that person exists.
+
+**M2.4 does not own** duplicate detection or identifier search (M2.5), the reverse
+Individual → Companies view (M2.5), amendment of a recorded relationship (undesigned), or any
+corporate-law rule: no director cap, no required commissioner, no ownership total, and no
+beneficial ownership inferred from a percentage.
 
 **Project remains M3.** M2 builds no Project, no Matter, and no Party-to-Project assignment.
 

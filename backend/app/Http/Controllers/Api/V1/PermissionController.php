@@ -106,22 +106,23 @@ class PermissionController extends Controller
      * `create`, `update`, and `archive` each have a reachable route now, so the
      * badge would be the stale kind that trains people to ignore badges.
      *
-     * **`companies.management.*` and `companies.shareholders.*` stay.** They are
-     * the case the flag exists for, and more sharply than before: Companies is
-     * now a live surface, so an administrator granting `companies.management.view`
-     * has every reason to expect a directors section. There is none — relationship
-     * behaviour is M2.4 (D-083).
+     * **`companies.management.*` and `companies.shareholders.*` left at M2.4**,
+     * which is the last Party-domain entry this list had. M2.3 kept them because
+     * Companies had become a live surface with no directors section behind it;
+     * M2.4 built both surfaces, so each of the four now has a reachable route and
+     * the badge would be the stale kind that trains people to ignore badges.
      *
-     * `parties.*`, `parties.identity.*`, and the Company lifecycle codes are
-     * deliberately **not** here. Each has a reachable route, and a test checks
-     * that claim against the router rather than trusting this list.
+     * What remains is `security.settings.*`, which is the flag's original case:
+     * its neighbours `security.sessions.*` and `security.mfa.manage` are live, so
+     * the namespace looks implemented and no global security-settings surface
+     * exists.
+     *
+     * Every Party-domain code is deliberately **not** here. Each has a reachable
+     * route, and tests check that claim against the router in both directions
+     * rather than trusting this list.
      */
     private const DEFERRED = [
         'security.settings.view',
         'security.settings.manage',
-        'companies.management.view',
-        'companies.management.update',
-        'companies.shareholders.view',
-        'companies.shareholders.update',
     ];
 }
