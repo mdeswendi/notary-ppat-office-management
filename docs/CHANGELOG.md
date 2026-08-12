@@ -5,6 +5,125 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-12 — M2.3 Company management
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**1119 tests / 3829 assertions** — 138 new. Nine API routes, four frontend routes, i18n
+495/495 exact. The Party aggregate's second subtype, and the last one M2 defines.
+
+M2.1 designed the schema so this milestone would be mechanical, and M2.2 settled the
+patterns. What M2.3 added is the HTTP surface, one derivation rule the Individual side does
+not have, and the interface.
+
+### Company lifecycle
+
+Create, list, detail, update, archive — the structural mirror of Individuals. Aggregate
+writes go through domain Actions in a single transaction, because **"no Party without a
+subtype" is the one M2.0 invariant no constraint can carry** (D-078). A test forces the
+subtype insert to fail and proves no orphan Party survives.
+
+`party_type` is set from the enum and never from input, so no request shape produces an
+INDIVIDUAL through the Company endpoint. `entity_type` is validated against the live enum —
+the seven values `03_DATABASE_ERD.md` names, transcribed and not extended — and `legal_name`
+and `entity_type` are the only required fields, both for **structural** reasons. No corporate
+rule is encoded anywhere: no required director, no unique registration number, no capital
+rule, no format for anything. Those are legal questions this milestone has no authority to
+answer.
+
+**Lifecycle authorizes on `companies.*` and never additionally on `parties.*`.** Creating a
+Company writes a Party row inside its transaction, but that is persistence composition, not
+an authorization fact — requiring two permissions because of it would leak the schema into
+the permission model. Authorization describes what a user may do, not how many tables it
+touches.
+
+Archive sets `parties.deleted_at` and leaves both the subtype and `company_people` untouched
+(D-081): deleting relationship rows would destroy the history D-083 exists to keep, and an
+archived company keeps its record of who was a director and when. Route binding resolves live
+Companies only, so an archived record and an **Individual** Party id both answer 404.
+
+### The derivation rule that differs from Individuals
+
+`display_name` comes from `short_name` when one is intentionally present and `legal_name`
+otherwise (D-079) — a short name exists precisely because somebody wanted the organization
+displayed that way.
+
+That rule has **two inputs**, which is why the update action recomputes the display name on
+every update rather than only when a name field was submitted. Removing a short name changes
+the display name without touching the legal name; adding one does the same. A conditional
+"only sync when the name changed" would have to enumerate those cases correctly forever, and
+asking the updated record what it should be called cannot get it wrong. Six tests cover the
+combinations, and the smoke walks the full sequence over HTTP: legal-name rename, short name
+added, short name removed.
+
+### Sensitive tax identity
+
+The Company `tax_id` **is** the NPWP, so it answers to the canonical
+`parties.identity.npwp.view_full` — the same code an Individual's NPWP uses. **No
+`companies.identity.*` family was invented**, because the identity surface belongs to the
+aggregate rather than the subtype. `companies.view` reaches neither the surface nor the
+value, `parties.identity.view` opens the surface with the value still masked, and
+`parties.identity.update` returns a mask rather than echoing what was submitted.
+
+Reveal reproduces the M2.2 contract exactly, which is what that contract was written down
+for: `POST` rather than `GET`, `no-store` on the response, and the `party.identity.reveal`
+limiter. Individual NIK, Individual NPWP, and Company `tax_id` share that one bucket on
+purpose — alternating between fields, or between subtypes, must not buy extra budget — and a
+test proves exhausting it still leaves the password route on its own budget.
+
+### Permission Matrix honesty
+
+The four Company lifecycle codes moved from *deferred* to implemented, which is the flag
+working rather than the list churning: M2.2 put "Clients & Parties" in the sidebar without
+shipping Companies, so the badge was earned then and is stale now.
+
+**`companies.management.*` and `companies.shareholders.*` stay deferred**, and more sharply
+than before: Companies is a live surface now, so an administrator granting
+`companies.management.view` has every reason to expect a directors section. There is none.
+The claim is checked against the router in both directions (D-077).
+
+### Frontend
+
+Four routes under `/[locale]/parties/companies`. The create and edit forms carry no `tax_id`
+field at all, so `companies.update` cannot quietly acquire `parties.identity.update`. Detail
+shows Overview and Identity only — no Management or Shareholders section, and the API sends
+no relationship collection for one to render. Directory search covers the company names,
+phone, and email; neither `tax_id` (encrypted, and unmatched by design) nor
+`registration_number` (the duplicate signal M2.5 owns) is searchable.
+
+Entity types render translated labels from stable codes. The Indonesian legal forms keep
+their own names in both locales — *Yayasan*, *Perkumpulan*, *Koperasi*, *Firma* — with an
+English gloss in parentheses rather than a substitute term, per `05_I18N_LEGAL_TERMINOLOGY.md`.
+
+A revealed value is held in component state, cleared on unmount, and has **no query key**.
+Nothing is written to `localStorage`, `sessionStorage`, or the URL.
+
+### Verification
+
+The specified 42-step smoke ran over real HTTP against **PostgreSQL 18** with the real
+Sanctum SPA cookie flow — CSRF priming, cookie jar, `X-XSRF-TOKEN`, session cookie, no bearer
+token — from the frontend origin. **42 / 42 passed.**
+
+The stored `tax_id` column holds ciphertext that decrypts back to the submitted value; the
+reveal response carries `no-store` through the real HTTP stack; and of 83 recorded responses
+the raw identifier appears in exactly the one authorized reveal body and nowhere else, with
+the application log carrying `PARTY_IDENTITY_REVEALED` metadata and zero raw values.
+
+Teardown restored the pre-smoke baseline exactly — every table count and every row identity,
+against a manifest captured before the first fixture existed. Permission count 171 and
+migration count 17 throughout.
+
+### Deferred, unchanged
+
+Company relationships — management, shareholders, beneficial owners — remain M2.4. Duplicate
+detection and identifier search remain M2.5. Office transfer stays undesigned and is refused
+rather than approximated. NPWP format validation stays deferred pending domain authority.
+
+**No new decision.** M2.3 is the Company half of rules D-078 through D-084 already settled,
+built to the reveal contract M2.2 recorded. Adding a decision for ordinary CRUD that followed
+its own architecture would be summarizing an implementation, not settling a conflict.
+
+---
+
 ## 2026-08-12 — M2.2 Individual management
 
 Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend

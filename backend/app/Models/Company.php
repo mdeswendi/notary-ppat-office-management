@@ -6,6 +6,7 @@ use App\Domains\Party\Enums\CompanyEntityType;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -53,6 +54,32 @@ class Company extends Model
     protected $keyType = 'string';
 
     public $incrementing = false;
+
+    /**
+     * Resolve only live Companies from a route.
+     *
+     * The mirror of {@see Individual::resolveRouteBindingQuery()}, and two things
+     * fall out of joining to a non-archived Party, both deliberate:
+     *
+     * An **archived** Company becomes unreachable through every ordinary route —
+     * list, detail, update, identity, and reveal all 404 rather than operating on
+     * a record the office has retired (D-081).
+     *
+     * An **Individual** Party id used on a Company route also 404s, because no
+     * `companies` row exists for it. That is the right answer rather than 403:
+     * telling the caller "wrong type" would confirm a record exists in a
+     * namespace they were not asking about, and possibly in an Office they
+     * cannot see.
+     *
+     * @param  Builder<Company>  $query
+     * @return Builder<Company>
+     */
+    public function resolveRouteBindingQuery($query, $value, $field = null)
+    {
+        return $query
+            ->where($this->getRouteKeyName(), $value)
+            ->whereHas('party');
+    }
 
     /**
      * @return BelongsTo<Party, $this>

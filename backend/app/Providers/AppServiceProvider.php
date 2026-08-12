@@ -100,7 +100,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Rate limits for sensitive identity reveal (M2.2).
+     * Rate limits for sensitive identity reveal (M2.2, extended to Company at M2.3).
      *
      * **Deliberately separate from the `security.*` buckets.** M1.9 shipped a
      * shared unnamed throttle and produced exactly the defect this avoids:
@@ -108,11 +108,13 @@ class AppServiceProvider extends ServiceProvider
      * revealing identifiers while working through a directory must not find
      * their own password change refused, and vice versa.
      *
-     * **NIK and NPWP share one bucket, on purpose.** They are the same kind of
-     * disclosure against the same record, so a caller enumerating identity data
-     * should not get twice the budget by alternating fields. This is the same
-     * reasoning that made every `current_password` route share one bucket — the
-     * sharing is chosen where it closes a hole and avoided where it opens one.
+     * **Every Party identity reveal shares one bucket, on purpose.** Individual
+     * NIK, Individual NPWP, and Company `tax_id` (M2.3) are the same kind of
+     * disclosure, so a caller enumerating identity data should not get two or
+     * three times the budget by alternating fields — or by alternating between
+     * subtypes. This is the same reasoning that made every `current_password`
+     * route share one bucket: the sharing is chosen where it closes a hole and
+     * avoided where it opens one.
      *
      * Keyed on the actor. The limit is a brake on bulk disclosure, never a
      * substitute for authorization: an unauthorized caller is refused by the

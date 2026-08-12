@@ -588,6 +588,7 @@ private` and carrying nothing but the field name and its value.
 ```text
 POST /api/v1/individuals/{individual}/identity/nik/reveal
 POST /api/v1/individuals/{individual}/identity/npwp/reveal
+POST /api/v1/companies/{company}/identity/tax-id/reveal
 ```
 
 A reveal is `POST` rather than `GET` because the value must never be

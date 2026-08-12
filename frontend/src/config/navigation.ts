@@ -1,4 +1,5 @@
 import {
+  Building2,
   Contact,
   KeyRound,
   LayoutDashboard,
@@ -82,8 +83,21 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // outright rather than serving a reliably empty page.
         requiredPermission: "parties.view",
       },
-      // Companies deliberately absent: the route does not exist until M2.3, and
-      // registering a permission is not shipping a feature (D-064).
+      {
+        key: "parties.companies",
+        translationKey: "partiesCompanies",
+        href: "/parties/companies",
+        icon: Building2,
+        // Added at M2.3, when the route landed — not when the permission was
+        // registered (D-064). The entry and the destination arrive together.
+        implemented: true,
+        // `companies.view`, not `parties.view`: Company lifecycle is its own
+        // capability, and one does not imply the other. Any effective Company
+        // scope opens the list; the query narrows the rows (D-080). OWN,
+        // ASSIGNED, and TEAM reach nothing, so the backend refuses outright
+        // rather than serving a reliably empty page.
+        requiredPermission: "companies.view",
+      },
     ],
   },
   {

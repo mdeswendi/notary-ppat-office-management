@@ -277,7 +277,13 @@ than an implementation choice:
 ```text
 POST /api/v1/individuals/{individual}/identity/nik/reveal
 POST /api/v1/individuals/{individual}/identity/npwp/reveal
+POST /api/v1/companies/{company}/identity/tax-id/reveal        (M2.3)
 ```
+
+The Company tax identifier **is** the NPWP and answers to the same canonical
+`parties.identity.npwp.view_full`. No `companies.identity.*` family exists: the
+identity surface belongs to the aggregate, not the subtype. `companies.view`
+reaches neither the surface nor the value.
 
 - **`POST`, never `GET`.** A raw identifier must not be reachable by a method
   browsers, proxies, and query caches treat as repeatable, and must never be
@@ -287,20 +293,22 @@ POST /api/v1/individuals/{individual}/identity/npwp/reveal
   exists in one response and nowhere else.
 - **Its own named rate limiter**, disjoint from the `security.*` buckets, so
   spending one cannot silently disable the other (the M1.9 defect, guarded by
-  test). NIK and NPWP share the one reveal bucket on purpose: alternating fields
-  must not buy twice the budget. A limiter is a brake on bulk disclosure, never
-  a substitute for authorization.
+  test). Every Party identity reveal shares that one bucket on purpose —
+  Individual NIK, Individual NPWP, and Company `tax_id` alike: alternating
+  fields, or alternating between subtypes, must not buy extra budget. A limiter
+  is a brake on bulk disclosure, never a substitute for authorization.
 - **The response is not an audit hole.** The access event is logged — actor,
   record, field — because "who read whose NIK" is the question an audit asks.
   The value itself is never logged, at any level.
 
-Ordinary list and detail responses carry `nik_masked` / `npwp_masked` and
-`has_nik` / `has_npwp`, computed server-side. There is no `nik` or `npwp` key in
-them to un-hide. The identity surface itself is masked too: reaching it is not
-seeing the values, and `parties.identity.update` returns masks rather than
-echoing what was submitted, so writing a value confers no readback of another.
+Ordinary list and detail responses carry `nik_masked` / `npwp_masked` /
+`tax_id_masked` and the matching `has_*` flags, computed server-side. There is no
+`nik`, `npwp`, or `tax_id` key in them to un-hide. The identity surface itself is
+masked too: reaching it is not seeing the values, and `parties.identity.update`
+returns masks rather than echoing what was submitted, so writing a value confers
+no readback of another.
 
-Future sensitive surfaces — Company `tax_id` in M2.3 — follow the same shape.
+Any future sensitive surface follows the same shape.
 
 ---
 

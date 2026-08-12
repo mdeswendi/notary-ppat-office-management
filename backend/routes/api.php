@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -176,5 +178,47 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('individuals', IndividualController::class)
             ->except('destroy')
             ->whereUlid('individual');
+
+        /*
+         * Companies — the second Party-domain business surface (M2.3).
+         *
+         * Structurally the mirror of the Individual family above, and
+         * deliberately so: one Party aggregate, two subtypes, one shape.
+         *
+         * Lifecycle authorizes on `companies.*`. Sensitive identity authorizes on
+         * `parties.identity.*`, because the identity surface belongs to the
+         * aggregate — the Company tax identifier is the NPWP and reveals through
+         * the same canonical `parties.identity.npwp.view_full` an Individual's
+         * does. No `companies.identity.*` family exists (D-082).
+         *
+         * Reveal shares the `party.identity.reveal` limiter with the Individual
+         * reveals on purpose: it is one per-actor budget for raw Party identity
+         * disclosure, so working through a directory cannot buy extra attempts by
+         * alternating between subtypes. It remains clear of the `security.*`
+         * buckets (D-071).
+         *
+         * No route here touches `company_people`. Directors, commissioners, and
+         * shareholders answer to `companies.management.*` and
+         * `companies.shareholders.*`, which M2.4 owns and this milestone does not
+         * implement (D-083).
+         */
+        Route::get('companies/options', [CompanyController::class, 'options'])
+            ->name('api.v1.companies.options');
+
+        Route::post('companies/{company}/archive', [CompanyController::class, 'archive'])
+            ->whereUlid('company')->name('api.v1.companies.archive');
+
+        Route::get('companies/{company}/identity', [CompanyIdentityController::class, 'show'])
+            ->whereUlid('company')->name('api.v1.companies.identity.show');
+        Route::patch('companies/{company}/identity', [CompanyIdentityController::class, 'update'])
+            ->whereUlid('company')->name('api.v1.companies.identity.update');
+
+        Route::post('companies/{company}/identity/tax-id/reveal', [CompanyIdentityController::class, 'revealTaxId'])
+            ->whereUlid('company')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.companies.identity.tax-id.reveal');
+
+        Route::apiResource('companies', CompanyController::class)
+            ->except('destroy')
+            ->whereUlid('company');
     });
 });

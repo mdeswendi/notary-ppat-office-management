@@ -97,25 +97,28 @@ class PermissionController extends Controller
      * `security.settings.*` remains deferred because no global security-settings
      * surface exists — verified against the route table, not assumed.
      *
-     * **`companies.*` joined the list at M2.2**, and the reason is the flag's
-     * whole purpose rather than an oversight. Before M2.2 the Party module was
-     * absent from navigation, so `companies.view` needed no badge for the same
-     * reason `projects.create` does not. M2.2 ships Individuals — navigation now
-     * shows "Clients & Parties", the namespace looks implemented, and an
-     * administrator granting `companies.view` would reasonably expect something.
-     * Nothing happens: Company surfaces are M2.3 and M2.4.
+     * **The Company lifecycle codes joined at M2.2 and left at M2.3**, and both
+     * moves are the flag working rather than the list churning. Before M2.2 the
+     * Party module was absent from navigation, so `companies.view` needed no
+     * badge for the same reason `projects.create` does not. M2.2 shipped
+     * Individuals, navigation gained "Clients & Parties", the namespace started
+     * looking implemented — and it was not. M2.3 makes it true: `companies.view`,
+     * `create`, `update`, and `archive` each have a reachable route now, so the
+     * badge would be the stale kind that trains people to ignore badges.
      *
-     * `parties.*` and `parties.identity.*` are deliberately **not** here. M2.2
-     * gives every one of them a reachable route, and a test checks that claim
-     * against the router rather than trusting this list.
+     * **`companies.management.*` and `companies.shareholders.*` stay.** They are
+     * the case the flag exists for, and more sharply than before: Companies is
+     * now a live surface, so an administrator granting `companies.management.view`
+     * has every reason to expect a directors section. There is none — relationship
+     * behaviour is M2.4 (D-083).
+     *
+     * `parties.*`, `parties.identity.*`, and the Company lifecycle codes are
+     * deliberately **not** here. Each has a reachable route, and a test checks
+     * that claim against the router rather than trusting this list.
      */
     private const DEFERRED = [
         'security.settings.view',
         'security.settings.manage',
-        'companies.view',
-        'companies.create',
-        'companies.update',
-        'companies.archive',
         'companies.management.view',
         'companies.management.update',
         'companies.shareholders.view',

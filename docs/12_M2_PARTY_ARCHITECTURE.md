@@ -450,14 +450,23 @@ The reveal response carries the field name and its value and nothing else. A nul
 stays null rather than becoming a placeholder, since a fabricated one would make an absent
 value indistinguishable from a present one.
 
-The Company identity surface remains **direction, not built**:
+**M2.3 built the Company half to the same contract**, which is what the three
+properties above existed to guarantee:
 
 ```text
-GET    /api/v1/companies/{company}/identity          parties.identity.view
-PATCH  /api/v1/companies/{company}/identity          parties.identity.update
+GET    /api/v1/companies/{company}/identity                parties.identity.view
+PATCH  /api/v1/companies/{company}/identity                parties.identity.update
+POST   /api/v1/companies/{company}/identity/tax-id/reveal  parties.identity.npwp.view_full
 ```
 
-with raw reveal gated per field by the tier-2 codes, following the three properties above.
+The Company tax identifier **is** the NPWP, so it answers to the canonical
+`parties.identity.npwp.view_full` — the same code an Individual's NPWP uses. No
+`companies.identity.*` family exists, because the identity surface belongs to the
+aggregate rather than to the subtype. `companies.view` reaches neither the surface
+nor the value, and the NIK code authorizes nothing here.
+
+One field rather than two, and that asymmetry is the schema's rather than the
+design's: a Company has one sensitive identifier.
 
 ### Storage contract
 
@@ -703,18 +712,35 @@ the Policy would then refuse.
 registry defines `parties.archive` with no restore counterpart, so there is nothing to
 authorize one with.
 
-Companies remain direction, built in M2.3:
+**Companies are built (M2.3).** Nine routes, the structural mirror of the Individual family:
 
 ```text
-GET    /api/v1/companies                         POST   /api/v1/companies
-GET    /api/v1/companies/{company}               PATCH  /api/v1/companies/{company}
-POST   /api/v1/companies/{company}/archive
+GET        /api/v1/companies                                    companies.view
+POST       /api/v1/companies                                    companies.create
+GET        /api/v1/companies/options                            companies.create
+GET        /api/v1/companies/{company}                          companies.view
+PUT|PATCH  /api/v1/companies/{company}                          companies.update
+POST       /api/v1/companies/{company}/archive                  companies.archive
+GET        /api/v1/companies/{company}/identity                 parties.identity.view
+PATCH      /api/v1/companies/{company}/identity                 parties.identity.update
+POST       /api/v1/companies/{company}/identity/tax-id/reveal   parties.identity.npwp.view_full
 ```
 
-Plus the identity surfaces in section 11, and later a relationship subresource under
-`/api/v1/companies/{company}/…`. **No `/api/v1/clients`** — that would be the duplicate
-persistence surface section 3 exists to prevent. It stays absent: nothing under `clients`,
-`companies`, or a generic `parties` path is routable, checked by probe rather than assumed.
+**Lifecycle authorizes on `companies.*` and never additionally on `parties.*`.** Creating a
+Company writes a Party row inside its transaction, but that is persistence composition, not
+an authorization fact — requiring two permissions because of it would leak the schema into
+the permission model. One ordinary mutation, one permission.
+
+`options` returns the Offices this caller may create in and the seven canonical entity type
+**codes**. Never translated labels: a display string in the payload is one the database might
+end up storing.
+
+**No `DELETE` and no restore**, for the same reasons as Individuals.
+
+The relationship subresource under `/api/v1/companies/{company}/…` remains M2.4. Nothing
+under `company-people`, `management`, `shareholders`, or `directors` is routable, and
+**no `/api/v1/clients`** — that would be the duplicate persistence surface section 3 exists
+to prevent. All checked by probe against the router rather than assumed.
 
 **Identifier semantics.** An Individual or Company is addressed by its **Party ULID**. One
 public identifier per aggregate; no second id for the subtype. Route model binding must
@@ -745,13 +771,25 @@ fingerprints, encryption metadata, or permission pivot internals.
 /[locale]/parties/individuals/[id]/edit   edit
 ```
 
-No `/[locale]/parties` index page: with one child it would be a page whose only content is a
-link to the page beside it in the sidebar. Navigation carries "Clients & Parties" as a group
-with a single "Individuals" entry behind `parties.view`, and gains "Companies" when M2.3
-builds the route — entries appear only when the route exists (D-064).
+**And in M2.3:**
 
-The detail page has **Profile and Identity only**. No Companies section: M2.4 owns
-relationships, and an empty tab is a promise the product cannot keep.
+```text
+/[locale]/parties/companies             directory
+/[locale]/parties/companies/new         create
+/[locale]/parties/companies/[id]        detail — Overview and Identity
+/[locale]/parties/companies/[id]/edit   edit
+```
+
+No `/[locale]/parties` index page: it would be a page whose only content is links to the two
+pages beside it in the sidebar. Navigation carries "Clients & Parties" as a group with
+"Individuals" behind `parties.view` and "Companies" behind `companies.view` — two separate
+capabilities, and one does not imply the other. The Companies entry was added at M2.3, when
+the route landed, not when the permission was registered (D-064).
+
+Each detail page has **two sections only**: Individual shows Profile and Identity, Company
+shows Overview and Identity. No Management or Shareholders section on the Company page —
+M2.4 owns relationships, and an empty tab is a promise the product cannot keep. The API
+sends no relationship data either, so nothing there could render one.
 
 **Not under `/settings/`.** Settings administers the deployment; the Party directory is
 operational shared-office data that most staff use daily. Placing it in Settings would put a
@@ -815,6 +853,24 @@ administrator granting `companies.view` would reasonably expect something to hap
 
 **M2.2 does not own** anything Company-shaped, duplicate detection (M2.5), identifier search,
 or Party-to-Project anything.
+
+**M2.3 delivered:** the Company lifecycle — create, list, detail, update, archive — with
+Party and Company written in one transaction, `display_name` derived from `short_name` when
+present and `legal_name` otherwise in that same transaction, and the sensitive tax identity
+surface with its reveal. Nine routes, four frontend routes under
+`/[locale]/parties/companies`, and "Companies" in navigation. **No migration** — the count
+stays at 17, because M2.1 designed the schema for exactly this. **No permission** — the count
+stays at 171; `companies.*` was already canonical, and the four lifecycle codes moved from
+*deferred* to implemented because each now has a reachable route.
+
+`display_name` is recomputed on **every** Company update rather than only when a name field
+was submitted, and that differs from the Individual action deliberately: the Company rule has
+two inputs, so removing a short name changes the display name without touching the legal name
+and adding one does the same. A conditional would have to enumerate those cases correctly
+forever; asking the updated record what it should be called cannot get it wrong.
+
+**M2.3 does not own** company relationships (M2.4), duplicate detection or identifier search
+(M2.5), or Office transfer, which stays undesigned and is refused rather than approximated.
 
 **Project remains M3.** M2 builds no Project, no Matter, and no Party-to-Project assignment.
 

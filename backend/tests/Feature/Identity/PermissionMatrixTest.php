@@ -120,16 +120,15 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->flatMap(fn (array $group): array => $group['permissions'])
         ->firstWhere('code', 'security.settings.view');
 
-    // The Company codes joined at M2.2: shipping Individuals put "Clients &
-    // Parties" in the navigation, so the namespace now looks implemented and an
-    // administrator granting `companies.view` would reasonably expect something.
+    // The Company lifecycle codes joined at M2.2 and left at M2.3, which is the
+    // flag working rather than the list churning: M2.2 put "Clients & Parties"
+    // in the navigation without shipping Companies, and M2.3 shipped them.
+    // Relationships stay deferred, and more sharply than before — Companies is a
+    // live surface now, so granting `companies.management.view` and getting no
+    // directors section is exactly the surprise the badge prevents (D-083).
     $expected = [
         'security.settings.view',
         'security.settings.manage',
-        'companies.view',
-        'companies.create',
-        'companies.update',
-        'companies.archive',
         'companies.management.view',
         'companies.management.update',
         'companies.shareholders.view',
