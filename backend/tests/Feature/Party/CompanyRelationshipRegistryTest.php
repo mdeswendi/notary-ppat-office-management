@@ -81,12 +81,21 @@ it('still offers only OFFICE and ALL for relationship permissions', function (st
     'companies.shareholders.view', 'companies.shareholders.update',
 ]);
 
-it('introduces no duplicate detection or M3 surface', function (): void {
+it('introduces no merge, fingerprint, or M3 surface', function (): void {
+    // At M2.4 this also covered `duplicate`, which was true then. M2.5 shipped
+    // advisory duplicate *candidate* checks, so the assertion narrowed to what
+    // stays true and matters more: detection never merges, never exposes the
+    // cryptographic material it compares on, and starts no M3 module (D-084,
+    // D-086).
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
-    foreach (['duplicate', 'fingerprint', 'merge', 'clients', 'projects', 'matters',
-        'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+    foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients', 'projects',
+        'matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty();
     }
+
+    // What duplicate detection does expose is candidate checks, and only those.
+    expect($uris->filter(fn (string $u): bool => str_contains($u, 'duplicate'))
+        ->every(fn (string $u): bool => str_ends_with($u, 'duplicate-candidates')))->toBeTrue();
 });

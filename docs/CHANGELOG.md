@@ -5,6 +5,100 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-12 — M2.5 Party directory and duplicate detection — BACKEND CHECKPOINT
+
+**This is an implementation checkpoint, not a milestone result. M2.5 is NOT READY.**
+The backend is complete and tested; the frontend, the specified 72-step smoke, the
+disposable-database migration verification, and the remaining documentation are outstanding,
+and none of them may be assumed from the backend alone.
+
+Branch `feat/m2-parties`. **One forward migration** (18 total) — the first since M2.1, and
+expected. Permission count unchanged at **171**: the directory composes existing capabilities
+and adds none. Backend **1292 tests / 4430 assertions** — 95 new.
+
+### The decision this milestone existed to make
+
+M2.0 deferred the sensitive-identifier duplicate mechanism and M2.1 deliberately added no
+column, because locking a cryptographic design before reviewing it is how a weak one ships.
+**D-086 settles it.**
+
+`nik`, `npwp`, and `tax_id` use randomized encryption, so equality search against the stored
+ciphertext is impossible by construction — and every obvious alternative is worse. Decrypting
+the directory to compare in PHP does not scale and puts every identifier in memory to answer
+one question; a plaintext copy defeats the encryption; an unkeyed hash of a 16-digit NIK is
+brute-forceable in seconds.
+
+The construction is a keyed blind fingerprint: an HKDF-SHA-256 subkey derived from the
+application key under a versioned context string, then HMAC-SHA-256 of the normalized value.
+Derived rather than reusing `APP_KEY` directly, so the purpose is domain-separated. Standard
+PHP primitives only. No second production secret.
+
+**Normalization is `trim` and nothing else.** Leading zeros, internal punctuation, and case
+all survive, so `09.123.456.7-890.123` and `091234567890123` do **not** match. That is an
+accepted false negative: no canonical document defines legal NPWP normalization, formats have
+changed, and a guess would silently assert an equivalence nobody approved. Detection is
+advisory, so a missed hint is the safe failure and a false claim is not.
+
+The columns are indexed and **never unique** — uniqueness would assert identity, become a
+cross-office existence oracle through rejected inserts, and turn advisory detection into
+blocking enforcement. They are hidden at the model, absent from every Resource, and withheld
+even from a holder of the full-view reveal permission, which authorizes the identifier
+through the reviewed surface rather than the material derived from it.
+
+Rotating `APP_KEY` invalidates every fingerprint, so
+`php artisan parties:rebuild-identity-fingerprints` is the operational counterpart. It is
+idempotent, prints counts only, and re-encrypts nothing.
+
+### Advisory duplicate detection
+
+Exact deterministic signals only — no fuzzy matching, no Levenshtein, no trigram, no score,
+no "95% likely". A confidence number about identity is exactly the claim M2 has no authority
+to make. Individual signals are NIK, NPWP, email, phone, and name-plus-birth-date; Company
+signals are tax identifier, registration number, legal name, email, and phone.
+
+**Always confined to the target Office**, including for an `ALL`-scoped actor: `ALL` permits
+working in another Office, not a deployment-wide identity registry. A check for a NIK that
+exists only elsewhere returns exactly what a check for a nonexistent one returns — no count,
+no hint, no "match exists elsewhere".
+
+**Sensitive signals answer to their own field permission.** Asking for a NIK match without
+`parties.identity.nik.view_full` is a 403, not a quietly narrowed result, because silently
+dropping the signal would let a caller infer the answer from its absence.
+`parties.identity.update` is explicitly not accepted: writing a value is not licence to learn
+that somebody else already has it.
+
+Nothing blocks. No lifecycle Action refuses because a candidate exists, and a test records
+the same tax identifier on two companies to prove it.
+
+### Unified read-only Party Directory
+
+`GET /api/v1/parties` — the first and only generic Party endpoint, and read-only forever.
+Individual and Company own their lifecycles; a generic Party write would be a second way to
+change the same records with none of their rules.
+
+**No new permission.** Visibility is the union of `parties.view` and `companies.view`, and
+the two are evaluated **independently and never collapsed** — an actor holding `parties.view`
+at `OFFICE` and `companies.view` at `ALL` sees their own Office's people and every Office's
+companies. Taking the widest scope would show records they cannot open; taking the narrowest
+would hide records they can. The query is two capability-specific branches unioned, each
+carrying its own predicate.
+
+### Reverse Individual → Companies
+
+The view M2.4 deferred. Read-only, two endpoints so the management/ownership split survives
+the reversal, and `can_view_company` computed from the real Company policy with scope — a
+company the actor cannot open is still named, because the person's history is about it, but
+it is not linkable.
+
+### Outstanding before M2.5 can be accepted
+
+Frontend (Party Directory page, duplicate advisory UX, reverse Companies section, navigation
+OR-capability support, i18n); the disposable-database migration chain verification including
+`down()`; the full 72-step PostgreSQL + Sanctum smoke with teardown; source scans; and the
+remaining documentation in `02`, `03`, `06`, `07`, `12`, and the README.
+
+---
+
 ## 2026-08-12 — M2.4 Company relationships
 
 Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend

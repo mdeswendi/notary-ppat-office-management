@@ -43,7 +43,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'province',
     'postal_code',
 ])]
-#[Hidden(['tax_id', 'party_type'])]
+/*
+ * `tax_id_fingerprint` is hidden and **not fillable** (D-086) — internal metadata
+ * derived from the identifier, written only by the identity Action and the
+ * maintenance command, and disclosed to nobody.
+ */
+#[Hidden(['tax_id', 'tax_id_fingerprint', 'party_type'])]
 class Company extends Model
 {
     /** @use HasFactory<CompanyFactory> */

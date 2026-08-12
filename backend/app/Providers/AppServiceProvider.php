@@ -124,6 +124,22 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('party.identity.reveal', fn (Request $request): Limit => Limit::perMinute(20)
             ->by($this->throttleIdentity($request)));
+
+        /*
+         * Advisory duplicate checks (M2.5), in their **own** bucket.
+         *
+         * A duplicate check asks whether an identifier already exists; a reveal
+         * discloses one that does. Different operations, so different budgets —
+         * exhausting the check must not disable reveal, and a person working
+         * through a directory must not find their password change refused
+         * either. That is the M1.9 defect stated for a third surface.
+         *
+         * More generous than reveal, because a form may check several times
+         * while somebody types, and the check discloses far less: a candidate
+         * list carries no identifier at all.
+         */
+        RateLimiter::for('party.duplicate.check', fn (Request $request): Limit => Limit::perMinute(30)
+            ->by($this->throttleIdentity($request)));
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Party\Actions;
 
+use App\Domains\Party\IdentityFingerprint;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,8 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateCompanyIdentity
 {
+    public function __construct(private readonly IdentityFingerprint $fingerprint) {}
+
     /**
      * @param  array<string, mixed>  $identityAttributes
      */
@@ -33,6 +36,14 @@ class UpdateCompanyIdentity
     {
         return DB::transaction(function () use ($actor, $company, $identityAttributes): Company {
             $company->fill($identityAttributes);
+
+            // Same transaction as the value it derives from (D-086) — a committed
+            // change with a stale fingerprint would make duplicate detection
+            // quietly answer about the previous value.
+            if (array_key_exists('tax_id', $identityAttributes)) {
+                $company->tax_id_fingerprint = $this->fingerprint->of($company->tax_id);
+            }
+
             $company->save();
 
             $party = $company->party;

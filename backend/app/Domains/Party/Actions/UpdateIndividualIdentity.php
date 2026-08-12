@@ -2,6 +2,7 @@
 
 namespace App\Domains\Party\Actions;
 
+use App\Domains\Party\IdentityFingerprint;
 use App\Models\Individual;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateIndividualIdentity
 {
+    public function __construct(private readonly IdentityFingerprint $fingerprint) {}
+
     /**
      * @param  array<string, mixed>  $identityAttributes
      */
@@ -30,6 +33,23 @@ class UpdateIndividualIdentity
     {
         return DB::transaction(function () use ($actor, $individual, $identityAttributes): Individual {
             $individual->fill($identityAttributes);
+
+            /*
+             * The fingerprint is written in the same transaction as the value it
+             * derives from (D-086). Not queued, not deferred: a committed
+             * identity change that left a stale fingerprint would make duplicate
+             * detection quietly answer about the previous value, and nothing in
+             * the interface would show that it had. Clearing an identifier
+             * clears its fingerprint, because null must not keep matching.
+             */
+            if (array_key_exists('nik', $identityAttributes)) {
+                $individual->nik_fingerprint = $this->fingerprint->of($individual->nik);
+            }
+
+            if (array_key_exists('npwp', $identityAttributes)) {
+                $individual->npwp_fingerprint = $this->fingerprint->of($individual->npwp);
+            }
+
             $individual->save();
 
             $party = $individual->party;

@@ -241,12 +241,22 @@ it('duplicates no contact field onto the company subtype', function (): void {
         ->and(Schema::hasColumn('parties', 'primary_email'))->toBeTrue();
 });
 
-it('adds no duplicate-detection fingerprint column', function (): void {
-    // Duplicate detection is M2.5. Locking a fingerprint design now would fix
-    // cryptographic architecture before it has been reviewed (D-084).
-    foreach (['nik_hash', 'npwp_hash', 'search_hash', 'nik_fingerprint'] as $column) {
+it('adds no unkeyed identifier hash column', function (): void {
+    // At M2.1 this asserted that *no* fingerprint column existed, which was
+    // right then: locking a cryptographic design before review is how a weak one
+    // ships. M2.5 reviewed it and settled on keyed HMAC fingerprints (D-086), so
+    // the assertion narrowed to what is still true and permanent — an **unkeyed**
+    // hash of a 16-digit NIK is brute-forceable in seconds, and no column here
+    // may ever hold one.
+    foreach (['nik_hash', 'npwp_hash', 'search_hash'] as $column) {
         expect(Schema::hasColumn('individuals', $column))->toBeFalse();
     }
 
     expect(Schema::hasColumn('companies', 'tax_id_hash'))->toBeFalse();
+
+    // The keyed replacements do exist, and are never unique: a unique index
+    // would assert identity and become a cross-office existence oracle (D-084).
+    expect(Schema::hasColumn('individuals', 'nik_fingerprint'))->toBeTrue()
+        ->and(Schema::hasColumn('individuals', 'npwp_fingerprint'))->toBeTrue()
+        ->and(Schema::hasColumn('companies', 'tax_id_fingerprint'))->toBeTrue();
 });

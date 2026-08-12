@@ -52,7 +52,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'province',
     'postal_code',
 ])]
-#[Hidden(['nik', 'npwp', 'party_type'])]
+/*
+ * `nik_fingerprint` and `npwp_fingerprint` are hidden and **not fillable**
+ * (D-086). They are internal metadata derived from the identifiers, written only
+ * by the identity Actions and the maintenance command, and disclosed to nobody —
+ * not even to a holder of the full-view reveal permission, which authorizes the
+ * identifier through the reviewed reveal surface rather than the cryptographic
+ * material derived from it.
+ */
+#[Hidden(['nik', 'npwp', 'nik_fingerprint', 'npwp_fingerprint', 'party_type'])]
 class Individual extends Model
 {
     /** @use HasFactory<IndividualFactory> */

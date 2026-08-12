@@ -2213,6 +2213,61 @@ Archiving neither endpoint touches these rows. Retiring a person from the direct
 statement about their past appointments, and archiving a Company does not unmake its history —
 `ArchiveCompany` leaves `company_people` alone deliberately.
 
+### D-086 — Sensitive duplicate lookup uses keyed blind fingerprints, derived and non-unique
+
+M2.0 deferred the sensitive-identifier duplicate mechanism and M2.1 added no column, because
+locking a cryptographic design before reviewing it is how a weak one ships. M2.5 needs it, so
+this settles it.
+
+**The problem.** `nik`, `npwp`, and `tax_id` use Laravel's `encrypted` cast, which is
+randomized: the same NIK encrypted twice yields two different ciphertexts. `WHERE nik = ?`
+can therefore never match, and every obvious alternative is worse. Decrypting the directory
+to compare in PHP does not scale and puts every identifier in memory to answer one question.
+A plaintext copy defeats the encryption. **An unkeyed hash is brute-forceable in seconds** —
+a NIK has 10^16 possibilities and a GPU does not find that hard — which D-082 already said.
+
+**The construction.**
+
+```text
+subkey      = HKDF-SHA-256(APP_KEY material, 32 bytes,
+                           info = "notary-ppat/party-identity-fingerprint/v1")
+fingerprint = HMAC-SHA-256(conservatively normalized value, subkey)  -> 64 hex
+```
+
+**Keyed**, so a stolen database dump cannot be enumerated offline without the application key.
+**Derived rather than reusing `APP_KEY` directly**, so this purpose is domain-separated from
+encryption and a problem in one use does not hand over the other. **Versioned context**, so a
+future construction re-derives from the same key rather than needing a rotation or a second
+secret. **Standard primitives only** — `hash_hkdf` and `hash_hmac`, both PHP core — for the
+reason M1.9 refused to hand-roll TOTP. No second production secret is introduced.
+
+**Normalization is deliberately conservative: `trim` and nothing else.** Leading zeros,
+internal punctuation, and case are all preserved, so `09.123.456.7-890.123` and
+`091234567890123` produce **different** fingerprints and do not match. That is an accepted
+false negative, not an oversight. No canonical document in this repository defines legal NIK
+or NPWP normalization, Indonesian NPWP formats have changed, and a guess encoded here would
+silently assert an equivalence nobody approved. Detection is advisory (D-084), so
+under-reporting costs a missed hint while over-reporting would make a claim about identity.
+**Missing a match is the safe direction**, and this stays true until domain authority defines
+the rule — at which point the versioned context allows a rebuild rather than a migration.
+
+**Non-unique, always.** The columns are indexed for equality lookup and carry no `UNIQUE`
+constraint, for the reasons D-084 gives: uniqueness asserts that two rows sharing a value are
+the same entity and that the value is always known and correctly entered, none of which holds
+for optional, sometimes-mistyped, Office-scoped identifiers. It would also make a rejected
+insert a cross-office existence oracle, and would convert advisory detection into blocking
+enforcement, which M2 did not decide.
+
+**Internal metadata, disclosed to nobody.** Hidden at the model, absent from every Resource
+and every frontend type, never logged, never in a URL — and **not disclosed even to a holder
+of the full-view reveal permission**, which authorizes the identifier through the reviewed
+reveal surface, not the cryptographic material derived from it.
+
+**Rotating `APP_KEY` invalidates every fingerprint**, because they derive from it. A rotation
+must be followed by `php artisan parties:rebuild-identity-fingerprints`; until it runs,
+duplicate detection under-reports — the safe direction, but an operational fact that belongs
+in the runbook rather than in somebody's surprise.
+
 ### M2 implementation order
 
 ```text

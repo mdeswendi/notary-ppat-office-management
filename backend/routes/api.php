@@ -4,9 +4,12 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\PartyDirectoryController;
+use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -159,6 +162,62 @@ Route::prefix('v1')->group(function (): void {
          * and carries its own named limiter, kept clear of the `security.*`
          * buckets so neither can exhaust the other (D-082).
          */
+        /*
+         * The unified Party Directory (M2.5) — the first and only generic Party
+         * endpoint, and deliberately **read-only**.
+         *
+         * No POST, PATCH, or DELETE here, ever. Individual and Company own their
+         * lifecycles with their own permissions, validation, and aggregate
+         * rules; a generic Party mutation route would be a second way to write
+         * the same records with none of that (D-078).
+         *
+         * No new permission either: visibility is the union of `parties.view`
+         * and `companies.view`, each evaluated at its own scope.
+         */
+        Route::get('parties', [PartyDirectoryController::class, 'index'])
+            ->name('api.v1.parties.index');
+
+        /*
+         * Advisory duplicate candidates (M2.5, D-084, D-086).
+         *
+         * POST even though nothing mutates: the request body carries the
+         * identifiers being typed, and a GET would put a NIK in a URL, a history
+         * entry, a proxy log, and a cached response — the reasoning that made
+         * identity reveal a POST (D-082).
+         *
+         * `duplicate-candidates` precedes `{individual}` so the literal path
+         * wins. Its own named limiter, kept clear of both the `security.*`
+         * buckets and the identity reveal bucket: these are identity *existence*
+         * questions, a different operation from disclosing a stored value, and
+         * exhausting one must not disable the other (the M1.9 defect, D-071).
+         */
+        Route::post('individuals/duplicate-candidates', [PartyDuplicateController::class, 'individualsForCreate'])
+            ->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.individuals.duplicate-candidates.create');
+        Route::post('individuals/{individual}/duplicate-candidates', [PartyDuplicateController::class, 'individualsForUpdate'])
+            ->whereUlid('individual')->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.individuals.duplicate-candidates.update');
+
+        Route::post('companies/duplicate-candidates', [PartyDuplicateController::class, 'companiesForCreate'])
+            ->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.companies.duplicate-candidates.create');
+        Route::post('companies/{company}/duplicate-candidates', [PartyDuplicateController::class, 'companiesForUpdate'])
+            ->whereUlid('company')->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.companies.duplicate-candidates.update');
+
+        /*
+         * The companies a person is involved with — M2.4's relationship surfaces
+         * read from the person's side (M2.5).
+         *
+         * Read-only. Relationship management stays on the Company, where
+         * D-085's add-and-close model lives. Two endpoints rather than one, so
+         * the management/ownership permission split survives the reversal.
+         */
+        Route::get('individuals/{individual}/companies/management', [IndividualCompanyController::class, 'management'])
+            ->whereUlid('individual')->name('api.v1.individuals.companies.management');
+        Route::get('individuals/{individual}/companies/shareholders', [IndividualCompanyController::class, 'shareholders'])
+            ->whereUlid('individual')->name('api.v1.individuals.companies.shareholders');
+
         Route::get('individuals/options', [IndividualController::class, 'options'])
             ->name('api.v1.individuals.options');
 

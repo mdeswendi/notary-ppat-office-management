@@ -87,15 +87,28 @@ it('still offers only OFFICE and ALL for company permissions', function (string 
     expect(companyMatrixEntries()[$code]['allowed_scopes'])->toBe(['OFFICE', 'ALL']);
 })->with(['companies.view', 'companies.create', 'companies.update', 'companies.archive']);
 
-it('exposes no Client or generic Party API', function (): void {
-    // "Client" is a word, not a table (D-078). A second persistence surface
-    // beside Party is the thing the unified aggregate exists to prevent.
-    $uris = collect(app('router')->getRoutes()->getRoutes())
-        ->map(fn ($route): string => $route->uri());
+it('exposes no Client API and no generic Party mutation', function (): void {
+    // "Client" is a word, not a table (D-078), and that never changes.
+    //
+    // The generic-Party half narrowed at M2.5: the read-only directory landed at
+    // `GET /api/v1/parties`. What the original assertion was really protecting
+    // is that no second *write* path to a Party exists beside the subtype
+    // lifecycles — so that is what it asserts now.
+    $routes = collect(app('router')->getRoutes()->getRoutes());
 
-    expect($uris->filter(fn (string $u): bool => str_contains($u, 'clients')))->toBeEmpty()
-        ->and($uris->filter(fn (string $u): bool => preg_match('#(^|/)api/v1/parties(/|$)#', $u) === 1))
-        ->toBeEmpty();
+    expect($routes->map(fn ($r): string => $r->uri())
+        ->filter(fn (string $u): bool => str_contains($u, 'clients')))->toBeEmpty();
+
+    $partyRoutes = $routes->filter(
+        fn ($r): bool => preg_match('#(^|/)api/v1/parties(/|$)#', $r->uri()) === 1
+    );
+
+    expect($partyRoutes)->toHaveCount(1);
+
+    foreach ($partyRoutes as $route) {
+        expect($route->methods())->toContain('GET')
+            ->and($route->methods())->not->toContain('POST', 'PATCH', 'PUT', 'DELETE');
+    }
 });
 
 it('introduces no M3 surface', function (): void {
