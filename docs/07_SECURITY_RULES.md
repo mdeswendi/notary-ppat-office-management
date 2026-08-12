@@ -271,6 +271,37 @@ Neither tier-2 code implies the other, and `parties.view` / `companies.view`
 imply neither surface access nor reveal. See `12_M2_PARTY_ARCHITECTURE.md`
 sections 10 and 11 for the storage contract and the threat review.
 
+**Built for Individuals in M2.2**, and the transport is part of the rule rather
+than an implementation choice:
+
+```text
+POST /api/v1/individuals/{individual}/identity/nik/reveal
+POST /api/v1/individuals/{individual}/identity/npwp/reveal
+```
+
+- **`POST`, never `GET`.** A raw identifier must not be reachable by a method
+  browsers, proxies, and query caches treat as repeatable, and must never be
+  expressible as a URL. That is what makes "never in a URL, never in a cache
+  key" structural instead of a convention.
+- **`Cache-Control: no-store, no-cache, must-revalidate, private`.** The value
+  exists in one response and nowhere else.
+- **Its own named rate limiter**, disjoint from the `security.*` buckets, so
+  spending one cannot silently disable the other (the M1.9 defect, guarded by
+  test). NIK and NPWP share the one reveal bucket on purpose: alternating fields
+  must not buy twice the budget. A limiter is a brake on bulk disclosure, never
+  a substitute for authorization.
+- **The response is not an audit hole.** The access event is logged — actor,
+  record, field — because "who read whose NIK" is the question an audit asks.
+  The value itself is never logged, at any level.
+
+Ordinary list and detail responses carry `nik_masked` / `npwp_masked` and
+`has_nik` / `has_npwp`, computed server-side. There is no `nik` or `npwp` key in
+them to un-hide. The identity surface itself is masked too: reaching it is not
+seeing the values, and `parties.identity.update` returns masks rather than
+echoing what was submitted, so writing a value confers no readback of another.
+
+Future sensitive surfaces — Company `tax_id` in M2.3 — follow the same shape.
+
 ---
 
 ## 13. File Storage

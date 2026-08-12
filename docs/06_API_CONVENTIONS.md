@@ -580,6 +580,22 @@ Examples:
 
 Use explicit endpoints/permissions where full-value reveal is required.
 
+**The concrete convention, established for the Party domain in M2.2:** a reveal
+is a `POST` to a per-field sub-resource, authorized by that field's own
+permission, answering `Cache-Control: no-store, no-cache, must-revalidate,
+private` and carrying nothing but the field name and its value.
+
+```text
+POST /api/v1/individuals/{individual}/identity/nik/reveal
+POST /api/v1/individuals/{individual}/identity/npwp/reveal
+```
+
+A reveal is `POST` rather than `GET` because the value must never be
+expressible as a URL or land in a cached response. The ordinary list and detail
+resources carry masked values only, so there is nothing in them to un-hide.
+See `07_SECURITY_RULES.md` section 12 and `12_M2_PARTY_ARCHITECTURE.md`
+section 11.
+
 ---
 
 ## 34. Audit

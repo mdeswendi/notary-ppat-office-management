@@ -5,6 +5,120 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-12 — M2.2 Individual management
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**981 tests / 3451 assertions** — 85 new. Ten API routes, four frontend routes, i18n 419/419
+exact. The first Party-domain business surface.
+
+M2.1 was built so this milestone would be mechanical, and it was: the schema, the enums, the
+scope predicates, and the policy abilities all existed already. What M2.2 added is the HTTP
+surface, the transaction that carries the one invariant the database cannot, and the
+interface.
+
+### Individual lifecycle
+
+Create, list, detail, update, archive. Aggregate writes go through domain Actions in a single
+transaction, because **"no Party without a subtype" is the one M2.0 invariant no practical
+constraint can enforce** (D-078) — it rests on that rollback and nothing else. A test forces
+the subtype insert to fail and proves no orphan Party survives.
+
+`party_type` is set from the enum and never from input, so no request shape produces a COMPANY
+through the Individual endpoint. `display_name` is derived from the canonical full name in the
+same transaction (D-079): a rename cannot leave the directory showing one name and the detail
+page another. `office_id` is refused on update rather than ignored — moving a Party between
+Offices crosses a security boundary and would strand any relationship pinned to the old one,
+so M2.2 rejects it instead of inventing semantics.
+
+Archive sets `parties.deleted_at` and leaves the subtype row alone (D-081). Route binding
+resolves live Individuals only, which is why an archived record and a Company Party id both
+answer **404** — telling a caller "wrong type" would confirm a record exists in a namespace
+they were not asking about, possibly in an Office they cannot see. No `DELETE`, and no
+restore: the registry defines `parties.archive` and no counterpart to authorize one with.
+
+### Sensitive identity, D-082 end to end
+
+M2.0 left the reveal route shape open between per-field operations and one conditionally
+serializing endpoint. **M2.2 settled it as per-field operations**, and the reason is the
+frontend cache: a conditional `GET` puts the raw value in an ordinary response, which is
+exactly what ends up cached.
+
+Ordinary list and detail serialize `nik_masked` / `npwp_masked` computed server-side. There
+is no `nik` key in the payload to un-hide — two independent defences, the Resource's explicit
+attribute list and the model's `#[Hidden]`, would both have to fail. Reveal is a `POST`
+answering `no-store`, authorized per field: NIK and NPWP imply nothing about each other,
+`identity.view` reveals neither, and `identity.update` returns masks rather than echoing what
+was submitted, so writing a value confers no readback of another.
+
+The reveal limiter is deliberately separate from the `security.*` buckets, and a test proves
+exhausting it does not disable the password route — **the M1.9 defect, guarded rather than
+remembered**. NIK and NPWP share the one reveal bucket on purpose: alternating fields must not
+buy twice the budget.
+
+The access event is logged with actor, record, and field. The value is not, at any level.
+
+### Scope behaviour
+
+`OFFICE` and `ALL` are the only scopes that reach a Party (D-080). `OWN`, `ASSIGNED`, and
+`TEAM` fail closed — a holder of all eight `parties.*` codes at any of those three reaches
+nothing, including list, which is refused outright rather than returning a reliably empty
+page. Visibility is applied **in the query**, so an office-scoped caller's SQL never selects
+another Office's rows and no filter can widen it; `permits()` runs the identical constraint
+against one key, so "what appears in the list" and "what may I open" cannot drift apart.
+
+### Permission Matrix honesty
+
+`companies.*` joined the deferred list, which reads like a step backwards and is not. Before
+M2.2 the Party module was absent from navigation, so `companies.view` needed no badge for the
+same reason `projects.create` does not. Shipping Individuals put "Clients & Parties" into the
+sidebar — the namespace now looks implemented, and an administrator granting `companies.view`
+would reasonably expect something. `parties.*` left the list, and the claim is **checked
+against the router** rather than asserted (D-077).
+
+### Frontend
+
+Four routes under `/[locale]/parties/individuals`. The create and edit forms carry no identity
+fields at all, so `parties.update` cannot quietly acquire `parties.identity.update`. Detail
+shows Profile and Identity only — no Companies section, because M2.4 owns relationships and an
+empty tab is a promise the product cannot keep. Directory search covers name, phone, and
+email; identifier search is M2.5 and would turn the directory into an existence oracle.
+
+A revealed value is held in component state, cleared on unmount, and has **no query key** —
+giving it one would put a raw NIK in a cache that outlives the component and survives
+navigation. Nothing is written to `localStorage`, `sessionStorage`, or the URL.
+
+### Verification
+
+Closure ran the specified 40-step smoke over real HTTP against **PostgreSQL 18** with the real
+Sanctum SPA cookie flow — CSRF priming, cookie jar, `X-XSRF-TOKEN`, session cookie, no bearer
+token anywhere — from the frontend origin. **40 / 40 passed.**
+
+What the smoke proves that the Pest suite cannot: the stored `nik` and `npwp` columns hold
+ciphertext that decrypts back to the submitted value (228 and 200 bytes for 16- and 15-digit
+inputs); the reveal response really carries `no-store` through the HTTP stack; the reveal
+budget and the password budget are genuinely separate buckets; and 78 recorded responses
+contain the raw identifiers in exactly the two authorized reveal bodies and nowhere else, with
+the application log carrying `PARTY_IDENTITY_REVEALED` metadata and zero raw values.
+
+Teardown restored the pre-smoke baseline exactly — every table count, and every row identity,
+compared against a manifest captured before the first fixture existed. Permission count 171,
+migration count 17, both unchanged throughout.
+
+### Deferred, unchanged
+
+Company management (M2.3), company relationships (M2.4), duplicate detection and identifier
+search (M2.5). NIK and NPWP format validation stays deferred pending domain authority — no
+canonical document freezes either format, and the Form Requests are exactly where somebody
+would be tempted to add `digits:16` from memory.
+
+**No new decision.** M2.2 introduced no durable architecture rule that D-078 through D-084 do
+not already carry: the reveal transport is the mechanism D-082's "never in a URL, never in a
+cache key" already required, and the separate limiter is D-071's reasoning applied forward.
+Both are recorded as contract in `07_SECURITY_RULES.md` section 12 and
+`12_M2_PARTY_ARCHITECTURE.md` section 11, where M2.3 will need them.
+
+---
+
 ## 2026-08-11 — M2.1 Party schema and authorization foundation
 
 Branch `feat/m2-parties`. **Four forward migrations** (17 total). Permission count unchanged

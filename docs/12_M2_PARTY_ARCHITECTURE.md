@@ -408,25 +408,56 @@ decision, not a schema one.
 
 ### API direction
 
-M2.0 deliberately does not fix the route shape. Either satisfies the contract:
+M2.0 left the route shape open between two options that both satisfy the contract:
 
 - **A.** dedicated per-field reveal operations; or
 - **B.** one identity endpoint that serializes each field conditionally on that field's
   effective authorization.
 
-**Prefer an explicit reveal operation** where it better keeps raw values out of long-lived
-frontend query caches. A value that never enters a cache cannot be read out of one.
-
-Conceptual direction, to be settled in the milestone that builds it:
+**M2.2 settled it as A, for Individuals.** Option B would have made the raw value part of an
+ordinary `GET` response, which is precisely the thing that ends up in a long-lived frontend
+query cache; a value that never enters a cache cannot be read out of one.
 
 ```text
-GET    /api/v1/individuals/{individual}/identity     parties.identity.view
-PATCH  /api/v1/individuals/{individual}/identity     parties.identity.update
+GET    /api/v1/individuals/{individual}/identity                  parties.identity.view
+PATCH  /api/v1/individuals/{individual}/identity                  parties.identity.update
+POST   /api/v1/individuals/{individual}/identity/nik/reveal       parties.identity.nik.view_full
+POST   /api/v1/individuals/{individual}/identity/npwp/reveal      parties.identity.npwp.view_full
+```
+
+Both tier-2 abilities additionally require tier 1 — a permission to see one field of a surface
+the actor may not open would be incoherent.
+
+**Three properties of the reveal operation are contract, not implementation detail**, and
+M2.3 must reproduce them for Company `tax_id`:
+
+- **`POST`, never `GET`.** A raw identifier must not be reachable by a method that browsers,
+  proxies, and query caches treat as repeatable and cacheable, and must never be expressible
+  as a URL. This is what makes the "never in a URL, never in a cache key" clause of the
+  storage contract structural rather than a convention.
+- **`Cache-Control: no-store, no-cache, must-revalidate, private`** on the response, so the
+  value exists in one response and nowhere else — not in a shared cache, a browser disk
+  cache, or the back/forward cache.
+- **Its own named rate limiter**, deliberately disjoint from the `security.*` buckets. The
+  reasoning is D-071's, applied forward: a shared bucket means spending one route's budget
+  silently disables an unrelated one, so somebody working through a directory must not find
+  their own password change refused. NIK and NPWP share the one reveal bucket on purpose —
+  they are the same kind of disclosure against the same record, and separating them would
+  hand a caller twice the budget for alternating fields. The limit is a brake on bulk
+  disclosure and never a substitute for authorization.
+
+The reveal response carries the field name and its value and nothing else. A null identifier
+stays null rather than becoming a placeholder, since a fabricated one would make an absent
+value indistinguishable from a present one.
+
+The Company identity surface remains **direction, not built**:
+
+```text
 GET    /api/v1/companies/{company}/identity          parties.identity.view
 PATCH  /api/v1/companies/{company}/identity          parties.identity.update
 ```
 
-with raw reveal gated per field by the tier-2 codes.
+with raw reveal gated per field by the tier-2 codes, following the three properties above.
 
 ### Storage contract
 
@@ -648,11 +679,33 @@ Conventions from `06_API_CONVENTIONS.md` are unchanged: `{"data": …}` for a si
 `{"data": […], "meta": …}` for a collection, and 401 / 403 / 404 / 409 / 422 / 429 as M1 uses
 them.
 
-```text
-GET    /api/v1/individuals                       POST   /api/v1/individuals
-GET    /api/v1/individuals/{individual}          PATCH  /api/v1/individuals/{individual}
-POST   /api/v1/individuals/{individual}/archive
+**Individuals are built (M2.2).** The delivered surface, ten routes, verified against the
+router rather than transcribed from this document:
 
+```text
+GET        /api/v1/individuals                                    parties.view
+POST       /api/v1/individuals                                    parties.create
+GET        /api/v1/individuals/options                            parties.create
+GET        /api/v1/individuals/{individual}                       parties.view
+PUT|PATCH  /api/v1/individuals/{individual}                       parties.update
+POST       /api/v1/individuals/{individual}/archive               parties.archive
+GET        /api/v1/individuals/{individual}/identity              parties.identity.view
+PATCH      /api/v1/individuals/{individual}/identity              parties.identity.update
+POST       /api/v1/individuals/{individual}/identity/nik/reveal   parties.identity.nik.view_full
+POST       /api/v1/individuals/{individual}/identity/npwp/reveal  parties.identity.npwp.view_full
+```
+
+`options` is narrow form metadata — the Offices this caller may create in — not an Office API.
+It applies the same predicate the Policy applies, so the dropdown cannot offer a destination
+the Policy would then refuse.
+
+**No `DELETE` and no restore.** Party-domain records are archived (section 9, D-081), and the
+registry defines `parties.archive` with no restore counterpart, so there is nothing to
+authorize one with.
+
+Companies remain direction, built in M2.3:
+
+```text
 GET    /api/v1/companies                         POST   /api/v1/companies
 GET    /api/v1/companies/{company}               PATCH  /api/v1/companies/{company}
 POST   /api/v1/companies/{company}/archive
@@ -660,7 +713,8 @@ POST   /api/v1/companies/{company}/archive
 
 Plus the identity surfaces in section 11, and later a relationship subresource under
 `/api/v1/companies/{company}/…`. **No `/api/v1/clients`** — that would be the duplicate
-persistence surface section 3 exists to prevent.
+persistence surface section 3 exists to prevent. It stays absent: nothing under `clients`,
+`companies`, or a generic `parties` path is routable, checked by probe rather than assumed.
 
 **Identifier semantics.** An Individual or Company is addressed by its **Party ULID**. One
 public identifier per aggregate; no second id for the subtype. Route model binding must
@@ -681,6 +735,23 @@ fingerprints, encryption metadata, or permission pivot internals.
 /[locale]/parties/companies
 /[locale]/parties/companies/[id]
 ```
+
+**Delivered in M2.2**, and the differences from the sketch above are deliberate:
+
+```text
+/[locale]/parties/individuals             directory
+/[locale]/parties/individuals/new         create
+/[locale]/parties/individuals/[id]        detail — Profile and Identity
+/[locale]/parties/individuals/[id]/edit   edit
+```
+
+No `/[locale]/parties` index page: with one child it would be a page whose only content is a
+link to the page beside it in the sidebar. Navigation carries "Clients & Parties" as a group
+with a single "Individuals" entry behind `parties.view`, and gains "Companies" when M2.3
+builds the route — entries appear only when the route exists (D-064).
+
+The detail page has **Profile and Identity only**. No Companies section: M2.4 owns
+relationships, and an empty tab is a promise the product cannot keep.
 
 **Not under `/settings/`.** Settings administers the deployment; the Party directory is
 operational shared-office data that most staff use daily. Placing it in Settings would put a
@@ -729,6 +800,21 @@ has settled them; Permission Matrix implementation metadata updated **without ch
 count**; database constraints; and architecture tests.
 
 **M2.1 does not own** full CRUD UI — that is M2.2 onward.
+
+**M2.2 delivered:** the Individual lifecycle — create, list, detail, update, archive — with
+Party and Individual written in one transaction, `display_name` synchronized from the
+canonical full name in that same transaction, and the sensitive identity surface with two
+independent reveal operations (section 11). Ten routes, four frontend routes under
+`/[locale]/parties/individuals`, and "Clients & Parties" in navigation. **No migration** —
+the count stays at 17, because M2.1's schema was designed to make this milestone mechanical.
+**No permission** — the count stays at 171; `parties.*` was already canonical and M2.2 gave
+each of the eight codes a reachable route. `companies.*` became *deferred* in the Permission
+Matrix at the same time, which is not a step backwards: before M2.2 the Party module was
+absent from navigation, so the namespace advertised nothing; now it looks implemented, and an
+administrator granting `companies.view` would reasonably expect something to happen.
+
+**M2.2 does not own** anything Company-shaped, duplicate detection (M2.5), identifier search,
+or Party-to-Project anything.
 
 **Project remains M3.** M2 builds no Project, no Matter, and no Party-to-Project assignment.
 
