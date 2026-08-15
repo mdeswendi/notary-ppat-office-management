@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IdentitySection } from "@/features/individuals/identity-section";
+import { IndividualCompaniesSection } from "@/features/individuals/individual-companies-section";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -26,20 +27,20 @@ import { archiveIndividual, getIndividual, individualQueryKeys } from "@/service
 /**
  * One Individual.
  *
- * Two sections, and only two: **Profile** and **Identity**. There is deliberately
- * no Companies, Documents, Projects, Matters, or Timeline tab — those modules do
- * not exist, and an empty tab is a promise the product cannot keep (D-064).
+ * Three sections: **Profile**, **Identity**, and **Companies**. There is still
+ * deliberately no Documents, Projects, Matters, or Timeline tab — those modules
+ * do not exist, and an empty tab is a promise the product cannot keep (D-064).
  *
- * M2.4 built company relationships but deliberately **not** the reverse view
- * here: it is centred on managing relationships from the Company, and adding an
- * Individual → Companies section because the relation is reachable would be
- * broadening scope on the strength of a foreign key. That belongs to M2.5's
- * integration work.
+ * Companies arrives at M2.5. M2.4 built the relationships and deliberately left
+ * the reverse view alone: it was centred on managing them from the Company, and
+ * adding this section because the relation is reachable would have been
+ * broadening scope on the strength of a foreign key. It is **read-only** —
+ * relationship management stays on the Company.
  *
- * The Identity section is a separate component with its own query, so a caller
- * who may view the record but not its identity simply does not load it — the
- * profile still renders, and the missing section is a normal condition rather
- * than an error.
+ * Each section beyond Profile is a separate component with its own query, so a
+ * caller who may view the record but not its identity — or neither category of
+ * relationship — simply does not load them. The profile still renders, and a
+ * missing section is a normal condition rather than an error.
  */
 export function IndividualDetail({ individualId }: { individualId: string }) {
   const t = useTranslations("individuals");
@@ -78,6 +79,12 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
   }
 
   const individual = query.data;
+
+  // Presentation only, and asked separately: holding one relationship capability
+  // says nothing about the other, so neither subsection may be rendered — or
+  // fetched — on the strength of the other's permission.
+  const canViewManagement = can(user, "companies.management.view");
+  const canViewShareholders = can(user, "companies.shareholders.view");
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,6 +140,24 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
           canUpdate={can(user, "parties.identity.update")}
         />
       </section>
+
+      {/*
+       * Companies, and only for somebody who may see at least one category.
+       * Rendering an empty shell for a caller who holds neither relationship
+       * capability would advertise data they cannot have, and the two categories
+       * are checked separately because neither implies the other (D-083).
+       */}
+      {canViewManagement || canViewShareholders ? (
+        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+          <h2 className="text-base font-medium">{t("companiesSection")}</h2>
+
+          <IndividualCompaniesSection
+            individualId={individual.id}
+            canViewManagement={canViewManagement}
+            canViewShareholders={canViewShareholders}
+          />
+        </section>
+      ) : null}
     </div>
   );
 }

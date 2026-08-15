@@ -1,4 +1,5 @@
 import {
+  BookUser,
   Building2,
   Contact,
   KeyRound,
@@ -50,6 +51,26 @@ export type NavigationItem = {
    * destinations. Exact membership, never a comparison.
    */
   requiredScope?: DataScope;
+  /**
+   * Canonical permission codes of which **any one** is enough.
+   *
+   * For destinations composed from more than one capability rather than gated by
+   * a single one. The Party Directory is the first: it shows Individuals to a
+   * holder of `parties.view` and Companies to a holder of `companies.view`, and
+   * a person holding either has something real to open. Requiring both would
+   * hide a working page; requiring an invented `parties.directory.view` would let
+   * an administrator grant the directory without granting sight of anything in
+   * it, or withhold it from somebody who can already open every record it lists.
+   *
+   * Mutually exclusive with `requiredPermission` in practice — an entry that
+   * needs one specific capability should say so with that field. When both are
+   * set, both must hold, so neither can quietly widen the other.
+   *
+   * `requiredScope` deliberately does **not** combine with this: an exact scope
+   * means one specific capability, and pairing it with a set of alternatives
+   * would be ambiguous about which capability the scope belonged to.
+   */
+  anyPermissions?: readonly string[];
   children?: NavigationItem[];
 };
 
@@ -72,6 +93,24 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     icon: Contact,
     implemented: true,
     children: [
+      {
+        key: "parties.directory",
+        translationKey: "partiesDirectory",
+        href: "/parties",
+        icon: BookUser,
+        // Added at M2.5, when the route landed — not when the backend endpoint
+        // did (D-064).
+        implemented: true,
+        // Either subtype capability is enough, because the directory shows
+        // whichever of the two the caller can reach and the backend composes it
+        // that way. No `parties.directory.view` exists and none should: it would
+        // be a permission for a page rather than for the records on it.
+        //
+        // The two scopes stay independent all the way through — nothing here
+        // unions or ranks them, and the page says so rather than implying one
+        // scope governs every row.
+        anyPermissions: ["parties.view", "companies.view"],
+      },
       {
         key: "parties.individuals",
         translationKey: "partiesIndividuals",
@@ -162,6 +201,13 @@ export function visibleNavigation(
 }
 
 function isPermitted(user: CurrentUser | null | undefined, item: NavigationItem): boolean {
+  // Every stated condition must hold. An entry with neither field is
+  // unrestricted; one with both is restricted by both, so adding `anyPermissions`
+  // to an entry can never widen what `requiredPermission` already narrowed.
+  if (item.anyPermissions && !item.anyPermissions.some((code) => can(user, code))) {
+    return false;
+  }
+
   if (!item.requiredPermission) {
     return true;
   }

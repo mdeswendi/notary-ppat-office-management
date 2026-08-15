@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
+import {
+  DuplicateAdvisoryPanel,
+  DuplicateCheckNotice,
+  useDuplicateAdvisory,
+} from "@/features/parties/duplicate-advisory";
 import { useRouter } from "@/i18n/navigation";
 import {
   companyQueryKeys,
@@ -18,6 +23,10 @@ import {
   getCompanyOptions,
   updateCompany,
 } from "@/services/companies";
+import {
+  checkCompanyDuplicatesForCreate,
+  checkCompanyDuplicatesForUpdate,
+} from "@/services/party-duplicates";
 import { COMPANY_ENTITY_TYPES, type Company, type CompanyEntityType } from "@/types/company";
 
 /**
@@ -43,6 +52,18 @@ import { COMPANY_ENTITY_TYPES, type Company, type CompanyEntityType } from "@/ty
  * and no corporate-law rule appears on either side — no required director, no
  * unique registration number, no capital rule. Those are legal rules this
  * milestone has no authority to invent.
+ *
+ * **Duplicate assistance is advisory and cannot block a save (M2.5, D-084).** The
+ * check runs once before the first submit; if it finds anything, a neutral panel
+ * offers Review or Continue anyway, and continuing performs the ordinary create
+ * or update Action unchanged. A check that fails lets the save through
+ * immediately. Nothing here merges, replaces, or reuses a candidate record.
+ *
+ * It compares **only the ordinary fields this form collects**. `tax_id` is not
+ * sent — M2.3 deliberately keeps it on the identity surface, and putting it here
+ * to improve matching would make `companies.update` a superset of
+ * `parties.identity.update`. Tax-identifier matching belongs to the identity
+ * section, under the NPWP full-view capability.
  */
 export function CompanyForm({ company }: { company?: Company }) {
   const t = useTranslations("companies");
@@ -51,6 +72,8 @@ export function CompanyForm({ company }: { company?: Company }) {
   const queryClient = useQueryClient();
 
   const isEdit = company !== undefined;
+
+  const advisory = useDuplicateAdvisory();
 
   const options = useQuery({
     queryKey: companyQueryKeys.options,
@@ -189,8 +212,50 @@ export function CompanyForm({ company }: { company?: Company }) {
     },
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  /**
+   * The check to run for these values, or null when there is nothing to compare.
+   *
+   * Ordinary signals only — legal name, registration number, email, phone — and
+   * only the ones actually filled in. No `tax_id`: it is not on this form, and
+   * asking about it requires the NPWP full-view capability rather than
+   * `companies.create`.
+   */
+  const duplicateCheck = (values: FormValues) => {
+    const filled = (value: string) => (value.trim() === "" ? undefined : value.trim());
+
+    const comparison = {
+      legal_name: filled(values.legal_name),
+      registration_number: filled(values.registration_number),
+      primary_email: filled(values.primary_email),
+      primary_phone: filled(values.primary_phone),
+    };
+
+    if (Object.values(comparison).every((value) => value === undefined)) {
+      return null;
+    }
+
+    if (company) {
+      return () => checkCompanyDuplicatesForUpdate(company.id, comparison);
+    }
+
+    const officeId = values.office_id ?? "";
+
+    if (officeId === "") {
+      return null;
+    }
+
+    return () => checkCompanyDuplicatesForCreate({ office_id: officeId, ...comparison });
+  };
+
+  const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
+
+    // Advisory: this delays the save exactly once and only when something was
+    // found. Acknowledging, or a failed check, lets every later submit through.
+    if (!(await advisory.gate(duplicateCheck(values)))) {
+      return;
+    }
+
     mutation.mutate(values);
   });
 
@@ -207,6 +272,18 @@ export function CompanyForm({ company }: { company?: Company }) {
           {form.formState.errors.root.message}
         </p>
       ) : null}
+
+      <DuplicateAdvisoryPanel
+        candidates={advisory.candidates}
+        onReview={advisory.dismiss}
+        continueDisabled={mutation.isPending}
+        onContinue={() => {
+          advisory.acknowledge();
+          void onSubmit();
+        }}
+      />
+
+      <DuplicateCheckNotice reason={advisory.unavailable} />
 
       {!isEdit ? (
         <div className="flex flex-col gap-2">
@@ -323,8 +400,16 @@ export function CompanyForm({ company }: { company?: Company }) {
       </fieldset>
 
       <div>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? tActions("saving") : tActions("save")}
+        {/*
+         * Disabled only while a request is in flight — never because a candidate
+         * was found.
+         */}
+        <Button type="submit" disabled={mutation.isPending || advisory.checking}>
+          {advisory.checking
+            ? t("checkingDuplicates")
+            : mutation.isPending
+              ? tActions("saving")
+              : tActions("save")}
         </Button>
       </div>
     </form>

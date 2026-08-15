@@ -57,12 +57,51 @@
     "settingsRoles": "Peran & Hak Akses",
     "parties": "Klien & Pihak",
     "partiesIndividuals": "Perorangan",
-    "partiesCompanies": "Perusahaan"
+    "partiesCompanies": "Perusahaan",
+    "partiesDirectory": "Direktori"
   },
   "dashboard": {
     "title": "Dasbor",
     "foundationSubtitle": "Antarmuka fondasi",
     "placeholderBody": "Kerangka aplikasi sudah siap. Ringkasan dasbor akan ditampilkan setelah modul terkait tersedia."
+  },
+  "parties": {
+    "title": "Direktori Pihak",
+    "subtitle": "Cari orang atau badan usaha.",
+    "searchLabel": "Cari di direktori pihak",
+    "searchPlaceholder": "Nama, telepon, atau email",
+    "typeFilterLabel": "Jenis",
+    "allTypes": "Semua jenis",
+    "officeFilterLabel": "Kantor",
+    "allOffices": "Semua kantor",
+    "scopeHint": "Perorangan dan perusahaan mengikuti hak akses masing-masing, sehingga cakupan kantornya dapat berbeda.",
+    "tableCaption": "Perorangan dan perusahaan yang dapat Anda akses",
+    "nameLabel": "Nama",
+    "typeLabel": "Jenis",
+    "phoneLabel": "Telepon",
+    "officeLabel": "Kantor",
+    "loading": "Memuat direktori pihak",
+    "errorTitle": "Direktori pihak tidak dapat dimuat",
+    "emptyTitle": "Direktori masih kosong",
+    "emptyDescription": "Perorangan dan perusahaan akan muncul di sini setelah dicatat.",
+    "noMatchesTitle": "Tidak ada hasil",
+    "noMatchesDescription": "Tidak ada pihak yang cocok dengan filter itu.",
+    "paginationLabel": "Navigasi halaman direktori pihak",
+    "paginationSummary": "Halaman {current} dari {last} — {total} pihak",
+    "previousPage": "Sebelumnya",
+    "nextPage": "Berikutnya",
+    "partyTypes": {
+      "INDIVIDUAL": "Perorangan",
+      "COMPANY": "Perusahaan"
+    },
+    "errors": {
+      "forbidden": "Anda tidak memiliki izin untuk melihat direktori pihak.",
+      "notFound": "Data pihak tidak ditemukan.",
+      "validation": "Periksa kembali filter yang Anda gunakan.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.",
+      "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
+      "server": "Terjadi kesalahan server. Silakan coba lagi."
+    }
   },
   "individuals": {
     "title": "Perorangan",
@@ -143,7 +182,9 @@
       "tooManyAttempts": "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.",
       "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
       "server": "Terjadi kesalahan server. Silakan coba lagi."
-    }
+    },
+    "companiesSection": "Perusahaan",
+    "checkingDuplicates": "Memeriksa..."
   },
   "companies": {
     "title": "Perusahaan",
@@ -227,7 +268,8 @@
       "tooManyAttempts": "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.",
       "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
       "server": "Terjadi kesalahan server. Silakan coba lagi."
-    }
+    },
+    "checkingDuplicates": "Memeriksa..."
   },
   "companyRelationships": {
     "managementSection": "Pengurus",
@@ -272,6 +314,55 @@
       "tooManyAttempts": "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.",
       "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
       "server": "Terjadi kesalahan server. Silakan coba lagi."
+    }
+  },
+  "individualCompanies": {
+    "description": "Perusahaan yang terkait dengan orang ini, dulu maupun sekarang. Hubungan dikelola dari halaman perusahaan.",
+    "managementSection": "Hubungan kepengurusan",
+    "ownershipSection": "Hubungan kepemilikan",
+    "managementEmpty": "Belum ada kepengurusan yang tercatat.",
+    "ownershipEmpty": "Belum ada kepemilikan yang tercatat.",
+    "managementErrorTitle": "Data kepengurusan tidak dapat dimuat",
+    "ownershipErrorTitle": "Data kepemilikan tidak dapat dimuat",
+    "unknownCompany": "Perusahaan tidak diketahui",
+    "archivedCompany": "Perusahaan diarsipkan",
+    "current": "Masih berlaku",
+    "ended": "Sudah berakhir",
+    "errors": {
+      "forbidden": "Anda tidak memiliki izin untuk melihat data itu.",
+      "notFound": "Data tidak ditemukan.",
+      "validation": "Periksa kembali data yang Anda masukkan.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.",
+      "network": "Tidak dapat menghubungi server. Periksa koneksi Anda.",
+      "server": "Terjadi kesalahan server. Silakan coba lagi."
+    }
+  },
+  "partyDuplicates": {
+    "title": "Ditemukan kemungkinan data ganda",
+    "description": "Data berikut cocok pada satu atau lebih detail yang sama persis. Tinjau dulu, atau lanjutkan bila ini memang pihak yang berbeda.",
+    "review": "Tinjau",
+    "continueAnyway": "Lanjutkan saja",
+    "matchedSignals": "Kecocokan",
+    "unnamed": "Data tanpa nama",
+    "partyTypes": {
+      "INDIVIDUAL": "Perorangan",
+      "COMPANY": "Perusahaan"
+    },
+    "signals": {
+      "NIK_EXACT": "NIK sama",
+      "NPWP_EXACT": "NPWP sama",
+      "EMAIL_EXACT": "Email sama",
+      "PHONE_EXACT": "Telepon sama",
+      "NAME_BIRTH_DATE_EXACT": "Nama dan tanggal lahir sama",
+      "TAX_ID_EXACT": "NPWP sama",
+      "REGISTRATION_NUMBER_EXACT": "Nomor registrasi sama",
+      "LEGAL_NAME_EXACT": "Nama resmi sama",
+      "OTHER": "Detail sama"
+    },
+    "unavailable": {
+      "forbidden": "Pemeriksaan data ganda tidak tersedia untuk identitas itu. Ini tidak berarti ada data ganda.",
+      "tooManyAttempts": "Terlalu banyak pemeriksaan data ganda. Tunggu sebentar sebelum mencoba lagi.",
+      "unavailable": "Pemeriksaan data ganda tidak dapat dijalankan. Ini tidak berarti ada data ganda."
     }
   },
   "roles": {

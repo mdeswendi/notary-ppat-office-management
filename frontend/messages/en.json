@@ -57,12 +57,51 @@
     "settingsRoles": "Roles & Permissions",
     "parties": "Clients & Parties",
     "partiesIndividuals": "Individuals",
-    "partiesCompanies": "Companies"
+    "partiesCompanies": "Companies",
+    "partiesDirectory": "Directory"
   },
   "dashboard": {
     "title": "Dashboard",
     "foundationSubtitle": "Foundation UI",
     "placeholderBody": "The application shell is ready. Dashboard summaries will appear once the modules behind them exist."
+  },
+  "parties": {
+    "title": "Party Directory",
+    "subtitle": "Find a person or an organization.",
+    "searchLabel": "Search the party directory",
+    "searchPlaceholder": "Name, phone, or email",
+    "typeFilterLabel": "Type",
+    "allTypes": "All types",
+    "officeFilterLabel": "Office",
+    "allOffices": "All offices",
+    "scopeHint": "Individuals and companies follow their own separate permissions, so the two may cover different offices.",
+    "tableCaption": "Individuals and companies you can access",
+    "nameLabel": "Name",
+    "typeLabel": "Type",
+    "phoneLabel": "Phone",
+    "officeLabel": "Office",
+    "loading": "Loading the party directory",
+    "errorTitle": "The party directory could not be loaded",
+    "emptyTitle": "Nothing in the directory yet",
+    "emptyDescription": "Individuals and companies appear here once they are recorded.",
+    "noMatchesTitle": "No results",
+    "noMatchesDescription": "No party matched those filters.",
+    "paginationLabel": "Party directory pagination",
+    "paginationSummary": "Page {current} of {last} — {total} parties",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "partyTypes": {
+      "INDIVIDUAL": "Individual",
+      "COMPANY": "Company"
+    },
+    "errors": {
+      "forbidden": "You do not have permission to view the party directory.",
+      "notFound": "That party was not found.",
+      "validation": "Please check the filters you applied.",
+      "tooManyAttempts": "Too many requests. Please wait a moment and try again.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "A server error occurred. Please try again."
+    }
   },
   "individuals": {
     "title": "Individuals",
@@ -143,7 +182,9 @@
       "tooManyAttempts": "Too many requests. Please wait a moment and try again.",
       "network": "Could not reach the server. Check your connection.",
       "server": "A server error occurred. Please try again."
-    }
+    },
+    "companiesSection": "Companies",
+    "checkingDuplicates": "Checking..."
   },
   "companies": {
     "title": "Companies",
@@ -227,7 +268,8 @@
       "tooManyAttempts": "Too many requests. Please wait a moment and try again.",
       "network": "Could not reach the server. Check your connection.",
       "server": "A server error occurred. Please try again."
-    }
+    },
+    "checkingDuplicates": "Checking..."
   },
   "companyRelationships": {
     "managementSection": "Management",
@@ -272,6 +314,55 @@
       "tooManyAttempts": "Too many requests. Please wait a moment and try again.",
       "network": "Could not reach the server. Check your connection.",
       "server": "A server error occurred. Please try again."
+    }
+  },
+  "individualCompanies": {
+    "description": "Companies this person is or has been involved with. Relationships are managed from the company.",
+    "managementSection": "Management relationships",
+    "ownershipSection": "Ownership relationships",
+    "managementEmpty": "No management involvement recorded.",
+    "ownershipEmpty": "No ownership involvement recorded.",
+    "managementErrorTitle": "Management involvement could not be loaded",
+    "ownershipErrorTitle": "Ownership involvement could not be loaded",
+    "unknownCompany": "Unknown company",
+    "archivedCompany": "Archived company",
+    "current": "Current",
+    "ended": "Ended",
+    "errors": {
+      "forbidden": "You do not have permission to view that.",
+      "notFound": "That record was not found.",
+      "validation": "Please check the details you entered.",
+      "tooManyAttempts": "Too many requests. Please wait a moment and try again.",
+      "network": "Could not reach the server. Check your connection.",
+      "server": "A server error occurred. Please try again."
+    }
+  },
+  "partyDuplicates": {
+    "title": "Potential duplicate records found",
+    "description": "These existing records match on one or more exact details. Review them, or continue if this is a different party.",
+    "review": "Review",
+    "continueAnyway": "Continue anyway",
+    "matchedSignals": "Matched signals",
+    "unnamed": "Unnamed record",
+    "partyTypes": {
+      "INDIVIDUAL": "Individual",
+      "COMPANY": "Company"
+    },
+    "signals": {
+      "NIK_EXACT": "Matching NIK",
+      "NPWP_EXACT": "Matching NPWP",
+      "EMAIL_EXACT": "Matching email",
+      "PHONE_EXACT": "Matching phone",
+      "NAME_BIRTH_DATE_EXACT": "Matching name and date of birth",
+      "TAX_ID_EXACT": "Matching NPWP (tax identifier)",
+      "REGISTRATION_NUMBER_EXACT": "Matching registration number",
+      "LEGAL_NAME_EXACT": "Matching legal name",
+      "OTHER": "Matching detail"
+    },
+    "unavailable": {
+      "forbidden": "Duplicate checking is unavailable for that identifier. This does not mean a duplicate exists.",
+      "tooManyAttempts": "Too many duplicate checks. Please wait a moment before trying again.",
+      "unavailable": "The duplicate check could not run. This does not mean a duplicate exists."
     }
   },
   "roles": {

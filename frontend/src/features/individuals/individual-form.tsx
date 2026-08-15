@@ -11,7 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
+import {
+  DuplicateAdvisoryPanel,
+  DuplicateCheckNotice,
+  useDuplicateAdvisory,
+} from "@/features/parties/duplicate-advisory";
 import { useRouter } from "@/i18n/navigation";
+import {
+  checkIndividualDuplicatesForCreate,
+  checkIndividualDuplicatesForUpdate,
+} from "@/services/party-duplicates";
 import {
   createIndividual,
   getIndividualOptions,
@@ -37,6 +46,18 @@ import type { Individual } from "@/types/individual";
  * Zod covers shape and length for usability. The Form Request stays authoritative,
  * and no legal format rule appears on either side — M2.0 deferred those, and this
  * is one of the places somebody would be tempted to add one from memory.
+ *
+ * **Duplicate assistance is advisory and cannot block a save (M2.5, D-084).** The
+ * check runs once before the first submit; if it finds anything, a neutral panel
+ * offers Review or Continue anyway, and continuing performs the ordinary create
+ * or update Action unchanged. A check that fails — refused, rate limited, or
+ * unreachable — lets the save through immediately, because assistance failing
+ * must never stop legitimate work. Nothing here merges, replaces, or reuses a
+ * candidate record.
+ *
+ * It compares **only the ordinary fields this form collects**. NIK and NPWP are
+ * not sent: they are not on this form, and asking about one requires that
+ * identifier's own full-view capability, which `parties.create` is not.
  */
 export function IndividualForm({ individual }: { individual?: Individual }) {
   const t = useTranslations("individuals");
@@ -45,6 +66,8 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
   const queryClient = useQueryClient();
 
   const isEdit = individual !== undefined;
+
+  const advisory = useDuplicateAdvisory();
 
   const options = useQuery({
     queryKey: individualQueryKeys.options,
@@ -196,8 +219,54 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
     },
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  /**
+   * The check to run for these values, or null when there is nothing to compare.
+   *
+   * Ordinary signals only, and only the ones actually filled in — an empty form
+   * asks nothing, which keeps the endpoint from being used as a way to page
+   * through the directory. On create the chosen Office bounds the comparison; on
+   * update the backend takes it from the record and rejects the field, and
+   * excludes the subject itself so a record never matches itself.
+   */
+  const duplicateCheck = (values: FormValues) => {
+    const filled = (value: string) => (value.trim() === "" ? undefined : value.trim());
+
+    const comparison = {
+      full_name: filled(values.full_name),
+      birth_date: filled(values.birth_date),
+      primary_email: filled(values.primary_email),
+      primary_phone: filled(values.primary_phone),
+    };
+
+    if (Object.values(comparison).every((value) => value === undefined)) {
+      return null;
+    }
+
+    if (individual) {
+      return () => checkIndividualDuplicatesForUpdate(individual.id, comparison);
+    }
+
+    const officeId = values.office_id ?? "";
+
+    // Without an Office there is no target to compare against, and the endpoint
+    // requires one. Zod has already flagged the field.
+    if (officeId === "") {
+      return null;
+    }
+
+    return () => checkIndividualDuplicatesForCreate({ office_id: officeId, ...comparison });
+  };
+
+  const onSubmit = form.handleSubmit(async (values) => {
     form.clearErrors("root");
+
+    // Advisory, so this delays the save exactly once and only when something was
+    // found. Acknowledging, or a failed check, lets every later submit straight
+    // through — the panel never becomes a permanent gate.
+    if (!(await advisory.gate(duplicateCheck(values)))) {
+      return;
+    }
+
     mutation.mutate(values);
   });
 
@@ -211,6 +280,18 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
           {form.formState.errors.root.message}
         </p>
       ) : null}
+
+      <DuplicateAdvisoryPanel
+        candidates={advisory.candidates}
+        onReview={advisory.dismiss}
+        continueDisabled={mutation.isPending}
+        onContinue={() => {
+          advisory.acknowledge();
+          void onSubmit();
+        }}
+      />
+
+      <DuplicateCheckNotice reason={advisory.unavailable} />
 
       {!isEdit ? (
         <div className="flex flex-col gap-2">
@@ -337,8 +418,17 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
       </fieldset>
 
       <div>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? tActions("saving") : tActions("save")}
+        {/*
+         * Disabled only while a request is in flight — never because a candidate
+         * was found. A duplicate warning must not be able to make Save
+         * permanently unavailable.
+         */}
+        <Button type="submit" disabled={mutation.isPending || advisory.checking}>
+          {advisory.checking
+            ? t("checkingDuplicates")
+            : mutation.isPending
+              ? tActions("saving")
+              : tActions("save")}
         </Button>
       </div>
     </form>

@@ -10,12 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
 import {
+  DuplicateAdvisoryPanel,
+  DuplicateCheckNotice,
+  useDuplicateAdvisory,
+} from "@/features/parties/duplicate-advisory";
+import {
   getIndividualIdentity,
   individualQueryKeys,
   revealIndividualNik,
   revealIndividualNpwp,
   updateIndividualIdentity,
 } from "@/services/individuals";
+import { checkIndividualDuplicatesForUpdate } from "@/services/party-duplicates";
 import type { IndividualIdentity } from "@/types/individual";
 
 /**
@@ -106,6 +112,12 @@ function IdentityPanel({
       {editing ? (
         <IdentityForm
           individualId={individualId}
+          // Backend-computed, for this record, with Data Scope applied — the
+          // same canonical capability the sensitive duplicate signal answers to.
+          // Strictly narrower than the check requires, so it never offers an
+          // assist the API would refuse.
+          canCheckNik={identity.can_reveal_nik}
+          canCheckNpwp={identity.can_reveal_npwp}
           onDone={() => {
             setEditing(false);
             onSaved();
@@ -230,13 +242,31 @@ function IdentityField({
  * require reading raw identifiers into the form, which is exactly what the
  * reveal permission exists to gate. Submitting an empty field leaves it
  * unchanged rather than clearing it.
+ *
+ * **Sensitive duplicate assistance, and only where it is authorized (M2.5).**
+ * Asking whether another record already carries this NIK is a disclosure about
+ * that record, so it answers to `parties.identity.nik.view_full` — and NPWP to
+ * its own code. `parties.identity.update` is deliberately not enough: writing a
+ * value is not licence to learn that somebody else already has it. When the
+ * capability is absent the field is simply **not sent to the check**, and the
+ * update itself remains available exactly as before. Nothing is inferred from
+ * the absence.
+ *
+ * **The submitted identifier never leaves component state.** The check is a
+ * mutation with no query key, so no NIK reaches a cache key; the response is
+ * held here and discarded on continue, cancel, save, and unmount. Nothing is
+ * written to the URL, `localStorage`, or `sessionStorage`.
  */
 function IdentityForm({
   individualId,
+  canCheckNik,
+  canCheckNpwp,
   onDone,
   onCancel,
 }: {
   individualId: string;
+  canCheckNik: boolean;
+  canCheckNpwp: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -247,6 +277,8 @@ function IdentityForm({
   const [npwp, setNpwp] = useState("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
 
+  const advisory = useDuplicateAdvisory();
+
   const mutation = useMutation({
     mutationFn: () =>
       updateIndividualIdentity(individualId, {
@@ -254,13 +286,47 @@ function IdentityForm({
         ...(npwp.trim() === "" ? {} : { npwp: npwp.trim() }),
       }),
     onSuccess: () => {
-      // Cleared immediately: the submitted values have no reason to linger.
+      // Cleared immediately: the submitted values have no reason to linger, and
+      // neither does any candidate the check returned for them.
       setNik("");
       setNpwp("");
+      advisory.reset();
       onDone();
     },
     onError: (error: unknown) => setErrorKey(toIndividualErrorKey(error)),
   });
+
+  /**
+   * The check to run, built from the fields this caller may actually ask about.
+   *
+   * A field the caller cannot check is omitted rather than sent and refused: the
+   * backend answers 403 for the whole request if any unauthorized sensitive
+   * field is present, which would take the other field's assistance down with
+   * it. The subject record is excluded server-side, so a value already stored on
+   * this very record does not match itself.
+   */
+  const duplicateCheck = () => {
+    const comparison = {
+      ...(canCheckNik && nik.trim() !== "" ? { nik: nik.trim() } : {}),
+      ...(canCheckNpwp && npwp.trim() !== "" ? { npwp: npwp.trim() } : {}),
+    };
+
+    if (Object.keys(comparison).length === 0) {
+      return null;
+    }
+
+    return () => checkIndividualDuplicatesForUpdate(individualId, comparison);
+  };
+
+  const submit = async () => {
+    setErrorKey(null);
+
+    if (!(await advisory.gate(duplicateCheck()))) {
+      return;
+    }
+
+    mutation.mutate();
+  };
 
   return (
     <form
@@ -268,8 +334,7 @@ function IdentityForm({
       className="flex max-w-md flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        setErrorKey(null);
-        mutation.mutate();
+        void submit();
       }}
     >
       {errorKey ? (
@@ -280,6 +345,18 @@ function IdentityForm({
           {t(`errors.${errorKey}`)}
         </p>
       ) : null}
+
+      <DuplicateAdvisoryPanel
+        candidates={advisory.candidates}
+        onReview={advisory.dismiss}
+        continueDisabled={mutation.isPending}
+        onContinue={() => {
+          advisory.acknowledge();
+          void submit();
+        }}
+      />
+
+      <DuplicateCheckNotice reason={advisory.unavailable} />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="identity-nik">{t("nikLabel")}</Label>
@@ -302,10 +379,24 @@ function IdentityForm({
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={mutation.isPending}>
-          {mutation.isPending ? tActions("saving") : tActions("save")}
+        {/* Disabled only while a request is in flight — never because a
+            candidate was found. */}
+        <Button type="submit" size="sm" disabled={mutation.isPending || advisory.checking}>
+          {advisory.checking
+            ? t("checkingDuplicates")
+            : mutation.isPending
+              ? tActions("saving")
+              : tActions("save")}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            advisory.reset();
+            onCancel();
+          }}
+        >
           {tActions("cancel")}
         </Button>
       </div>

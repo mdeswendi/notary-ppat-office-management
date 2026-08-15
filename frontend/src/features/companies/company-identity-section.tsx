@@ -10,11 +10,17 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
 import {
+  DuplicateAdvisoryPanel,
+  DuplicateCheckNotice,
+  useDuplicateAdvisory,
+} from "@/features/parties/duplicate-advisory";
+import {
   companyQueryKeys,
   getCompanyIdentity,
   revealCompanyTaxId,
   updateCompanyIdentity,
 } from "@/services/companies";
+import { checkCompanyDuplicatesForUpdate } from "@/services/party-duplicates";
 import type { CompanyIdentity } from "@/types/company";
 
 /**
@@ -98,6 +104,12 @@ function IdentityPanel({
       {editing ? (
         <IdentityForm
           companyId={companyId}
+          // Backend-computed, for this record, with Data Scope applied. The tax
+          // identifier is the NPWP, so this is the same canonical capability the
+          // sensitive duplicate signal answers to — and strictly narrower than
+          // the check requires, so it never offers an assist the API would
+          // refuse.
+          canCheckTaxId={identity.can_reveal_tax_id}
           onDone={() => {
             setEditing(false);
             onSaved();
@@ -215,13 +227,27 @@ function TaxIdField({
  * reading the raw identifier into the form, which is exactly what the reveal
  * permission exists to gate. Submitting an empty field leaves it unchanged
  * rather than clearing it.
+ *
+ * **Sensitive duplicate assistance, and only where it is authorized (M2.5).** The
+ * Company tax identifier is the NPWP, so it answers to the same canonical code an
+ * Individual's does — `parties.identity.npwp.view_full` (D-082).
+ * `parties.identity.update` is deliberately not enough: writing a value is not
+ * licence to learn that somebody else already has it. Without the capability the
+ * check is simply not run, the update stays available, and nothing is inferred
+ * from the absence.
+ *
+ * **The submitted identifier never leaves component state.** The check is a
+ * mutation with no query key, and the response is discarded on continue, cancel,
+ * save, and unmount.
  */
 function IdentityForm({
   companyId,
+  canCheckTaxId,
   onDone,
   onCancel,
 }: {
   companyId: string;
+  canCheckTaxId: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -231,18 +257,46 @@ function IdentityForm({
   const [taxId, setTaxId] = useState("");
   const [errorKey, setErrorKey] = useState<string | null>(null);
 
+  const advisory = useDuplicateAdvisory();
+
   const mutation = useMutation({
     mutationFn: () =>
       updateCompanyIdentity(companyId, {
         ...(taxId.trim() === "" ? {} : { tax_id: taxId.trim() }),
       }),
     onSuccess: () => {
-      // Cleared immediately: the submitted value has no reason to linger.
+      // Cleared immediately: the submitted value has no reason to linger, and
+      // neither does any candidate the check returned for it.
       setTaxId("");
+      advisory.reset();
       onDone();
     },
     onError: (error: unknown) => setErrorKey(toCompanyErrorKey(error)),
   });
+
+  /**
+   * The check to run, or null when there is nothing this caller may ask about.
+   *
+   * The subject Company is excluded server-side, so the value already stored on
+   * this very record does not match itself.
+   */
+  const duplicateCheck = () => {
+    if (!canCheckTaxId || taxId.trim() === "") {
+      return null;
+    }
+
+    return () => checkCompanyDuplicatesForUpdate(companyId, { tax_id: taxId.trim() });
+  };
+
+  const submit = async () => {
+    setErrorKey(null);
+
+    if (!(await advisory.gate(duplicateCheck()))) {
+      return;
+    }
+
+    mutation.mutate();
+  };
 
   return (
     <form
@@ -250,8 +304,7 @@ function IdentityForm({
       className="flex max-w-md flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        setErrorKey(null);
-        mutation.mutate();
+        void submit();
       }}
     >
       {errorKey ? (
@@ -262,6 +315,18 @@ function IdentityForm({
           {t(`errors.${errorKey}`)}
         </p>
       ) : null}
+
+      <DuplicateAdvisoryPanel
+        candidates={advisory.candidates}
+        onReview={advisory.dismiss}
+        continueDisabled={mutation.isPending}
+        onContinue={() => {
+          advisory.acknowledge();
+          void submit();
+        }}
+      />
+
+      <DuplicateCheckNotice reason={advisory.unavailable} />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="identity-tax-id">{t("taxIdLabel")}</Label>
@@ -274,10 +339,24 @@ function IdentityForm({
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={mutation.isPending}>
-          {mutation.isPending ? tActions("saving") : tActions("save")}
+        {/* Disabled only while a request is in flight — never because a
+            candidate was found. */}
+        <Button type="submit" size="sm" disabled={mutation.isPending || advisory.checking}>
+          {advisory.checking
+            ? t("checkingDuplicates")
+            : mutation.isPending
+              ? tActions("saving")
+              : tActions("save")}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            advisory.reset();
+            onCancel();
+          }}
+        >
           {tActions("cancel")}
         </Button>
       </div>
