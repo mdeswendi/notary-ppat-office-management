@@ -93,6 +93,41 @@ class PartyVisibility
     }
 
     /**
+     * The same question as {@see permits()}, asked about many Parties at once.
+     *
+     * **Identical predicate, one query.** It is `scope()` again — the single
+     * implementation of the rule — so a batched answer cannot disagree with the
+     * per-record one; only the number of round trips differs. Archived Parties
+     * are excluded here exactly as they are there, because both go through the
+     * soft-deleted-aware `Party::query()`.
+     *
+     * This exists because a per-row `permits()` is an N+1 whenever a collection
+     * spans several Parties: the actor's effective access is the same for every
+     * row, so resolving and re-querying per row is repeated work. Measured on
+     * the reverse Individual → Companies view, the per-row form cost two extra
+     * queries for every additional relationship.
+     *
+     * Returns a set keyed by Party id, so a caller tests membership rather than
+     * scanning a list.
+     *
+     * @param  array<int, string>  $partyIds
+     * @return array<string, true>
+     */
+    public function reachablePartyKeys(array $partyIds, User $actor, EffectiveAccess $access): array
+    {
+        $partyIds = array_values(array_unique(array_filter($partyIds)));
+
+        if ($partyIds === []) {
+            return [];
+        }
+
+        return $this->scope(Party::query()->whereIn('id', $partyIds), $actor, $access)
+            ->pluck('id')
+            ->mapWithKeys(fn (string $id): array => [$id => true])
+            ->all();
+    }
+
+    /**
      * May the actor create a Party in this Office?
      *
      * Creation has no target record, so the intended destination Office is the

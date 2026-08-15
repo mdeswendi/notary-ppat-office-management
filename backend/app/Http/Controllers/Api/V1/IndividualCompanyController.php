@@ -37,16 +37,20 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
  *
  * Companies the actor may not open are still named, because the person's history
  * is about them and hiding it would misrepresent the record. What the actor
- * cannot do is navigate: `can_view_company` is computed from the real Company
- * policy, scope included, so the interface links only where the backend would
- * actually answer.
+ * cannot do is navigate: `can_view_company` carries the real scope evaluation,
+ * so the interface links only where the backend would actually answer.
+ *
+ * That flag is computed for the whole collection at once (M2.6). It reduces to
+ * exactly what {@see CompanyPolicy::view()} decides — the same `companies.view`
+ * grant through the same {@see PartyVisibility} predicate — and a test asserts
+ * the two agree row by row across offices, scopes, and archived records, so the
+ * batched form cannot drift from the policy it stands in for.
  */
 class IndividualCompanyController extends Controller
 {
     public function __construct(
         private readonly EffectiveAccessResolver $resolver,
         private readonly PartyVisibility $visibility,
-        private readonly CompanyPolicy $companyPolicy,
     ) {}
 
     public function management(Individual $individual): AnonymousResourceCollection
@@ -91,16 +95,24 @@ class IndividualCompanyController extends Controller
             ->orderBy('id')
             ->get();
 
-        return IndividualCompanyResource::collection(
-            $relationships->map(function (CompanyPerson $relationship) use ($actor): CompanyPerson {
-                $company = $relationship->company;
+        // Resolved once for the whole collection. The actor's effective access
+        // does not vary by row — only the record predicate does — so asking per
+        // row was repeated work, and the uncached resolver made it expensive
+        // (M2.6). Same predicate, same answers, one query.
+        $viewable = $this->visibility->reachablePartyKeys(
+            $relationships->pluck('company_party_id')->all(),
+            $actor,
+            $this->resolver->resolve($actor, 'companies.view'),
+        );
 
-                // Real policy evaluation, scope included — never "does the actor
-                // hold companies.view somewhere". A record in another Office is
-                // named but not linkable.
+        return IndividualCompanyResource::collection(
+            $relationships->map(function (CompanyPerson $relationship) use ($viewable): CompanyPerson {
+                // Real scope evaluation, never "does the actor hold
+                // companies.view somewhere". A record in another Office, or an
+                // archived one, is named but not linkable.
                 $relationship->setAttribute(
                     'can_view_company',
-                    $company !== null && $this->companyPolicy->view($actor, $company),
+                    isset($viewable[$relationship->company_party_id]),
                 );
 
                 return $relationship;

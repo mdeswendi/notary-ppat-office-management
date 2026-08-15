@@ -2,9 +2,12 @@
 
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Party\Enums\CompanyRelationshipType;
+use App\Models\Company;
 use App\Models\Office;
 use App\Models\User;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
@@ -280,4 +283,104 @@ it('exposes no relationship mutation route under an Individual', function (): vo
         expect($route->methods())->toContain('GET')
             ->and($route->methods())->not->toContain('POST', 'PATCH', 'PUT', 'DELETE');
     }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Linkability is batched — M2.6
+|--------------------------------------------------------------------------
+*/
+
+it('does not issue more queries as the reverse view grows', function (): void {
+    // M2.6 found this asking the Company policy once per row. Because
+    // EffectiveAccessResolver is deliberately uncached (a stale authorization
+    // cache fails in the direction that grants), each row cost a fresh resolve
+    // plus an exists() — measured at two extra queries per relationship, while
+    // the Company-side view and the Party Directory were both flat.
+    //
+    // The actor's effective access does not vary by row, so the fix resolves
+    // once and asks the scope predicate for all the companies at the same time.
+    [$actor, $office] = reverseActor(['parties.view', 'companies.management.view']);
+    $individual = makeIndividualIn($office);
+
+    makeRelationship(makeCompanyIn($office, ['legal_name' => 'PT Satu']), $individual);
+
+    $count = function () use ($actor, $individual): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->actingAs($actor)
+            ->getJson("/api/v1/individuals/{$individual->party_id}/companies/management")
+            ->assertOk();
+
+        $queries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $queries;
+    };
+
+    $oneRow = $count();
+
+    for ($i = 2; $i <= 10; $i++) {
+        makeRelationship(makeCompanyIn($office, ['legal_name' => "PT Nomor {$i}"]), $individual);
+    }
+
+    // Constant, not merely "smaller". A per-row check would land at roughly
+    // oneRow + 18 here, so an off-by-a-little regression cannot hide.
+    expect($count())->toBe($oneRow);
+});
+
+it('agrees with the Company policy on every row', function (): void {
+    // The batched flag stands in for CompanyPolicy::view, so it has to give the
+    // same answer that policy would.
+    //
+    // A cross-Office *relationship* cannot be built to test against: M2.1's two
+    // composite foreign keys refuse one outright, which an earlier draft of this
+    // test discovered by having its insert rejected. So the two ways the answer
+    // legitimately varies are exercised instead — an archived company, whose
+    // Party row is soft-deleted but still joined for its name, and an actor
+    // whose `companies.view` scope does not reach the Office the row lives in.
+    [$actor, $office] = reverseActor(['parties.view', 'companies.management.view', 'companies.view']);
+    $individual = makeIndividualIn($office);
+
+    $live = makeCompanyIn($office, ['legal_name' => 'PT Masih Aktif']);
+    $archived = makeCompanyIn($office, ['legal_name' => 'PT Diarsipkan']);
+
+    makeRelationship($live, $individual);
+    makeRelationship($archived, $individual);
+
+    $archived->party->delete();
+
+    // A second actor who may read the person and the category deployment-wide,
+    // but whose Company sight is confined to their own, different Office.
+    $outsider = User::factory()->for(Office::factory()->create())->create();
+    grantPermissionScope($outsider, 'parties.view', DataScope::ALL);
+    grantPermissionScope($outsider, 'companies.management.view', DataScope::ALL);
+    grantPermissionScope($outsider, 'companies.view', DataScope::OFFICE);
+
+    $policy = app(CompanyPolicy::class);
+
+    $flagsFor = function (User $reader) use ($individual, $policy): array {
+        $rows = $this->actingAs($reader->fresh())
+            ->getJson("/api/v1/individuals/{$individual->party_id}/companies/management")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->json('data');
+
+        foreach ($rows as $row) {
+            $company = Company::query()->whereKey($row['company']['id'])->firstOrFail();
+
+            // The claim that matters: batched answer === policy answer.
+            expect($row['company']['can_view_company'])
+                ->toBe($policy->view($reader->fresh(), $company), $row['company']['display_name']);
+        }
+
+        return collect($rows)->pluck('company.can_view_company')->all();
+    };
+
+    // Mixed for the office-mate, so agreement is not agreement on a constant.
+    expect($flagsFor($actor))->toContain(true)->toContain(false);
+
+    // Uniformly false for the outsider: named, never linkable.
+    expect($flagsFor($outsider))->toBe([false, false]);
 });
