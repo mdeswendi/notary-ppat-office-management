@@ -611,6 +611,59 @@ Closing writes the end date and nothing else; closing an already-closed row is a
 **409**, not a silent success, because it asks to change a recorded fact. See
 `DECISIONS.md` D-085.
 
+**A read-only aggregate surface may exist without a write counterpart** *(M2.5)*.
+`GET /api/v1/parties` is the unified Party Directory — the first and only generic
+Party endpoint, and read-only permanently. There is no `POST`, `PATCH`, or
+`DELETE` at `/api/v1/parties` and there must never be: Individual and Company own
+their lifecycles, each with its own permissions, validation, and aggregate rules,
+so a generic Party write would be a second way to change the same records with
+none of them (D-078).
+
+It carries **no new permission**. Visibility is composed from `parties.view` and
+`companies.view`, each evaluated at its own Data Scope and never collapsed into
+one — the query is two capability-specific branches joined by `OR`, so an actor
+holding one at `OFFICE` and the other at `ALL` receives exactly what each
+capability permits. A caller holding neither at a usable scope gets **403** rather
+than a reliably empty page.
+
+**A read-only reverse view mirrors a relationship surface without duplicating its
+mutations** *(M2.5)*:
+
+```text
+GET /api/v1/individuals/{individual}/companies/management
+GET /api/v1/individuals/{individual}/companies/shareholders
+```
+
+Two endpoints rather than one, so the `companies.management.view` /
+`companies.shareholders.view` split survives the reversal; a combined endpoint
+would have had to pick one permission and leak the other category. **No mutation
+route exists under `individuals`** — relationship writes stay on the Company
+(D-085). Where the interface needs to know whether a related record is reachable,
+the resource carries a backend-computed capability flag (`can_view_company`)
+rather than leaving the client to guess from a permission code.
+
+**Advisory checks are `POST` even when nothing mutates** *(M2.5)*:
+
+```text
+POST /api/v1/individuals/duplicate-candidates
+POST /api/v1/individuals/{individual}/duplicate-candidates
+POST /api/v1/companies/duplicate-candidates
+POST /api/v1/companies/{company}/duplicate-candidates
+```
+
+The request body carries the identifiers being typed, so a `GET` would put a NIK
+in a URL, a history entry, a proxy log, and a cached response — the same reasoning
+that made reveal a `POST`. Responses answer `Cache-Control: no-store` and are
+labelled `meta.advisory: true`.
+
+Two conventions these establish. **Advisory means non-blocking**: no lifecycle
+Action refuses because a candidate exists, no `409` is returned, and a client that
+skips the check saves normally. And **a narrowed result is never substituted for a
+refusal**: asking for a sensitive signal without that identifier's full-view
+permission is a **403**, because silently dropping the signal would let a caller
+infer the answer from its absence. The subject of an update is excluded
+server-side; a client-supplied `exclude_party_id` is rejected outright.
+
 ---
 
 ## 34. Audit
@@ -635,6 +688,23 @@ At minimum apply rate limiting to:
 - repeated sensitive endpoints;
 - future global search;
 - document-heavy endpoints if necessary.
+
+**Each sensitive operation gets its own named bucket.** Exhausting one must not
+disable another — that was the M1.9 defect (D-071), and it is restated here
+because every new sensitive surface is a chance to repeat it. The Party domain
+currently carries two, deliberately separate from each other and from the
+`security.*` buckets:
+
+```text
+party.identity.reveal      20 / minute / actor   disclosing a stored value
+party.duplicate.check      30 / minute / actor   asking whether one already exists
+```
+
+They are different operations. A duplicate check discloses far less — a candidate
+list carries no identifier at all — and a form may legitimately check several
+times while somebody types, which is why its budget is the more generous of the
+two. Verified at runtime: exhausting the duplicate budget leaves both the reveal
+and the password buckets working.
 
 ---
 

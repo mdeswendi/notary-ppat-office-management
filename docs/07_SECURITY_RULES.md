@@ -312,7 +312,63 @@ no readback of another.
 Company management and ownership surfaces (M2.4) name the people involved and
 carry **no identifier at all — not even a mask**, because a mask is still a
 statement about a sensitive value. The same holds for the candidate list those
-surfaces use to pick a person: an id and a display name, nothing more.
+surfaces use to pick a person: an id and a display name, nothing more. The
+reverse Individual → Companies view (M2.5) inherits it in the other direction:
+it names companies and carries neither the person's identifiers nor the
+company's `tax_id`.
+
+### Existence is a disclosure *(M2.5, D-084 and D-086)*
+
+Confirming that *some other record already carries this NIK* discloses something
+about that record even though no value is returned. So the answer answers to the
+identifier's own permission, not to the directory's:
+
+```text
+NIK match          requires  parties.identity.nik.view_full
+NPWP match         requires  parties.identity.npwp.view_full
+Company tax match  requires  parties.identity.npwp.view_full   (it is the NPWP)
+```
+
+**`parties.identity.update` is explicitly not sufficient.** Writing a value is not
+licence to learn that somebody else already has it, and the two capabilities are
+independent in both directions — an account may update an identifier it may never
+be told about.
+
+A request for a signal the caller may not receive is a **403**. It is *not* a
+result quietly narrowed to exclude that signal: a caller who could compare "asked
+for NIK + email" against "asked for email" would read the missing signal as an
+answer, which is the oracle the permission exists to close.
+
+**Duplicate matching never crosses the target Office**, including for an
+`ALL`-scoped actor. `ALL` permits working in another Office; it does not turn
+duplicate detection into a deployment-wide identity registry. A check for an
+identifier that exists only in another Office returns exactly what a check for a
+nonexistent one returns — no count, no hint, no "a match exists elsewhere". The
+same reasoning forbids a `UNIQUE` constraint on any identifier or fingerprint: a
+rejected insert would be that oracle by another route.
+
+### Derived cryptographic material is not the identifier, and is not disclosable either
+
+Randomized encryption makes equality search on the stored ciphertext impossible,
+so M2.5 stores a **keyed blind fingerprint** beside each identifier: an
+HKDF-SHA-256 subkey derived from the application key under a versioned context
+string, then HMAC-SHA-256 of the conservatively normalized value (D-086).
+
+- **Keyed, never a bare hash.** A NIK has ~10^16 possibilities; an unkeyed
+  SHA-256 of one is brute-forceable from a database dump in seconds.
+- **Derived, never `APP_KEY` reused directly.** Domain separation means a problem
+  in one use does not hand over the other.
+- **Indexed, never unique.** See above.
+- **Never disclosed — to anyone.** Absent from every API Resource, hidden at the
+  model, and withheld even from a holder of the full-view reveal permission: that
+  permission authorizes the identifier through the reviewed reveal surface, not
+  the cryptographic material derived from it. A source scan checks that no
+  `*_fingerprint` name appears in a Resource, a frontend type, a service, a
+  component, or any URL construction.
+- **Rotating `APP_KEY` invalidates every fingerprint**, after which detection
+  silently under-reports until
+  `php artisan parties:rebuild-identity-fingerprints` runs. That is the safe
+  direction to fail, and it is stated rather than left to be discovered.
 
 Any future sensitive surface follows the same shape.
 

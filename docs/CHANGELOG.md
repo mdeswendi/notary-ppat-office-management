@@ -5,16 +5,18 @@ Records specification changes and milestone results.
 
 ---
 
-## 2026-08-12 — M2.5 Party directory and duplicate detection — BACKEND CHECKPOINT
-
-**This is an implementation checkpoint, not a milestone result. M2.5 is NOT READY.**
-The backend is complete and tested; the frontend, the specified 72-step smoke, the
-disposable-database migration verification, and the remaining documentation are outstanding,
-and none of them may be assumed from the backend alone.
+## 2026-08-16 — M2.5 Party directory, duplicate detection, and reverse view
 
 Branch `feat/m2-parties`. **One forward migration** (18 total) — the first since M2.1, and
 expected. Permission count unchanged at **171**: the directory composes existing capabilities
-and adds none. Backend **1292 tests / 4430 assertions** — 95 new.
+and adds none. Backend **1292 tests / 4462 assertions** — 95 new. Frontend i18n **608 / 608**
+exact. One new decision, **D-086**.
+
+The backend landed first as a checkpoint commit (`459aeda`, observed CI-green as Quality #27)
+with the frontend, the 72-step smoke, the disposable-database migration verification, and the
+remaining documentation explicitly outstanding. This entry records the completed milestone.
+The checkpoint stated 4430 assertions; a measured run gives **4462**, and the figure is
+corrected here rather than carried forward.
 
 ### The decision this milestone existed to make
 
@@ -90,12 +92,84 @@ the reversal, and `can_view_company` computed from the real Company policy with 
 company the actor cannot open is still named, because the person's history is about it, but
 it is not linkable.
 
-### Outstanding before M2.5 can be accepted
+### Frontend
 
-Frontend (Party Directory page, duplicate advisory UX, reverse Companies section, navigation
-OR-capability support, i18n); the disposable-database migration chain verification including
-`down()`; the full 72-step PostgreSQL + Sanctum smoke with teardown; source scans; and the
-remaining documentation in `02`, `03`, `06`, `07`, `12`, and the README.
+`/[locale]/parties` is the Party Directory: read-only, with search, a type filter, an Office
+filter, and rows routed to the Individual or Company page. There is no New, Edit, or Archive
+Party control and no generic Party detail page — lifecycle stays on the two subtype
+directories, which this does not replace.
+
+Navigation gained its first entry composed from more than one capability. "Directory" appears
+when the account holds **either** `parties.view` or `companies.view`, expressed as an
+`anyPermissions` list beside the existing `requiredPermission`. Requiring both would hide a
+working page; inventing `parties.directory.view` would be a permission for a page rather than
+for the records on it. Where both fields are set both must hold, so the new field can never
+widen what a single required permission already narrowed.
+
+Duplicate assistance is advisory in the interface as well as the API. The check runs once
+before a save; if it finds anything, a neutral panel offers Review or Continue anyway, and
+continuing performs the ordinary Action unchanged. A check that is refused, rate limited, or
+unreachable lets the save through **immediately**, and the notice says the check did not run —
+never that a duplicate exists, because reading existence into a refusal rebuilds the oracle the
+permission closes. Save is disabled only while a request is in flight, never because a
+candidate was found. There is no Merge, Replace, Use existing, or Archive duplicate control,
+and no score is displayed.
+
+Sensitive checks run only where the backend's own capability flag for that record says they
+may — `can_reveal_nik`, `can_reveal_npwp`, `can_reveal_tax_id`, each computed from the real
+Policy with Data Scope applied, which is strictly narrower than the check requires and so never
+offers an assist the API would refuse. A field the caller cannot ask about is omitted from the
+request rather than sent and refused, which would have taken the other field's assistance down
+with it. The submitted identifier travels in a request body and nowhere else: the check is a
+mutation with **no query key**, and the result is discarded on continue, cancel, save, and
+unmount.
+
+The Individual page gained a third section, **Companies** — the reverse view M2.4 deferred.
+Read-only, with Management and Ownership as independent subsections each fetched only for a
+holder of its own capability, so neither permission causes the other's data to be requested. A
+company the caller cannot open is still named, because the person's history is about it, but it
+links only when `can_view_company` says so.
+
+### Verification
+
+**72 / 72** on the full PostgreSQL + Sanctum smoke: real cookie-based SPA authentication with a
+cookie jar and `X-XSRF-TOKEN`, no Bearer token anywhere. Highlights worth naming because they
+are the claims easiest to assert and hardest to prove: the mixed-scope actor
+(`parties.view` at `OFFICE`, `companies.view` at `ALL`) received their own Office's people
+beside both Offices' organizations; an `ALL`-scoped check for Office A returned nothing for an
+identifier that exists only in Office B; `parties.identity.update` alone got **403** on a
+sensitive signal while its own identity update still succeeded; exhausting the duplicate
+limiter at 31 attempts left both the reveal and password buckets working; and no response in
+the entire run contained a fingerprint or a raw identifier outside the reveal and identity-write
+endpoints that are meant to carry one.
+
+Teardown restored the captured baseline **exactly** — every table count, and the surviving
+session row identified as the one that predates the run. Redis returned to its baseline of zero
+keys after the limiter TTLs expired.
+
+The migration chain was verified from zero on a uniquely named disposable PostgreSQL database,
+proven to be the target before anything destructive ran. Eighteen migrations; three `char(64)`
+nullable fingerprint columns with plain btree indexes and **zero** `UNIQUE` constraints; the
+fingerprint migration rolled back (columns and indexes gone, identity data intact) and reapplied
+cleanly; the rebuild command populated, then reported zero changes on a second run. The database
+was dropped and its absence confirmed.
+
+Source scans found no `*_fingerprint` name outside the migration, models, fingerprint service,
+identity Actions, duplicate query, maintenance command, and tests — none in any Resource,
+frontend type, service, or component. No `localStorage`, `sessionStorage`, `document.cookie`, or
+`console.*` call in frontend source; no identifier in any query key, URL, or fragment; no
+generic Party mutation route; no merge, fuzzy, or scoring code.
+
+### Documentation
+
+`02` gained the composed-navigation rule and the note that no directory or duplicate permission
+exists; `03` gained the fingerprint columns and had its index strategy corrected — it had listed
+`individuals.nik`, `individuals.npwp`, and `companies.tax_id` as indexed, which cannot work,
+since those columns hold randomized ciphertext; `06` gained the read-only aggregate, reverse
+view, advisory-`POST`, and per-bucket rate-limit conventions; `07` gained "existence is a
+disclosure" and the rules for derived cryptographic material; `12` gained the delivered frontend
+and had section 15 corrected, which had said `ALL` "may see across Offices" — M2.5 decided the
+opposite. The README documents the maintenance command.
 
 ---
 

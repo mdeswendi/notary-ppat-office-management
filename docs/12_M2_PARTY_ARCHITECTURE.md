@@ -600,6 +600,7 @@ No migration exists. This is the proposal M2.1 implements.
 | Sensitive | `nik`, `npwp` encrypted at rest | Section 11. |
 | Nullable | every field except `full_name` | Section 7. |
 | Unique | **none on `nik` / `npwp`** | Section 8 of this table's rationale — see the note below. |
+| Fingerprints *(added M2.5)* | `nik_fingerprint`, `npwp_fingerprint` — `char(64)`, nullable, plain btree index, **never unique** | Keyed blind fingerprints (D-086). Randomized encryption makes equality search on the ciphertext impossible, so the derived column is what the duplicate query compares. Nullable because the identifiers are; a shared "fingerprint of nothing" would make every record without a NIK a duplicate of every other. |
 | Deliberately absent | surrogate `id`, `status`, contact duplicates | Sections 3, 5. |
 
 ### `companies`
@@ -610,6 +611,7 @@ No migration exists. This is the proposal M2.1 implements.
 | Sensitive | `tax_id` encrypted at rest | Section 11. |
 | Required | `legal_name`, `entity_type` | Structural, not legal (section 7). |
 | Unique | **none on `tax_id` / `registration_number`** | See below. |
+| Fingerprint *(added M2.5)* | `tax_id_fingerprint` — `char(64)`, nullable, plain btree index, **never unique** | As `individuals` above (D-086). |
 | Deliberately absent | surrogate `id`, `status`, `phone`, `email` | Section 5. |
 
 ### `company_people`
@@ -635,6 +637,13 @@ matching record exists in an Office they cannot see (section 16).
 They are excellent duplicate *signals*, and section 15 uses them as such. Promoting one to an
 authoritative uniqueness key requires an explicit decision this milestone does not make.
 
+**The M2.5 fingerprint columns inherit this reasoning rather than escaping it.** They are
+indexed because equality lookup is the whole point, and deliberately **not** unique for every
+reason above — a unique index on a fingerprint asserts the same identity claim as a unique
+index on the identifier itself, and turns the rejected insert into the same cross-office
+oracle. Verified on a disposable PostgreSQL database migrated from zero: three plain btree
+indexes, zero `UNIQUE` constraints touching a fingerprint column.
+
 ### Intentionally absent relations
 
 No `party_documents`, no Project or Matter foreign keys, no `party_offices` pivot, no Property
@@ -650,18 +659,40 @@ auto-merge, does not overwrite, does not delete a candidate, and does not assert
 records are the same person or organization — an assertion the software has no standing to
 make.
 
-**Office-scoped by default.** An `OFFICE`-scoped user receives candidates from their own
-Office only, and must never learn that a matching identifier exists elsewhere in the
-deployment. `ALL` may see across Offices where a later milestone implements it explicitly.
+**Confined to the target Office, always** — and M2.5 settled the one point this section had
+left open. The original text said `ALL` "may see across Offices where a later milestone
+implements it explicitly"; **M2.5 decided the opposite, and it is not a deferral.** The
+comparison is bounded by the Office the record is being created in or already lives in, never
+by the actor's reach. An `ALL`-scoped actor checking a candidate for Office A compares against
+Office A and nothing else: `ALL` permits *working* in another Office, it does not turn
+duplicate detection into a deployment-wide identity registry. A check for an identifier that
+exists only elsewhere returns exactly what a check for a nonexistent one returns — no count,
+no hint, no "a match exists elsewhere".
 
-Candidate signals, when present and safely normalized:
+**Sensitive signals answer to their own field permission.** Asking for a NIK match requires
+`parties.identity.nik.view_full`, NPWP its own code, and a Company `tax_id` reuses the NPWP
+code because it *is* the NPWP (D-082). A request without it is a **403**, not a quietly
+narrowed result: silently dropping the signal would let a caller infer the answer from its
+absence. `parties.identity.update` is explicitly not accepted — writing a value is not licence
+to learn that somebody else already has it.
+
+Candidate signals, as delivered — every one a deterministic equality test:
 
 ```text
-Individual   exact sensitive-identifier match, phone, email, name + birth_date
-Company      exact tax-identifier match, registration_number, legal_name, phone, email
+Individual   NIK_EXACT, NPWP_EXACT, EMAIL_EXACT, PHONE_EXACT, NAME_BIRTH_DATE_EXACT
+Company      TAX_ID_EXACT, REGISTRATION_NUMBER_EXACT, LEGAL_NAME_EXACT, EMAIL_EXACT, PHONE_EXACT
 ```
 
-M2.0 hard-codes no fuzzy matching and adds no fuzzy-search dependency. M2 does **not**
+Name signals require a birth date alongside the name, because either alone is far too common
+to be a hint and a name alone would make the check a directory search.
+
+**No fuzzy matching, no score, no dependency for one.** No Levenshtein, no trigram, no
+phonetics, no similarity percentage. A confidence number about identity is precisely the claim
+M2 has no authority to express. The response says which tests matched and carries no
+identifier value of any kind — not the matched NIK, not a mask of it, not the fingerprint.
+
+**Nothing blocks.** No lifecycle Action refuses because a candidate exists, no `409` is
+returned, and a client that skips the check entirely still saves normally. M2 does **not**
 consolidate records across Offices; a cross-office consolidation design and a merge workflow
 are both open items (section 20).
 
@@ -812,22 +843,68 @@ fingerprints, encryption metadata, or permission pivot internals.
 /[locale]/parties/companies/[id]/edit   edit
 ```
 
-No `/[locale]/parties` index page: it would be a page whose only content is links to the two
-pages beside it in the sidebar. Navigation carries "Clients & Parties" as a group with
-"Individuals" behind `parties.view` and "Companies" behind `companies.view` — two separate
-capabilities, and one does not imply the other. The Companies entry was added at M2.3, when
-the route landed, not when the permission was registered (D-064).
+**And in M2.5:**
 
-The Individual detail page has **two sections**: Profile and Identity. The Company detail page
-gained two more at M2.4 — **Overview, Identity, Management, and Ownership** — each appearing
-only for a holder of its own view permission and fetching its own endpoint. The ordinary
-Company payload carries no relationship data, so holding one capability cannot cause the
-other's data to be requested: the permission split is the boundary, not the tab.
+```text
+/[locale]/parties                       unified Party Directory — read-only
+```
 
-**No reverse Companies section on the Individual page.** The relation exists in the database,
-but M2.4 is centred on Company relationship management, and adding the reverse view because
-the data is reachable would be broadening scope on the strength of a foreign key. It belongs
-to M2.5's integration work.
+This reverses an earlier note in this section, deliberately. M2.3 recorded that no
+`/[locale]/parties` index page would exist, "because it would be a page whose only content is
+links to the two pages beside it in the sidebar". That was correct while the two subtype lists
+were all there was. It stopped being correct when `GET /api/v1/parties` landed: the page now
+answers a question neither subtype list can — *find this person or organization, whichever
+they are* — from one backend query, with one search box and one type filter.
+
+**It does not replace the subtype directories, and it is read-only.** There is no New Party,
+Edit Party, or Archive Party control, and there must never be: lifecycle stays on
+`/parties/individuals` and `/parties/companies`, where each subtype's own permissions,
+validation, and aggregate rules live (D-078). Rows route to the Individual or Company detail
+page; there is no generic Party detail page.
+
+**Navigation composes the entry from two capabilities.** "Clients & Parties" now carries
+"Directory", "Individuals" behind `parties.view`, and "Companies" behind `companies.view`.
+Directory appears when the account holds **either** subtype capability, expressed as an
+`anyPermissions` list on the navigation item rather than a single `requiredPermission` — the
+first entry in the application to need one. No `parties.directory.view` permission exists and
+none should: it would be a permission for a page rather than for the records on it, letting an
+administrator grant the directory without granting sight of anything in it. The entry was
+added at M2.5, when the route landed (D-064).
+
+**Mixed scopes are shown honestly.** An account may hold `parties.view` at `OFFICE` and
+`companies.view` at `ALL`, and the directory then legitimately lists one Office's people beside
+every Office's organizations. The interface neither ranks nor unions the two scopes — the
+backend builds one query branch per capability — and no copy on the page claims a single scope
+governs every row.
+
+The Individual detail page has **three sections** as of M2.5: Profile, Identity, and
+**Companies**. The Company detail page gained two at M2.4 — Overview, Identity, Management,
+and Ownership — each appearing only for a holder of its own view permission and fetching its
+own endpoint. The ordinary Company payload carries no relationship data, so holding one
+capability cannot cause the other's data to be requested: the permission split is the boundary,
+not the tab.
+
+**The reverse Companies section arrived at M2.5, read-only.** M2.4 deliberately left it alone —
+the relation existed in the database, but building the reverse view because the data was
+reachable would have been scope on the strength of a foreign key. It now shows Management and
+Ownership as two independent subsections, each fetched only for a holder of its own capability,
+so neither permission causes the other's data to be requested. It carries **no Add, End, Edit,
+or Delete**: relationship mutation stays on the Company under D-085's add-and-close model, and
+no API route exists under `individuals` to call. A Company the caller cannot open is still
+named — the person's history is about it — but it is linked only when the backend's
+`can_view_company` says so, which is computed from the real Company policy with Data Scope
+applied rather than guessed from a permission code.
+
+**Duplicate assistance is advisory in the interface too.** When a check finds candidates the
+form shows a neutral panel — Review, or Continue anyway — and continuing performs the ordinary
+create or update Action unchanged. A check that fails, is refused, or is rate limited lets the
+save through immediately, and the notice says the check did not run rather than implying a
+duplicate exists. There is no Merge, Replace, Use existing, or Archive duplicate control, no
+score or confidence is displayed, and Save is never left permanently disabled by a warning.
+Sensitive checks run only where the backend-computed full-view capability for that identifier
+is present; the submitted identifier goes in a request body, never into a query key, a URL,
+`localStorage`, or `sessionStorage`, and the result is discarded on continue, cancel, save, and
+unmount.
 
 **Not under `/settings/`.** Settings administers the deployment; the Party directory is
 operational shared-office data that most staff use daily. Placing it in Settings would put a
@@ -930,7 +1007,32 @@ Individual → Companies view (M2.5), amendment of a recorded relationship (unde
 corporate-law rule: no director cap, no required commissioner, no ownership total, and no
 beneficial ownership inferred from a percentage.
 
+**M2.5 delivered:** the unified read-only Party Directory, advisory duplicate detection, and
+the reverse Individual → Companies view — the integration milestone, and the one that had a
+cryptographic decision to make first. **One forward migration** (18 total), the first since
+M2.1 and the columns D-086 settles. **No permission** — the count stays at 171: the directory
+composes `parties.view` and `companies.view` rather than inventing a code, and duplicate
+assistance answers to the lifecycle and identity capabilities that already exist. The
+Party-domain *deferred* list stays empty.
+
+Four properties are worth naming because each is a place the easy design is the wrong one.
+**The directory's two capabilities are evaluated independently and never collapsed** — one
+query branch per capability, each carrying its own scope predicate, because taking the widest
+scope would show records the caller cannot open and taking the narrowest would hide records
+they can. **Duplicate detection never blocks**: no Action refuses because a candidate exists,
+and the interface offers Continue anyway rather than a gate. **`ALL` does not make duplicate
+matching cross-Office**, which reverses the "may see across Offices" wording section 15
+originally carried. And **sensitive fingerprints are keyed, derived, and non-unique** — an
+unkeyed hash of a 16-digit NIK is brute-forceable, and a unique index would assert an identity
+claim while turning a rejected insert into a cross-office oracle.
+
+**M2.5 does not own** a Party merge workflow (still unresolved, section 20), cross-office
+consolidation, fuzzy or scored matching, identifier search in the directory, Global Search, or
+generic Party mutation — `GET /api/v1/parties` is the only generic Party route and stays
+read-only.
+
 **Project remains M3.** M2 builds no Project, no Matter, and no Party-to-Project assignment.
+M2.6 is the M2 quality gate.
 
 ---
 
@@ -938,9 +1040,9 @@ beneficial ownership inferred from a percentage.
 
 | Question | Status | Blocks M2.1? |
 |---|---|---|
-| NIK / NPWP legal format rules | Deferred pending domain authority (section 11). Fields stay free-form. | **No** |
-| Keyed dedup fingerprint construction | Undesigned. If unsettled when M2.1 begins, the fingerprint is not built and equality dedup waits for M2.5. | **No** |
-| Duplicate-merge workflow | Requires its own architecture decision. M2 detects, never merges. | **No** |
+| NIK / NPWP legal format rules | Deferred pending domain authority (section 11). Fields stay free-form, and M2.5's fingerprint normalization is `trim` only for the same reason — a guess would silently assert an equivalence nobody approved. | **No** |
+| Keyed dedup fingerprint construction | **Resolved at M2.5 by D-086.** HKDF-SHA-256 to a domain-separated subkey under a versioned context, then HMAC-SHA-256; `char(64)`, nullable, indexed, never unique, never API-visible. The deferral held exactly as written: M2.1 built no column, and the design was reviewed before it shipped. | **No** |
+| Duplicate-merge workflow | Requires its own architecture decision. M2 detects, never merges — M2.5 shipped detection and deliberately no merge route, no merge action, and no merge control. | **No** |
 | Cross-office Party consolidation | Out of scope; Party stays Office-owned. No pivot invented to pre-solve it. | **No** |
 | Global Search integration | M2 builds directory filtering only. | **No** |
 | Restore after archive | No canonical permission exists; none invented. | **No** |

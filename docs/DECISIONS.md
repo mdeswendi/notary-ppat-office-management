@@ -2156,6 +2156,28 @@ assertion the software has no standing to make.
 Candidates are confined to the actor's own Office by default. An `OFFICE`-scoped user must
 never learn that a matching identifier exists in an Office they cannot see.
 
+**Clarified at M2.5, where "by default" had to be resolved rather than carried.** The bound is
+the **target Office** — the Office the record is being created in, or the one the record being
+edited already lives in — and **`ALL` does not widen it**. An `ALL`-scoped actor checking a
+candidate for Office A compares against Office A and nothing else. `ALL` grants reach to *work*
+in another Office; it does not turn duplicate detection into a deployment-wide identity
+registry, and the oracle this decision exists to close does not become acceptable because the
+person asking has a wide scope. Both constraints are applied together — the target Office and
+the actor's own visibility — so the narrower always wins.
+
+`12_M2_PARTY_ARCHITECTURE.md` section 15 previously read that `ALL` "may see across Offices
+where a later milestone implements it explicitly". That reading is withdrawn, and the section
+is corrected. It was a reasonable inference from "by default"; it is simply not what the
+threat model supports.
+
+**A sensitive signal answers to that identifier's own full-view permission**, not to the
+lifecycle permission that reached the record: being told "another record here already carries
+this NIK" is a disclosure about that record. `parties.identity.update` is explicitly not
+sufficient — writing a value is not licence to learn somebody else already has it. A request
+for a signal the caller may not receive is a **403**, never a result quietly narrowed to
+exclude it, because a caller who could compare a narrowed result against an unnarrowed one
+would read the missing signal as the answer.
+
 That constraint is also why **no `UNIQUE` constraint is placed on `nik`, `npwp`, `tax_id`, or
 `registration_number`**. A unique index asserts that two rows sharing a value are the same
 entity and that the value is always known and correct — none of which holds for optional,
@@ -2341,6 +2363,8 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |
 | O-017 | A localized not-found state does not render for unmatched URLs. Next.js uses the **root** not-found for those; a nested `[locale]/not-found.tsx` only catches `notFound()` thrown inside its own segment, and the proxy guarantees the locale segment is always valid. | Open. Written during M0.6, verified non-functional, and removed rather than left as dead code. Making it work requires a catch-all route under `[locale]`, which is a routing change beyond M0.6's presentational scope. The built-in Next.js 404 remains, as it did after M0.5. `BaseErrorState` is ready to render it when the catch-all is added. |
+| O-031 | The Party Directory's **Office filter is built from the Offices present in the current page of results**, not from an endpoint. The two options endpoints that exist answer a different question — `individuals/options` and `companies/options` list the Offices an actor may **create** in, which is neither necessary nor sufficient for reading — so offering those would show destinations that return nothing and hide ones that return rows. | Open, and deliberate rather than overlooked. The derivation is honest: it can never offer an Office the caller's capabilities do not already reach, and selecting one only narrows, because the backend applies `office_id` on top of each capability's own scope predicate. The cost is that the choices reflect the page in view, so an Office whose rows fall on a later page is not offered until the caller reaches it. Closing this needs a **view-scoped** Offices source — and the honest version of it is not one list but two, since `parties.view` and `companies.view` are evaluated independently and may reach different Offices (D-028). That is a small API addition with a real design question inside it, which is why M2.5 did not invent one to fill a filter. Revisit when a second surface needs the same list. |
+| O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | Open. Not new at M2.5, but M2.5 is the first milestone where it costs something specific: `anyPermissions` is a branch whose three cases (`parties.view` only, `companies.view` only, neither) are exactly what a four-line test would pin, and none of them is currently pinned by anything executable. The backend equivalents *are* tested, and the backend is the security boundary, so this is a correctness gap in presentation rather than a hole in authorization. Adding a runner is a real decision — which one, whether it joins `quality.yml`, and the CLAUDE.md §52 rule that the documented command list must never be weaker than CI — and it should not be made incidentally inside a feature milestone. Worth an explicitly scoped task before the navigation tree grows the Notary and PPAT groups. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

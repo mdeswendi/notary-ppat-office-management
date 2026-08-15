@@ -230,7 +230,9 @@ full_name
 prefix
 suffix
 nik
+nik_fingerprint
 npwp
+npwp_fingerprint
 birth_place
 birth_date
 gender
@@ -256,6 +258,7 @@ short_name
 entity_type
 registration_number
 tax_id
+tax_id_fingerprint
 address
 village
 district
@@ -268,6 +271,19 @@ status
 created_at
 updated_at
 ```
+
+**The `*_fingerprint` columns are internal metadata, added by M2.5 under D-086.** They are
+`char(64)`, nullable, and carry a plain btree index that is **never unique** — see
+`12_M2_PARTY_ARCHITECTURE.md` section 14 for why uniqueness is refused on both the identifier
+and its fingerprint. They exist because `nik`, `npwp`, and `tax_id` use randomized encryption,
+so equality search against the stored ciphertext is impossible by construction and the derived
+column is what the duplicate query compares.
+
+They are hidden at the model, absent from every API Resource, and withheld even from a holder
+of the full-view reveal permission: that permission authorizes the identifier through the
+reviewed reveal surface, not the cryptographic material derived from it. Rotating `APP_KEY`
+invalidates them, and `php artisan parties:rebuild-identity-fingerprints` is the operational
+counterpart.
 
 Entity type:
 
@@ -1303,11 +1319,18 @@ matters.matter_number
 notary_deeds.deed_number
 ppat_deeds.deed_number
 properties.certificate_number
-individuals.nik
-individuals.npwp
-companies.tax_id
+individuals.nik_fingerprint
+individuals.npwp_fingerprint
+companies.tax_id_fingerprint
 documents.document_number
 ```
+
+**The three identity entries name the fingerprint columns, not the identifiers** *(corrected
+M2.5)*. This list originally read `individuals.nik`, `individuals.npwp`, and
+`companies.tax_id`, which cannot work: those columns hold randomized ciphertext, so an index on
+them can never satisfy an equality lookup and would only cost write time. The keyed fingerprint
+is the searchable derivation (D-086), and it is what M2.5 actually indexes. Every index here is
+plain — none is unique.
 
 Also index common foreign keys, status, PIC, target date, and created date columns.
 
