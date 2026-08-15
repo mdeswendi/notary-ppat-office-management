@@ -5,6 +5,111 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M2.6 M2 Quality Gate
+
+Branch `feat/m2-parties`. **No migration** (18 total) and **no permission** (171). An audit
+milestone: no new product capability, no M3, no merge to `main`. Backend **1294 tests / 4476
+assertions** — 2 new, both regression coverage for the one behavioural fix.
+
+### What the gate found
+
+Four defects fixed and one recorded. Three of the four are the shape M1.10 named (D-077): a
+claim the repository made about itself that had quietly stopped being true.
+
+**1. Two Policies said they had no HTTP surface.** `IndividualPolicy` carried "M2.1 exposes no
+HTTP endpoint", written when that was true; M2.2 gave every ability in it a route.
+`CompanyPolicy` carried "Nothing here is reachable over HTTP", and M2.3 and M2.4 built those
+surfaces. Both now say what is actually true, and say when it changed.
+
+**2. Six sites deferred identifier search to M2.5 as pending work.** Both list controllers,
+both frontend list components, and two tests explained the exclusion of `nik`, `npwp`,
+`tax_id`, and `registration_number` from directory search as *waiting for M2.5*.
+`CompanyController` went further and named a keyed construction "nobody has designed" —
+**D-086 designed it**. This mattered more than the usual stale comment, because it pointed the
+wrong way: a reader would conclude identifier search was the planned next step. It is the
+opposite. D-084 settled the rule strictly and permanently — a directory that answers "does
+this identifier exist" is an existence oracle — and D-086 made `tax_id` technically matchable
+without making it permissible. The exclusions were always right; only the reasons had expired.
+
+**3. An N+1 in the reverse Individual → Companies view.** `can_view_company` was computed by
+asking `CompanyPolicy::view` once per row. Because `EffectiveAccessResolver` is deliberately
+uncached — a stale authorization cache fails in the direction that grants — each row cost a
+fresh resolve plus an `exists()`. Measured before the fix: **16 queries for one relationship,
+34 for ten, a steady two per additional row.** The Company-side relationship view was flat at
+10, and the Party Directory flat at 13, so this was an asymmetry rather than a house style.
+
+The per-row *check* is necessary — rows span different Companies and linkability genuinely
+varies — but the actor's effective access does not vary by row, so resolving per row was
+repeated work. `PartyVisibility::reachablePartyKeys()` asks the same predicate for every
+company at once: one resolve, one query, identical answers. Two tests pin it — one asserting
+the query count is **constant** rather than merely smaller, one asserting the batched flag
+equals `CompanyPolicy::view` row by row across a live company, an archived company, and an
+actor whose Company scope does not reach the Office.
+
+An earlier draft of that second test tried to build a cross-Office relationship to compare
+against and had its insert refused: M2.1's two composite foreign keys will not allow one. The
+fixture was wrong, not the product — the same lesson M1.10 recorded — and the test now exercises
+the two ways the answer legitimately varies instead.
+
+**4. Recorded, not built: six fields the product supports everywhere except the interface.**
+`gender`, `marital_status`, `village`, and `district` on Individual, and `village` and
+`district` on Company, are accepted and stored by the Form Requests, present in the API
+Resources, typed in the frontend, and **translated in both locales** — yet no form collects
+them and no page shows them. The translated labels are the tell: the repository looks like it
+supports these fields and does not.
+
+This one is deliberately **not** fixed here. `gender` and `marital_status` carry legal weight
+in Indonesian notarial practice, so deciding whether and how they appear is domain
+specification, not a decision a quality gate may take (CLAUDE.md §62). Recorded as **O-033**.
+
+### Verification
+
+```text
+Backend        1294 tests, 4476 assertions — 2 new (baseline 1292 / 4462)
+Pint           passed
+Frontend       format:check, lint, typecheck, build all clean
+composer       validate --strict passed
+Lockfiles      byte-identical to da779af, both sides
+Migrations     18, none pending
+Disposable DB  full chain from empty PostgreSQL; sync 171 then 0; rollback all 18
+               leaving only the migrations table; re-migrated to 18; dropped
+Smoke          38/38 over real PostgreSQL and Sanctum cookies, covering M2.1–M2.5
+Clean clone    installed, keyed, formatted, linted, typechecked, tested and built
+               from tracked files alone, following exactly the README's steps
+```
+
+The smoke walked the whole of M2 in one run: Individual and Company lifecycle with
+`display_name` resynchronizing in both directions, the two-tier identity rules including
+`parties.identity.update` conferring no readback, relationship add-and-close with a **409** on
+a second close, `ALL` refusing to create a cross-Office relationship without disclosing whether
+the person exists, the directory union, advisory duplicate detection with its Office bound
+holding for an `ALL` actor, the reverse view's linkability flipping correctly when a company is
+archived, and `OWN` and `ASSIGNED` failing closed on every surface.
+
+**Teardown restored fifteen of the sixteen tracked counts exactly. The sixteenth is worth
+stating rather than rounding off:** `sessions` went from 1 to 0. The surviving row from earlier
+milestones had a `last_activity` of 2026-08-12 and `session.lifetime` is 120 minutes, so
+Laravel's own database session garbage collector — `lottery` `[2, 100]`, and the smoke issued
+well over a hundred requests — pruned a row that had been expired for four days. The teardown
+did not do it: its guest-session clause only reaches rows newer than two hours. Correct
+framework behaviour on stale data, not a product defect and not an incomplete teardown, but it
+is a difference from baseline and is reported as one.
+
+### Open items
+
+**O-033 added** (six fields supported everywhere but the interface). O-031 and O-032 from M2.5
+remain open and unchanged.
+
+**O-018 re-verified rather than carried forward on trust:** next-intl is still 4.13.5 and still
+contains no reference to `next/root-params`, while `setRequestLocale` remains load-bearing in
+three files. Migration is still blocked upstream, not merely deferred.
+
+O-021 and O-022 remain accepted deferrals on their own recorded terms — the sidebar still does
+not carry the Notary and PPAT groups, and the Party Directory's page-level search is explicitly
+not the global header search. O-004, O-010, O-015, O-017, O-024, O-025, and O-029 are unchanged.
+
+---
+
 ## 2026-08-16 — M2.5 Party directory, duplicate detection, and reverse view
 
 Branch `feat/m2-parties`. **One forward migration** (18 total) — the first since M2.1, and

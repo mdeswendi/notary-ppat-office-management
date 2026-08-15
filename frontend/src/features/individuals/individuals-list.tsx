@@ -22,10 +22,11 @@ import { getIndividuals, individualQueryKeys } from "@/services/individuals";
  * — so this component filters nothing and the total it shows is already the
  * total that caller may see.
  *
- * Search covers name, phone, and email only. Identifier search is M2.5 and is
- * deliberately not wired here: a directory that answers "does this NIK exist"
- * is an existence oracle for identity data, which is exactly what the
- * office-scoped duplicate rules exist to prevent (D-084).
+ * Search covers name, phone, and email only, and **permanently** so — this is
+ * not waiting on M2.5, which has shipped (restated at M2.6). D-084 settled the
+ * rule: a directory that answers "does this NIK exist" is an existence oracle
+ * for identity data. Identifier matching lives on the advisory duplicate check,
+ * bounded to one Office and gated on that identifier's own full-view permission.
  *
  * Identity appears as masks the server computed. No raw identifier is present in
  * this payload, so there is nothing here to accidentally reveal.

@@ -22,17 +22,23 @@ import { companyQueryKeys, getCompanies } from "@/services/companies";
  * — so this component filters nothing and the total it shows is already the
  * total that caller may see.
  *
- * Search covers the company names, phone, and email only. Neither `tax_id` nor
- * `registration_number` is searchable: the first is encrypted and the second is
- * the duplicate signal M2.5 owns, and answering "does this registration number
- * exist" from the directory would make it an existence oracle before the rules
- * governing that are written (D-084).
+ * Search covers the company names, phone, and email only, and **permanently**
+ * so — this is not waiting on M2.5, which has shipped (restated at M2.6).
+ * Neither `tax_id` nor `registration_number` is searchable. D-086 made the first
+ * technically matchable, and D-084 settled the rule the second was waiting for,
+ * strictly: a directory that answers "does this registration number exist" is an
+ * existence oracle. Identifier matching lives on the advisory duplicate check,
+ * bounded to one Office and gated on that identifier's own full-view permission.
  *
  * The tax identifier appears as the mask the server computed. No raw value is
  * present in this payload, so there is nothing here to accidentally reveal.
  *
- * **No director, shareholder, or document counts.** Those would each need a
- * backend surface that M2.3 deliberately does not build (D-083).
+ * **No director, shareholder, or document counts.** M2.4 built the director and
+ * shareholder *surfaces*, but a count on this list is a different thing: the
+ * ordinary Company payload carries no relationship data, deliberately, so that
+ * holding `companies.view` cannot cause relationship data to be fetched (D-083).
+ * Adding a count would either break that or need a second request per row.
+ * Documents have no module at all.
  */
 export function CompaniesList() {
   const t = useTranslations("companies");

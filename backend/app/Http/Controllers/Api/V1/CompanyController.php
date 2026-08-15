@@ -33,11 +33,13 @@ use Illuminate\Http\Response;
  * it would leak the schema into the permission model (D-078). One ordinary
  * mutation, one permission.
  *
- * Deliberately absent: any tax-identity handling, which lives on its own surface
- * under its own permissions; anything touching `company_people`, which is M2.4;
- * and duplicate detection, which is M2.5. Also absent: `DELETE`. Party-domain
- * records are archived, never destroyed (D-081), and no restore exists because
- * no restore permission does.
+ * Deliberately absent, and each still absent now that the milestones that own
+ * them have shipped: tax-identity handling, which lives on its own surface under
+ * its own permissions; anything touching `company_people`, which belongs to the
+ * relationship controllers (M2.4); and duplicate detection, which is its own
+ * advisory controller (M2.5). Also absent: `DELETE`. Party-domain records are
+ * archived, never destroyed (D-081), and no restore exists because no restore
+ * permission does.
  */
 class CompanyController extends Controller
 {
@@ -72,12 +74,18 @@ class CompanyController extends Controller
         if ($search = trim((string) $request->query('search', ''))) {
             // Grouped so the search cannot escape the visibility constraint.
             //
-            // Ordinary fields only. `tax_id` is excluded because it is encrypted
-            // and matching it is impossible without a keyed construction nobody
-            // has designed (D-082); `registration_number` is excluded because it
-            // is the duplicate signal M2.5 owns, and answering "does this
-            // registration number exist" from the directory would make it an
-            // existence oracle before the rules governing that are written.
+            // Ordinary fields only, and **permanently** so — this list is not
+            // waiting on anything (restated at M2.6, D-077).
+            //
+            // M2.5 built the keyed construction this comment once said nobody
+            // had designed (D-086), so `tax_id` is now technically matchable.
+            // It stays out anyway, along with `registration_number`, because
+            // D-084 settled the rule the exclusion was waiting for and settled
+            // it the strict way: a directory that answers "does this identifier
+            // exist" is an existence oracle. Identifier matching lives on the
+            // duplicate-candidate endpoints, bounded to one Office and gated on
+            // that identifier's own full-view permission. Adding either field
+            // here would route around both controls.
             $query->where(function ($inner) use ($search): void {
                 $inner->whereLike('legal_name', "%{$search}%")
                     ->orWhereLike('short_name', "%{$search}%")

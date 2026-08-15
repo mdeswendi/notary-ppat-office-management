@@ -26,11 +26,12 @@ use Illuminate\Http\Response;
  * return a Resource. The aggregate rules live in the Actions and the scope rules
  * in {@see PartyVisibility}, where both can be read and tested without HTTP.
  *
- * Deliberately absent: any sensitive identity handling, which lives on its own
- * surface under its own permissions; Company anything, which is M2.3; and
- * duplicate detection, which is M2.5. Also absent: `DELETE`. Party-domain records
- * are archived, never destroyed (D-081), and no restore exists because no restore
- * permission does.
+ * Deliberately absent, and each still absent now that the milestones that own
+ * them have shipped: sensitive identity handling, which lives on its own surface
+ * under its own permissions; anything Company-shaped (M2.3); and duplicate
+ * detection, which is its own advisory controller (M2.5). Also absent: `DELETE`.
+ * Party-domain records are archived, never destroyed (D-081), and no restore
+ * exists because no restore permission does.
  */
 class IndividualController extends Controller
 {
@@ -64,8 +65,13 @@ class IndividualController extends Controller
 
         if ($search = trim((string) $request->query('search', ''))) {
             // Grouped so the search cannot escape the visibility constraint.
-            // Non-sensitive fields only — identifier search is M2.5, and making
-            // it possible here would turn the directory into a lookup oracle.
+            //
+            // Non-sensitive fields only, and **permanently** so — this is not
+            // waiting on M2.5, which has shipped (restated at M2.6, D-077).
+            // D-084 settled the rule the exclusion anticipated: a directory that
+            // answers "does this NIK exist" is an existence oracle. Identifier
+            // matching lives on the duplicate-candidate endpoints, bounded to
+            // one Office and gated on that identifier's own full-view permission.
             $query->where(function ($inner) use ($search): void {
                 $inner->whereLike('full_name', "%{$search}%")
                     ->orWhereHas('party', function ($party) use ($search): void {

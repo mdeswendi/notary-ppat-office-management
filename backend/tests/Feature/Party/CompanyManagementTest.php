@@ -440,9 +440,12 @@ it('searches ordinary Company fields only', function (): void {
 });
 
 it('cannot find a Company by its tax identifier', function (): void {
-    // Identifier lookup is M2.5 and would make the directory an existence
-    // oracle for sensitive data (D-084). The value is also encrypted, so a match
-    // is not merely refused — it is impossible.
+    // Permanent, not pending: M2.5 shipped and D-084 settled the rule strictly.
+    // Identifier lookup here would make the directory an existence oracle for
+    // sensitive data. Note that M2.5's keyed fingerprint made `tax_id` matching
+    // technically possible (D-086) without making it permissible — the search
+    // stays closed by decision, and `registration_number`, which was never
+    // encrypted, is refused for the same reason rather than a technical one.
     [$actor, $office] = companyActor('companies.view');
     makeCompanyIn($office, ['tax_id' => '091234567890123', 'registration_number' => 'AHU-777']);
 

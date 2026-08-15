@@ -26,9 +26,14 @@ use App\Models\User;
  * belongs to the aggregate. No `companies.identity.*` family exists, and M2.1
  * invents none (D-082).
  *
- * Relationship abilities distinguish management from ownership (D-083). Nothing
- * here is reachable over HTTP: M2.4 owns relationship behaviour, and these exist
- * so it inherits the boundary rather than inventing one.
+ * Relationship abilities distinguish management from ownership (D-083). They were
+ * written at M2.1 ahead of any HTTP surface, so that M2.4 would inherit the
+ * boundary rather than invent one. **M2.3 and M2.4 built those surfaces**, and
+ * every ability here is now reachable — lifecycle through
+ * {@see CompanyController}, identity through {@see CompanyIdentityController},
+ * and relationships through the two relationship controllers. The note that
+ * nothing here was reachable was true when written and stopped being true two
+ * milestones later (corrected at M2.6, D-077).
  */
 class CompanyPolicy
 {

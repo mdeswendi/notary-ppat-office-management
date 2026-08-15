@@ -252,8 +252,10 @@ it('never returns raw identity in the list', function (): void {
 });
 
 it('searches only non-sensitive fields', function (): void {
-    // Identifier search is M2.5. Allowing it here would make the directory an
-    // existence oracle for identity data.
+    // Permanent, not pending: M2.5 shipped and D-084 settled the rule strictly.
+    // Allowing identifier search here would make the directory an existence
+    // oracle for identity data, which the Office-scoped, permission-gated
+    // duplicate check exists to prevent.
     [$actor, $office] = partyActor('parties.view');
     makeIndividualIn($office, ['full_name' => 'Budi', 'nik' => '3174012345678901']);
 

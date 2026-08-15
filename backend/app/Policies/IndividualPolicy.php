@@ -28,8 +28,12 @@ use App\Models\User;
  * not seeing the other, and being allowed to write is not being allowed to read
  * back. No lifecycle permission produces a raw identifier by any route.
  *
- * M2.1 exposes no HTTP endpoint. These abilities exist and are tested directly so
- * that M2.2 has only to call them.
+ * Written at M2.1 with no HTTP surface behind it, so that M2.2 had only to call
+ * these abilities rather than invent a boundary. **M2.2 did**, and every ability
+ * here is now reachable over HTTP through {@see IndividualController} and
+ * {@see IndividualIdentityController} — the note that this class was
+ * endpoint-less was true when written and stopped being true one milestone
+ * later (corrected at M2.6, D-077).
  */
 class IndividualPolicy
 {

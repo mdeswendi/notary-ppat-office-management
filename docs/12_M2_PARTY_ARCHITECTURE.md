@@ -1031,8 +1031,33 @@ consolidation, fuzzy or scored matching, identifier search in the directory, Glo
 generic Party mutation — `GET /api/v1/parties` is the only generic Party route and stays
 read-only.
 
+**M2.6 delivered:** the M2 quality gate. **No migration** (18) and **no permission** (171); no
+new product capability, by design. It found four defects and recorded a fifth.
+
+Three were the shape M1.10 named (D-077) — a claim the repository made about itself that had
+stopped being true. Both Policies still described themselves as having no HTTP surface, written
+before M2.2 and M2.3 gave them one. Six sites explained the exclusion of identifier search from
+directory search as *waiting for M2.5*, and one named a keyed construction "nobody has
+designed" after D-086 designed it. That last group pointed the wrong way rather than merely
+reading as dated: identifier search is not the planned next step, it is permanently refused,
+because D-084 settled the oracle rule strictly and D-086 made `tax_id` matchable without making
+it permissible.
+
+The fourth was behavioural: the reverse Individual → Companies view computed `can_view_company`
+by asking the Company policy once per row, and the uncached resolver made that two extra
+queries per relationship — 16 for one row, 34 for ten — while the Company-side view and the
+Directory were both flat. The per-row *check* is necessary, but the actor's effective access is
+not per-row, so {@see PartyVisibility::reachablePartyKeys()} now asks the same predicate for
+every company at once. Two tests pin it: query count constant rather than merely smaller, and
+the batched flag equal to the policy row by row.
+
+The fifth is **O-033**, recorded and not built: `gender`, `marital_status`, `village`, and
+`district` on Individual and `village` and `district` on Company are accepted, stored, typed,
+and translated, yet no form collects them and no page shows them. Two of the six carry legal
+weight in Indonesian notarial practice, so whether they appear is domain specification rather
+than a gate decision.
+
 **Project remains M3.** M2 builds no Project, no Matter, and no Party-to-Project assignment.
-M2.6 is the M2 quality gate.
 
 ---
 
