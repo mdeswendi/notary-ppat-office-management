@@ -2575,6 +2575,94 @@ logic, which is how a cosmetic change becomes a behavioural one.
 and register numbering — none of which has a validated domain rule — into a milestone that owns
 none of them.
 
+### D-097 — What the system decides when a Project is created, and what a refusal must look like
+
+*(Added at M3.3, the milestone that turned the M3.1 schema and the M3.2 allocator into a
+product surface. Each ruling below is the answer to a question the earlier milestones could
+defer because nothing yet created a Project.)*
+
+**Creation is always in the actor's own Office, and `office_id` is refused rather than
+ignored.**
+
+```text
+POST /api/v1/projects  { office_id: … }   ->  422, always
+```
+
+This is the ruling most likely to be argued with, so the reasoning is recorded rather than
+assumed. `ALL` is cross-office **reach over existing Projects** (D-088) — it answers "which
+records may I see and act on", not "where may I file new work". An `ALL`-scoped actor is
+therefore refused too. Ignoring the field instead of refusing it would be worse than either
+choice: the caller would be told the Project went somewhere it did not.
+
+**Four fields are set by the system at creation and appear in no request shape.**
+
+```text
+office_id        the actor's own Office
+project_number   allocated by the M3.2 allocator (D-096)
+status           OPEN
+pic_user_id      null
+```
+
+`OPEN` is the initial status because a Project that has just been created has not been worked
+on, and no canonical document defines an earlier state. The initial PIC is null because nobody
+has been put in charge yet — inventing a default of "the creator" would be a business rule
+nobody has stated, and it would immediately grant that person `ASSIGNED` reach they were never
+given.
+
+**`ASSIGNED` alone does not authorize creation, and this is not an exception to D-028.** Data
+Scopes are predicates over records. The `ASSIGNED` predicate is `pic_user_id == actor.id`, and
+a Project being created has no PIC — so the predicate is false for the very record the actor is
+asking to create, and there is nothing to except. Only `ALL`, `OFFICE`, and `OWN` can match a
+new record. The union rule is untouched: an actor holding `ASSIGNED` **and** `OFFICE` creates
+normally, because `OFFICE` matches.
+
+**The person in charge must be an active user of the Project's own Office**, enforced both in
+the Form Request and again inside the Action. The restriction is not tidiness: `ASSIGNED` grants
+reach when `pic_user_id == actor.id`, so a cross-office assignment would hand somebody reach
+over a Project their own scope never included — a privilege grant performed through a work
+allocation, with no role changing and nothing in the authorization surfaces to show for it.
+
+The eligibility endpoint that populates the picker answers to `projects.assign` **on that
+Project**, invents no permission, and returns `id` and `name` only. Every ineligibility — absent,
+disabled, another Office — produces one indistinguishable message, so the endpoint cannot be
+used to enumerate the user directory.
+
+**`project_number` becomes `NOT NULL` at M3.3, by forward migration.** M3.1 withheld the column
+and M3.2 added it nullable (D-095) because rows already existing could not be given a reference
+retroactively. M3.3 owns the only path that creates a Project, and that path always allocates,
+so the column can now carry the guarantee the domain always intended. The migration was written
+only after inspecting the persistent development database and finding zero Projects and zero
+null references; **no backfill was invented**, and a deployment holding null references must
+resolve them deliberately rather than have this milestone guess.
+
+**A refusal keys on presence, not on emptiness.**
+
+```text
+{ "pic_user_id": null }   ->  422, not 200
+```
+
+Recorded because M3.3 shipped the opposite behaviour first and the HTTP smoke caught it.
+Laravel's `prohibited` rule means "missing **or empty**", so an explicitly null system-controlled
+field satisfied it and the request answered 200 or 201 with the key silently discarded. Nothing
+was ever written — the Actions fill an explicit allow-list and the model keeps these columns out
+of `$fillable`, so there was no write path and no escalation — but the response told a caller
+that an instruction had been accepted when it had been thrown away. `{"pic_user_id": null}` is an
+unassign instruction, and unassigning belongs to `projects.assign` like every other assignment
+(D-091). A silent no-op is not a refusal, and the empty case is no less silent than the
+non-empty one.
+
+**Capability flags on the Project resource are the Policy's answer, computed in bulk.**
+`can_update`, `can_assign`, `can_change_status`, and `can_archive` come from the same Policy the
+endpoints use, so the interface offers exactly what the server would accept — they remain
+presentation, and each endpoint authorizes again. They are computed for a whole page in a fixed
+number of queries rather than per row: `EffectiveAccessResolver` is deliberately uncached, so a
+per-row Policy call is an N+1, which is the lesson M2.6 paid for on the Party surface.
+
+**A record outside the caller's scope answers 403, not 404**, matching the convention M2
+accepted for a Party in another Office. A soft-deleted Project answers 404, because route model
+binding never resolves it — the two codes mean different things and neither is a leak worth
+trading the other for.
+
 ### M3 implementation order
 
 ```text

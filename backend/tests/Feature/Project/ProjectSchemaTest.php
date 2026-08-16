@@ -7,10 +7,10 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use ValueError;
 
 uses(RefreshDatabase::class);
 
@@ -270,11 +270,37 @@ it('generalizes the counter into no legal numbering framework', function (): voi
     }
 });
 
-it('exposes no Project HTTP surface yet', function (): void {
-    // M3.1 is schema and authorization foundation only; CRUD is M3.3. The Policy
-    // is tested directly instead, exactly as M2.1 tested Party's.
+it('exposes exactly the expected Project routes and nothing more', function (): void {
+    // **Narrowed at M3.3, not deleted.** M3.1 asserted there was no Project route
+    // at all, which was true while it shipped schema and authorization only.
+    // M3.3 ships the product surface, so the assertion becomes an inventory —
+    // which is the more useful guard anyway: a new route now has to be added
+    // here deliberately.
     $routes = collect(app('router')->getRoutes()->getRoutes())
-        ->filter(fn ($route): bool => str_contains($route->uri(), 'project'));
+        ->filter(fn ($route): bool => str_starts_with($route->uri(), 'api/v1/projects'))
+        ->map(fn ($route): string => implode('|', array_diff($route->methods(), ['HEAD'])).' '.$route->uri())
+        ->unique()->sort()->values()->all();
 
-    expect($routes)->toBeEmpty();
+    expect($routes)->toBe([
+        'DELETE api/v1/projects/{project}',
+        'GET api/v1/projects',
+        'GET api/v1/projects/archived',
+        'GET api/v1/projects/{project}',
+        'GET api/v1/projects/{project}/assignment/options',
+        'PATCH api/v1/projects/{project}',
+        'PATCH api/v1/projects/{project}/assignment',
+        'PATCH api/v1/projects/{project}/status',
+        'POST api/v1/projects',
+        'POST api/v1/projects/{project}/restore',
+    ]);
+});
+
+it('routes the literal archived path before the id binding', function (): void {
+    // Registration order matters: `projects/{project}` would otherwise swallow
+    // `projects/archived` and answer 404 for a surface that exists.
+    $matched = app('router')->getRoutes()->match(
+        Request::create('/api/v1/projects/archived', 'GET')
+    );
+
+    expect($matched->getName())->toBe('api.v1.projects.archived.index');
 });

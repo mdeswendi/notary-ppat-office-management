@@ -111,11 +111,16 @@ it('exposes no Client API and no generic Party mutation', function (): void {
     }
 });
 
-it('introduces no M3 surface', function (): void {
+it('introduces no surface beyond the milestone that owns it', function (): void {
+    // **Narrowed at M3.3, not deleted.** This asserted no `projects` route
+    // existed, which was true from M2.3 until M3.3 intentionally shipped one.
+    // The rest of the list has not expired and is kept: Matter, deeds,
+    // documents, properties, and Warkah all belong to M4 and later, and none of
+    // them may appear as a side effect of Party or Project work.
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
-    foreach (['projects', 'matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
-        expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty();
+    foreach (['matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+        expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 });

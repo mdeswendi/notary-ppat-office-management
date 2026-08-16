@@ -55,7 +55,7 @@ use Illuminate\Database\Eloquent\Builder;
 class ProjectVisibility
 {
     /**
-     * The scopes that select a Project. `TEAM` is absent by design.
+     * The scopes that select an existing Project. `TEAM` is absent by design.
      *
      * @return array<int, DataScope>
      */
@@ -63,6 +63,28 @@ class ProjectVisibility
         DataScope::ALL,
         DataScope::OFFICE,
         DataScope::ASSIGNED,
+        DataScope::OWN,
+    ];
+
+    /**
+     * The scopes that can describe a Project **about to be created**.
+     *
+     * A narrower set than {@see APPLICABLE}, and the difference is `ASSIGNED`.
+     * Every other predicate can be evaluated against the record that is about to
+     * exist: `OWN` will match because the actor becomes `created_by`, `OFFICE`
+     * because it lands in their Office, and `ALL` because it matches everything.
+     *
+     * **`ASSIGNED` cannot.** A new Project starts with no PIC (D-097), so
+     * `pic_user_id == actor.id` is false for the record the actor is asking to
+     * create — and will stay false until somebody with `projects.assign` says
+     * otherwise. Treating `ASSIGNED` as create authority would mean "may create
+     * work they will be assigned to", which describes nothing the product does.
+     *
+     * @return array<int, DataScope>
+     */
+    private const APPLICABLE_TO_CREATION = [
+        DataScope::ALL,
+        DataScope::OFFICE,
         DataScope::OWN,
     ];
 
@@ -131,21 +153,77 @@ class ProjectVisibility
     }
 
     /**
-     * May the actor create a Project in this Office?
+     * The same question as {@see permits()}, asked about many Projects at once.
      *
-     * Creation has no target record, so the destination Office is the subject —
-     * and `OWN` and `ASSIGNED` have nothing to match against, because the record
-     * whose creator or PIC they describe does not exist yet. Reading them as
-     * "may create anything they will own" would let an office-scoped actor create
-     * in any Office at all, which inverts the boundary.
+     * **Identical predicate, one query.** It is `scope()` again — the single
+     * implementation of the rule — so a batched answer cannot disagree with the
+     * per-record one; only the number of round trips differs.
      *
-     * So the rule is the same one Party uses: **only `ALL` may create elsewhere**;
-     * every other usable scope confines creation to the actor's own Office. This
-     * is a backend decision — office selection is never a frontend-only rule.
+     * This exists because the list surface computes four capability flags per
+     * row, and asking the Policy per row would mean four uncached resolver calls
+     * plus four `exists()` queries **for every Project on the page**. That is the
+     * N+1 M2.6 found in the Party reverse view and fixed the same way: the
+     * actor's effective access does not vary by row, so it is resolved once and
+     * the record predicate is asked in bulk.
+     *
+     * @param  array<int, string>  $projectIds
+     * @return array<string, true>
+     */
+    public function reachableProjectKeys(
+        array $projectIds,
+        User $actor,
+        EffectiveAccess $access,
+        bool $includeArchived = false,
+    ): array {
+        $projectIds = array_values(array_unique(array_filter($projectIds)));
+
+        if ($projectIds === []) {
+            return [];
+        }
+
+        $query = Project::query()->whereIn('id', $projectIds);
+
+        if ($includeArchived) {
+            $query->withTrashed();
+        }
+
+        return $this->scope($query, $actor, $access)
+            ->pluck('id')
+            ->mapWithKeys(fn (string $id): array => [$id => true])
+            ->all();
+    }
+
+    /**
+     * May the actor create a Project at all?
+     *
+     * True when at least one granted scope can describe the record about to
+     * exist — see {@see APPLICABLE_TO_CREATION}. `ASSIGNED` and `TEAM` cannot, so
+     * a grant carrying only those authorizes nothing here even though `ASSIGNED`
+     * is perfectly usable against existing Projects.
+     *
+     * The Project always lands in the actor's own Office (D-097), so there is no
+     * destination to judge: `ALL` is cross-office **reach**, never cross-office
+     * creation.
+     */
+    public function permitsCreation(EffectiveAccess $access): bool
+    {
+        return $this->usableForCreation($access) !== [];
+    }
+
+    /**
+     * May the actor create a Project in a **named** Office?
+     *
+     * Kept for callers that name a destination. M3.3's product surface does not —
+     * there is no Office selector, and `CreateProject` always uses the actor's
+     * Office — but the question is still meaningful, and answering it in one
+     * place stops a future caller inventing a looser rule.
+     *
+     * `ASSIGNED` is excluded for the same reason as above; of what remains, only
+     * `ALL` reaches beyond the actor's own Office.
      */
     public function permitsCreationIn(User $actor, EffectiveAccess $access, string $officeId): bool
     {
-        $scopes = $this->usable($access);
+        $scopes = $this->usableForCreation($access);
 
         if ($scopes === []) {
             return false;
@@ -190,13 +268,32 @@ class ProjectVisibility
      */
     private function usable(EffectiveAccess $access): array
     {
+        return $this->filterScopes($access, self::APPLICABLE);
+    }
+
+    /**
+     * The granted scopes that can describe a Project about to be created.
+     *
+     * @return array<int, DataScope>
+     */
+    private function usableForCreation(EffectiveAccess $access): array
+    {
+        return $this->filterScopes($access, self::APPLICABLE_TO_CREATION);
+    }
+
+    /**
+     * @param  array<int, DataScope>  $applicable
+     * @return array<int, DataScope>
+     */
+    private function filterScopes(EffectiveAccess $access, array $applicable): array
+    {
         if (! $access->granted) {
             return [];
         }
 
         return array_values(array_filter(
             $access->scopes,
-            fn (DataScope $scope): bool => in_array($scope, self::APPLICABLE, true),
+            fn (DataScope $scope): bool => in_array($scope, $applicable, true),
         ));
     }
 }

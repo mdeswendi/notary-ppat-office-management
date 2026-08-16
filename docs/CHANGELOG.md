@@ -5,6 +5,108 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M3.3 Project core management
+
+Branch `feat/m3-project-matter`. **One forward migration** (21 total). **No permission** (171):
+every capability was already canonical. Backend **1476 tests / 4985 assertions** — 89 new. Ten
+routes, five frontend pages, i18n at **691/691** exact parity. One new decision, **D-097**.
+
+### What shipped
+
+The Project product surface end to end: create, list with search and filters, detail, ordinary
+update, PIC assignment, status change, archive, restore, and a separate archived surface.
+
+```text
+GET    /api/v1/projects                     projects.view
+POST   /api/v1/projects                     projects.create        — own Office always
+GET    /api/v1/projects/archived            projects.restore
+GET    /api/v1/projects/{id}                projects.view
+PATCH  /api/v1/projects/{id}                projects.update        — ordinary attributes only
+PATCH  /api/v1/projects/{id}/assignment     projects.assign        — pic_user_id only
+GET    /api/v1/projects/{id}/assignment/options
+PATCH  /api/v1/projects/{id}/status         projects.change_status — status only
+DELETE /api/v1/projects/{id}                projects.archive       — soft delete
+POST   /api/v1/projects/{id}/restore        projects.restore
+```
+
+The literal `archived` path is registered **before** the `{id}` binding, with a test pinning
+that ordering — reversed, the archived surface would be read as a Project id and answer 404.
+
+### `project_number` is now `NOT NULL`
+
+M3.3 owns the only path that creates a Project and that path always allocates, so the column can
+carry the guarantee the domain always intended. The precondition was checked rather than
+assumed: the persistent development database held **zero Projects and zero null references**.
+**No backfill was invented** — a deployment holding null references must resolve them
+deliberately.
+
+### What the system decides, and what it refuses
+
+`office_id`, `project_number`, `status`, and `pic_user_id` are set by the system and appear in
+no request shape. A new Project starts `OPEN` with no PIC.
+
+**`ALL` does not authorize creating in another Office.** `ALL` is cross-office *reach over
+existing Projects*, not a filing destination, so `office_id` in a create body is a 422 for
+everybody. **`ASSIGNED` alone cannot authorize creation at all** — the predicate is
+`pic_user_id == actor.id` and a Project being created has no PIC, so it is false for the very
+record being asked for. That is not an exception to the union rule: an actor holding `ASSIGNED`
+and `OFFICE` creates normally, because `OFFICE` matches.
+
+A PIC must be an **active user of the Project's own Office**, enforced in the Form Request and
+again in the Action. Not tidiness: `ASSIGNED` grants reach when `pic_user_id == actor.id`, so a
+cross-office assignment would hand somebody reach over a Project their own scope never included
+— a privilege grant performed through a work allocation, with no role changing.
+
+**No transition matrix.** No canonical document defines which status may follow which, so the
+backend authorizes *who* may change status rather than *which* change is legal, and the
+interface offers every canonical code rather than inventing a rule by hiding options.
+
+### A defect the smoke found, and the fix
+
+`PATCH /api/v1/projects/{id}` with `{"pic_user_id": null}` answered **200** instead of refusing.
+Laravel's `prohibited` rule means "missing **or empty**", so an explicitly null system-controlled
+field satisfied it on both create and update.
+
+Nothing was ever written — the Actions fill an explicit allow-list and the model keeps these
+columns out of `$fillable`, so there was **no write path and no escalation** — but the response
+told the caller an instruction had been accepted when it had been discarded. `{"pic_user_id":
+null}` is an unassign instruction, and unassigning belongs to `projects.assign` (D-091). A
+silent no-op is not a refusal.
+
+Both Form Requests now refuse on **presence**, not emptiness, via an `after` hook. Fifteen tests
+pin it, including one asserting the PIC is still there after the refusal.
+
+### Verification
+
+**Disposable PostgreSQL 18.4**, uniquely named, target proven before every command: migrated
+from zero through all 21 migrations, `project_number` confirmed `NOT NULL`, M3.3 rolled back,
+M3.2 structure confirmed restored (nullable, unique index and counter table intact), reapplied,
+database dropped.
+
+**HTTP smoke over real PostgreSQL and real Sanctum cookie sessions** — standalone cURL, no test
+harness, so middleware, CSRF, session cookie, Policy chain, and Data Scope all ran as a browser
+drives them. **77 checks, 0 failures**, covering the full lifecycle plus ASSIGNED reach,
+cross-office refusal, capability flags, and D-093's distinction between business `ARCHIVED` and
+an archived record.
+
+Worth recording because it nearly went unnoticed: the first smoke attempt ran against the
+**wrong database**. `artisan serve` strips non-allow-listed variables from the child process, so
+`DB_DATABASE` never reached the server and it answered from the persistent development database
+while every local check reported the disposable one. Caught by counting session rows on both
+sides. The eight anonymous session rows it wrote were removed and the persistent database
+verified **identical to its captured baseline across all 24 tables**. Subsequent runs drove the
+built-in server directly and proved the target from inside the served process before any traffic.
+
+### Documentation
+
+`06_API_CONVENTIONS.md` sections 21 and 22 sketched `POST /{id}/archive`,
+`POST /{id}/assign`, and `POST /{id}/change-status`. The shipped surface uses `DELETE /{id}` and
+`PATCH /{id}/assignment` and `/status` — the same authorization decisions spelled differently.
+Both sections were reconciled to the shipped surface and the discrepancy is reported rather than
+silently resolved.
+
+---
+
 ## 2026-08-16 — M3.2 Project internal reference foundation
 
 Branch `feat/m3-project-matter`. **One forward migration** (20 total). **No permission** (171):

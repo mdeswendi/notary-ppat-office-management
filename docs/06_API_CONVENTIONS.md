@@ -384,13 +384,31 @@ Use PUT only when the team intentionally treats the request as full replacement.
 
 For important operational/legal records, prefer explicit actions or state transitions.
 
-Example:
+The binding rule is that **`DELETE` must never mean destruction** for these records — not that
+the word `DELETE` is forbidden.
+
+Project archiving shipped at M3.3 as *(D-093)*:
 
 ```text
-POST /api/v1/projects/{id}/archive
+DELETE /api/v1/projects/{id}           archives — soft delete, record retained
+POST   /api/v1/projects/{id}/restore   projects.restore — puts it back unchanged
+GET    /api/v1/projects/archived       projects.restore — the archived surface
 ```
 
-rather than assuming DELETE always means destructive deletion.
+The verb is `DELETE` and the meaning is not destruction: the row is soft-deleted, keeps its
+internal reference, keeps its business status, and a holder of `projects.restore` can return it.
+An earlier sketch here proposed `POST /api/v1/projects/{id}/archive`; the shipped pair is the
+same decision spelled differently, and it keeps archive and restore as symmetrical opposites.
+
+**Business `ARCHIVED` and an archived record are different states with similar names.** A
+Project whose status reads `ARCHIVED` is an ordinary live record that still appears in the
+ordinary list. Restoring a deleted record does not reopen it — a Project archived while its
+status read `ARCHIVED` still reads `ARCHIVED` afterwards, because `projects.restore` restores the
+record and nothing else.
+
+The archived surface answers to `projects.restore` rather than `projects.view`: widening ordinary
+view to include soft-deleted rows would expose archived work to everyone who can read Projects
+at all.
 
 For finalized legal records, normal hard deletion must not be exposed.
 
@@ -419,16 +437,27 @@ update permission a silent superset of the specific one, which is the same failu
 guards against for identity: one permission quietly acquiring another's authority because
 they share a request body.
 
-The pattern:
+The pattern, as it shipped at M3.3:
 
 ```text
-PATCH /api/v1/projects/{id}                 ordinary attributes; refuses pic_user_id and status
-POST  /api/v1/projects/{id}/assign          projects.assign        — pic_user_id only
-POST  /api/v1/projects/{id}/change-status   projects.change_status — status only
+PATCH /api/v1/projects/{id}              ordinary attributes; refuses pic_user_id and status
+PATCH /api/v1/projects/{id}/assignment   projects.assign        — pic_user_id only
+PATCH /api/v1/projects/{id}/status       projects.change_status — status only
 ```
+
+`PATCH` rather than the `POST .../assign` and `POST .../change-status` this section first
+sketched: each writes one field of an existing record, which is what `PATCH` means. The
+authorization split — the point of the rule — is unchanged.
 
 Refusing rather than ignoring matters: silently dropping a submitted field tells the caller
 their change succeeded when it did not.
+
+**The refusal must key on presence, not on emptiness** *(M3.3, D-097)*. Laravel's `prohibited`
+rule reads as "missing **or empty**", so a Form Request that relies on it alone still accepts
+`{"pic_user_id": null}` and answers 200 with the key discarded. An explicitly null value is
+still an instruction — here, an instruction to unassign — and it belongs to the endpoint that
+owns the field. Pair `prohibited` with an `after` validation hook that fails on any
+system-controlled key merely present in the payload.
 
 ---
 

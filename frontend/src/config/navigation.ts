@@ -1,7 +1,9 @@
 import {
+  ArchiveRestore,
   BookUser,
   Building2,
   Contact,
+  FolderKanban,
   KeyRound,
   LayoutDashboard,
   Settings,
@@ -86,6 +88,39 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // No permission: no canonical document defines one for the Dashboard, and
     // inventing a gate for the landing page would lock people out of the only
     // destination they have.
+  },
+  {
+    key: "projects",
+    translationKey: "projects",
+    icon: FolderKanban,
+    // Added at M3.3, when the product surface landed — not at M3.1 when the
+    // schema did, and not at M3.2 when the allocator did (D-064).
+    implemented: true,
+    children: [
+      {
+        key: "projects.list",
+        translationKey: "projectsList",
+        href: "/projects",
+        icon: FolderKanban,
+        implemented: true,
+        // Any effective Project scope opens the list; the query narrows the rows
+        // (D-088). A grant carrying only TEAM reaches nothing, so the backend
+        // refuses outright rather than serving a reliably empty page.
+        requiredPermission: "projects.view",
+      },
+      {
+        key: "projects.archived",
+        translationKey: "projectsArchived",
+        href: "/projects/archived",
+        icon: ArchiveRestore,
+        implemented: true,
+        // `projects.restore`, not `projects.view` — the archived surface answers
+        // to the capability that can act on it (D-093). Somebody who may restore
+        // must be able to reach the page even if they hold nothing else, which is
+        // why this is its own entry rather than a control inside the list.
+        requiredPermission: "projects.restore",
+      },
+    ],
   },
   {
     key: "parties",

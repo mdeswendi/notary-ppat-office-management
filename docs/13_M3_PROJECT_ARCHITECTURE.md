@@ -266,15 +266,21 @@ behind one lock. The sequence is **not a record count**, and its order carries n
 A reference that belongs to a persisted Project is spent: archiving does not release it,
 restoring keeps the same one, and no reuse feature exists.
 
-**`project_number` is nullable at M3.2** — a design choice, not a data-forced one. The
+**`project_number` was nullable at M3.2** — a design choice, not a data-forced one. The
 persistent development table was verified empty first. M3.2 ships no creation path that
 assigns a reference (that is M3.3), so `NOT NULL` would have made Project unwritable for a
-whole milestone. M3.3 assigns at creation and may then consider tightening. Under the composite
-unique index, multiple unassigned Projects per Office are fine because both engines treat NULLs
-as distinct.
+whole milestone. Under the composite unique index, multiple unassigned Projects per Office were
+fine because both engines treat NULLs as distinct.
 
-**Immutable once allocated.** The model refuses a rewrite while permitting the initial
-`null → reference` assignment, so the guard cannot block the operation the column exists for.
+**`NOT NULL` since M3.3** *(D-097)*, by forward migration
+`2026_08_16_180000_require_project_internal_reference`. M3.3 owns the only path that creates a
+Project and that path always allocates, so the column now carries the guarantee the domain
+always intended. The precondition was checked rather than assumed: the persistent development
+database held zero Projects and zero null references, and **no backfill was invented** — a
+deployment holding null references must resolve them deliberately.
+
+**Immutable once allocated.** The model refuses a rewrite. The `null → reference` branch the
+guard once needed is now unreachable, since the column can no longer be null.
 The counter table is Project-specific and is deliberately **not** generalized into
 `legal_number_sequences` or anything deed-, repertorium-, or Matter-shaped — that would pull
 numbering nobody has validated into a milestone that owns none of it.
@@ -438,7 +444,34 @@ assertion that expired was removed and every other one kept, including the point
 always really about — Party gains no foreign key into Project. The route-level guards needed no
 change at all, because M3.1 ships no route.
 
-**M4.0** opens Matter with its own architecture lock.
+**M3.3 — delivered.** The Project product surface: create, list, detail, ordinary update, PIC
+assignment, status change, archive, restore, and the archived surface, plus the frontend. One
+forward migration tightening `project_number` to `NOT NULL` (21 total). **No new permission —
+the count stays at 171**; every capability was already canonical.
+
+```text
+GET    /api/v1/projects                       projects.view
+POST   /api/v1/projects                       projects.create      — own Office always
+GET    /api/v1/projects/archived              projects.restore     — before the {id} binding
+GET    /api/v1/projects/{id}                  projects.view
+PATCH  /api/v1/projects/{id}                  projects.update      — ordinary attributes only
+PATCH  /api/v1/projects/{id}/assignment       projects.assign      — pic_user_id only
+GET    /api/v1/projects/{id}/assignment/options
+PATCH  /api/v1/projects/{id}/status           projects.change_status — status only
+DELETE /api/v1/projects/{id}                  projects.archive     — soft delete
+POST   /api/v1/projects/{id}/restore          projects.restore
+```
+
+The literal `archived` path is registered **before** the `{id}` binding, and a test pins that
+ordering — reversed, the archived surface would be read as a Project id and answer 404.
+
+What the system decides at creation, why `ASSIGNED` alone cannot authorize it, why a PIC must
+be same-Office, and why a refusal keys on presence rather than emptiness are all recorded in
+**D-097**. The two M2-era route guards this milestone invalidated were narrowed, not deleted,
+exactly as M3.1 predicted: they now assert that no surface appears beyond the milestone that
+owns it, and that Project is never a Party sub-resource.
+
+**M3.4** adds `project_parties`. **M4.0** opens Matter with its own architecture lock.
 
 ---
 
@@ -447,7 +480,7 @@ change at all, because M3.1 ships no route.
 | Question | Status | Blocks M3.1? |
 |---|---|---|
 | Project internal reference allocation and concurrency design | **Resolved at M3.2** — atomic upsert-returning over an `(office_id, reference_year)` counter, uniqueness scoped to the Office, proven under real multi-process contention. See section 9. | **No** |
-| Whether `project_number` should become `NOT NULL` | Open, and M3.3's to decide once creation always assigns one | **No** |
+| Whether `project_number` should become `NOT NULL` | **Resolved at M3.3** — tightened by forward migration once creation always allocates. Precondition verified (0 Projects, 0 null references); no backfill invented. See D-097. | **No** |
 | Participant role catalogue and any cardinality rule | Requires domain authority; ERD codes are examples only | **No** |
 | Status transition matrix | Not invented; M3 authorizes who may change status, not which changes are legal | **No** |
 | Project Office transfer | Refused for M3; requires its own architecture decision | **No** |

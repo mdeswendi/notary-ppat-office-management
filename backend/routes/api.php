@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ArchivedProjectController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
@@ -12,6 +13,9 @@ use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ProjectAssignmentController;
+use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\ProjectStatusController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -176,6 +180,53 @@ Route::prefix('v1')->group(function (): void {
          */
         Route::get('parties', [PartyDirectoryController::class, 'index'])
             ->name('api.v1.parties.index');
+
+        /*
+         * Project — the M3 aggregate root (M3.3).
+         *
+         * `projects/archived` is registered **before** `projects/{project}` so
+         * the literal path wins; otherwise the router would bind `archived` as an
+         * id and answer 404 for a surface that exists.
+         *
+         * The archived surface answers to `projects.restore`, not
+         * `projects.view` (D-093). Widening ordinary view to include
+         * soft-deleted rows would expose archived work to everyone who can read
+         * Projects at all — a much larger group than those who may restore.
+         *
+         * Assignment and status get their own paths because they are their own
+         * capabilities: `projects.assign` writes `pic_user_id`,
+         * `projects.change_status` writes `status`, and generic `PATCH` reaches
+         * neither (D-091). A field governed by its own permission gets its own
+         * endpoint, and the generic update refuses it —
+         * `06_API_CONVENTIONS.md` section 22.
+         *
+         * `DELETE` archives. Project records are never destroyed, and `restore`
+         * is a POST to the archived record rather than an inverse `DELETE`.
+         *
+         * No Matter route, and no `project_parties` route: M4 and M3.4
+         * respectively.
+         */
+        Route::get('projects/archived', [ArchivedProjectController::class, 'index'])
+            ->name('api.v1.projects.archived.index');
+        Route::post('projects/{project}/restore', [ArchivedProjectController::class, 'restore'])
+            ->whereUlid('project')->withTrashed()->name('api.v1.projects.restore');
+
+        Route::get('projects/{project}/assignment/options', [ProjectAssignmentController::class, 'options'])
+            ->whereUlid('project')->name('api.v1.projects.assignment.options');
+        Route::patch('projects/{project}/assignment', [ProjectAssignmentController::class, 'update'])
+            ->whereUlid('project')->name('api.v1.projects.assignment.update');
+
+        Route::patch('projects/{project}/status', [ProjectStatusController::class, 'update'])
+            ->whereUlid('project')->name('api.v1.projects.status.update');
+
+        Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
+        Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');
+        Route::get('projects/{project}', [ProjectController::class, 'show'])
+            ->whereUlid('project')->name('api.v1.projects.show');
+        Route::patch('projects/{project}', [ProjectController::class, 'update'])
+            ->whereUlid('project')->name('api.v1.projects.update');
+        Route::delete('projects/{project}', [ProjectController::class, 'archive'])
+            ->whereUlid('project')->name('api.v1.projects.archive');
 
         /*
          * Advisory duplicate candidates (M2.5, D-084, D-086).

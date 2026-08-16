@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Domains\Project\AllocateProjectReference;
 use App\Domains\Project\Enums\ProjectPriority;
 use App\Domains\Project\Enums\ProjectStatus;
 use App\Models\Office;
@@ -35,6 +36,15 @@ class ProjectFactory extends Factory
     {
         return [
             'office_id' => Office::factory(),
+
+            // Allocated through the real allocator rather than faked, because
+            // `project_number` became NOT NULL at M3.3 and a made-up value would
+            // let a test pass against a reference the product could never
+            // produce. The closure runs after `office_id` is resolved, so the
+            // allocation lands in the right Office-year namespace.
+            'project_number' => fn (array $attributes): string => app(AllocateProjectReference::class)
+                ->forOffice((string) $attributes['office_id']),
+
             'title' => fake()->sentence(4),
             'description' => fake()->optional()->paragraph(),
             'status' => ProjectStatus::OPEN,

@@ -50,16 +50,29 @@ class ProjectPolicy
     }
 
     /**
-     * Creation is judged against the destination Office, since no record exists
-     * yet to judge against — and `OWN` and `ASSIGNED` have nothing to match for
-     * the same reason. Only `ALL` creates elsewhere.
+     * May the actor create a Project?
+     *
+     * Judged against the record about to exist, which narrows the usable scopes
+     * (D-097). `OWN` qualifies because the actor becomes `created_by`, `OFFICE`
+     * because it lands in their Office, and `ALL` because it matches everything.
+     *
+     * **`ASSIGNED` does not qualify**, and that is the interesting case: a new
+     * Project starts with no PIC, so `pic_user_id == actor.id` is false for the
+     * very record being asked about. Accepting it would read as "may create work
+     * they will be assigned to", which describes nothing the product does — and
+     * would hand create authority to a grant that was only ever meant to expose
+     * work already routed to somebody.
+     *
+     * The Project always lands in the actor's Office, so `$officeId` is only
+     * meaningful to a caller that names a destination; M3.3's surface does not,
+     * because there is no Office selector.
      */
     public function create(User $actor, ?string $officeId = null): bool
     {
         $access = $this->resolver->resolve($actor, 'projects.create');
 
         if ($officeId === null) {
-            return $this->visibility->hasUsableScope($access);
+            return $this->visibility->permitsCreation($access);
         }
 
         return $this->visibility->permitsCreationIn($actor, $access, $officeId);
@@ -117,6 +130,24 @@ class ProjectPolicy
     public function restore(User $actor, Project $project): bool
     {
         return $this->reaches($actor, 'projects.restore', $project, includeArchived: true);
+    }
+
+    /**
+     * Open the archived-Project list (M3.3).
+     *
+     * Answers to **`projects.restore`, not `projects.view`**, and that is the
+     * whole reason the surface exists separately. Restoring needs a way to find
+     * the record, but widening ordinary view to include soft-deleted rows would
+     * expose archived work to everyone who can read Projects at all — a much
+     * larger group, and one nobody granted archive-visibility to.
+     *
+     * Holding `projects.view` therefore reaches no archived record anywhere, and
+     * holding `projects.restore` reaches archived records **within its own Data
+     * Scope** and nothing live.
+     */
+    public function viewArchived(User $actor): bool
+    {
+        return $this->visibility->hasUsableScope($this->resolver->resolve($actor, 'projects.restore'));
     }
 
     private function reaches(

@@ -81,19 +81,30 @@ it('still offers only OFFICE and ALL for relationship permissions', function (st
     'companies.shareholders.view', 'companies.shareholders.update',
 ]);
 
-it('introduces no merge, fingerprint, or M3 surface', function (): void {
+it('introduces no merge, fingerprint, or later-module surface', function (): void {
     // At M2.4 this also covered `duplicate`, which was true then. M2.5 shipped
     // advisory duplicate *candidate* checks, so the assertion narrowed to what
     // stays true and matters more: detection never merges, never exposes the
-    // cryptographic material it compares on, and starts no M3 module (D-084,
+    // cryptographic material it compares on, and starts no later module (D-084,
     // D-086).
+    //
+    // **Narrowed again at M3.3**, which intentionally ships the Project surface
+    // this once forbade. `projects` is gone from the list; everything else is
+    // kept, and the Party-domain point survives unchanged — nothing here reaches
+    // Matter, deeds, documents, properties, or Warkah, and Project is not
+    // reachable *through the Party surfaces* either.
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
-    foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients', 'projects',
+    foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
         'matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
-        expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty();
+        expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
+
+    // Project exists now, but never as a Party sub-resource.
+    expect($uris->filter(fn (string $u): bool => str_contains($u, 'parties/')
+        || str_contains($u, 'individuals/') || str_contains($u, 'companies/'))
+        ->filter(fn (string $u): bool => str_contains($u, 'project')))->toBeEmpty();
 
     // What duplicate detection does expose is candidate checks, and only those.
     expect($uris->filter(fn (string $u): bool => str_contains($u, 'duplicate'))

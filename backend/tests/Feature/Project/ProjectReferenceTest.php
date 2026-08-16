@@ -2,6 +2,8 @@
 
 use App\Domains\Project\AllocateProjectReference;
 use App\Domains\Project\ProjectReference;
+use App\Http\Requests\Project\StoreProjectRequest;
+use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Office;
 use App\Models\Project;
 use Illuminate\Database\QueryException;
@@ -23,17 +25,18 @@ function allocator(): AllocateProjectReference
 |--------------------------------------------------------------------------
 */
 
-it('adds a nullable reference column wide enough for the format', function (): void {
-    // Nullable by design, not by accident: M3.2 ships no creation path that
-    // assigns a reference — that is M3.3 — so NOT NULL would make Project
-    // unwritable for a whole milestone. The persistent development table was
-    // verified empty first, so this is a design choice rather than a data-forced
-    // one.
+it('requires a reference on every project', function (): void {
+    // **Narrowed at M3.3, not deleted.** This asserted the column was nullable,
+    // which was true and deliberate at M3.2: the allocator existed but no
+    // creation path did, so NOT NULL would have made Project unwritable for a
+    // whole milestone. M3.3 ships creation and every created Project is stamped,
+    // so the invariant the column always wanted is now enforced (D-097).
     expect(Schema::hasColumn('projects', 'project_number'))->toBeTrue();
 
-    $project = Project::factory()->create();
+    expect(Project::factory()->create()->project_number)->not->toBeNull();
 
-    expect($project->project_number)->toBeNull();
+    expect(fn () => Project::factory()->create(['project_number' => null]))
+        ->toThrow(QueryException::class);
 });
 
 it('creates the counter table keyed by office and year', function (): void {
@@ -63,39 +66,29 @@ it('scopes reference uniqueness to the office, never globally', function (): voi
     // Offices is correct rather than a collision. A global unique index would
     // make the second Office's first project of the year fail for no reason
     // anybody could explain.
-    $a = Office::factory()->create();
-    $b = Office::factory()->create();
+    Date::setTestNow('2026-05-17 09:00:00');
 
-    $first = Project::factory()->for($a)->create();
-    $second = Project::factory()->for($b)->create();
+    $first = Project::factory()->for(Office::factory())->create();
+    $second = Project::factory()->for(Office::factory())->create();
 
-    $first->forceFill(['project_number' => 'PRJ-2026-000001'])->save();
-    $second->forceFill(['project_number' => 'PRJ-2026-000001'])->save();
-
-    expect($first->fresh()->project_number)->toBe('PRJ-2026-000001')
-        ->and($second->fresh()->project_number)->toBe('PRJ-2026-000001');
+    expect($first->project_number)->toBe('PRJ-2026-000001')
+        ->and($second->project_number)->toBe('PRJ-2026-000001');
 });
 
 it('refuses the same reference twice within one office', function (): void {
+    // Written against the database rather than the model, because the model
+    // refuses the change first (immutability). The constraint under it has to
+    // hold on its own.
+    Date::setTestNow('2026-05-17 09:00:00');
     $office = Office::factory()->create();
 
-    Project::factory()->for($office)->create()
-        ->forceFill(['project_number' => 'PRJ-2026-000001'])->save();
+    Project::factory()->for($office)->create();
+    $second = Project::factory()->for($office)->create();
 
-    $duplicate = Project::factory()->for($office)->create();
-
-    expect(fn () => $duplicate->forceFill(['project_number' => 'PRJ-2026-000001'])->save())
+    expect(fn () => DB::table('projects')
+        ->where('id', $second->getKey())
+        ->update(['project_number' => 'PRJ-2026-000001']))
         ->toThrow(QueryException::class);
-});
-
-it('allows many unassigned projects in one office', function (): void {
-    // Both engines treat NULLs as distinct in a unique index, which is what lets
-    // the column be nullable under a composite unique constraint at all.
-    $office = Office::factory()->create();
-
-    Project::factory()->for($office)->count(3)->create();
-
-    expect(Project::where('office_id', $office->getKey())->count())->toBe(3);
 });
 
 /*
@@ -215,10 +208,12 @@ it('does not reuse a reference after the project is archived', function (): void
     $office = Office::factory()->create();
 
     $project = Project::factory()->for($office)->create();
-    $project->forceFill(['project_number' => allocator()->forOffice($office)])->save();
+    expect($project->project_number)->toBe('PRJ-2026-000001');
+
     $project->delete();
 
-    expect(allocator()->forOffice($office))->toBe('PRJ-2026-000002');
+    expect(Project::factory()->for($office)->create()->project_number)
+        ->toBe('PRJ-2026-000002');
 });
 
 it('leaves a gap when an allocation is not used', function (): void {
@@ -227,14 +222,12 @@ it('leaves a gap when an allocation is not used', function (): void {
     Date::setTestNow('2026-05-17 09:00:00');
     $office = Office::factory()->create();
 
-    allocator()->forOffice($office);          // 000001, discarded
-    $used = allocator()->forOffice($office);  // 000002
+    allocator()->forOffice($office);  // 000001, allocated and discarded
 
     $project = Project::factory()->for($office)->create();
-    $project->forceFill(['project_number' => $used])->save();
 
-    expect($used)->toBe('PRJ-2026-000002')
-        ->and(Project::whereNotNull('project_number')->count())->toBe(1);
+    expect($project->project_number)->toBe('PRJ-2026-000002')
+        ->and(Project::where('office_id', $office->getKey())->count())->toBe(1);
 });
 
 /*
@@ -245,10 +238,7 @@ it('leaves a gap when an allocation is not used', function (): void {
 
 it('refuses to rewrite an allocated reference', function (): void {
     Date::setTestNow('2026-05-17 09:00:00');
-    $office = Office::factory()->create();
-
-    $project = Project::factory()->for($office)->create();
-    $project->forceFill(['project_number' => allocator()->forOffice($office)])->save();
+    $project = Project::factory()->create();
 
     $project->project_number = 'PRJ-2026-000999';
 
@@ -256,17 +246,12 @@ it('refuses to rewrite an allocated reference', function (): void {
         ->toThrow(RuntimeException::class, 'immutable once allocated');
 });
 
-it('permits the initial assignment from null', function (): void {
-    // The guard must not block the operation the column exists for. M3.3 stamps
-    // a new Project exactly this way.
+it('does not block the allocation itself', function (): void {
+    // The guard fires on `updating`, so it never reaches the insert that stamps
+    // a new Project — which is the operation the column exists for.
     Date::setTestNow('2026-05-17 09:00:00');
-    $office = Office::factory()->create();
-    $project = Project::factory()->for($office)->create();
 
-    $project->project_number = allocator()->forOffice($office);
-    $project->save();
-
-    expect($project->fresh()->project_number)->toBe('PRJ-2026-000001');
+    expect(Project::factory()->create()->project_number)->toBe('PRJ-2026-000001');
 });
 
 it('keeps the reference out of mass assignment', function (): void {
@@ -275,10 +260,8 @@ it('keeps the reference out of mass assignment', function (): void {
 
 it('keeps the reference through soft delete and restore', function (): void {
     Date::setTestNow('2026-05-17 09:00:00');
-    $office = Office::factory()->create();
 
-    $project = Project::factory()->for($office)->create();
-    $project->forceFill(['project_number' => allocator()->forOffice($office)])->save();
+    $project = Project::factory()->create();
 
     $project->delete();
     expect(Project::withTrashed()->find($project->id)->project_number)->toBe('PRJ-2026-000001');
@@ -340,9 +323,23 @@ it('reads the year from the clock rather than parsing a reference', function ():
     }
 });
 
-it('exposes no Project reference HTTP surface', function (): void {
-    $routes = collect(app('router')->getRoutes()->getRoutes())
-        ->filter(fn ($route): bool => str_contains($route->uri(), 'project'));
+it('exposes no route that writes a reference', function (): void {
+    // **Narrowed at M3.3, not deleted.** This asserted there was no Project route
+    // at all, which M3.3 intentionally makes false. What stays true is the part
+    // that mattered: no endpoint accepts or mutates a reference. It is allocated
+    // server-side and immutable, so there is nothing for a caller to send.
+    $uris = collect(app('router')->getRoutes()->getRoutes())
+        ->map(fn ($route): string => $route->uri());
 
-    expect($routes)->toBeEmpty();
+    foreach (['number', 'reference', 'sequence', 'counter'] as $segment) {
+        expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
+    }
+
+    // And the write shapes refuse it outright rather than ignoring it.
+    foreach ([
+        StoreProjectRequest::class,
+        UpdateProjectRequest::class,
+    ] as $request) {
+        expect((new $request)->rules()['project_number'])->toBe(['prohibited']);
+    }
 });

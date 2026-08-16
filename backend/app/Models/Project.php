@@ -86,11 +86,13 @@ class Project extends Model
             // record (D-094). Changing it would break the one thing an
             // identifier is for, and would strand the counter that issued it.
             //
-            // Assignment itself is not a change: moving null -> a reference is
-            // how M3.3 will stamp a new Project. Only rewriting an existing one
-            // is refused, so the guard cannot block the very operation the
-            // column exists for.
-            if ($project->isDirty('project_number') && $project->getOriginal('project_number') !== null) {
+            // This fires on `updating` only, so it never blocks the allocation
+            // itself: `CreateProject` stamps a *new* model, which is an insert.
+            // M3.2 additionally allowed a null -> reference transition here,
+            // because the column was nullable then; M3.3 made it NOT NULL, so
+            // that branch became unreachable and was removed rather than left as
+            // dead reassurance.
+            if ($project->isDirty('project_number')) {
                 throw new RuntimeException(
                     'projects.project_number is immutable once allocated (D-094). '
                     .'A reference belongs to the record that received it; archiving does not release it.'
