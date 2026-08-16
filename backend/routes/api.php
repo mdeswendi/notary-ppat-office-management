@@ -1,6 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CompanyController;
+use App\Http\Controllers\Api\V1\CompanyIdentityController;
+use App\Http\Controllers\Api\V1\CompanyManagementController;
+use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\IndividualCompanyController;
+use App\Http\Controllers\Api\V1\IndividualController;
+use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\PartyDirectoryController;
+use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\RoleController;
@@ -136,5 +145,182 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('users', UserController::class)
             ->except('destroy')
             ->whereUlid('user');
+
+        /*
+         * Individuals — the first Party-domain business surface (M2.2).
+         *
+         * `options` precedes `{individual}` so the literal path wins. Every route
+         * is bound to the Party ULID and resolves the Individual subtype only, so
+         * a Company id answers 404 rather than leaking that it exists.
+         *
+         * No DELETE and no restore: Party records are archived, never destroyed,
+         * and no restore permission exists to authorize one (D-081).
+         *
+         * The identity surface sits under its own path because it answers to its
+         * own permissions. Reveal is POST rather than GET so a raw identifier
+         * cannot land in a cached response, a browser history entry, or a URL —
+         * and carries its own named limiter, kept clear of the `security.*`
+         * buckets so neither can exhaust the other (D-082).
+         */
+        /*
+         * The unified Party Directory (M2.5) — the first and only generic Party
+         * endpoint, and deliberately **read-only**.
+         *
+         * No POST, PATCH, or DELETE here, ever. Individual and Company own their
+         * lifecycles with their own permissions, validation, and aggregate
+         * rules; a generic Party mutation route would be a second way to write
+         * the same records with none of that (D-078).
+         *
+         * No new permission either: visibility is the union of `parties.view`
+         * and `companies.view`, each evaluated at its own scope.
+         */
+        Route::get('parties', [PartyDirectoryController::class, 'index'])
+            ->name('api.v1.parties.index');
+
+        /*
+         * Advisory duplicate candidates (M2.5, D-084, D-086).
+         *
+         * POST even though nothing mutates: the request body carries the
+         * identifiers being typed, and a GET would put a NIK in a URL, a history
+         * entry, a proxy log, and a cached response — the reasoning that made
+         * identity reveal a POST (D-082).
+         *
+         * `duplicate-candidates` precedes `{individual}` so the literal path
+         * wins. Its own named limiter, kept clear of both the `security.*`
+         * buckets and the identity reveal bucket: these are identity *existence*
+         * questions, a different operation from disclosing a stored value, and
+         * exhausting one must not disable the other (the M1.9 defect, D-071).
+         */
+        Route::post('individuals/duplicate-candidates', [PartyDuplicateController::class, 'individualsForCreate'])
+            ->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.individuals.duplicate-candidates.create');
+        Route::post('individuals/{individual}/duplicate-candidates', [PartyDuplicateController::class, 'individualsForUpdate'])
+            ->whereUlid('individual')->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.individuals.duplicate-candidates.update');
+
+        Route::post('companies/duplicate-candidates', [PartyDuplicateController::class, 'companiesForCreate'])
+            ->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.companies.duplicate-candidates.create');
+        Route::post('companies/{company}/duplicate-candidates', [PartyDuplicateController::class, 'companiesForUpdate'])
+            ->whereUlid('company')->middleware('throttle:party.duplicate.check')
+            ->name('api.v1.companies.duplicate-candidates.update');
+
+        /*
+         * The companies a person is involved with — M2.4's relationship surfaces
+         * read from the person's side (M2.5).
+         *
+         * Read-only. Relationship management stays on the Company, where
+         * D-085's add-and-close model lives. Two endpoints rather than one, so
+         * the management/ownership permission split survives the reversal.
+         */
+        Route::get('individuals/{individual}/companies/management', [IndividualCompanyController::class, 'management'])
+            ->whereUlid('individual')->name('api.v1.individuals.companies.management');
+        Route::get('individuals/{individual}/companies/shareholders', [IndividualCompanyController::class, 'shareholders'])
+            ->whereUlid('individual')->name('api.v1.individuals.companies.shareholders');
+
+        Route::get('individuals/options', [IndividualController::class, 'options'])
+            ->name('api.v1.individuals.options');
+
+        Route::post('individuals/{individual}/archive', [IndividualController::class, 'archive'])
+            ->whereUlid('individual')->name('api.v1.individuals.archive');
+
+        Route::get('individuals/{individual}/identity', [IndividualIdentityController::class, 'show'])
+            ->whereUlid('individual')->name('api.v1.individuals.identity.show');
+        Route::patch('individuals/{individual}/identity', [IndividualIdentityController::class, 'update'])
+            ->whereUlid('individual')->name('api.v1.individuals.identity.update');
+
+        Route::post('individuals/{individual}/identity/nik/reveal', [IndividualIdentityController::class, 'revealNik'])
+            ->whereUlid('individual')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.individuals.identity.nik.reveal');
+        Route::post('individuals/{individual}/identity/npwp/reveal', [IndividualIdentityController::class, 'revealNpwp'])
+            ->whereUlid('individual')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.individuals.identity.npwp.reveal');
+
+        Route::apiResource('individuals', IndividualController::class)
+            ->except('destroy')
+            ->whereUlid('individual');
+
+        /*
+         * Companies — the second Party-domain business surface (M2.3).
+         *
+         * Structurally the mirror of the Individual family above, and
+         * deliberately so: one Party aggregate, two subtypes, one shape.
+         *
+         * Lifecycle authorizes on `companies.*`. Sensitive identity authorizes on
+         * `parties.identity.*`, because the identity surface belongs to the
+         * aggregate — the Company tax identifier is the NPWP and reveals through
+         * the same canonical `parties.identity.npwp.view_full` an Individual's
+         * does. No `companies.identity.*` family exists (D-082).
+         *
+         * Reveal shares the `party.identity.reveal` limiter with the Individual
+         * reveals on purpose: it is one per-actor budget for raw Party identity
+         * disclosure, so working through a directory cannot buy extra attempts by
+         * alternating between subtypes. It remains clear of the `security.*`
+         * buckets (D-071).
+         *
+         * No route here touches `company_people`. Directors, commissioners, and
+         * shareholders answer to `companies.management.*` and
+         * `companies.shareholders.*`, which M2.4 owns and this milestone does not
+         * implement (D-083).
+         */
+        Route::get('companies/options', [CompanyController::class, 'options'])
+            ->name('api.v1.companies.options');
+
+        Route::post('companies/{company}/archive', [CompanyController::class, 'archive'])
+            ->whereUlid('company')->name('api.v1.companies.archive');
+
+        Route::get('companies/{company}/identity', [CompanyIdentityController::class, 'show'])
+            ->whereUlid('company')->name('api.v1.companies.identity.show');
+        Route::patch('companies/{company}/identity', [CompanyIdentityController::class, 'update'])
+            ->whereUlid('company')->name('api.v1.companies.identity.update');
+
+        Route::post('companies/{company}/identity/tax-id/reveal', [CompanyIdentityController::class, 'revealTaxId'])
+            ->whereUlid('company')->middleware('throttle:party.identity.reveal')
+            ->name('api.v1.companies.identity.tax-id.reveal');
+
+        /*
+         * Company relationships — who runs the organization, and who owns it
+         * (M2.4).
+         *
+         * Two families rather than one, because they answer to two permissions
+         * and always have: `companies.management.*` and
+         * `companies.shareholders.*` are independent capabilities, and neither
+         * implies the other (D-083). Each route points at a controller whose
+         * category is fixed by its class, so no request can choose which surface
+         * it is talking to.
+         *
+         * **Add and end, and nothing else.** No `DELETE` and no generic `PATCH`:
+         * `company_people` is history, and "who was the director in March" must
+         * stay answerable because deeds executed in March depend on it.
+         * Superseding a relationship is end-then-add — two rows, both readable.
+         *
+         * `options` precedes `{relationship}` so the literal path wins. Both are
+         * guarded by the category's *update* permission: picking a person is
+         * part of recording a relationship, and requiring `parties.view` for it
+         * would grant the whole Party directory for a narrower task.
+         */
+        Route::get('companies/{company}/management', [CompanyManagementController::class, 'index'])
+            ->whereUlid('company')->name('api.v1.companies.management.index');
+        Route::post('companies/{company}/management', [CompanyManagementController::class, 'store'])
+            ->whereUlid('company')->name('api.v1.companies.management.store');
+        Route::get('companies/{company}/management/options', [CompanyManagementController::class, 'options'])
+            ->whereUlid('company')->name('api.v1.companies.management.options');
+        Route::post('companies/{company}/management/{relationship}/end', [CompanyManagementController::class, 'end'])
+            ->whereUlid('company')->whereUlid('relationship')
+            ->name('api.v1.companies.management.end');
+
+        Route::get('companies/{company}/shareholders', [CompanyShareholderController::class, 'index'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.index');
+        Route::post('companies/{company}/shareholders', [CompanyShareholderController::class, 'store'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.store');
+        Route::get('companies/{company}/shareholders/options', [CompanyShareholderController::class, 'options'])
+            ->whereUlid('company')->name('api.v1.companies.shareholders.options');
+        Route::post('companies/{company}/shareholders/{relationship}/end', [CompanyShareholderController::class, 'end'])
+            ->whereUlid('company')->whereUlid('relationship')
+            ->name('api.v1.companies.shareholders.end');
+
+        Route::apiResource('companies', CompanyController::class)
+            ->except('destroy')
+            ->whereUlid('company');
     });
 });

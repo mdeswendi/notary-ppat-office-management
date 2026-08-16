@@ -96,6 +96,30 @@ class PermissionController extends Controller
      *
      * `security.settings.*` remains deferred because no global security-settings
      * surface exists — verified against the route table, not assumed.
+     *
+     * **The Company lifecycle codes joined at M2.2 and left at M2.3**, and both
+     * moves are the flag working rather than the list churning. Before M2.2 the
+     * Party module was absent from navigation, so `companies.view` needed no
+     * badge for the same reason `projects.create` does not. M2.2 shipped
+     * Individuals, navigation gained "Clients & Parties", the namespace started
+     * looking implemented — and it was not. M2.3 makes it true: `companies.view`,
+     * `create`, `update`, and `archive` each have a reachable route now, so the
+     * badge would be the stale kind that trains people to ignore badges.
+     *
+     * **`companies.management.*` and `companies.shareholders.*` left at M2.4**,
+     * which is the last Party-domain entry this list had. M2.3 kept them because
+     * Companies had become a live surface with no directors section behind it;
+     * M2.4 built both surfaces, so each of the four now has a reachable route and
+     * the badge would be the stale kind that trains people to ignore badges.
+     *
+     * What remains is `security.settings.*`, which is the flag's original case:
+     * its neighbours `security.sessions.*` and `security.mfa.manage` are live, so
+     * the namespace looks implemented and no global security-settings surface
+     * exists.
+     *
+     * Every Party-domain code is deliberately **not** here. Each has a reachable
+     * route, and tests check that claim against the router in both directions
+     * rather than trusting this list.
      */
     private const DEFERRED = [
         'security.settings.view',

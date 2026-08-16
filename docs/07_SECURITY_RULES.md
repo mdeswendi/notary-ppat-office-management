@@ -251,6 +251,127 @@ Full reveal requires explicit permission.
 
 Avoid returning full values in APIs when unnecessary.
 
+**Strengthened by D-082 (M2.0).** For Party-domain data the rule is stricter than
+"avoid when unnecessary": a browser that is not authorized for a raw identifier
+**never receives it**. Masking is computed server-side and enforced at
+serialization — not hidden by CSS, not masked in React, absent from the payload.
+A reveal control must fetch from the identity surface rather than unhide a value
+the page already holds; if the page already holds it, the payload was wrong.
+
+Reveal is authorized **per field**, in two tiers:
+
+```text
+parties.identity.view            opens the identity surface; NIK and NPWP stay masked
+parties.identity.update          mutation; confers no full readback
+parties.identity.nik.view_full   raw NIK only
+parties.identity.npwp.view_full  raw NPWP / tax identifier only
+```
+
+Neither tier-2 code implies the other, and `parties.view` / `companies.view`
+imply neither surface access nor reveal. See `12_M2_PARTY_ARCHITECTURE.md`
+sections 10 and 11 for the storage contract and the threat review.
+
+**Built for Individuals in M2.2**, and the transport is part of the rule rather
+than an implementation choice:
+
+```text
+POST /api/v1/individuals/{individual}/identity/nik/reveal
+POST /api/v1/individuals/{individual}/identity/npwp/reveal
+POST /api/v1/companies/{company}/identity/tax-id/reveal        (M2.3)
+```
+
+The Company tax identifier **is** the NPWP and answers to the same canonical
+`parties.identity.npwp.view_full`. No `companies.identity.*` family exists: the
+identity surface belongs to the aggregate, not the subtype. `companies.view`
+reaches neither the surface nor the value.
+
+- **`POST`, never `GET`.** A raw identifier must not be reachable by a method
+  browsers, proxies, and query caches treat as repeatable, and must never be
+  expressible as a URL. That is what makes "never in a URL, never in a cache
+  key" structural instead of a convention.
+- **`Cache-Control: no-store, no-cache, must-revalidate, private`.** The value
+  exists in one response and nowhere else.
+- **Its own named rate limiter**, disjoint from the `security.*` buckets, so
+  spending one cannot silently disable the other (the M1.9 defect, guarded by
+  test). Every Party identity reveal shares that one bucket on purpose —
+  Individual NIK, Individual NPWP, and Company `tax_id` alike: alternating
+  fields, or alternating between subtypes, must not buy extra budget. A limiter
+  is a brake on bulk disclosure, never a substitute for authorization.
+- **The response is not an audit hole.** The access event is logged — actor,
+  record, field — because "who read whose NIK" is the question an audit asks.
+  The value itself is never logged, at any level.
+
+Ordinary list and detail responses carry `nik_masked` / `npwp_masked` /
+`tax_id_masked` and the matching `has_*` flags, computed server-side. There is no
+`nik`, `npwp`, or `tax_id` key in them to un-hide. The identity surface itself is
+masked too: reaching it is not seeing the values, and `parties.identity.update`
+returns masks rather than echoing what was submitted, so writing a value confers
+no readback of another.
+
+**A relationship view permission is not a sensitive identity permission.** The
+Company management and ownership surfaces (M2.4) name the people involved and
+carry **no identifier at all — not even a mask**, because a mask is still a
+statement about a sensitive value. The same holds for the candidate list those
+surfaces use to pick a person: an id and a display name, nothing more. The
+reverse Individual → Companies view (M2.5) inherits it in the other direction:
+it names companies and carries neither the person's identifiers nor the
+company's `tax_id`.
+
+### Existence is a disclosure *(M2.5, D-084 and D-086)*
+
+Confirming that *some other record already carries this NIK* discloses something
+about that record even though no value is returned. So the answer answers to the
+identifier's own permission, not to the directory's:
+
+```text
+NIK match          requires  parties.identity.nik.view_full
+NPWP match         requires  parties.identity.npwp.view_full
+Company tax match  requires  parties.identity.npwp.view_full   (it is the NPWP)
+```
+
+**`parties.identity.update` is explicitly not sufficient.** Writing a value is not
+licence to learn that somebody else already has it, and the two capabilities are
+independent in both directions — an account may update an identifier it may never
+be told about.
+
+A request for a signal the caller may not receive is a **403**. It is *not* a
+result quietly narrowed to exclude that signal: a caller who could compare "asked
+for NIK + email" against "asked for email" would read the missing signal as an
+answer, which is the oracle the permission exists to close.
+
+**Duplicate matching never crosses the target Office**, including for an
+`ALL`-scoped actor. `ALL` permits working in another Office; it does not turn
+duplicate detection into a deployment-wide identity registry. A check for an
+identifier that exists only in another Office returns exactly what a check for a
+nonexistent one returns — no count, no hint, no "a match exists elsewhere". The
+same reasoning forbids a `UNIQUE` constraint on any identifier or fingerprint: a
+rejected insert would be that oracle by another route.
+
+### Derived cryptographic material is not the identifier, and is not disclosable either
+
+Randomized encryption makes equality search on the stored ciphertext impossible,
+so M2.5 stores a **keyed blind fingerprint** beside each identifier: an
+HKDF-SHA-256 subkey derived from the application key under a versioned context
+string, then HMAC-SHA-256 of the conservatively normalized value (D-086).
+
+- **Keyed, never a bare hash.** A NIK has ~10^16 possibilities; an unkeyed
+  SHA-256 of one is brute-forceable from a database dump in seconds.
+- **Derived, never `APP_KEY` reused directly.** Domain separation means a problem
+  in one use does not hand over the other.
+- **Indexed, never unique.** See above.
+- **Never disclosed — to anyone.** Absent from every API Resource, hidden at the
+  model, and withheld even from a holder of the full-view reveal permission: that
+  permission authorizes the identifier through the reviewed reveal surface, not
+  the cryptographic material derived from it. A source scan checks that no
+  `*_fingerprint` name appears in a Resource, a frontend type, a service, a
+  component, or any URL construction.
+- **Rotating `APP_KEY` invalidates every fingerprint**, after which detection
+  silently under-reports until
+  `php artisan parties:rebuild-identity-fingerprints` runs. That is the safe
+  direction to fail, and it is stated rather than left to be discovered.
+
+Any future sensitive surface follows the same shape.
+
 ---
 
 ## 13. File Storage

@@ -1991,6 +1991,322 @@ before the canonical permissions of M1.2 exist to protect them.
 
 ---
 
+## 2026-08-11 — M2.0 Party architecture lock
+
+Branch `feat/m2-parties`. Documentation only — no schema, model, endpoint, or permission
+results from these decisions. Full reasoning in `12_M2_PARTY_ARCHITECTURE.md`.
+
+### D-078 — One Party aggregate; "Client" is a word, not a table
+
+Every person and organization the office knows is exactly one row in `parties`, with
+person-specific data in `individuals` and organization-specific data in `companies`. There
+is **no `clients` table**, no `Client` model duplicating Party, and no `client_id` running
+parallel to `party_id`.
+
+A Party becomes a client through use. The same person is a seller in one matter and a
+company director in another, and the same organization is a client on Monday and a
+counterparty on Thursday — CLAUDE.md section 17 already refuses to freeze a role into the
+base Party record, and a `clients` table would be that same mistake under a different name.
+
+Subtype tables take `party_id` as **both** primary key and foreign key. That one choice
+enforces the invariants structurally rather than by convention: exactly one subtype per
+Party, no subtype without a Party, and no way to write two Individual rows for one Party.
+No surrogate id is added to a subtype.
+
+**`party_type` is immutable after creation.** An Individual is never converted in place into
+a Company. The subtypes differ in identity semantics, validation, relationships, and every
+future legal reference that will point at them, so an in-place conversion would silently
+reinterpret existing data and anything already referring to it. A record created with the
+wrong type is archived and recreated — visibly. M2 therefore ships no type-conversion
+workflow and no merge workflow.
+
+### D-079 — `display_name` is derived, never a third name
+
+`parties.display_name` is a normalized display and index value owned by the aggregate, not
+an independently editable field that can drift from the subtype.
+
+```text
+Individual   derives from the individual's canonical full name
+Company      derives from short_name when intentionally present, otherwise legal_name
+```
+
+The Company precedence is a choice, not an inheritance: a short name exists because somebody
+wanted the organization displayed that way. Subtype-name changes and the `display_name`
+update occur in one transaction — otherwise a rename leaves the directory showing the old
+name while the detail page shows the new one, and the directory is what people search.
+
+### D-080 — Party is Office-owned, and OWN/ASSIGNED/TEAM grant nothing
+
+`parties.office_id → offices.id`, required. No `organization_id` on Party — the Organization
+is reached through the Office, as D-027 established for User. No `tenant_id`, no
+`party_offices` pivot, no global Party table detached from Office ownership, and no automatic
+cross-office sharing. Cross-office reach is a Data Scope question, never a copied row.
+
+Data Scopes remain predicates, never ranks (D-028). For Party-domain resources:
+
+```text
+OFFICE      party.office_id == actor.office_id
+ALL         any Office in the deployment
+OWN         grants nothing
+ASSIGNED    grants nothing
+TEAM        grants nothing
+```
+
+The three that grant nothing matter most. `OWN` must not become `created_by`: a Party is a
+shared office directory record, and the colleague who typed it in has no special claim on the
+human it describes. `ASSIGNED` must not be invented into existence — no Party assignment
+entity exists, so there is nothing to match, and creating one to give the word work would be
+building a feature to justify a scope. `TEAM` must never alias to `OFFICE`; no Team entity
+exists (D-042), and quietly equating them would grant access nobody configured. All three
+fail closed.
+
+Creation is authorized against the **intended target Office**: `OFFICE` may create in the
+actor's own, `ALL` may create elsewhere where the API exposes the choice, and the other three
+grant nothing. Office selection is never a frontend-only rule.
+
+A `company_people` relationship must not silently bridge Offices: the Company Party and the
+Individual Party must share an `office_id`. `ALL` governs visibility and administrative
+reach; it does not redefine domain ownership.
+
+### D-081 — `deleted_at` is the only archive authority
+
+Party-domain records are archived, never hard-deleted through ordinary operations, and the
+**aggregate root** carries the state. Archiving an Individual or a Company archives the Party;
+subtypes are not independently soft-deleted, because a live Party root with an archived
+subtype is a state nothing could render honestly.
+
+The historical ERD gave `parties` **and** `companies` a `status` column alongside
+`deleted_at`. Both `status` columns are dropped. Two sources of truth for "is this record
+active" is how a record ends up archived-but-visible, and the disagreement is invisible until
+somebody notices the wrong thing on a screen. If a future business state genuinely differs
+from archived, it gets its own column and its own name.
+
+No restore capability in M2: the registry defines `parties.archive` and `companies.archive`
+but no restore permission, and inventing one is out of scope.
+
+Same reasoning removes `company_people.is_current`, which duplicates what `effective_until`
+already says. Current-ness is a query, not a column.
+
+### D-082 — Sensitive identity is two-tier, per field, enforced at serialization
+
+The registry carries four canonical codes (D-001), and they form two tiers:
+
+```text
+parties.identity.view            tier 1 — open the identity surface
+parties.identity.update          tier 1 — mutate sensitive identity
+parties.identity.nik.view_full   tier 2 — reveal raw NIK only
+parties.identity.npwp.view_full  tier 2 — reveal raw NPWP / tax identifier only
+```
+
+`parties.identity.view` **alone** opens the surface with NIK and NPWP still masked — access
+to the surface is not access to the values. Each tier-2 code authorizes exactly one
+identifier and implies nothing about the other. `parties.identity.update` authorizes
+mutation and confers no full readback of identifiers the actor may not otherwise see: writing
+a value is not licence to read a different one. `parties.view` implies neither surface access
+nor reveal, and `companies.view` implies no raw tax-identifier reveal.
+
+**Company tax identity uses `parties.identity.npwp.view_full`.** No `companies.identity.*`
+family is invented; the identity surface belongs to the aggregate, which is why the registry
+places these codes in the `parties` group.
+
+**A browser not authorized for a raw identifier never receives it.** Not hidden by CSS, not
+masked in React — absent from the payload. Masking is presentation computed server-side;
+the mask is never the stored value. This is the difference between privacy and the appearance
+of it, and it is a backend serialization guarantee rather than a UI convention. A reveal
+control must fetch from the identity surface, never unhide a value the page already holds.
+
+Raw identifiers never appear in logs, exception text, telemetry, `display_name`, URLs, cache
+keys, or browser storage. At rest they use framework encryption primitives — **no custom
+cryptography**, for the reason M1.9 refused to hand-roll TOTP. Any future equality-search
+fingerprint must be a documented keyed construction, never an unkeyed hash (a 16-digit NIK
+is brute-forceable in seconds) and never API-visible.
+
+**NIK and NPWP format validation is deferred**, because no canonical document in this
+repository freezes either format and general knowledge is not authority. Encoding a guess
+would reject real identifiers.
+
+### D-083 — Company relationships keep history; categories map to two permission surfaces
+
+`company_people` links a Company Party to an Individual Party and **never duplicates the
+person's name** — the name lives in one place and stays correct when it changes.
+
+History is preserved. A director change ends the existing relationship by setting
+`effective_until` and inserts a new row; it never overwrites. "Who was the director in March"
+must remain answerable, because deeds executed in March depend on the answer.
+
+Relationship categories map to the existing permission surfaces:
+
+```text
+DIRECTOR, COMMISSIONER, AUTHORIZED_PERSON   -> companies.management.*
+SHAREHOLDER, BENEFICIAL_OWNER               -> companies.shareholders.*
+```
+
+The split categorises by what the relationship is *about* — who acts for the organization
+versus who owns it — and invents no Indonesian corporate law. Nothing here asserts how many
+directors a company may have, whether a commissioner is required, that shareholdings total
+100%, or how beneficial ownership is determined. Ownership data is not visible merely because
+a user can view ordinary Company details, and a frontend tab is never the boundary.
+
+### D-084 — Duplicate detection is advisory and Office-scoped
+
+Detection surfaces candidates to a human. It does not auto-merge, does not overwrite, does
+not delete a candidate, and does not assert that two records are the same person — an
+assertion the software has no standing to make.
+
+Candidates are confined to the actor's own Office by default. An `OFFICE`-scoped user must
+never learn that a matching identifier exists in an Office they cannot see.
+
+**Clarified at M2.5, where "by default" had to be resolved rather than carried.** The bound is
+the **target Office** — the Office the record is being created in, or the one the record being
+edited already lives in — and **`ALL` does not widen it**. An `ALL`-scoped actor checking a
+candidate for Office A compares against Office A and nothing else. `ALL` grants reach to *work*
+in another Office; it does not turn duplicate detection into a deployment-wide identity
+registry, and the oracle this decision exists to close does not become acceptable because the
+person asking has a wide scope. Both constraints are applied together — the target Office and
+the actor's own visibility — so the narrower always wins.
+
+`12_M2_PARTY_ARCHITECTURE.md` section 15 previously read that `ALL` "may see across Offices
+where a later milestone implements it explicitly". That reading is withdrawn, and the section
+is corrected. It was a reasonable inference from "by default"; it is simply not what the
+threat model supports.
+
+**A sensitive signal answers to that identifier's own full-view permission**, not to the
+lifecycle permission that reached the record: being told "another record here already carries
+this NIK" is a disclosure about that record. `parties.identity.update` is explicitly not
+sufficient — writing a value is not licence to learn somebody else already has it. A request
+for a signal the caller may not receive is a **403**, never a result quietly narrowed to
+exclude it, because a caller who could compare a narrowed result against an unnarrowed one
+would read the missing signal as the answer.
+
+That constraint is also why **no `UNIQUE` constraint is placed on `nik`, `npwp`, `tax_id`, or
+`registration_number`**. A unique index asserts that two rows sharing a value are the same
+entity and that the value is always known and correct — none of which holds for optional,
+sometimes-mistyped, Office-scoped identifiers. It would also become a cross-office existence
+oracle, since a rejected insert reveals a match the user is not entitled to know about. They
+remain excellent duplicate *signals*; promoting one to an authoritative key needs its own
+decision.
+
+### D-085 — Relationship history is append-and-close: the API offers add and end, and nothing else
+
+**D-083 says history is preserved. This says what the API may therefore expose**, because a
+data-model rule that no interface enforces is one a later milestone will break without
+noticing: nothing in D-083's wording forbids a `PATCH` that rewrites `relationship_type` on
+an existing row, and such an endpoint would contradict its intent while satisfying its letter.
+
+The public mutation surface for `company_people` is exactly two operations:
+
+```text
+add     POST   .../{category}                       a new row
+end     POST   .../{category}/{relationship}/end    writes effective_until, nothing else
+```
+
+There is **no `DELETE` and no generic `PATCH` or `PUT`** on a relationship, at any level —
+not on the nested path, and not on `company_people` as a resource of its own. Superseding a
+relationship is end-then-add: two rows, both readable. Reappointing the same person after a
+gap is likewise a second row, not a reopened first one.
+
+Three fields are the historical fact and are immutable once written:
+
+```text
+company_party_id      individual_party_id      relationship_type
+```
+
+"Who was the director in March" must stay answerable because deeds executed in March depend
+on the answer, and a director who was *later* recorded as a commissioner did not retroactively
+attend that signing as one.
+
+**Ending is not idempotent.** A relationship that already carries an `effective_until`
+answers **409**, not a silent success — a second end is a request to change a recorded end
+date, which is an amendment. M2.4 builds no amendment workflow, and quietly overwriting the
+date would be the software correcting a legal record on its own initiative. If corrections
+are genuinely needed, they need their own decision covering who may make them and what is
+retained.
+
+**The end date is supplied, never defaulted.** Defaulting to today would have the application
+inventing a fact about when an appointment ceased. The person recording it knows; the software
+asks.
+
+`effective_until IS NULL` remains the only definition of current-ness (D-081), and no rule
+compares either date to today: `12_M2_PARTY_ARCHITECTURE.md` section 13 imposes no
+date-transition rules, so none is enforced — including any requirement that an end date fall
+after a start date.
+
+Archiving neither endpoint touches these rows. Retiring a person from the directory is not a
+statement about their past appointments, and archiving a Company does not unmake its history —
+`ArchiveCompany` leaves `company_people` alone deliberately.
+
+### D-086 — Sensitive duplicate lookup uses keyed blind fingerprints, derived and non-unique
+
+M2.0 deferred the sensitive-identifier duplicate mechanism and M2.1 added no column, because
+locking a cryptographic design before reviewing it is how a weak one ships. M2.5 needs it, so
+this settles it.
+
+**The problem.** `nik`, `npwp`, and `tax_id` use Laravel's `encrypted` cast, which is
+randomized: the same NIK encrypted twice yields two different ciphertexts. `WHERE nik = ?`
+can therefore never match, and every obvious alternative is worse. Decrypting the directory
+to compare in PHP does not scale and puts every identifier in memory to answer one question.
+A plaintext copy defeats the encryption. **An unkeyed hash is brute-forceable in seconds** —
+a NIK has 10^16 possibilities and a GPU does not find that hard — which D-082 already said.
+
+**The construction.**
+
+```text
+subkey      = HKDF-SHA-256(APP_KEY material, 32 bytes,
+                           info = "notary-ppat/party-identity-fingerprint/v1")
+fingerprint = HMAC-SHA-256(conservatively normalized value, subkey)  -> 64 hex
+```
+
+**Keyed**, so a stolen database dump cannot be enumerated offline without the application key.
+**Derived rather than reusing `APP_KEY` directly**, so this purpose is domain-separated from
+encryption and a problem in one use does not hand over the other. **Versioned context**, so a
+future construction re-derives from the same key rather than needing a rotation or a second
+secret. **Standard primitives only** — `hash_hkdf` and `hash_hmac`, both PHP core — for the
+reason M1.9 refused to hand-roll TOTP. No second production secret is introduced.
+
+**Normalization is deliberately conservative: `trim` and nothing else.** Leading zeros,
+internal punctuation, and case are all preserved, so `09.123.456.7-890.123` and
+`091234567890123` produce **different** fingerprints and do not match. That is an accepted
+false negative, not an oversight. No canonical document in this repository defines legal NIK
+or NPWP normalization, Indonesian NPWP formats have changed, and a guess encoded here would
+silently assert an equivalence nobody approved. Detection is advisory (D-084), so
+under-reporting costs a missed hint while over-reporting would make a claim about identity.
+**Missing a match is the safe direction**, and this stays true until domain authority defines
+the rule — at which point the versioned context allows a rebuild rather than a migration.
+
+**Non-unique, always.** The columns are indexed for equality lookup and carry no `UNIQUE`
+constraint, for the reasons D-084 gives: uniqueness asserts that two rows sharing a value are
+the same entity and that the value is always known and correctly entered, none of which holds
+for optional, sometimes-mistyped, Office-scoped identifiers. It would also make a rejected
+insert a cross-office existence oracle, and would convert advisory detection into blocking
+enforcement, which M2 did not decide.
+
+**Internal metadata, disclosed to nobody.** Hidden at the model, absent from every Resource
+and every frontend type, never logged, never in a URL — and **not disclosed even to a holder
+of the full-view reveal permission**, which authorizes the identifier through the reviewed
+reveal surface, not the cryptographic material derived from it.
+
+**Rotating `APP_KEY` invalidates every fingerprint**, because they derive from it. A rotation
+must be followed by `php artisan parties:rebuild-identity-fingerprints`; until it runs,
+duplicate detection under-reports — the safe direction, but an operational fact that belongs
+in the runbook rather than in somebody's surprise.
+
+### M2 implementation order
+
+```text
+M2.0   Planning + Party architecture lock       <- this checkpoint
+M2.1   Party schema + authorization foundation
+M2.2   Individual Management
+M2.3   Company Management
+M2.4   Company relationships / management / shareholders
+M2.5   Party directory + duplicate detection + integration polish
+M2.6   M2 quality gate
+```
+
+M2.1 is schema, authorization predicates, and constraints only — not CRUD UI. **Project
+remains M3**: M2 builds no Project, no Matter, and no Party-to-Project assignment.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -2021,7 +2337,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-001 | `01_ARCHITECTURE.md` section 2 did not reflect D-003 | **Resolved 2026-08-08.** Section 2 now carries the canonical 12-entry structure and cross-references `10_M0_FOUNDATION.md` and D-003. See D-010. |
 | O-002 | `CLAUDE.md` stated the technology stack without versions | **Resolved 2026-08-08.** Section 3 now states Next.js 16.x, Node >= 20.9, Laravel 13.x, PHP >= 8.3, and adds Database and Infrastructure subsections (PostgreSQL 18.x, Redis 8.x, private file storage). |
 | O-003 | `CLAUDE.md` section 58 listed ten `/docs` files | **Resolved 2026-08-08.** Section 58 now lists all 14 entries and restates the 08/09 draft restriction and the `DECISIONS.md` precedence rule. |
-| O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Deferred 2026-08-08.** Cosmetic only. Must not block foundation development. Not to be touched during unrelated steps. |
+| O-004 | Milestone M2 is labelled "Party / Individual / Company" in `00_PROJECT_OVERVIEW.md` and "Client Database" in the source PDF | **Resolved 2026-08-11 by D-078.** The canonical milestone name is **M2 — Party / Individual / Company**. "Client Database" is retained only as a user-facing description: a descriptive subtitle such as "Clients & Parties" may appear in navigation and product documentation. What the resolution actually settles is not a label but a schema question — **"Client" must never become a second persistence entity beside Party.** There is no `clients` table, no `Client` model, and no `client_id` parallel to `party_id`; a Party becomes a client through use. Deferring this was correct while it looked cosmetic, and closing it now is right because M2 is the milestone where the wrong reading would have produced a duplicate table. |
 | O-005 | `.editorconfig` used a single 4-space default, conflicting with Prettier and the Next.js scaffold | **Resolved 2026-08-08.** See D-011. Per-ecosystem indentation now explicit. |
 | O-006 | `.github/` contains only `.gitkeep`. No CI workflow exists. | **Resolved 2026-08-09.** The deferral condition — executable quality gates on both sides — is now met, so the item was closed on its own recorded terms rather than because M0 was ending. `.github/workflows/quality.yml` runs exactly the commands README documents. The backend job pins **PHP 8.3**, the canonical minimum in D-005, while the workstation runs 8.4; that gap is the point, since it catches 8.4-only syntax before anyone else sees it. No PostgreSQL or Redis service is declared because the Pest suite runs on in-memory SQLite per `backend/phpunit.xml`. No secrets, no deployment. **Operationally verified green 2026-08-09.** The route there is worth keeping, because the workflow proved its value by failing: implemented during M0.10 → first real runs passed the frontend job but failed the backend job at `composer install`, exposing a committed lockfile that could not install on PHP 8.3 → corrected by pinning Composer's resolution baseline to the supported minimum (D-025) → both jobs green on the feature branch → both jobs green on the `main` merge commit `8be0ad0`. Had CI been pinned to the workstation's PHP 8.4, that lockfile defect would have shipped unnoticed. |
 | O-007 | The working directory was not a Git repository, leaving the first M0.1 acceptance criterion in `10_M0_FOUNDATION.md` section 67 unmet | **Resolved 2026-08-08.** Repository initialized on `main` with three commits covering tooling, specifications, and `CLAUDE.md`. See D-012. |
@@ -2047,6 +2363,9 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-019 | `users.id` is a Laravel `bigint` autoincrement. `CLAUDE.md` section 11 and `06_API_CONVENTIONS.md` section 14 say domain resources should use ULID; `10_M0_FOUNDATION.md` section 45 exempts only third-party package tables, and `users` is our own model. `GET /api/v1/me` therefore returns a numeric id. | **Resolved 2026-08-09,** ahead of M0.8 rather than deferred to M1: Spatie's polymorphic morph keys must match the User key type, so the correction had to land before the package was installed. `users.id` and `sessions.user_id` are now `char(26)` ULIDs, the model uses `HasUlids`, and `CurrentUser.id` is typed `string`. Verified end to end against PostgreSQL with database sessions. See D-023 for why the scaffold migration was edited in place. |
 | O-018 | `setRequestLocale` is deprecated in next-intl 4.13.5, which points at [`next/root-params`](https://next-intl.dev/blog/nextjs-root-params). It is currently load-bearing: it is what keeps `/id` and `/en` prerendered. | Open. Migration is blocked, not merely deferred — `next/root-params` exists in Next.js 16.3.0, but next-intl 4.13.5 contains no reference to it, so the library cannot yet source the locale that way. Revisit when next-intl ships root-params support. Until then the deprecated call stays, because removing it would make every locale route server-rendered on demand. |
 | O-017 | A localized not-found state does not render for unmatched URLs. Next.js uses the **root** not-found for those; a nested `[locale]/not-found.tsx` only catches `notFound()` thrown inside its own segment, and the proxy guarantees the locale segment is always valid. | Open. Written during M0.6, verified non-functional, and removed rather than left as dead code. Making it work requires a catch-all route under `[locale]`, which is a routing change beyond M0.6's presentational scope. The built-in Next.js 404 remains, as it did after M0.5. `BaseErrorState` is ready to render it when the catch-all is added. |
+| O-033 | Six fields are supported everywhere except the interface. `gender`, `marital_status`, `village`, and `district` on Individual, and `village` and `district` on Company, are accepted and stored by the Form Requests, returned by the API Resources, typed in the frontend, and **translated in both locales** — yet no form collects them and no page displays them. A value written through the API is invisible in the product, and the translated labels make the repository look as though it supports what it does not. | Open, and deliberately not closed by M2.6. Two of the six are the reason: `gender` and `marital_status` carry legal weight in Indonesian notarial practice — spousal consent and capacity questions turn on them — so deciding whether they appear, where, and with what vocabulary is domain specification, not a decision a quality gate may take (CLAUDE.md §62). The other four are ordinary address granularity and could be added mechanically, but splitting the six would leave the Individual address half-complete for no stated reason. Closing this needs one decision covering all six: either they belong in the interface, in which case the forms and detail pages gain them together, or they do not, in which case the labels and the frontend types should go and the API fields should be documented as inbound-only. Recorded at M2.6 rather than guessed at. |
+| O-031 | The Party Directory's **Office filter is built from the Offices present in the current page of results**, not from an endpoint. The two options endpoints that exist answer a different question — `individuals/options` and `companies/options` list the Offices an actor may **create** in, which is neither necessary nor sufficient for reading — so offering those would show destinations that return nothing and hide ones that return rows. | Open, and deliberate rather than overlooked. The derivation is honest: it can never offer an Office the caller's capabilities do not already reach, and selecting one only narrows, because the backend applies `office_id` on top of each capability's own scope predicate. The cost is that the choices reflect the page in view, so an Office whose rows fall on a later page is not offered until the caller reaches it. Closing this needs a **view-scoped** Offices source — and the honest version of it is not one list but two, since `parties.view` and `companies.view` are evaluated independently and may reach different Offices (D-028). That is a small API addition with a real design question inside it, which is why M2.5 did not invent one to fill a filter. Revisit when a second surface needs the same list. |
+| O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | Open. Not new at M2.5, but M2.5 is the first milestone where it costs something specific: `anyPermissions` is a branch whose three cases (`parties.view` only, `companies.view` only, neither) are exactly what a four-line test would pin, and none of them is currently pinned by anything executable. The backend equivalents *are* tested, and the backend is the security boundary, so this is a correctness gap in presentation rather than a hole in authorization. Adding a runner is a real decision — which one, whether it joins `quality.yml`, and the CLAUDE.md §52 rule that the documented command list must never be weaker than CI — and it should not be made incidentally inside a feature milestone. Worth an explicitly scoped task before the navigation tree grows the Notary and PPAT groups. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

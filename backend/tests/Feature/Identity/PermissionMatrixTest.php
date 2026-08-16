@@ -120,9 +120,21 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->flatMap(fn (array $group): array => $group['permissions'])
         ->firstWhere('code', 'security.settings.view');
 
+    // The Company codes joined at M2.2, the lifecycle four left at M2.3, and the
+    // relationship four left at M2.4 — the flag tracking reality rather than the
+    // list churning. Each departure happened in the milestone that gave the code
+    // a reachable route, and a router-backed test in the Party suite holds each
+    // claim to it (D-077).
+    //
+    // What remains is the flag's original case: `security.settings.*` neighbours
+    // live capabilities and has no surface of its own.
+    $expected = [
+        'security.settings.view',
+        'security.settings.manage',
+    ];
+
     expect($entry['deferred'])->toBeTrue()
-        ->and($response->json('meta.deferred'))
-        ->toBe(['security.settings.view', 'security.settings.manage']);
+        ->and($response->json('meta.deferred'))->toBe($expected);
 
     // Everything else is actionable, or at least not flagged otherwise.
     $deferredCodes = collect($response->json('data.groups'))
@@ -131,7 +143,11 @@ it('marks a registered but unimplemented permission as deferred', function (): v
         ->pluck('code')
         ->all();
 
-    expect($deferredCodes)->toBe(['security.settings.view', 'security.settings.manage']);
+    sort($deferredCodes);
+    $sortedExpected = $expected;
+    sort($sortedExpected);
+
+    expect($deferredCodes)->toBe($sortedExpected);
 });
 
 it('no longer defers a permission whose flow has since been built', function (): void {

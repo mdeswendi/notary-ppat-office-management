@@ -1,4 +1,14 @@
-import { KeyRound, LayoutDashboard, Settings, Users, type LucideIcon } from "lucide-react";
+import {
+  BookUser,
+  Building2,
+  Contact,
+  KeyRound,
+  LayoutDashboard,
+  Settings,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 import { can, canWithScope } from "@/lib/permissions/can";
 import type { CurrentUser, DataScope } from "@/types/auth";
@@ -41,6 +51,26 @@ export type NavigationItem = {
    * destinations. Exact membership, never a comparison.
    */
   requiredScope?: DataScope;
+  /**
+   * Canonical permission codes of which **any one** is enough.
+   *
+   * For destinations composed from more than one capability rather than gated by
+   * a single one. The Party Directory is the first: it shows Individuals to a
+   * holder of `parties.view` and Companies to a holder of `companies.view`, and
+   * a person holding either has something real to open. Requiring both would
+   * hide a working page; requiring an invented `parties.directory.view` would let
+   * an administrator grant the directory without granting sight of anything in
+   * it, or withhold it from somebody who can already open every record it lists.
+   *
+   * Mutually exclusive with `requiredPermission` in practice — an entry that
+   * needs one specific capability should say so with that field. When both are
+   * set, both must hold, so neither can quietly widen the other.
+   *
+   * `requiredScope` deliberately does **not** combine with this: an exact scope
+   * means one specific capability, and pairing it with a set of alternatives
+   * would be ambiguous about which capability the scope belonged to.
+   */
+  anyPermissions?: readonly string[];
   children?: NavigationItem[];
 };
 
@@ -56,6 +86,58 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // No permission: no canonical document defines one for the Dashboard, and
     // inventing a gate for the landing page would lock people out of the only
     // destination they have.
+  },
+  {
+    key: "parties",
+    translationKey: "parties",
+    icon: Contact,
+    implemented: true,
+    children: [
+      {
+        key: "parties.directory",
+        translationKey: "partiesDirectory",
+        href: "/parties",
+        icon: BookUser,
+        // Added at M2.5, when the route landed — not when the backend endpoint
+        // did (D-064).
+        implemented: true,
+        // Either subtype capability is enough, because the directory shows
+        // whichever of the two the caller can reach and the backend composes it
+        // that way. No `parties.directory.view` exists and none should: it would
+        // be a permission for a page rather than for the records on it.
+        //
+        // The two scopes stay independent all the way through — nothing here
+        // unions or ranks them, and the page says so rather than implying one
+        // scope governs every row.
+        anyPermissions: ["parties.view", "companies.view"],
+      },
+      {
+        key: "parties.individuals",
+        translationKey: "partiesIndividuals",
+        href: "/parties/individuals",
+        icon: UserRound,
+        implemented: true,
+        // Any effective Party scope opens the list; the query narrows the rows
+        // (D-080). OWN, ASSIGNED, and TEAM reach nothing, so the backend refuses
+        // outright rather than serving a reliably empty page.
+        requiredPermission: "parties.view",
+      },
+      {
+        key: "parties.companies",
+        translationKey: "partiesCompanies",
+        href: "/parties/companies",
+        icon: Building2,
+        // Added at M2.3, when the route landed — not when the permission was
+        // registered (D-064). The entry and the destination arrive together.
+        implemented: true,
+        // `companies.view`, not `parties.view`: Company lifecycle is its own
+        // capability, and one does not imply the other. Any effective Company
+        // scope opens the list; the query narrows the rows (D-080). OWN,
+        // ASSIGNED, and TEAM reach nothing, so the backend refuses outright
+        // rather than serving a reliably empty page.
+        requiredPermission: "companies.view",
+      },
+    ],
   },
   {
     key: "settings",
@@ -119,6 +201,13 @@ export function visibleNavigation(
 }
 
 function isPermitted(user: CurrentUser | null | undefined, item: NavigationItem): boolean {
+  // Every stated condition must hold. An entry with neither field is
+  // unrestricted; one with both is restricted by both, so adding `anyPermissions`
+  // to an entry can never widen what `requiredPermission` already narrowed.
+  if (item.anyPermissions && !item.anyPermissions.some((code) => can(user, code))) {
+    return false;
+  }
+
   if (!item.requiredPermission) {
     return true;
   }

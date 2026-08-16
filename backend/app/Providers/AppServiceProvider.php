@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Company;
+use App\Models\Individual;
 use App\Models\User;
+use App\Policies\CompanyPolicy;
+use App\Policies\IndividualPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
@@ -46,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
         // role grants, and role membership all authorize through this.
         Gate::policy(Permission::class, PermissionPolicy::class);
 
+        // The Party domain (M2.1). Registered here with the rest rather than
+        // relying on auto-discovery, so one file answers "which policy guards
+        // what" for every model in the application.
+        Gate::policy(Individual::class, IndividualPolicy::class);
+        Gate::policy(Company::class, CompanyPolicy::class);
+
         $this->registerSecurityRateLimiters();
     }
 
@@ -84,6 +94,51 @@ class AppServiceProvider extends ServiceProvider
             ->by($this->throttleIdentity($request)));
 
         RateLimiter::for('security.admin', fn (Request $request): Limit => Limit::perMinute(10)
+            ->by($this->throttleIdentity($request)));
+
+        $this->registerIdentityRevealRateLimiters();
+    }
+
+    /**
+     * Rate limits for sensitive identity reveal (M2.2, extended to Company at M2.3).
+     *
+     * **Deliberately separate from the `security.*` buckets.** M1.9 shipped a
+     * shared unnamed throttle and produced exactly the defect this avoids:
+     * spending one route's budget silently disabled an unrelated one. Somebody
+     * revealing identifiers while working through a directory must not find
+     * their own password change refused, and vice versa.
+     *
+     * **Every Party identity reveal shares one bucket, on purpose.** Individual
+     * NIK, Individual NPWP, and Company `tax_id` (M2.3) are the same kind of
+     * disclosure, so a caller enumerating identity data should not get two or
+     * three times the budget by alternating fields — or by alternating between
+     * subtypes. This is the same reasoning that made every `current_password`
+     * route share one bucket: the sharing is chosen where it closes a hole and
+     * avoided where it opens one.
+     *
+     * Keyed on the actor. The limit is a brake on bulk disclosure, never a
+     * substitute for authorization: an unauthorized caller is refused by the
+     * Policy whether or not any budget remains.
+     */
+    private function registerIdentityRevealRateLimiters(): void
+    {
+        RateLimiter::for('party.identity.reveal', fn (Request $request): Limit => Limit::perMinute(20)
+            ->by($this->throttleIdentity($request)));
+
+        /*
+         * Advisory duplicate checks (M2.5), in their **own** bucket.
+         *
+         * A duplicate check asks whether an identifier already exists; a reveal
+         * discloses one that does. Different operations, so different budgets —
+         * exhausting the check must not disable reveal, and a person working
+         * through a directory must not find their password change refused
+         * either. That is the M1.9 defect stated for a third surface.
+         *
+         * More generous than reveal, because a form may check several times
+         * while somebody types, and the check discloses far less: a candidate
+         * list carries no identifier at all.
+         */
+        RateLimiter::for('party.duplicate.check', fn (Request $request): Limit => Limit::perMinute(30)
             ->by($this->throttleIdentity($request)));
     }
 

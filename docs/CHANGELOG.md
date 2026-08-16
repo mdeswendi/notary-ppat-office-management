@@ -5,6 +5,776 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M2.6 M2 Quality Gate
+
+Branch `feat/m2-parties`. **No migration** (18 total) and **no permission** (171). An audit
+milestone: no new product capability, no M3, no merge to `main`. Backend **1294 tests / 4476
+assertions** — 2 new, both regression coverage for the one behavioural fix.
+
+### What the gate found
+
+Four defects fixed and one recorded. Three of the four are the shape M1.10 named (D-077): a
+claim the repository made about itself that had quietly stopped being true.
+
+**1. Two Policies said they had no HTTP surface.** `IndividualPolicy` carried "M2.1 exposes no
+HTTP endpoint", written when that was true; M2.2 gave every ability in it a route.
+`CompanyPolicy` carried "Nothing here is reachable over HTTP", and M2.3 and M2.4 built those
+surfaces. Both now say what is actually true, and say when it changed.
+
+**2. Six sites deferred identifier search to M2.5 as pending work.** Both list controllers,
+both frontend list components, and two tests explained the exclusion of `nik`, `npwp`,
+`tax_id`, and `registration_number` from directory search as *waiting for M2.5*.
+`CompanyController` went further and named a keyed construction "nobody has designed" —
+**D-086 designed it**. This mattered more than the usual stale comment, because it pointed the
+wrong way: a reader would conclude identifier search was the planned next step. It is the
+opposite. D-084 settled the rule strictly and permanently — a directory that answers "does
+this identifier exist" is an existence oracle — and D-086 made `tax_id` technically matchable
+without making it permissible. The exclusions were always right; only the reasons had expired.
+
+**3. An N+1 in the reverse Individual → Companies view.** `can_view_company` was computed by
+asking `CompanyPolicy::view` once per row. Because `EffectiveAccessResolver` is deliberately
+uncached — a stale authorization cache fails in the direction that grants — each row cost a
+fresh resolve plus an `exists()`. Measured before the fix: **16 queries for one relationship,
+34 for ten, a steady two per additional row.** The Company-side relationship view was flat at
+10, and the Party Directory flat at 13, so this was an asymmetry rather than a house style.
+
+The per-row *check* is necessary — rows span different Companies and linkability genuinely
+varies — but the actor's effective access does not vary by row, so resolving per row was
+repeated work. `PartyVisibility::reachablePartyKeys()` asks the same predicate for every
+company at once: one resolve, one query, identical answers. Two tests pin it — one asserting
+the query count is **constant** rather than merely smaller, one asserting the batched flag
+equals `CompanyPolicy::view` row by row across a live company, an archived company, and an
+actor whose Company scope does not reach the Office.
+
+An earlier draft of that second test tried to build a cross-Office relationship to compare
+against and had its insert refused: M2.1's two composite foreign keys will not allow one. The
+fixture was wrong, not the product — the same lesson M1.10 recorded — and the test now exercises
+the two ways the answer legitimately varies instead.
+
+**4. Recorded, not built: six fields the product supports everywhere except the interface.**
+`gender`, `marital_status`, `village`, and `district` on Individual, and `village` and
+`district` on Company, are accepted and stored by the Form Requests, present in the API
+Resources, typed in the frontend, and **translated in both locales** — yet no form collects
+them and no page shows them. The translated labels are the tell: the repository looks like it
+supports these fields and does not.
+
+This one is deliberately **not** fixed here. `gender` and `marital_status` carry legal weight
+in Indonesian notarial practice, so deciding whether and how they appear is domain
+specification, not a decision a quality gate may take (CLAUDE.md §62). Recorded as **O-033**.
+
+### Verification
+
+```text
+Backend        1294 tests, 4476 assertions — 2 new (baseline 1292 / 4462)
+Pint           passed
+Frontend       format:check, lint, typecheck, build all clean
+composer       validate --strict passed
+Lockfiles      byte-identical to da779af, both sides
+Migrations     18, none pending
+Disposable DB  full chain from empty PostgreSQL; sync 171 then 0; rollback all 18
+               leaving only the migrations table; re-migrated to 18; dropped
+Smoke          38/38 over real PostgreSQL and Sanctum cookies, covering M2.1–M2.5
+Clean clone    installed, keyed, formatted, linted, typechecked, tested and built
+               from tracked files alone, following exactly the README's steps
+```
+
+The smoke walked the whole of M2 in one run: Individual and Company lifecycle with
+`display_name` resynchronizing in both directions, the two-tier identity rules including
+`parties.identity.update` conferring no readback, relationship add-and-close with a **409** on
+a second close, `ALL` refusing to create a cross-Office relationship without disclosing whether
+the person exists, the directory union, advisory duplicate detection with its Office bound
+holding for an `ALL` actor, the reverse view's linkability flipping correctly when a company is
+archived, and `OWN` and `ASSIGNED` failing closed on every surface.
+
+**Teardown restored fifteen of the sixteen tracked counts exactly. The sixteenth is worth
+stating rather than rounding off:** `sessions` went from 1 to 0. The surviving row from earlier
+milestones had a `last_activity` of 2026-08-12 and `session.lifetime` is 120 minutes, so
+Laravel's own database session garbage collector — `lottery` `[2, 100]`, and the smoke issued
+well over a hundred requests — pruned a row that had been expired for four days. The teardown
+did not do it: its guest-session clause only reaches rows newer than two hours. Correct
+framework behaviour on stale data, not a product defect and not an incomplete teardown, but it
+is a difference from baseline and is reported as one.
+
+### Open items
+
+**O-033 added** (six fields supported everywhere but the interface). O-031 and O-032 from M2.5
+remain open and unchanged.
+
+**O-018 re-verified rather than carried forward on trust:** next-intl is still 4.13.5 and still
+contains no reference to `next/root-params`, while `setRequestLocale` remains load-bearing in
+three files. Migration is still blocked upstream, not merely deferred.
+
+O-021 and O-022 remain accepted deferrals on their own recorded terms — the sidebar still does
+not carry the Notary and PPAT groups, and the Party Directory's page-level search is explicitly
+not the global header search. O-004, O-010, O-015, O-017, O-024, O-025, and O-029 are unchanged.
+
+---
+
+## 2026-08-16 — M2.5 Party directory, duplicate detection, and reverse view
+
+Branch `feat/m2-parties`. **One forward migration** (18 total) — the first since M2.1, and
+expected. Permission count unchanged at **171**: the directory composes existing capabilities
+and adds none. Backend **1292 tests / 4462 assertions** — 95 new. Frontend i18n **608 / 608**
+exact. One new decision, **D-086**.
+
+The backend landed first as a checkpoint commit (`459aeda`, observed CI-green as Quality #27)
+with the frontend, the 72-step smoke, the disposable-database migration verification, and the
+remaining documentation explicitly outstanding. This entry records the completed milestone.
+The checkpoint stated 4430 assertions; a measured run gives **4462**, and the figure is
+corrected here rather than carried forward.
+
+### The decision this milestone existed to make
+
+M2.0 deferred the sensitive-identifier duplicate mechanism and M2.1 deliberately added no
+column, because locking a cryptographic design before reviewing it is how a weak one ships.
+**D-086 settles it.**
+
+`nik`, `npwp`, and `tax_id` use randomized encryption, so equality search against the stored
+ciphertext is impossible by construction — and every obvious alternative is worse. Decrypting
+the directory to compare in PHP does not scale and puts every identifier in memory to answer
+one question; a plaintext copy defeats the encryption; an unkeyed hash of a 16-digit NIK is
+brute-forceable in seconds.
+
+The construction is a keyed blind fingerprint: an HKDF-SHA-256 subkey derived from the
+application key under a versioned context string, then HMAC-SHA-256 of the normalized value.
+Derived rather than reusing `APP_KEY` directly, so the purpose is domain-separated. Standard
+PHP primitives only. No second production secret.
+
+**Normalization is `trim` and nothing else.** Leading zeros, internal punctuation, and case
+all survive, so `09.123.456.7-890.123` and `091234567890123` do **not** match. That is an
+accepted false negative: no canonical document defines legal NPWP normalization, formats have
+changed, and a guess would silently assert an equivalence nobody approved. Detection is
+advisory, so a missed hint is the safe failure and a false claim is not.
+
+The columns are indexed and **never unique** — uniqueness would assert identity, become a
+cross-office existence oracle through rejected inserts, and turn advisory detection into
+blocking enforcement. They are hidden at the model, absent from every Resource, and withheld
+even from a holder of the full-view reveal permission, which authorizes the identifier
+through the reviewed surface rather than the material derived from it.
+
+Rotating `APP_KEY` invalidates every fingerprint, so
+`php artisan parties:rebuild-identity-fingerprints` is the operational counterpart. It is
+idempotent, prints counts only, and re-encrypts nothing.
+
+### Advisory duplicate detection
+
+Exact deterministic signals only — no fuzzy matching, no Levenshtein, no trigram, no score,
+no "95% likely". A confidence number about identity is exactly the claim M2 has no authority
+to make. Individual signals are NIK, NPWP, email, phone, and name-plus-birth-date; Company
+signals are tax identifier, registration number, legal name, email, and phone.
+
+**Always confined to the target Office**, including for an `ALL`-scoped actor: `ALL` permits
+working in another Office, not a deployment-wide identity registry. A check for a NIK that
+exists only elsewhere returns exactly what a check for a nonexistent one returns — no count,
+no hint, no "match exists elsewhere".
+
+**Sensitive signals answer to their own field permission.** Asking for a NIK match without
+`parties.identity.nik.view_full` is a 403, not a quietly narrowed result, because silently
+dropping the signal would let a caller infer the answer from its absence.
+`parties.identity.update` is explicitly not accepted: writing a value is not licence to learn
+that somebody else already has it.
+
+Nothing blocks. No lifecycle Action refuses because a candidate exists, and a test records
+the same tax identifier on two companies to prove it.
+
+### Unified read-only Party Directory
+
+`GET /api/v1/parties` — the first and only generic Party endpoint, and read-only forever.
+Individual and Company own their lifecycles; a generic Party write would be a second way to
+change the same records with none of their rules.
+
+**No new permission.** Visibility is the union of `parties.view` and `companies.view`, and
+the two are evaluated **independently and never collapsed** — an actor holding `parties.view`
+at `OFFICE` and `companies.view` at `ALL` sees their own Office's people and every Office's
+companies. Taking the widest scope would show records they cannot open; taking the narrowest
+would hide records they can. The query is two capability-specific branches unioned, each
+carrying its own predicate.
+
+### Reverse Individual → Companies
+
+The view M2.4 deferred. Read-only, two endpoints so the management/ownership split survives
+the reversal, and `can_view_company` computed from the real Company policy with scope — a
+company the actor cannot open is still named, because the person's history is about it, but
+it is not linkable.
+
+### Frontend
+
+`/[locale]/parties` is the Party Directory: read-only, with search, a type filter, an Office
+filter, and rows routed to the Individual or Company page. There is no New, Edit, or Archive
+Party control and no generic Party detail page — lifecycle stays on the two subtype
+directories, which this does not replace.
+
+Navigation gained its first entry composed from more than one capability. "Directory" appears
+when the account holds **either** `parties.view` or `companies.view`, expressed as an
+`anyPermissions` list beside the existing `requiredPermission`. Requiring both would hide a
+working page; inventing `parties.directory.view` would be a permission for a page rather than
+for the records on it. Where both fields are set both must hold, so the new field can never
+widen what a single required permission already narrowed.
+
+Duplicate assistance is advisory in the interface as well as the API. The check runs once
+before a save; if it finds anything, a neutral panel offers Review or Continue anyway, and
+continuing performs the ordinary Action unchanged. A check that is refused, rate limited, or
+unreachable lets the save through **immediately**, and the notice says the check did not run —
+never that a duplicate exists, because reading existence into a refusal rebuilds the oracle the
+permission closes. Save is disabled only while a request is in flight, never because a
+candidate was found. There is no Merge, Replace, Use existing, or Archive duplicate control,
+and no score is displayed.
+
+Sensitive checks run only where the backend's own capability flag for that record says they
+may — `can_reveal_nik`, `can_reveal_npwp`, `can_reveal_tax_id`, each computed from the real
+Policy with Data Scope applied, which is strictly narrower than the check requires and so never
+offers an assist the API would refuse. A field the caller cannot ask about is omitted from the
+request rather than sent and refused, which would have taken the other field's assistance down
+with it. The submitted identifier travels in a request body and nowhere else: the check is a
+mutation with **no query key**, and the result is discarded on continue, cancel, save, and
+unmount.
+
+The Individual page gained a third section, **Companies** — the reverse view M2.4 deferred.
+Read-only, with Management and Ownership as independent subsections each fetched only for a
+holder of its own capability, so neither permission causes the other's data to be requested. A
+company the caller cannot open is still named, because the person's history is about it, but it
+links only when `can_view_company` says so.
+
+### Verification
+
+**72 / 72** on the full PostgreSQL + Sanctum smoke: real cookie-based SPA authentication with a
+cookie jar and `X-XSRF-TOKEN`, no Bearer token anywhere. Highlights worth naming because they
+are the claims easiest to assert and hardest to prove: the mixed-scope actor
+(`parties.view` at `OFFICE`, `companies.view` at `ALL`) received their own Office's people
+beside both Offices' organizations; an `ALL`-scoped check for Office A returned nothing for an
+identifier that exists only in Office B; `parties.identity.update` alone got **403** on a
+sensitive signal while its own identity update still succeeded; exhausting the duplicate
+limiter at 31 attempts left both the reveal and password buckets working; and no response in
+the entire run contained a fingerprint or a raw identifier outside the reveal and identity-write
+endpoints that are meant to carry one.
+
+Teardown restored the captured baseline **exactly** — every table count, and the surviving
+session row identified as the one that predates the run. Redis returned to its baseline of zero
+keys after the limiter TTLs expired.
+
+The migration chain was verified from zero on a uniquely named disposable PostgreSQL database,
+proven to be the target before anything destructive ran. Eighteen migrations; three `char(64)`
+nullable fingerprint columns with plain btree indexes and **zero** `UNIQUE` constraints; the
+fingerprint migration rolled back (columns and indexes gone, identity data intact) and reapplied
+cleanly; the rebuild command populated, then reported zero changes on a second run. The database
+was dropped and its absence confirmed.
+
+Source scans found no `*_fingerprint` name outside the migration, models, fingerprint service,
+identity Actions, duplicate query, maintenance command, and tests — none in any Resource,
+frontend type, service, or component. No `localStorage`, `sessionStorage`, `document.cookie`, or
+`console.*` call in frontend source; no identifier in any query key, URL, or fragment; no
+generic Party mutation route; no merge, fuzzy, or scoring code.
+
+### Documentation
+
+`02` gained the composed-navigation rule and the note that no directory or duplicate permission
+exists; `03` gained the fingerprint columns and had its index strategy corrected — it had listed
+`individuals.nik`, `individuals.npwp`, and `companies.tax_id` as indexed, which cannot work,
+since those columns hold randomized ciphertext; `06` gained the read-only aggregate, reverse
+view, advisory-`POST`, and per-bucket rate-limit conventions; `07` gained "existence is a
+disclosure" and the rules for derived cryptographic material; `12` gained the delivered frontend
+and had section 15 corrected, which had said `ALL` "may see across Offices" — M2.5 decided the
+opposite. The README documents the maintenance command.
+
+---
+
+## 2026-08-12 — M2.4 Company relationships
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**1197 tests / 4132 assertions** — 78 new. Eight API routes, two new Company detail sections,
+i18n 535/535 exact. One new decision, **D-085**.
+
+M2.1 built `company_people` and then deliberately left it alone. Everything M2.4 needed was
+already there — both endpoints structurally constrained to their subtypes, the same-Office
+invariant carried by two composite foreign keys through one column, no soft-delete column,
+and history expressed as effective dates. The schema review found no defect and no migration
+was required.
+
+### Two surfaces, independent in both directions
+
+Management (`DIRECTOR`, `COMMISSIONER`, `AUTHORIZED_PERSON`) answers to
+`companies.management.*`. Ownership (`SHAREHOLDER`, `BENEFICIAL_OWNER`) answers to
+`companies.shareholders.*`. Neither implies the other, and neither implies or is implied by
+`companies.view` — who runs an organization, who owns it, and the organization's own details
+are three separate questions.
+
+That independence is structural rather than asserted. The two controllers share an abstract
+base, and **the category is a property of the subclass, never a request parameter** — the
+route points at a class, and the class knows what it is. Each surface rejects the other's
+types with a 422. In the interface each section fetches its own endpoint behind its own
+permission check, with its own query key, and the ordinary Company payload carries no
+relationship data at all, so holding one capability cannot cause the other's data to be
+requested.
+
+### Append-and-close, now a property of the API (D-085)
+
+D-083 already said history is preserved. It did not say what the API may therefore expose,
+and that gap mattered: nothing in its wording forbids a `PATCH` that rewrites
+`relationship_type` on an existing row, which would contradict its intent while satisfying
+its letter. **D-085 closes that** — the public mutation surface is add and end, there is no
+`DELETE` and no generic `PATCH` or `PUT` at any level, and `company_party_id`,
+`individual_party_id`, and `relationship_type` are immutable once written. Superseding a
+relationship is end-then-add: two rows, both readable.
+
+Ending writes `effective_until` and nothing else. **It is not idempotent**: a second end
+answers 409, because it asks to change a recorded end date, which is an amendment, and
+quietly overwriting it would be the software correcting a legal record on its own initiative.
+The end date is supplied by the caller and never defaulted to today — defaulting would invent
+a fact about when an appointment ceased.
+
+A relationship id used under the wrong Company, or on the wrong category's surface, answers
+**404** rather than 403. A 403 would confirm the record is real and say which category it
+belongs to, which is exactly what the permission split withholds.
+
+### Same-Office, even for ALL
+
+A relationship may only connect a Company and an Individual owned by the same Office, and
+that holds for an `ALL`-scoped actor too: `ALL` grants reach and administrative visibility,
+never the right to redefine domain ownership (D-080). The database makes a cross-office row
+unrepresentable; the application refuses the candidate first, with a **generic 422 that does
+not disclose whether that person exists** — the candidate list is same-Office precisely so it
+cannot be used to probe another Office's directory.
+
+### A narrower permission, and therefore a narrower payload
+
+Picking a person is part of recording a relationship, so the candidate options endpoint is
+authorized by the category's *update* permission rather than `parties.view` — requiring the
+whole Party directory capability for a person-picker would grant far more than the task
+needs. The price of asking for less is that the payload gives less: **an id and a display
+name, and nothing else.** No identity, no masks, no contact details, no other companies.
+
+The relationship resources are equally narrow. A relationship view permission is not a
+sensitive identity permission (D-082), so neither surface carries NIK, NPWP, birth data, or
+even a mask — a mask is still a statement about a sensitive value.
+
+### Nothing about Indonesian corporate law
+
+No director cap and no minimum. No required commissioner. No rule that one person holds one
+role. No ownership total, no per-row cap at 100, no majority inference, and **beneficial
+ownership is never derived from a shareholding** — it is recorded when somebody records it.
+`ownership_percentage` is bounded only by its column, `decimal(7,4)`, and the smoke
+deliberately records holdings summing to 175.5% to prove nothing objects. No date-transition
+rule either, including any requirement that an end date follow a start date, because
+`12_M2_PARTY_ARCHITECTURE.md` section 13 imposes none.
+
+### History survives archiving
+
+Archiving an Individual leaves their relationship rows exactly as they are — not ended, not
+retyped, not deleted. Retiring somebody from the directory is not a statement about their
+past appointments, and the relationship lists still show their name, flagged archived, read
+from the retained Party. Archiving a Company likewise leaves `company_people` untouched while
+making the ordinary relationship routes answer 404.
+
+### Permission Matrix
+
+The four relationship codes moved from *deferred* to implemented, which **empties the Party
+domain from that list entirely** — what remains is `security.settings.*`, the flag's original
+case. Four prior-milestone assertions were narrowed rather than deleted; each stated something
+true when written that M2.4 deliberately changed.
+
+### Verification
+
+The specified 66-step smoke ran over real HTTP against **PostgreSQL 18** with the real Sanctum
+SPA cookie flow. **66 / 66 passed.** It exercised the whole history story end to end: appoint
+a director, end them, be refused a second end with 409, appoint a successor, and confirm the
+first row still names the first person with its original type and end date — two `DIRECTOR`
+rows coexisting because no cardinality rule was invented. Of 97 recorded responses, none
+contained a raw identifier. Teardown restored the pre-smoke baseline exactly, by table count
+and by row identity.
+
+### Deferred, unchanged
+
+Duplicate detection and identifier search remain M2.5, as does the reverse
+Individual → Companies view — the relation exists, but adding it because the data is reachable
+would be broadening scope on the strength of a foreign key. Amendment of a recorded
+relationship stays undesigned.
+
+---
+
+## 2026-08-12 — M2.3 Company management
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**1119 tests / 3829 assertions** — 138 new. Nine API routes, four frontend routes, i18n
+495/495 exact. The Party aggregate's second subtype, and the last one M2 defines.
+
+M2.1 designed the schema so this milestone would be mechanical, and M2.2 settled the
+patterns. What M2.3 added is the HTTP surface, one derivation rule the Individual side does
+not have, and the interface.
+
+### Company lifecycle
+
+Create, list, detail, update, archive — the structural mirror of Individuals. Aggregate
+writes go through domain Actions in a single transaction, because **"no Party without a
+subtype" is the one M2.0 invariant no constraint can carry** (D-078). A test forces the
+subtype insert to fail and proves no orphan Party survives.
+
+`party_type` is set from the enum and never from input, so no request shape produces an
+INDIVIDUAL through the Company endpoint. `entity_type` is validated against the live enum —
+the seven values `03_DATABASE_ERD.md` names, transcribed and not extended — and `legal_name`
+and `entity_type` are the only required fields, both for **structural** reasons. No corporate
+rule is encoded anywhere: no required director, no unique registration number, no capital
+rule, no format for anything. Those are legal questions this milestone has no authority to
+answer.
+
+**Lifecycle authorizes on `companies.*` and never additionally on `parties.*`.** Creating a
+Company writes a Party row inside its transaction, but that is persistence composition, not
+an authorization fact — requiring two permissions because of it would leak the schema into
+the permission model. Authorization describes what a user may do, not how many tables it
+touches.
+
+Archive sets `parties.deleted_at` and leaves both the subtype and `company_people` untouched
+(D-081): deleting relationship rows would destroy the history D-083 exists to keep, and an
+archived company keeps its record of who was a director and when. Route binding resolves live
+Companies only, so an archived record and an **Individual** Party id both answer 404.
+
+### The derivation rule that differs from Individuals
+
+`display_name` comes from `short_name` when one is intentionally present and `legal_name`
+otherwise (D-079) — a short name exists precisely because somebody wanted the organization
+displayed that way.
+
+That rule has **two inputs**, which is why the update action recomputes the display name on
+every update rather than only when a name field was submitted. Removing a short name changes
+the display name without touching the legal name; adding one does the same. A conditional
+"only sync when the name changed" would have to enumerate those cases correctly forever, and
+asking the updated record what it should be called cannot get it wrong. Six tests cover the
+combinations, and the smoke walks the full sequence over HTTP: legal-name rename, short name
+added, short name removed.
+
+### Sensitive tax identity
+
+The Company `tax_id` **is** the NPWP, so it answers to the canonical
+`parties.identity.npwp.view_full` — the same code an Individual's NPWP uses. **No
+`companies.identity.*` family was invented**, because the identity surface belongs to the
+aggregate rather than the subtype. `companies.view` reaches neither the surface nor the
+value, `parties.identity.view` opens the surface with the value still masked, and
+`parties.identity.update` returns a mask rather than echoing what was submitted.
+
+Reveal reproduces the M2.2 contract exactly, which is what that contract was written down
+for: `POST` rather than `GET`, `no-store` on the response, and the `party.identity.reveal`
+limiter. Individual NIK, Individual NPWP, and Company `tax_id` share that one bucket on
+purpose — alternating between fields, or between subtypes, must not buy extra budget — and a
+test proves exhausting it still leaves the password route on its own budget.
+
+### Permission Matrix honesty
+
+The four Company lifecycle codes moved from *deferred* to implemented, which is the flag
+working rather than the list churning: M2.2 put "Clients & Parties" in the sidebar without
+shipping Companies, so the badge was earned then and is stale now.
+
+**`companies.management.*` and `companies.shareholders.*` stay deferred**, and more sharply
+than before: Companies is a live surface now, so an administrator granting
+`companies.management.view` has every reason to expect a directors section. There is none.
+The claim is checked against the router in both directions (D-077).
+
+### Frontend
+
+Four routes under `/[locale]/parties/companies`. The create and edit forms carry no `tax_id`
+field at all, so `companies.update` cannot quietly acquire `parties.identity.update`. Detail
+shows Overview and Identity only — no Management or Shareholders section, and the API sends
+no relationship collection for one to render. Directory search covers the company names,
+phone, and email; neither `tax_id` (encrypted, and unmatched by design) nor
+`registration_number` (the duplicate signal M2.5 owns) is searchable.
+
+Entity types render translated labels from stable codes. The Indonesian legal forms keep
+their own names in both locales — *Yayasan*, *Perkumpulan*, *Koperasi*, *Firma* — with an
+English gloss in parentheses rather than a substitute term, per `05_I18N_LEGAL_TERMINOLOGY.md`.
+
+A revealed value is held in component state, cleared on unmount, and has **no query key**.
+Nothing is written to `localStorage`, `sessionStorage`, or the URL.
+
+### Verification
+
+The specified 42-step smoke ran over real HTTP against **PostgreSQL 18** with the real
+Sanctum SPA cookie flow — CSRF priming, cookie jar, `X-XSRF-TOKEN`, session cookie, no bearer
+token — from the frontend origin. **42 / 42 passed.**
+
+The stored `tax_id` column holds ciphertext that decrypts back to the submitted value; the
+reveal response carries `no-store` through the real HTTP stack; and of 83 recorded responses
+the raw identifier appears in exactly the one authorized reveal body and nowhere else, with
+the application log carrying `PARTY_IDENTITY_REVEALED` metadata and zero raw values.
+
+Teardown restored the pre-smoke baseline exactly — every table count and every row identity,
+against a manifest captured before the first fixture existed. Permission count 171 and
+migration count 17 throughout.
+
+### Deferred, unchanged
+
+Company relationships — management, shareholders, beneficial owners — remain M2.4. Duplicate
+detection and identifier search remain M2.5. Office transfer stays undesigned and is refused
+rather than approximated. NPWP format validation stays deferred pending domain authority.
+
+**No new decision.** M2.3 is the Company half of rules D-078 through D-084 already settled,
+built to the reveal contract M2.2 recorded. Adding a decision for ordinary CRUD that followed
+its own architecture would be summarizing an implementation, not settling a conflict.
+
+---
+
+## 2026-08-12 — M2.2 Individual management
+
+Branch `feat/m2-parties`. **No migration** (17 total) and **no permission** (171). Backend
+**981 tests / 3451 assertions** — 85 new. Ten API routes, four frontend routes, i18n 419/419
+exact. The first Party-domain business surface.
+
+M2.1 was built so this milestone would be mechanical, and it was: the schema, the enums, the
+scope predicates, and the policy abilities all existed already. What M2.2 added is the HTTP
+surface, the transaction that carries the one invariant the database cannot, and the
+interface.
+
+### Individual lifecycle
+
+Create, list, detail, update, archive. Aggregate writes go through domain Actions in a single
+transaction, because **"no Party without a subtype" is the one M2.0 invariant no practical
+constraint can enforce** (D-078) — it rests on that rollback and nothing else. A test forces
+the subtype insert to fail and proves no orphan Party survives.
+
+`party_type` is set from the enum and never from input, so no request shape produces a COMPANY
+through the Individual endpoint. `display_name` is derived from the canonical full name in the
+same transaction (D-079): a rename cannot leave the directory showing one name and the detail
+page another. `office_id` is refused on update rather than ignored — moving a Party between
+Offices crosses a security boundary and would strand any relationship pinned to the old one,
+so M2.2 rejects it instead of inventing semantics.
+
+Archive sets `parties.deleted_at` and leaves the subtype row alone (D-081). Route binding
+resolves live Individuals only, which is why an archived record and a Company Party id both
+answer **404** — telling a caller "wrong type" would confirm a record exists in a namespace
+they were not asking about, possibly in an Office they cannot see. No `DELETE`, and no
+restore: the registry defines `parties.archive` and no counterpart to authorize one with.
+
+### Sensitive identity, D-082 end to end
+
+M2.0 left the reveal route shape open between per-field operations and one conditionally
+serializing endpoint. **M2.2 settled it as per-field operations**, and the reason is the
+frontend cache: a conditional `GET` puts the raw value in an ordinary response, which is
+exactly what ends up cached.
+
+Ordinary list and detail serialize `nik_masked` / `npwp_masked` computed server-side. There
+is no `nik` key in the payload to un-hide — two independent defences, the Resource's explicit
+attribute list and the model's `#[Hidden]`, would both have to fail. Reveal is a `POST`
+answering `no-store`, authorized per field: NIK and NPWP imply nothing about each other,
+`identity.view` reveals neither, and `identity.update` returns masks rather than echoing what
+was submitted, so writing a value confers no readback of another.
+
+The reveal limiter is deliberately separate from the `security.*` buckets, and a test proves
+exhausting it does not disable the password route — **the M1.9 defect, guarded rather than
+remembered**. NIK and NPWP share the one reveal bucket on purpose: alternating fields must not
+buy twice the budget.
+
+The access event is logged with actor, record, and field. The value is not, at any level.
+
+### Scope behaviour
+
+`OFFICE` and `ALL` are the only scopes that reach a Party (D-080). `OWN`, `ASSIGNED`, and
+`TEAM` fail closed — a holder of all eight `parties.*` codes at any of those three reaches
+nothing, including list, which is refused outright rather than returning a reliably empty
+page. Visibility is applied **in the query**, so an office-scoped caller's SQL never selects
+another Office's rows and no filter can widen it; `permits()` runs the identical constraint
+against one key, so "what appears in the list" and "what may I open" cannot drift apart.
+
+### Permission Matrix honesty
+
+`companies.*` joined the deferred list, which reads like a step backwards and is not. Before
+M2.2 the Party module was absent from navigation, so `companies.view` needed no badge for the
+same reason `projects.create` does not. Shipping Individuals put "Clients & Parties" into the
+sidebar — the namespace now looks implemented, and an administrator granting `companies.view`
+would reasonably expect something. `parties.*` left the list, and the claim is **checked
+against the router** rather than asserted (D-077).
+
+### Frontend
+
+Four routes under `/[locale]/parties/individuals`. The create and edit forms carry no identity
+fields at all, so `parties.update` cannot quietly acquire `parties.identity.update`. Detail
+shows Profile and Identity only — no Companies section, because M2.4 owns relationships and an
+empty tab is a promise the product cannot keep. Directory search covers name, phone, and
+email; identifier search is M2.5 and would turn the directory into an existence oracle.
+
+A revealed value is held in component state, cleared on unmount, and has **no query key** —
+giving it one would put a raw NIK in a cache that outlives the component and survives
+navigation. Nothing is written to `localStorage`, `sessionStorage`, or the URL.
+
+### Verification
+
+Closure ran the specified 40-step smoke over real HTTP against **PostgreSQL 18** with the real
+Sanctum SPA cookie flow — CSRF priming, cookie jar, `X-XSRF-TOKEN`, session cookie, no bearer
+token anywhere — from the frontend origin. **40 / 40 passed.**
+
+What the smoke proves that the Pest suite cannot: the stored `nik` and `npwp` columns hold
+ciphertext that decrypts back to the submitted value (228 and 200 bytes for 16- and 15-digit
+inputs); the reveal response really carries `no-store` through the HTTP stack; the reveal
+budget and the password budget are genuinely separate buckets; and 78 recorded responses
+contain the raw identifiers in exactly the two authorized reveal bodies and nowhere else, with
+the application log carrying `PARTY_IDENTITY_REVEALED` metadata and zero raw values.
+
+Teardown restored the pre-smoke baseline exactly — every table count, and every row identity,
+compared against a manifest captured before the first fixture existed. Permission count 171,
+migration count 17, both unchanged throughout.
+
+### Deferred, unchanged
+
+Company management (M2.3), company relationships (M2.4), duplicate detection and identifier
+search (M2.5). NIK and NPWP format validation stays deferred pending domain authority — no
+canonical document freezes either format, and the Form Requests are exactly where somebody
+would be tempted to add `digits:16` from memory.
+
+**No new decision.** M2.2 introduced no durable architecture rule that D-078 through D-084 do
+not already carry: the reveal transport is the mechanism D-082's "never in a URL, never in a
+cache key" already required, and the separate limiter is D-071's reasoning applied forward.
+Both are recorded as contract in `07_SECURITY_RULES.md` section 12 and
+`12_M2_PARTY_ARCHITECTURE.md` section 11, where M2.3 will need them.
+
+---
+
+## 2026-08-11 — M2.1 Party schema and authorization foundation
+
+Branch `feat/m2-parties`. **Four forward migrations** (17 total). Permission count unchanged
+at **171**. Backend **896 tests / 3235 assertions** — 113 new. No API surface and no frontend
+change: M2.1 makes M2.2 and M2.3 mechanical, it does not build them.
+
+### The correction M2.1 had to make to M2.0
+
+M2.0 claimed `party_id` as PK/FK "enforces one-to-one structurally". **It does not, quite.**
+That gives no-orphan-subtype and no-duplicate-subtype, but it permits one Party to hold *both*
+an Individual and a Company row, and says nothing about whether a subtype agrees with its
+Party's `party_type`. The wording is corrected in place rather than left to be believed.
+
+The gap is now closed by the database, not by convention. `parties` carries
+`UNIQUE (id, party_type)`; each subtype pins its own `party_type` and completes a composite
+foreign key back to it. One constraint yields three invariants: a subtype must match its
+Party's type, a Party cannot hold both subtypes, and `party_type` cannot be updated while any
+subtype exists — against raw SQL, not merely against Eloquent.
+
+**One invariant stays honestly domain-only.** No practical constraint makes a parent row
+require a child, so "no Party without a subtype" rests on the transaction M2.2 and M2.3 will
+own. The architecture document now carries an enforcement table saying which is which, because
+a domain rule documented as a database constraint is one somebody will later assume they
+cannot break.
+
+### Same-office relationships, enforced rather than intended
+
+`company_people.office_id` is a constraint carrier: two composite foreign keys reference
+`parties (id, office_id)` through that **one** column, so both endpoints must agree with it
+and therefore with each other. A cross-office relationship is unrepresentable. Endpoint
+subtypes are structural too — the foreign keys target `companies.party_id` and
+`individuals.party_id`, so a relationship cannot point at an arbitrary Party.
+
+### Sensitive identity
+
+NIK, Individual NPWP, and Company `tax_id` are `encrypted` casts and hidden at the model.
+Ordinary `toArray()` and `toJson()` carry none of them, proven by test — the moment a raw
+identifier enters serialization it is also in a log line, a cache entry, and any response that
+serialized the model without thinking.
+
+Authorization is two-tier per D-082 and tested directly against the policies: opening the
+identity surface reveals nothing, NIK reveal implies nothing about NPWP and the reverse,
+`identity.update` confers no readback, and `companies.view` reveals no tax identifier. The
+Company NPWP uses the canonical `parties.identity.npwp.view_full` — no `companies.identity.*`
+family was invented.
+
+### Scope metadata made truthful
+
+Party permissions previously fell into the permissive default in `PermissionScopeRules` and
+were offered at `OWN`, `ASSIGNED`, `OFFICE`, and `ALL`. Three of those the resolver could never
+honour, so the Permission Matrix was offering grants that would save and then do nothing. They
+now offer **OFFICE and ALL only** (D-080), and the unsupported three fail closed in
+`PartyVisibility`.
+
+The deferred list is deliberately **unchanged**. Party is absent from navigation entirely,
+exactly as `projects.*` is, so it needs no badge — adding one would contradict the semantics
+M1.10 settled and imply Party is partially shipped.
+
+### Verification
+
+```text
+Backend        896 tests, 3235 assertions — 113 new (baseline 783)
+Pint           passed
+Migrations     17, all applied
+Disposable DB  full chain from empty PostgreSQL; 13 invariants proven there; dropped
+Frontend       format:check, lint, typecheck, build all clean — zero runtime files changed
+Scans          authorization, role-name, no-Client, no-M3, no-party-route: all pass
+```
+
+The PostgreSQL run proved what SQLite cannot: the CHECK constraints on `party_type`,
+`entity_type`, and `relationship_type`, and that stored NIK and `tax_id` are ciphertext rather
+than readable identifiers.
+
+---
+
+## 2026-08-11 — M2.0 Party architecture lock, resolving O-004
+
+Branch `feat/m2-parties`, from `main` at `501401f`. **Documentation only.** No migration, no
+model, no endpoint, no permission. Migration count stays 13; canonical permission count stays
+**171**; backend 783 tests / 3043 assertions unchanged.
+
+The milestone exists so that M2.1 transcribes an architecture instead of inventing one while
+writing migrations.
+
+### The decision that shapes the rest
+
+**One Party aggregate. "Client" is a word, not a table** (D-078). A `clients` table would
+freeze a role into a master record, which CLAUDE.md section 17 already refuses for Party
+roles — the same person is a seller in one matter and a director in another. Subtypes take
+`party_id` as both primary key and foreign key, so "exactly one subtype per Party" and "no
+orphan subtype" are enforced by the schema rather than by convention. `party_type` is
+immutable; a wrong type is archived and recreated, visibly.
+
+**This resolves O-004**, which had been deferred since M0.1 as a cosmetic label mismatch
+between "Party / Individual / Company" and "Client Database". It was cosmetic right up until
+the milestone that would have turned the second reading into a duplicate table.
+
+### Sensitive identity, locked two-tier
+
+The live registry carries four canonical codes (D-001) that the planning material did not
+account for. Read from the registry rather than assumed, they form two tiers (D-082):
+
+```text
+parties.identity.view            opens the surface — NIK and NPWP stay masked
+parties.identity.update          mutation; confers no full readback
+parties.identity.nik.view_full   raw NIK only
+parties.identity.npwp.view_full  raw NPWP / tax identifier only
+```
+
+Neither tier-2 code implies the other. Company tax identity uses the existing NPWP code — no
+`companies.identity.*` family invented.
+
+**A browser not authorized for a raw identifier never receives it** — absent from the payload,
+not hidden by CSS. `07_SECURITY_RULES.md` section 12 said "avoid returning full values when
+unnecessary", which is weaker than what M2.1 must build, so it was strengthened rather than
+left to be discovered later.
+
+Format validation for NIK and NPWP is **deferred**: no canonical document freezes either
+format, and encoding a guess would reject real identifiers.
+
+### Four ERD fields dropped, each with a reason
+
+`parties.status` and `companies.status` competed with `deleted_at` for lifecycle authority;
+`companies.phone` / `companies.email` duplicated the Party contact fields that `individuals`
+does not carry; `company_people.is_current` duplicated what `effective_until` already says.
+Each is a second source of truth whose disagreement would be invisible. `deleted_at` is now
+the sole archive authority (D-081), and `03_DATABASE_ERD.md` section 6 carries a pointer so
+the blueprint cannot be read as current.
+
+### Also locked
+
+Party is Office-owned; `OWN`, `ASSIGNED`, and `TEAM` **grant nothing** and fail closed
+(D-080) — `OWN` must not become `created_by`, since typing in a record is not a claim on the
+person it describes. Company relationships preserve history and never overwrite a predecessor
+(D-083); management and ownership map to their existing separate permission surfaces without
+inventing corporate-law cardinality. Duplicate detection is advisory and Office-scoped, never
+auto-merging, which is also why no `UNIQUE` constraint is placed on any identifier — it would
+be a cross-office existence oracle (D-084).
+
+### Boundary
+
+No Project, Matter, Document, Property, Warkah, global Search, or audit-log module. Project
+remains M3. Six open questions are recorded rather than assumed — none blocks M2.1, and the
+two most likely to tempt improvisation while writing migrations (the keyed dedup fingerprint
+and NIK/NPWP formats) are named explicitly.
+
+New document: `12_M2_PARTY_ARCHITECTURE.md`. `docs/10` and `docs/11` were already taken, so
+it takes the next free number rather than overwriting either.
+
+---
+
 ## 2026-08-11 — M1.10 M1 Quality Gate, resolving O-023
 
 Branch `feat/m1-identity`. **One forward migration** (13 total). Permission count unchanged

@@ -51,6 +51,43 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Party domain, whose predicates M2.0 settled (D-080).
+     *
+     * `OFFICE` and `ALL` only. The other three are withheld because they would
+     * be offers the resolver could not honour: `OWN` must not become
+     * `created_by` — a Party is a shared directory record, and typing one in is
+     * no claim on the person it describes; `ASSIGNED` has no Party assignment
+     * entity to match; `TEAM` has no Team entity at all (D-042).
+     *
+     * Withholding them here matters because the Permission Matrix offers exactly
+     * this list. Leaving Party in the permissive default below would let an
+     * administrator grant `parties.view` at `OWN`, see it saved, and get a
+     * silently powerless grant — the configuration equivalent of a dead control.
+     *
+     * `parties.identity.*` and the Company relationship permissions are included:
+     * they select the same records by the same predicate, so a narrower or wider
+     * scope set would be inventing a second rule for one boundary.
+     */
+    private const PARTY_DOMAIN = [
+        'parties.view',
+        'parties.create',
+        'parties.update',
+        'parties.archive',
+        'parties.identity.view',
+        'parties.identity.update',
+        'parties.identity.nik.view_full',
+        'parties.identity.npwp.view_full',
+        'companies.view',
+        'companies.create',
+        'companies.update',
+        'companies.archive',
+        'companies.management.view',
+        'companies.management.update',
+        'companies.shareholders.view',
+        'companies.shareholders.update',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -66,6 +103,10 @@ class PermissionScopeRules
         }
 
         if (in_array($permission, self::USER_ADMINISTRATION, true)) {
+            return [DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::PARTY_DOMAIN, true)) {
             return [DataScope::OFFICE, DataScope::ALL];
         }
 

@@ -51,6 +51,7 @@ PPAT
 └── PPAT Protocol
 
 Clients & Parties
+├── Directory          (added M2.5 — read-only, any of parties.view / companies.view)
 ├── Individuals
 └── Companies
 
@@ -123,6 +124,7 @@ Settings
 | Laporan PPAT | PPAT Reports |
 | Protokol PPAT | PPAT Protocol |
 | Klien & Para Pihak | Clients & Parties |
+| Direktori | Directory |
 | Individu | Individuals |
 | Perusahaan | Companies |
 | Dokumen | Documents |
@@ -299,6 +301,19 @@ parties.identity.update
 parties.identity.nik.view_full
 parties.identity.npwp.view_full
 ```
+
+**No directory permission and no duplicate-detection permission exist** *(M2.5)*. The unified
+Party Directory composes `parties.view` and `companies.view` (section 23), and advisory
+duplicate assistance answers to the capabilities already listed here: the lifecycle code for
+whichever operation is being attempted, plus — for a *sensitive* signal — that identifier's own
+full-view code.
+
+That last point is the one worth stating explicitly. Being told "another record here already
+carries this NIK" is a disclosure about somebody else's record, so it requires
+`parties.identity.nik.view_full`; NPWP requires its own; and a Company `tax_id` reuses
+`parties.identity.npwp.view_full`, because it *is* the NPWP.
+**`parties.identity.update` is deliberately not sufficient** — writing a value is not licence
+to learn that somebody else already has it.
 
 ---
 
@@ -726,6 +741,43 @@ if user can ppat.matters.view:
 
 If the user has no permission for any PPAT child menu, hide the PPAT parent menu.
 
+### Entries composed from more than one capability *(added M2.5)*
+
+Most entries are gated by a single permission. Some destinations are **composed** from several,
+and gating those on one code would be wrong in both directions.
+
+The Party Directory is the first. It lists Individuals to a holder of `parties.view` and
+Companies to a holder of `companies.view`, so an account holding **either** has something real
+to open:
+
+```text
+Directory      any of [parties.view, companies.view]
+Individuals    parties.view
+Companies      companies.view
+```
+
+Requiring both would hide a page that works. Inventing `parties.directory.view` would be worse:
+a permission for a *page* rather than for the records on it, which would let an administrator
+grant the directory without granting sight of anything in it, or withhold it from somebody who
+can already open every record it lists. **No such permission exists, and the count stays at
+171.**
+
+Implemented in `frontend/src/config/navigation.ts` as an `anyPermissions` list beside the
+existing `requiredPermission`. Where both fields are set, both must hold, so adding
+`anyPermissions` to an entry can never widen what a single required permission already
+narrowed. An exact `requiredScope` deliberately does not combine with it — a scope belongs to
+one specific capability, and pairing it with a set of alternatives would be ambiguous about
+which.
+
+**A composed entry does not imply a composed scope.** The two capabilities keep their own Data
+Scopes all the way through: an account may hold `parties.view` at `OFFICE` and `companies.view`
+at `ALL`, and the backend answers with one Office's people beside every Office's organizations.
+Nothing in the interface ranks or unions the two, and the page must not claim a single scope
+governs every row.
+
+As always, this is presentation. The endpoint authorizes independently and refuses a caller
+whose capabilities reach nothing.
+
 ---
 
 ## 24. Critical Actions
@@ -782,6 +834,7 @@ PPAT
 └── Warkah
 
 Clients & Parties
+├── Directory
 ├── Individuals
 └── Companies
 

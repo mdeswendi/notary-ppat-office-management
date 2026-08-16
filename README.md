@@ -187,6 +187,34 @@ php artisan permissions:sync
 Perintah itu aditif dan idempoten — menambah permission kanonik yang belum ada, tidak
 pernah menghapus, dan aman dijalankan berulang.
 
+## Perintah Pemeliharaan
+
+```bash
+# dari backend/
+php artisan parties:rebuild-identity-fingerprints
+```
+
+Menghitung ulang *fingerprint* berkunci untuk NIK, NPWP, dan `tax_id` Perusahaan — kolom
+turunan yang dipakai deteksi data ganda (D-086). Kolomnya internal: tidak pernah muncul di
+API maupun di antarmuka.
+
+Jalankan pada dua keadaan:
+
+1. **Setelah menerapkan migrasi M2.5 pada data yang sudah ada.** Migrasi menambah kolomnya,
+   tetapi tidak mengisinya. Sampai perintah ini dijalankan, deteksi data ganda tidak akan
+   melihat satu pun catatan lama — gagal ke arah yang aman, tetapi tetap salah.
+2. **Setelah `APP_KEY` dirotasi.** Fingerprint diturunkan dari kunci aplikasi, sehingga
+   rotasi membatalkan seluruhnya.
+
+Clone baru tidak memerlukannya: basis data kosong, dan setiap identitas yang direkam
+sesudahnya mendapat fingerprint-nya saat itu juga.
+
+Perintah ini **idempoten** — menjalankannya dua kali menghasilkan keadaan yang sama dengan
+sekali, dan menjalankannya pada tabel yang terisi separuh akan menuntaskan sisanya. Perintah
+ini tidak mengenkripsi ulang apa pun, dan **keluarannya hanya berupa jumlah**: tidak ada
+identitas, tidak ada fingerprint, dan tidak ada pengenal catatan yang tercetak ke terminal
+atau ke log.
+
 ## Perintah Mutu
 
 Backend, dari `backend/`:
