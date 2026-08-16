@@ -206,14 +206,19 @@ it('carries no primary_client_party_id', function (): void {
         ->and(Schema::hasColumn('projects', 'party_id'))->toBeFalse();
 });
 
-it('carries no internal reference column yet', function (): void {
-    // D-094: the column and its allocator arrive together in M3.2. Adding it
-    // nullable-and-empty now would leave every M3.1 Project with a null
-    // reference and hand M3.2 a backfill plus an unanswered uniqueness question
-    // — exactly the speculation D-086 refused for the fingerprint column.
-    expect(Schema::hasColumn('projects', 'project_number'))->toBeFalse()
+it('carries exactly one internal reference column', function (): void {
+    // **Narrowed at M3.2, not deleted.** This asserted `project_number` did not
+    // exist, which was true while D-094 held allocation back to M3.2 — the
+    // column and its allocator arrive together, so neither ships alone. M3.2
+    // brought both, so that half of the claim expired.
+    //
+    // What has not expired is the part worth keeping: there must be exactly one
+    // reference column. A second one would be two answers to "what is this
+    // Project called", and they would drift.
+    expect(Schema::hasColumn('projects', 'project_number'))->toBeTrue()
         ->and(Schema::hasColumn('projects', 'reference'))->toBeFalse()
-        ->and(Schema::hasColumn('projects', 'internal_reference'))->toBeFalse();
+        ->and(Schema::hasColumn('projects', 'internal_reference'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'number'))->toBeFalse();
 });
 
 it('copies no Party sensitive identity into the project table', function (): void {
@@ -241,9 +246,25 @@ it('introduces no Matter persistence', function (): void {
 
 it('introduces no participation, workflow, or later-milestone table', function (): void {
     // project_parties is M3.4 (D-092); the rest are M4 and beyond.
+    // `project_reference_counters` is deliberately absent from this list — M3.2
+    // added it, and it is Project allocator infrastructure rather than a
+    // later-milestone surface.
     foreach ([
         'project_parties', 'service_types', 'workflow_templates', 'workflow_stages',
         'matter_workflows', 'matter_stage_instances', 'documents', 'properties', 'tasks',
+    ] as $table) {
+        expect(Schema::hasTable($table))->toBeFalse($table);
+    }
+});
+
+it('generalizes the counter into no legal numbering framework', function (): void {
+    // The allocator is Project-specific on purpose (M3.2). A shared
+    // `legal_number_sequences` or `deed_sequences` table would pull deed,
+    // repertorium, and register numbering — none of which has a validated
+    // domain rule — into a milestone that owns none of them.
+    foreach ([
+        'legal_number_sequences', 'number_sequences', 'sequences', 'deed_sequences',
+        'matter_sequences', 'matter_reference_counters', 'reference_counters',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }

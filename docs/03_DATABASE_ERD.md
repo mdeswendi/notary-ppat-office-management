@@ -374,14 +374,45 @@ which are three separate concerns (D-093); and the internal reference is **ordin
 identification, never a legal number**, with no `MAX+1` allocator and its concurrency design
 locked before M3.2 (D-094). See `13_M3_PROJECT_ARCHITECTURE.md`.
 
-**Built at M3.1**, and two further differences from the list above are deliberate (D-095):
+**Built at M3.1**, and one further difference from the list above is deliberate (D-095):
 
-- **`project_number` is not yet a column.** M3.2 owns internal-reference allocation, and the
-  column arrives with its allocator rather than nullable-and-empty ahead of it — the same
-  reasoning D-086 applied to the fingerprint columns.
 - **`priority` uses the vocabulary this document defines under `tasks`** (section 23:
   `LOW`, `NORMAL`, `HIGH`, `URGENT`). The column is named on `projects`, `matters`, and
   `tasks`, and the values are given once. Nullable.
+
+**`project_number` arrived at M3.2**, together with its allocator — neither ships alone
+(D-094). It holds the formatted reference `PRJ-YYYY-NNNNNN` as `varchar(32)`, **nullable**
+until M3.3 assigns one at creation, and is unique **per Office**:
+
+```text
+UNIQUE (office_id, project_number)
+```
+
+Never global. Each Office runs an independent annual sequence, so Office A and Office B may
+both legitimately hold `PRJ-2026-000001`; a global index would fail the second Office's first
+project of the year for no explicable reason. The namespace is stable because Project Office is
+immutable (D-089), and the reference is immutable once allocated.
+
+### project_reference_counters *(added M3.2)*
+
+```text
+office_id
+reference_year
+last_value
+created_at
+updated_at
+```
+
+`PRIMARY KEY (office_id, reference_year)` — a natural composite key rather than a ULID
+surrogate, because this is allocator infrastructure and not a business-domain entity, so there
+is nothing for a surrogate id to identify that the namespace does not already. That key is also
+the required `UNIQUE (office_id, reference_year)` invariant and the index the atomic upsert
+conflicts against. `office_id` cascades on delete: a counter for a removed Office is meaningless,
+and `projects` separately restricts Office deletion anyway.
+
+Deliberately **not** generalized into `legal_number_sequences`, `deed_sequences`, or
+`matter_sequences`. Deed, repertorium, and register numbering have no validated domain rule, and
+a shared table would pull them into a milestone that owns none of them.
 
 `status` carries **no database default**: the schema records what the application decided
 rather than deciding an initial state, which would be the thin end of the transition matrix

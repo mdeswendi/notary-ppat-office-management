@@ -2506,6 +2506,75 @@ Task priorities, that is a domain decision and a forward migration.
 does not decide an initial state. A default would be the thin end of the transition matrix
 D-091 refuses.
 
+### D-096 — The Project reference namespace is Office-and-year, allocated atomically, and gapped
+
+*(Added at M3.2. D-094 ruled what the reference **is not** — not a legal number, no `MAX+1`
+— and deferred the mechanics to this milestone. These are the mechanics, and they are durable
+rather than implementation detail because each one is visible from outside the allocator.)*
+
+**The namespace is `(office_id, reference_year)`, and uniqueness is per Office.**
+
+```text
+UNIQUE (office_id, project_number)      never a global unique index
+```
+
+Each Office runs an independent annual sequence, so Office A and Office B may both legitimately
+hold `PRJ-2026-000001`. A global index would fail the second Office's first project of the year
+for a reason nobody could explain to them. The namespace is stable because Project Office is
+immutable (D-089) — if a Project could move, its reference could collide with one already
+issued at the destination.
+
+Two consequences follow and both outlive the allocator. **A reference does not identify a
+Project on its own**: any lookup by reference must carry the Office, or it is ambiguous before
+it is even an authorization question. And the reference is **never authorization input** — it
+identifies a record for people, and reach remains `office_id` / `created_by` / `pic_user_id`
+through the resolver (D-088). Allocation adds **no permission**; it is an internal service
+concern, not a user-facing ability.
+
+**Allocation is one atomic statement, never a read-then-write.**
+
+```sql
+INSERT INTO project_reference_counters (office_id, reference_year, last_value, …)
+VALUES (?, ?, 1, …)
+ON CONFLICT (office_id, reference_year)
+DO UPDATE SET last_value = project_reference_counters.last_value + 1
+RETURNING last_value
+```
+
+The increment happens inside the database, against a row the engine locks for the duration of
+the upsert. Two concurrent callers cannot compute the same value because neither computes it.
+
+**A transaction alone would not be sufficient, and this is the trap worth naming.** Under
+`READ COMMITTED` — PostgreSQL's default — two transactions can both read the same `last_value`
+before either writes, and the loser gets a unique violation the user sees. Wrapping a
+select-then-update in `DB::transaction()` looks like a fix and is not one.
+
+The same statement runs on PostgreSQL and on SQLite 3.35+, verified on both before the
+allocator was written, so there is one execution path and **no semantic divergence between the
+test engine and the production engine** — which matters, because a concurrency strategy that
+only exists on one of them is a strategy nobody tests. PostgreSQL is authoritative and carries
+the contention evidence.
+
+**Gaps are expected, and the sequence means nothing.** An allocation handed out and then not
+used — a failed create, a rolled-back transaction after the counter moved — leaves a gap by
+design. The alternatives are reusing references or serializing every create behind one lock,
+and both are worse. Therefore:
+
+- the number is **not a count** of an Office's Projects;
+- sequential appearance carries **no legal weight**;
+- a reference belonging to a persisted Project is **spent** — archiving does not release it,
+  restoring keeps the same one, and no reuse feature exists.
+
+**The year is decided at allocation from the application clock** and stored explicitly on the
+counter row. Never from a browser, a request locale, user input, or by parsing an existing
+reference — re-deriving it from the formatted string would make displayed text an input to
+logic, which is how a cosmetic change becomes a behavioural one.
+
+**The counter is Project-specific and stays that way.** Generalizing it into
+`legal_number_sequences`, `deed_sequences`, or `matter_sequences` would pull deed, repertorium,
+and register numbering — none of which has a validated domain rule — into a milestone that owns
+none of them.
+
 ### M3 implementation order
 
 ```text

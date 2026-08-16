@@ -255,6 +255,19 @@ anywhere, inverting the boundary.
 excludes soft-deleted records and the permission would otherwise be unusable by construction
 (D-093). It widens *which rows are considered*, never which scopes apply.
 
+**A Project's internal reference is never authorization input** *(M3.2)*. `project_number`
+identifies a record for people; it decides nothing about who may reach it. Reach is
+`office_id`, `created_by`, and `pic_user_id` through the resolver, and nothing else. Allocation
+adds **no permission** — it is an internal service concern, not a user-facing ability, so there
+is no `projects.number`, `projects.reference`, or `projects.generate_number`. The count stays
+at 171.
+
+Two consequences worth stating because they are easy to lose later. The reference is
+**guessable by construction** — `PRJ-2026-000002` follows `PRJ-2026-000001` — so it must never
+be treated as a secret or as a capability token. And because uniqueness is scoped per Office,
+the same string identifies **different Projects in different Offices**; any lookup by reference
+must carry the Office, or it is ambiguous before it is even an authorization question.
+
 **A future assignment concept must not silently widen an existing scope.** When Matter and
 workflow-stage assignees exist, letting either extend Project `ASSIGNED` would be a new grant
 wearing an old scope's name — widening every role already configured with it, without anybody

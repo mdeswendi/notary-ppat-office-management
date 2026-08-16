@@ -20,11 +20,12 @@ use RuntimeException;
  * `status`, `created_by`, and `updated_by` are all withheld from mass assignment,
  * each for its own reason:
  *
- *   office_id     the security boundary, and immutable during M3 (D-089)
- *   pic_user_id   answers to `projects.assign`, never to `projects.update` (D-091)
- *   status        answers to `projects.change_status`, likewise (D-091)
- *   created_by    actor metadata, written by the application, never by request
- *   updated_by    input (docs/07_SECURITY_RULES.md section 34)
+ *   office_id       the security boundary, and immutable during M3 (D-089)
+ *   project_number  allocated once and immutable thereafter (D-094)
+ *   pic_user_id     answers to `projects.assign`, never to `projects.update` (D-091)
+ *   status          answers to `projects.change_status`, likewise (D-091)
+ *   created_by      actor metadata, written by the application, never by request
+ *   updated_by      input (docs/07_SECURITY_RULES.md section 34)
  *
  * That list is the D-091 mutation boundary expressed where it cannot be
  * forgotten. A future `UpdateProject` Action accepting a request body cannot
@@ -78,6 +79,21 @@ class Project extends Model
                 throw new RuntimeException(
                     'projects.office_id is immutable during M3 (D-089). '
                     .'No Project Office-transfer operation is designed; lifting this needs its own decision.'
+                );
+            }
+
+            // The internal reference is allocated once and then belongs to the
+            // record (D-094). Changing it would break the one thing an
+            // identifier is for, and would strand the counter that issued it.
+            //
+            // Assignment itself is not a change: moving null -> a reference is
+            // how M3.3 will stamp a new Project. Only rewriting an existing one
+            // is refused, so the guard cannot block the very operation the
+            // column exists for.
+            if ($project->isDirty('project_number') && $project->getOriginal('project_number') !== null) {
+                throw new RuntimeException(
+                    'projects.project_number is immutable once allocated (D-094). '
+                    .'A reference belongs to the record that received it; archiving does not release it.'
                 );
             }
         });

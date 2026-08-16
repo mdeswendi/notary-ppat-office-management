@@ -231,12 +231,53 @@ any legally significant document number
 `CLAUDE.md` section 38 already separates the two concepts; this restates it for Project so no
 future reader treats `PRJ-2026-000001` as carrying legal weight.
 
-**No `MAX(number) + 1` allocator**, which is unsafe under concurrency. The exact allocation
-and concurrency design — sequence, advisory lock, or table-based allocator, and its behaviour
-across offices and years — is **locked before M3.2 implementation** and is deliberately not
-guessed here. M3.2 owns it.
+**No `MAX(number) + 1` allocator**, which is unsafe under concurrency.
 
 See **D-094**.
+
+### Delivered at M3.2
+
+```text
+PRJ-2026-000001        format, minimum six digits, grows rather than wrapping
+(office_id, year)      allocation namespace — each Office an independent annual sequence
+UNIQUE (office_id, project_number)   never global; two Offices may both hold PRJ-2026-000001
+```
+
+**One atomic statement, no read-then-write.** `INSERT … ON CONFLICT (office_id,
+reference_year) DO UPDATE SET last_value = last_value + 1 RETURNING last_value`. The increment
+happens inside the database against a row the engine locks for the duration of the upsert, so
+two concurrent callers cannot compute the same value — neither computes it at all. A
+transaction alone would **not** be enough: under `READ COMMITTED`, two transactions can both
+read the same value before either writes.
+
+The identical statement runs on PostgreSQL and on SQLite 3.35+, verified on both before the
+allocator was written, so there is **one execution path and no semantic divergence** between
+the test engine and the production engine. PostgreSQL remains authoritative, and the
+contention evidence is taken there: 16 simultaneous OS processes, 400 allocations across two
+Offices, every value distinct, both counters landing exactly on their expected totals.
+
+**The year comes from the application clock**, never from a browser, a request locale, user
+input, or by parsing an existing reference. It is stored explicitly on the counter row, and
+tests freeze time so rollover is proven rather than hoped for.
+
+**Gaps are expected and carry no meaning.** An allocation that is handed out and then not used
+leaves a gap by design; the alternatives are reusing references or serializing every create
+behind one lock. The sequence is **not a record count**, and its order carries no legal weight.
+A reference that belongs to a persisted Project is spent: archiving does not release it,
+restoring keeps the same one, and no reuse feature exists.
+
+**`project_number` is nullable at M3.2** — a design choice, not a data-forced one. The
+persistent development table was verified empty first. M3.2 ships no creation path that
+assigns a reference (that is M3.3), so `NOT NULL` would have made Project unwritable for a
+whole milestone. M3.3 assigns at creation and may then consider tightening. Under the composite
+unique index, multiple unassigned Projects per Office are fine because both engines treat NULLs
+as distinct.
+
+**Immutable once allocated.** The model refuses a rewrite while permitting the initial
+`null → reference` assignment, so the guard cannot block the operation the column exists for.
+The counter table is Project-specific and is deliberately **not** generalized into
+`legal_number_sequences` or anything deed-, repertorium-, or Matter-shaped — that would pull
+numbering nobody has validated into a milestone that owns none of it.
 
 ---
 
@@ -405,7 +446,8 @@ change at all, because M3.1 ships no route.
 
 | Question | Status | Blocks M3.1? |
 |---|---|---|
-| Project internal reference allocation and concurrency design | Locked before M3.2, deliberately not guessed at M3.0 | **No** |
+| Project internal reference allocation and concurrency design | **Resolved at M3.2** — atomic upsert-returning over an `(office_id, reference_year)` counter, uniqueness scoped to the Office, proven under real multi-process contention. See section 9. | **No** |
+| Whether `project_number` should become `NOT NULL` | Open, and M3.3's to decide once creation always assigns one | **No** |
 | Participant role catalogue and any cardinality rule | Requires domain authority; ERD codes are examples only | **No** |
 | Status transition matrix | Not invented; M3 authorizes who may change status, not which changes are legal | **No** |
 | Project Office transfer | Refused for M3; requires its own architecture decision | **No** |

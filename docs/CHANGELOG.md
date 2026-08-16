@@ -5,6 +5,120 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M3.2 Project internal reference foundation
+
+Branch `feat/m3-project-matter`. **One forward migration** (20 total). **No permission** (171):
+allocation is an internal service concern, not a user-facing ability. Backend **1387 tests /
+4721 assertions** — 26 new. **No route, no controller, no frontend.** One new decision,
+**D-096**.
+
+### What exists now
+
+`PRJ-2026-000001` — ordinary office identification, and D-094's warning is worth repeating
+because a column called `project_number` in a legal-office system is exactly what a future
+reader mistakes for a legal sequence. It is **not** a deed, repertorium, Matter, Warkah, land,
+or government number, and `PRJ` carries no Notary or PPAT meaning.
+
+`projects.project_number` is `varchar(32)`, nullable, unique **per Office**.
+`project_reference_counters` is keyed `(office_id, reference_year)` — a natural composite
+primary key, since allocator infrastructure has nothing for a surrogate id to identify that the
+namespace does not already.
+
+### The allocator
+
+One statement. `INSERT … ON CONFLICT (office_id, reference_year) DO UPDATE SET last_value =
+last_value + 1 RETURNING last_value`. The increment happens inside the database against a row
+the engine locks for the duration of the upsert, so two concurrent callers cannot compute the
+same value — neither computes it at all.
+
+**A transaction alone would not have been sufficient, and that is the trap worth naming.**
+Under `READ COMMITTED`, PostgreSQL's default, two transactions can both read the same
+`last_value` before either writes. Wrapping a select-then-update in `DB::transaction()` looks
+like a fix and is not one; the loser gets a unique violation the user sees.
+
+The identical statement runs on PostgreSQL and SQLite 3.35+, verified on both **before** the
+allocator was written. That gives one execution path and **no semantic divergence between the
+test engine and the production engine** — a concurrency strategy that only exists on one of
+them is a strategy nobody tests.
+
+### Concurrency evidence
+
+Real PostgreSQL, real OS-level contention: **16 simultaneous processes** — eight per Office,
+started before any finished — each allocating 25 references.
+
+```text
+Office A   allocated=200  distinct=200  min=1  max=200  counter=200  contiguous ✓
+Office B   allocated=200  distinct=200  min=1  max=200  counter=200  contiguous ✓
+           failed jobs = 0, no unique violation reached any caller
+```
+
+Not merely "no duplicates": exactly contiguous, with each counter landing on its expected total
+and the two Offices provably independent.
+
+### Semantics recorded rather than assumed
+
+**Uniqueness is per Office, never global.** Office A and Office B may both hold
+`PRJ-2026-000001`. A global index would fail the second Office's first project of the year for
+a reason nobody could explain. Two consequences outlive the allocator: a reference does not
+identify a Project on its own — a lookup must carry the Office — and it is **never
+authorization input**, so reach stays `office_id` / `created_by` / `pic_user_id` through the
+resolver.
+
+**Gaps are expected and mean nothing.** An allocation handed out and not used leaves one by
+design; the alternatives are reusing references or serializing every create behind one lock.
+The number is not a record count, sequential appearance has no legal weight, and a reference
+belonging to a persisted Project is spent — archiving does not release it, restoring keeps the
+same one, and no reuse feature exists.
+
+**The year comes from the application clock**, stored explicitly on the counter row, never from
+a browser, a locale, user input, or by parsing an existing reference. Tests freeze time, so
+rollover is proven rather than hoped for: `PRJ-2026-000003` then `PRJ-2027-000001`, with the
+2026 counter untouched.
+
+**Nullable at M3.2, and that is a design choice.** The persistent development `projects` table
+was inspected first and held 0 rows, so `NOT NULL` would have been safe as data migration. It
+was withheld because M3.2 ships no creation path that assigns a reference — that is M3.3 — and
+`NOT NULL` would make Project unwritable for a whole milestone. Whether to tighten is recorded
+as M3.3's decision. Nothing was backfilled; a `MAX+1` backfill is forbidden outright.
+
+**Immutable once allocated**, while still permitting the initial `null → reference` assignment,
+so the guard cannot block the operation the column exists for.
+
+### Guard tests
+
+M3.1's "carries no internal reference column yet" was **narrowed, not deleted**. The half that
+expired — `project_number` absent — was correct while D-094 held allocation back, since the
+column and its allocator ship together. What survives is the part still worth guarding: there
+must be **exactly one** reference column, because a second would be two answers to what a
+Project is called. A new guard asserts the counter is not generalized into
+`legal_number_sequences` or anything deed- or Matter-shaped.
+
+### Verification
+
+```text
+Backend        1387 tests, 4721 assertions — 26 new (baseline 1361 / 4641)
+Pint           passed
+composer       validate --strict passed
+Migrations     20, none pending
+Permissions    171 / 171, sync idempotent twice
+Frontend       format:check, lint, typecheck, build clean; i18n 608/608 — source untouched
+Disposable DB  m32_reference_20260816 — target proven empty first; chain from zero to 20;
+               schema verified; 16-process contention run; rolled back (counter table and
+               column gone, M3.1 projects structure intact at 15 columns / 2 CHECKs / 4 FKs /
+               6 indexes) and reapplied identically; dropped and absence confirmed
+Dev database   forward migration only, 0 projects rows, no destructive command run
+Scans          no MAX+1, COUNT+1, latest(), or orderByDesc() in the allocator; no legal
+               numbering vocabulary; no Matter, project_parties, controller, request, resource,
+               route, or frontend change; PermissionRegistry byte-untouched
+```
+
+### Boundary
+
+No Project CRUD, no route, no frontend, no participation, no Matter. M3.3 integrates the
+allocator into Project creation.
+
+---
+
 ## 2026-08-16 — M3.1 Project schema and authorization foundation
 
 Branch `feat/m3-project-matter`. **One forward migration** (19 total) — the first M3 schema.
