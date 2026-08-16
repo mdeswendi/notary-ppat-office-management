@@ -2472,6 +2472,40 @@ deliberately not guessed here: sequence versus advisory lock versus allocator ta
 behaviour across offices and year boundaries, are real decisions with real failure modes. M3.2
 owns them.
 
+### D-095 — Two M3.1 schema departures: `project_number` is withheld, and `priority` borrows the one vocabulary the ERD defines
+
+*(Added at M3.1, which owns the schema. Both are departures from
+`03_DATABASE_ERD.md` section 7 and are recorded rather than silently made, following the
+precedent `12_M2_PARTY_ARCHITECTURE.md` section 5 set for M2.)*
+
+**`project_number` is not created at M3.1.** M3.2 owns internal-reference allocation (D-094),
+and the column arrives **with its allocator**, not ahead of it.
+
+The alternative — adding it nullable now — looks harmless and is not. Every M3.1 Project would
+carry a null reference, so M3.2 would inherit a backfill on top of the allocator it was already
+going to design, plus a uniqueness question it has not answered: unique per deployment, per
+Office, per Office and year, or not unique at all. Deciding the column's shape before deciding
+what fills it is how the answer gets made by accident.
+
+This is exactly the reasoning **D-086** applied to the fingerprint columns: M2.1 added none,
+because "a column added on speculation is one somebody fills in wrongly." M3.1 follows it.
+
+**`priority` uses the vocabulary the ERD defines under `tasks`.** The document lists a
+`priority` column on `projects` (section 7), `matters` (section 9), and `tasks` (section 23),
+and gives the values exactly once — `LOW`, `NORMAL`, `HIGH`, `URGENT` — in the last of those.
+M3.1 reads that as one shared vocabulary: the same column name appears three times, one set of
+values is offered, and no competing set exists anywhere in the repository.
+
+That is a **transcription with a named source, not an invention** — but it is the one Project
+field whose values were not written beside the column they govern, so it is recorded here
+rather than left for a reader to reverse-engineer. The column is **nullable**, so an office
+that does not use priority is not forced into a value. If Project priorities should differ from
+Task priorities, that is a domain decision and a forward migration.
+
+**`status` carries no database default.** The schema records what the application decided; it
+does not decide an initial state. A default would be the thin end of the transition matrix
+D-091 refuses.
+
 ### M3 implementation order
 
 ```text

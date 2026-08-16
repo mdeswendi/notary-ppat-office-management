@@ -5,6 +5,112 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M3.1 Project schema and authorization foundation
+
+Branch `feat/m3-project-matter`. **One forward migration** (19 total) — the first M3 schema.
+**No permission** (171): every `projects.*` code was already canonical, and M3.1 gives seven of
+the eight an implementation. Backend **1361 tests / 4641 assertions** — 67 new. **No route, no
+controller, no frontend**: this is schema and authorization only, following the M2.1 precedent.
+One new decision, **D-095**.
+
+### What exists now
+
+`projects` — ULID key, required Office, `title`, `description`, `status`, `priority`,
+`pic_user_id`, the three dates, actor metadata, timestamps, soft delete. Four foreign keys, all
+`ON DELETE RESTRICT`; two `CHECK` constraints on the code columns; five indexes.
+
+Three of those indexes exist because they are **Data Scope predicates**, not because they are
+foreign keys: `office_id`, `pic_user_id`, and `created_by` are queried on every scoped read.
+
+`ProjectVisibility` implements D-088 as one `OR` branch per granted scope, so grants genuinely
+union. `ProjectPolicy` maps eight abilities onto the seven canonical codes through
+`EffectiveAccessResolver`. `PermissionScopeRules` gains an explicit Project entry, replacing the
+permissive default M2 had left behind — the same four scopes, but now a decision rather than a
+placeholder, and an explicit entry is what tells the difference.
+
+### The parts most easily got wrong
+
+**`OWN` is not `OFFICE` under another name.** An actor holding `projects.view` at `OWN` reaches
+the Projects they created and *not* a colleague's in the same Office. A test asserts exactly
+that, because if it ever passed, every `OWN` grant in the deployment would silently be wider
+than the administrator intended.
+
+**Grants union; nothing ranks.** `OWN` plus `OFFICE` reaches a Project the actor created in
+another Office *and* every Project in their own — the case a "widest scope wins" implementation
+gets right by luck and a "narrowest wins" one gets wrong. `ProjectVisibility` carries no
+`widest`, `rank`, or `max` helper, and a test greps the source to keep it that way.
+
+**Creation confines to the actor's Office unless the grant is `ALL`.** `OWN` and `ASSIGNED`
+have no record to match at creation time; reading them as "may create anything they will own"
+would let an office-scoped actor create anywhere, inverting the boundary.
+
+**`restore` is the one ability that sees an archived row.** The ordinary predicate excludes
+soft-deleted records, so without that the permission would answer false for every record it
+exists to govern — unusable by construction. It widens which rows are considered, never which
+scopes apply, and a test proves an out-of-scope archived Project is still refused.
+
+**`projects.view_all` grants no reach.** It appears nowhere in the Policy or the predicate, and
+a test both greps for its absence and proves that holding it at `ALL` alongside `projects.view`
+at `OFFICE` still cannot reach another Office (D-090).
+
+**Update implies neither assign nor change-status.** Enforced twice on purpose: separate Policy
+abilities, and `pic_user_id`/`status` withheld from mass assignment so a future Action filling a
+request body cannot route around the boundary (D-091).
+
+### D-095 — two recorded schema departures
+
+**`project_number` is not created yet.** M3.2 owns allocation, and the column arrives with its
+allocator. Adding it nullable now would leave every M3.1 Project with a null reference and hand
+M3.2 a backfill plus an unanswered uniqueness question — unique per deployment, per Office, per
+Office and year? Deciding the column before deciding what fills it is how that gets answered by
+accident. Exactly D-086's reasoning for the fingerprint columns.
+
+**`priority` borrows the vocabulary the ERD defines under `tasks`.** The document names the
+column on `projects`, `matters`, and `tasks` and gives `LOW`/`NORMAL`/`HIGH`/`URGENT` once, in
+the last of the three. A transcription with a named source rather than an invention — but it is
+the one Project field whose values were not written beside the column they govern, so it is
+recorded rather than left to be reverse-engineered. Nullable.
+
+`status` carries **no database default**: the schema records what the application decided, and
+a default would be the thin end of the transition matrix D-091 refuses.
+
+### Guard tests
+
+One M2-era guard was **narrowed rather than deleted**. `PartySchemaTest`'s "introduces no M3
+relation" asserted `projects` did not exist, which M3.1 intentionally makes false. The expired
+assertion is gone; every other one is kept, including the point the test was always really
+about — **Party gains no foreign key into Project**. It is renamed to say what it now guards.
+
+The route-level guards in `CompanyRegistryStatusTest` and `CompanyRelationshipRegistryTest`
+needed **no change at all**, because M3.1 ships no route. They will need narrowing at M3.3, and
+not before.
+
+### Verification
+
+```text
+Backend        1361 tests, 4641 assertions — 67 new (baseline 1294 / 4476)
+Pint           passed
+composer       validate --strict passed
+Migrations     19, none pending
+Permissions    171 registry / 171 database, sync idempotent twice
+Frontend       format:check, lint, typecheck, build clean; i18n 608/608 — source untouched
+Disposable DB  m31_projects_20260816 — target proven empty first; full chain from zero to 19;
+               15 columns, 2 CHECKs, 4 RESTRICT FKs, 6 indexes; both CHECKs proven to refuse a
+               translated label; rolled back (table gone, M2 tables intact) and reapplied
+               identically; dropped and absence confirmed
+Dev database   forward migration only, 0 rows affected, no destructive command run
+Scans          no forbidden authorization pattern in Project code; no Matter, project_parties,
+               primary_client, client_id, project_number, or MAX+1; routes, frontend, and
+               PermissionRegistry all byte-untouched
+```
+
+### Boundary
+
+No Matter, `matter_parties`, `project_parties`, service types, workflow, internal-reference
+allocator, CRUD endpoint, or frontend entered M3.1. M3.2 is next.
+
+---
+
 ## 2026-08-16 — M3.0 Project architecture lock
 
 Branch `feat/m3-project-matter`, from the accepted `main` tip `fdda4e4`. **Documentation

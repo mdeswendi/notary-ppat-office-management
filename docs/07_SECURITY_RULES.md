@@ -239,6 +239,22 @@ Project    OWN       project.created_by  == actor.id
            ASSIGNED  project.pic_user_id == actor.id
 ```
 
+**Implemented at M3.1** in `ProjectVisibility`, as one `OR` branch per granted scope so the
+grants genuinely union (D-028). The record check runs the identical constraint against a single
+key rather than reimplementing it, which is what stops a record being hidden from a listing yet
+remaining fetchable by id.
+
+Two properties are worth naming because they are what a careless implementation loses.
+**`OWN` is not `OFFICE` under another name** — an actor with `OWN` reaches the Projects they
+created and not a colleague's in the same Office. And **creation confines to the actor's Office
+unless the grant is `ALL`**: `OWN` and `ASSIGNED` have no record to match at creation time, so
+reading them as "may create anything they will own" would let an office-scoped actor create
+anywhere, inverting the boundary.
+
+`restore` is the one ability that evaluates an archived row, because the ordinary predicate
+excludes soft-deleted records and the permission would otherwise be unusable by construction
+(D-093). It widens *which rows are considered*, never which scopes apply.
+
 **A future assignment concept must not silently widen an existing scope.** When Matter and
 workflow-stage assignees exist, letting either extend Project `ASSIGNED` would be a new grant
 wearing an old scope's name — widening every role already configured with it, without anybody

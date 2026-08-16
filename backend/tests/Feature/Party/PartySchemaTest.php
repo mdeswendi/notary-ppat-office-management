@@ -224,8 +224,17 @@ it('adds no tenancy or office pivot to Party', function (): void {
         ->and(Schema::hasTable('party_offices'))->toBeFalse();
 });
 
-it('introduces no M3 relation', function (): void {
-    foreach (['projects', 'matters', 'documents', 'party_documents', 'properties'] as $table) {
+it('gives Party no foreign key into a later milestone', function (): void {
+    // **Narrowed at M3.1, not deleted.** This was 'introduces no M3 relation'
+    // and asserted that `projects` did not exist. M3.1 intentionally makes that
+    // claim false, so the assertion that expired is gone and the ones that did
+    // not are kept — including the part this test was always really about.
+    //
+    // Party must gain no foreign key into Project. Project references its Office
+    // and its users; it does not reach back into the Party aggregate, and Party
+    // does not point forward at work that references it. `project_parties`, when
+    // M3.4 builds it, is a relationship table — still not a column on `parties`.
+    foreach (['matters', 'documents', 'party_documents', 'properties'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse();
     }
 

@@ -374,6 +374,24 @@ which are three separate concerns (D-093); and the internal reference is **ordin
 identification, never a legal number**, with no `MAX+1` allocator and its concurrency design
 locked before M3.2 (D-094). See `13_M3_PROJECT_ARCHITECTURE.md`.
 
+**Built at M3.1**, and two further differences from the list above are deliberate (D-095):
+
+- **`project_number` is not yet a column.** M3.2 owns internal-reference allocation, and the
+  column arrives with its allocator rather than nullable-and-empty ahead of it — the same
+  reasoning D-086 applied to the fingerprint columns.
+- **`priority` uses the vocabulary this document defines under `tasks`** (section 23:
+  `LOW`, `NORMAL`, `HIGH`, `URGENT`). The column is named on `projects`, `matters`, and
+  `tasks`, and the values are given once. Nullable.
+
+`status` carries **no database default**: the schema records what the application decided
+rather than deciding an initial state, which would be the thin end of the transition matrix
+D-091 refuses. Both code columns carry PostgreSQL `CHECK` constraints; on the SQLite test
+connection the model enum casts refuse invalid values instead.
+
+Indexes: `office_id`, `pic_user_id`, `created_by`, `(office_id, status)`, and `title`. The
+first three are indexed because they are the Data Scope predicates (D-088) — they are queried,
+not merely stored. All four foreign keys are `ON DELETE RESTRICT`.
+
 ### project_parties
 
 ```text

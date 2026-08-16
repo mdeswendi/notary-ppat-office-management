@@ -88,6 +88,44 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Project domain, whose predicates M3.0 settled (D-088).
+     *
+     * All four assignable scopes mean something here, which is why Project gets
+     * an explicit entry rather than the permissive default below: the default
+     * offered the same four, but offered them as *"nobody has decided yet"*. Now
+     * somebody has, and the list says so.
+     *
+     *   OWN       projects.created_by  = actor id
+     *   ASSIGNED  projects.pic_user_id = actor id
+     *   OFFICE    projects.office_id   = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * That Party withholds `OWN` (D-080) while Project offers it is not an
+     * inconsistency. A Party is a shared directory record and the colleague who
+     * typed it in has no claim on the person it describes; a Project is a unit of
+     * work somebody opened. Each domain argued its own case.
+     *
+     * **`projects.view_all` is deliberately absent from this list.** It is
+     * superseded by Data Scope `ALL` for reach and is not part of the Project
+     * authorization surface (D-090); no Policy ability consults it. Adding it
+     * here would assert it is a live capability with meaningful scopes, which is
+     * precisely what supersession denies. It keeps the generic default below,
+     * unchanged — M3 alters nothing about it, including its assignability, which
+     * would need its own ruling.
+     */
+    private const PROJECT_DOMAIN = [
+        'projects.view',
+        'projects.create',
+        'projects.update',
+        'projects.assign',
+        'projects.change_status',
+        'projects.archive',
+        'projects.restore',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -110,10 +148,18 @@ class PermissionScopeRules
             return [DataScope::OFFICE, DataScope::ALL];
         }
 
+        if (in_array($permission, self::PROJECT_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
         // Everything else, including every permission whose module is not built
         // yet. Deliberately permissive rather than guessed: narrowing it would
         // mean deciding what `notary.deeds.approve` at `OWN` means before the
         // Notary domain has been designed.
+        //
+        // Project used to land here. It no longer does — the four scopes above
+        // are the same four, but they are now a decision (D-088) rather than a
+        // placeholder, and an explicit entry is what tells the difference.
         return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
     }
 

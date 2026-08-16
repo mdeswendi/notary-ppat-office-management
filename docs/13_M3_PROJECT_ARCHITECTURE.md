@@ -93,13 +93,30 @@ section 5). M3 follows it.
 | ERD field | M3 disposition | Why |
 |---|---|---|
 | `primary_client_party_id` | **Rejected** | Duplicate persistence. `project_parties` already carries participation, and the ERD gives it an `is_primary` flag. Two mechanisms for one fact drift apart, and the column-shaped one additionally re-creates the "client" concept D-078 refused. If primary designation is retained it lives on `project_parties`. See **D-092**. |
-| `status` | Retained, vocabulary unchanged | Canonical in ERD section 7. Not a workflow stage and not a deletion state — section 10 below. |
+| `project_number` | **Withheld until M3.2** | The column and its allocator arrive together (**D-095**). See below. |
+| `status` | Retained, vocabulary unchanged | Canonical in ERD section 7. Not a workflow stage and not a deletion state — section 10 below. **No database default**: the application decides an initial state, not the schema. |
+| `priority` | Retained, nullable | Vocabulary transcribed from the one place the ERD defines it — see below. |
 | `deleted_at` | Retained | Soft delete is the persistence-level state, distinct from business status. |
-| everything else | Provisionally retained | Field-level review belongs to M3.1, which owns the schema. M3.0 locks the shape, not the column list. |
+| everything else | **Built at M3.1** as ERD section 7 lists it | `office_id`, `title`, `description`, `pic_user_id`, `opened_at`, `target_completion_date`, `completed_at`, `created_by`, `updated_by`, timestamps. |
 
 Recording a rejection here is the point: a future reader finding `primary_client_party_id` in
 the ERD and not in the schema should find the reason in the same repository rather than
 assume an oversight.
+
+**`project_number` is withheld rather than added empty** *(M3.1, D-095)*. M3.2 owns
+internal-reference allocation, and adding the column now would leave every M3.1 Project with a
+null reference and hand M3.2 a backfill plus a uniqueness question it has not answered. This
+follows D-086 exactly: M2.1 refused to add a fingerprint column before its construction was
+settled, "because a column added on speculation is one somebody fills in wrongly."
+
+**`priority`'s vocabulary comes from ERD section 23, not section 7** *(M3.1, D-095)*. The ERD
+lists a `priority` column on `projects`, `matters`, and `tasks` and defines the values —
+`LOW`, `NORMAL`, `HIGH`, `URGENT` — exactly once, under tasks. M3.1 reads that as one shared
+vocabulary, since the document names the same column three times and gives one set of values,
+and no competing vocabulary exists anywhere. That is a transcription with a named source, but
+it is the one Project field whose values were not written beside the column they govern, so it
+is flagged rather than left to be discovered. Nullable, so an office that does not use it is
+not forced to.
 
 ---
 
@@ -354,11 +371,31 @@ M3.4   Project <-> Party participation
 M3.5   M3 quality gate
 ```
 
-**M3.1** owns the table, the Policy, the Data Scope predicates from section 6, the
-`PermissionScopeRules` Project entry, database constraints, and architecture tests — **not
-CRUD UI**, following the M2.1 precedent. It is also where the M2-era guard tests asserting
-`projects` does not exist are **narrowed rather than deleted**: the parts that stay true are
-that Party gains no Project foreign key and that no deed, Warkah, or property surface appears.
+**M3.1 — delivered.** The `projects` table (one forward migration, 19 total), the `Project`
+model, `ProjectStatus` and `ProjectPriority`, `ProjectVisibility`, `ProjectPolicy`, and the
+`PermissionScopeRules` Project entry replacing the permissive default. **No CRUD UI, no route,
+no permission** — the count stays at 171 — following the M2.1 precedent exactly.
+
+Enforcement landed where it actually holds, which is not always the database:
+
+```text
+Project cannot exist without its Office      DATABASE   NOT NULL + FK RESTRICT
+PIC and actor FKs are real users             DATABASE   FK RESTRICT
+Only canonical status / priority codes       DATABASE   CHECK  (PostgreSQL)
+                                             MODEL      enum cast (SQLite test connection)
+Office is immutable during M3                MODEL      updating() guard — an update rule,
+                                                        which a column cannot express
+Assign / change-status are not update        MODEL      the fields are not fillable
+                                             POLICY     separate abilities, separate codes
+Authorization reach                          POLICY     resolver + ProjectVisibility, never
+                                                        the database
+```
+
+One M2-era guard was **narrowed rather than deleted**: `PartySchemaTest`'s "introduces no M3
+relation" asserted `projects` did not exist, which M3.1 intentionally makes false. The
+assertion that expired was removed and every other one kept, including the point the test was
+always really about — Party gains no foreign key into Project. The route-level guards needed no
+change at all, because M3.1 ships no route.
 
 **M4.0** opens Matter with its own architecture lock.
 
