@@ -286,6 +286,42 @@ projects.restore
 
 Avoid normal hard-delete permission.
 
+**M3.0 locked what three of these mean, and added none** — the canonical count stays at 171.
+
+`projects.assign` means mutating `pic_user_id` **and nothing else**. Generic `projects.update`
+must not touch it: reassigning work is a different act from correcting a title. Workflow and
+stage assignees are not Project assignment.
+
+`projects.change_status` is likewise separate, and generic update must not mutate status.
+**No transition matrix exists** — M3 authorizes *who* may change status, never *which* changes
+are legal, because no canonical document defines that.
+
+`projects.restore` restores a **soft-deleted Project record**. It does not turn business status
+`ARCHIVED` back into `OPEN`, reverse a workflow, or undo a completion. `ARCHIVED` and
+`deleted_at` are different states with unfortunately similar names.
+
+See D-091 and D-093, and `13_M3_PROJECT_ARCHITECTURE.md`.
+
+### `view_all` is superseded by Data Scope `ALL` *(M3.0)*
+
+`projects.view_all` and its siblings elsewhere in this document —
+`notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all`, `calendar.view_all` —
+predate the Data Scope model. They express **reach**, which is exactly what a Data Scope
+expresses, and section 22 plus `CLAUDE.md` section 26 both warn against duplicating a
+permission per scope. They are listed here as bare entries with no stated meaning, which is
+how the duplication survived unnoticed.
+
+The ruling, recorded rather than applied silently:
+
+- The codes **remain registered** for compatibility and documentation history. **Nothing is
+  removed and the count stays at 171.**
+- For **reach semantics they are superseded by Data Scope `ALL`**.
+- **No `view_all` code may be used as backend cross-office authorization authority.**
+- **No second reach mechanism may exist beside `EffectiveAccessResolver`.** One resolver
+  answers reach, or two answers eventually disagree and the looser one wins by accident.
+
+See D-090.
+
 ---
 
 ## 8. Party Permissions
@@ -720,6 +756,41 @@ Scope meanings — `OFFICE` matches the record's `office_id` against the user's
 primary office; `ALL` applies no office restriction within the deployment's
 Organization; `OWN` and `ASSIGNED` are resource-specific relationships whose
 exact field each resource's Policy defines.
+
+### Per-domain predicates, as each domain has settled them
+
+`OWN` and `ASSIGNED` are deliberately resource-specific, so each domain states its own
+answer and argues it on its own facts rather than copying a neighbour's.
+
+**Party domain** (D-080) — `OFFICE` and `ALL` only.
+
+```text
+OFFICE     party.office_id == actor.office_id
+ALL        cross-office Party reach
+OWN        withheld — a Party is a shared directory record, and the colleague
+           who typed it in has no claim on the person it describes
+ASSIGNED   withheld — no Party assignment entity exists
+TEAM       withheld — no Team entity exists
+```
+
+**Project domain** (D-088, M3.0) — all four assignable scopes mean something.
+
+```text
+OWN        project.created_by   == actor.id
+ASSIGNED   project.pic_user_id  == actor.id
+OFFICE     project.office_id    == actor.office_id
+ALL        cross-office Project reach
+TEAM       no Project-domain grant
+```
+
+That Party withholds `OWN` while Project grants it is **not** an inconsistency. A Party is a
+shared reference record; a Project is a unit of work somebody opened. The Party reasoning did
+not transfer, so the answer did not either.
+
+**Future Matter or stage assignment must never expand Project `ASSIGNED`.** Letting
+`matters.pic_user_id` or a stage assignee widen Project reach would be a new grant wearing an
+existing scope's name, silently widening every role already configured. If Matter workers need
+Project visibility, that is its own decision and its own predicate.
 
 ---
 

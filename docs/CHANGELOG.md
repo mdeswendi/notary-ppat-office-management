@@ -5,6 +5,116 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-16 — M3.0 Project architecture lock
+
+Branch `feat/m3-project-matter`, from the accepted `main` tip `fdda4e4`. **Documentation
+only.** No migration (18), no permission (171), no model, policy, controller, route, request,
+resource, registry entry, frontend code, or product test. Backend stays at 1294 tests / 4476
+assertions because nothing executable changed.
+
+Eight decisions, **D-087 through D-094**, plus a new architecture lock at
+`13_M3_PROJECT_ARCHITECTURE.md` — the sibling of M2's `12_`.
+
+### The conflict this milestone had to resolve first
+
+The milestone was proposed as "Project / Matter". Three canonical sources —
+`00_PROJECT_OVERVIEW.md` section 19, `CLAUDE.md` section 2, and the `DECISIONS.md` milestone
+register — all read **M3 — Project Management** and **M4 — Matter & Workflow Engine**.
+
+Discovery reported the discrepancy instead of choosing (`CLAUDE.md` section 58), and the
+ruling is that the roadmap wins: **M3 implements Project only.** M3.0 documents the
+Project → Matter boundary, because an aggregate edge cannot be described without naming what
+attaches to it, and builds none of the other side (D-087).
+
+### What is locked
+
+**Data Scope for Project** (D-088). `OWN` is `created_by`, `ASSIGNED` is `pic_user_id`,
+`OFFICE` is `office_id`, `ALL` is cross-office reach, `TEAM` grants nothing. M2 had left
+`projects.*` in the permissive default with an explicit note that narrowing it early would
+mean guessing; M3 is where the guess becomes a decision.
+
+That Party withholds `OWN` (D-080) while Project grants it is not an inconsistency, and the
+lock says why: a Party is a shared directory record and the colleague who typed it in has no
+claim on the person it describes, while a Project is a unit of work somebody opened. The
+reasoning did not transfer, so the answer did not either.
+
+The forward-looking half matters more. **Future Matter or stage assignment must never expand
+Project `ASSIGNED`.** When M4 adds `matters.pic_user_id` and a stage assignee, letting either
+widen Project reach would be a new grant wearing an existing scope's name — silently widening
+every role already configured with it, without anybody editing a role.
+
+**`view_all` is superseded, not deleted** (D-090). `projects.view_all` and its Matter, Task
+and Calendar siblings predate Data Scope and express the same thing `ALL` expresses. They stay
+registered for compatibility and history — **the count stays at 171** — but no `view_all` code
+may serve as backend cross-office authority, and no second reach mechanism may exist beside
+`EffectiveAccessResolver`. Two answers to one question do not stay equal, and the looser one
+wins by accident.
+
+**Mutation boundaries** (D-091). `projects.assign` writes `pic_user_id` and nothing else;
+`projects.change_status` writes `status` and nothing else; generic `projects.update` refuses
+both. Accepting them in the ordinary update body would make one permission a silent superset
+of another — the failure D-082 guards against for identity, one domain removed. **No status
+transition matrix is invented**: M3 authorizes *who* may change status, never *which* changes
+are legal.
+
+**`primary_client_party_id` is rejected** (D-092), and recorded in `03_DATABASE_ERD.md` rather
+than quietly dropped, so a reader finding it in the ERD and not in the schema finds the reason
+in the same repository. `project_parties` already carries participation and has `is_primary`;
+the column is a second mechanism for one fact, and it re-creates the "client" concept D-078
+refused, one column at a time.
+
+**Office ownership is required and immutable during M3** (D-089) — an engineering boundary,
+explicitly not a claim of legal impossibility. What M3 refuses is inventing what a transfer
+would mean for participants, future Matters, and references already issued.
+
+**`projects.restore` restores a soft-deleted record** (D-093), and nothing else — not business
+status `ARCHIVED` back to `OPEN`, not a workflow, not a completion. `ARCHIVED` and `deleted_at`
+are different states with unfortunately similar names, and the lock names the awkwardness
+rather than smoothing it over. Party gains no restore for symmetry: `projects.restore` is
+canonical and a Party counterpart is not.
+
+**The internal reference is ordinary office identification, never a legal number** (D-094).
+No `MAX+1`. The allocation and concurrency design is locked before M3.2 rather than guessed
+now.
+
+### Decomposition
+
+```text
+M3.0   Project architecture lock                  <- this milestone
+M3.1   Project schema + authorization foundation
+M3.2   Project internal reference foundation
+M3.3   Project core management
+M3.4   Project <-> Party participation
+M3.5   M3 quality gate
+```
+
+M3.1 is schema, Policy, predicates, constraints and architecture tests — not CRUD UI,
+following the M2.1 precedent. It is also where the M2-era guards asserting `projects` does not
+exist get **narrowed rather than deleted**; what stays true is that Party gains no Project
+foreign key and that no deed, Warkah, or property surface appears. Those guards are untouched
+at M3.0, because no M3 product surface exists yet for them to be wrong about.
+
+**Matter begins at M4.0** with its own architecture lock — and deserves one, because the
+canonical registry already splits its capability surface into `notary.matters.*` and
+`ppat.matters.*` with no generic namespace, while the ERD gives it one table discriminated by
+`domain`. A Policy that selects its permission namespace from row data is a new authorization
+shape in this codebase.
+
+### Non-goals, restated
+
+Documents and uploads, property and land records, deed generation, legal numbering, billing,
+tasks, calendar, notifications, global search, a persistent audit-log product, Party merge,
+cross-office Party consolidation, the workflow engine, `service_types` master data, and every
+Notary/PPAT deed, Minuta, Warkah, register and report surface. `08_NOTARY_WORKFLOW.md` and
+`09_PPAT_WORKFLOW.md` remain placeholders requiring domain authority, and nothing may be
+implemented from them.
+
+### Open items
+
+O-031, O-032 and O-033 remain open and untouched. M3.0 opened none.
+
+---
+
 ## 2026-08-16 — M2.6 M2 Quality Gate
 
 Branch `feat/m2-parties`. **No migration** (18 total) and **no permission** (171). An audit

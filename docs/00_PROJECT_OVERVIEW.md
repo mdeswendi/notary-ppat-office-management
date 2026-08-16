@@ -109,9 +109,18 @@ Akuisisi Tanah PT ABC
 
 A simple engagement may also contain only one Matter.
 
+**Project is the M3 aggregate root** *(M3.0)*. Matter is a **future child aggregate with its
+own lifecycle**, not a component of Project, so M4 decides Matter's archive and lifecycle
+rules rather than inheriting Project's. **No Project-to-Matter cardinality is fixed**: whether
+a Project must have a Matter, may have none, or is capped is an M4 question with a domain
+component. The example above shows what a Project *may* contain, not what one must.
+
 ---
 
 ## 6. Matter Concept
+
+**Matter is M4** *(D-087)*. This section describes the intended concept; nothing here may be
+implemented during M3.
 
 A **Matter** is the operational unit of work.
 
@@ -481,6 +490,20 @@ M8 — Dashboard, Billing & Reports
 Modules must be developed incrementally.
 
 Do not implement future modules without explicit instruction.
+
+**M3 is Project only; Matter is M4** *(locked at M3.0, D-087)*. The two are separate
+persistence entities — section 15 of `CLAUDE.md` says so directly — and the boundary between
+them is a milestone boundary as well as an architectural one. M3 builds no `matters`, no
+`matter_parties`, no Notary or PPAT Matter, and no Workflow Engine.
+
+Closed so far:
+
+```text
+M0   CLOSED
+M1   CLOSED
+M2   CLOSED
+M3   M3.0 architecture locked — see 13_M3_PROJECT_ARCHITECTURE.md
+```
 
 ---
 

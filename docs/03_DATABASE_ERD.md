@@ -361,6 +361,19 @@ CANCELLED
 ARCHIVED
 ```
 
+**`primary_client_party_id` is rejected — recorded, not silently dropped** *(M3.0, D-092)*.
+`project_parties` below already carries participation and has an `is_primary` flag, so the
+column is a second mechanism for one fact; two such mechanisms drift apart. It additionally
+re-creates the "client" concept D-078 refused, one column at a time. If primary designation is
+retained it is represented on `project_parties`. A reader finding the field here and not in
+the schema should find the reason here too.
+
+Also locked at M3.0: `office_id` is **required and immutable during M3** — no Office-transfer
+operation exists (D-089); `status` stays distinct from workflow stage and from `deleted_at`,
+which are three separate concerns (D-093); and the internal reference is **ordinary office
+identification, never a legal number**, with no `MAX+1` allocator and its concurrency design
+locked before M3.2 (D-094). See `13_M3_PROJECT_ARCHITECTURE.md`.
+
 ### project_parties
 
 ```text
@@ -384,6 +397,11 @@ SELLER
 AUTHORIZED_PERSON
 OTHER
 ```
+
+These are **examples, not a catalogue** *(M3.0)*. M3 invents no legal participant role list,
+no mandatory primary client, and no exactly-one-primary rule — each needs domain authority.
+The role lives on the relationship, never on the Party record, and **no raw Party sensitive
+identity is copied into any Project-domain table** (D-082, D-092).
 
 ---
 

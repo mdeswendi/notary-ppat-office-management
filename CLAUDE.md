@@ -521,6 +521,12 @@ Project
 
 Do not merge Project and Matter into one database entity.
 
+They are also separate **milestones**: M3 implements Project, M4 implements Matter and the
+Workflow Engine (D-087). Project is the M3 aggregate root; Matter is a future child aggregate
+with its own lifecycle, and no Project-to-Matter cardinality is fixed until M4 decides it.
+
+The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
+
 ---
 
 # 16. Notary and PPAT Separation
@@ -1641,9 +1647,15 @@ docs/
 ├── 09_PPAT_WORKFLOW.md
 ├── 10_M0_FOUNDATION.md
 ├── 11_LEGAL_REFERENCES.md
+├── 12_M2_PARTY_ARCHITECTURE.md
+├── 13_M3_PROJECT_ARCHITECTURE.md
 ├── DECISIONS.md
 └── CHANGELOG.md
 ```
+
+`12_` and `13_` are milestone architecture locks. Each records what its domain may build,
+what it must not, and which statements are transcribed from canonical sources rather than
+decided locally. Read the lock for the domain you are working in before changing it.
 
 `DECISIONS.md` records canonical decisions that resolve conflicts in the source material.
 When older material conflicts with `DECISIONS.md`, the newer explicit decision takes

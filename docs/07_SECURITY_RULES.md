@@ -211,6 +211,39 @@ Policies consume that resolver. Controllers must never implement Data Scope
 independently — divergent copies of the rule are how authorization quietly
 develops holes. Resolution order is locked in `DECISIONS.md` D-028 and D-029.
 
+### One reach mechanism, and only one *(M3.0)*
+
+`EffectiveAccessResolver` is the **sole authority on reach**. Nothing else may decide how far
+an actor can see.
+
+That rule has teeth because a second mechanism already exists in the catalogue.
+`projects.view_all`, `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all` and
+`calendar.view_all` predate the Data Scope model and express exactly what Data Scope `ALL`
+expresses. **They are superseded for reach semantics** (D-090). They remain registered for
+compatibility and documentation history — the canonical count stays at 171 — but:
+
+- **no `view_all` code may be used as backend cross-office authorization authority**; and
+- **no second reach mechanism may be built beside the resolver.**
+
+The failure mode is specific: two answers to one question do not stay equal, and the looser
+one wins by accident. That is how an office-scoped account quietly acquires cross-office
+sight without anybody granting it.
+
+### Per-domain `OWN` and `ASSIGNED`
+
+`OWN` and `ASSIGNED` are Policy-defined per resource, so each domain settles its own and
+argues it on its own facts. Party withholds both (D-080); Project defines both (D-088):
+
+```text
+Project    OWN       project.created_by  == actor.id
+           ASSIGNED  project.pic_user_id == actor.id
+```
+
+**A future assignment concept must not silently widen an existing scope.** When Matter and
+workflow-stage assignees exist, letting either extend Project `ASSIGNED` would be a new grant
+wearing an old scope's name — widening every role already configured with it, without anybody
+editing a role.
+
 ---
 
 ## 11. Sensitive Data

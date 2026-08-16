@@ -411,6 +411,25 @@ POST /api/v1/ppat/warkah/{id}/verify
 
 These actions must be authorized and validated on the backend.
 
+**A field governed by its own permission gets its own endpoint, and the generic update
+refuses it** *(M3.0)*. Where the canonical registry gives a capability its own code — as it
+does for `projects.assign` and `projects.change_status` — that field must not also be
+writable through `PATCH /api/v1/{resource}/{id}`. Accepting it there would make the ordinary
+update permission a silent superset of the specific one, which is the same failure D-082
+guards against for identity: one permission quietly acquiring another's authority because
+they share a request body.
+
+The pattern:
+
+```text
+PATCH /api/v1/projects/{id}                 ordinary attributes; refuses pic_user_id and status
+POST  /api/v1/projects/{id}/assign          projects.assign        — pic_user_id only
+POST  /api/v1/projects/{id}/change-status   projects.change_status — status only
+```
+
+Refusing rather than ignoring matters: silently dropping a submitted field tells the caller
+their change succeeded when it did not.
+
 ---
 
 ## 23. Workflow Transition

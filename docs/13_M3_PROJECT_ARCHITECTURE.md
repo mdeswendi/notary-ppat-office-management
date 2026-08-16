@@ -1,0 +1,382 @@
+# M3 — Project Architecture
+
+**Status:** `LOCKED — M3.0`
+
+Sibling of `12_M2_PARTY_ARCHITECTURE.md`. Where that document locked the Party aggregate,
+this one locks Project. It records what M3 may build, what it must not, and — as importantly
+— which of its statements are transcribed from canonical sources and which are engineering
+decisions taken here.
+
+Every ruling below was reviewed and accepted before this document was written. Nothing in it
+is inference promoted to fact.
+
+---
+
+## 1. Scope
+
+M3 implements **Project only**.
+
+Matter is a separate persistence entity with its own lifecycle, and it belongs to **M4**
+together with `matter_parties`, Notary Matter, PPAT Matter, the `notary.matters.*` and
+`ppat.matters.*` implementations, and the Workflow Engine.
+
+This resolves a conflict the M3.0 discovery found and did not silently choose between. The
+milestone was proposed as "Project / Matter", while three canonical sources —
+`00_PROJECT_OVERVIEW.md` section 19, `CLAUDE.md` section 2, and the `DECISIONS.md` milestone
+register — all read **M3 — Project Management** and **M4 — Matter & Workflow Engine**. The
+roadmap wins. M3.0 documents the Project → Matter *boundary* because an aggregate edge cannot
+be defined without naming what attaches to it, but it creates no Matter anything.
+
+See **D-087**.
+
+---
+
+## 2. Terminology
+
+**Project** and **Matter** are genuinely separate persistence entities. Neither is a display
+label for the other.
+
+```text
+Project    one client engagement, transaction, or larger legal requirement
+Matter     the operational unit of work inside it            (M4)
+```
+
+`CLAUDE.md` section 15 states it directly: *"Do not merge Project and Matter into one database
+entity."* `00_PROJECT_OVERVIEW.md` sections 5 and 6 define both, and
+`03_DATABASE_ERD.md` sections 7 and 9 give each its own table. The discovery considered
+collapsing them in either direction and found no canonical support for either reading.
+
+---
+
+## 3. Project aggregate
+
+Project is the **M3 aggregate root**: the lifecycle authority and the ownership boundary for
+everything M3 builds.
+
+Matter is a **future child aggregate with its own lifecycle** — not a component of Project.
+That distinction matters at the boundary: a child aggregate is referenced, not owned in the
+cascade sense, and M4 decides its own archive and lifecycle rules rather than inheriting
+Project's.
+
+**M3 invents no Project-to-Matter cardinality.** Whether a Project must have at least one
+Matter, may have none, or caps at some number is an M4 question with a domain component. M3
+writes no such constraint, in the database or anywhere else.
+
+---
+
+## 4. Office ownership
+
+`projects.office_id` is **required**, and **immutable for the duration of M3**.
+
+M3 ships no Project Office-transfer operation: no endpoint, no Action, no administrative
+path.
+
+This is an **engineering boundary, not a claim of legal impossibility**. An office may well
+have a legitimate reason to move a Project one day. What M3 refuses to do is invent the
+semantics of that move — what happens to participants, to future Matters, to internal
+references already issued — before anyone has specified them. Any future transfer requires
+its own architecture decision.
+
+The same reasoning M2 applied to Party (D-080), reached independently rather than inherited
+by analogy.
+
+See **D-089**.
+
+---
+
+## 5. Departures from `03_DATABASE_ERD.md` section 7 — each deliberate
+
+M2 set the precedent that the ERD field lists are a canonical proposal, not a transcription
+target, and that departures are recorded rather than silently made (`12_M2_PARTY_ARCHITECTURE.md`
+section 5). M3 follows it.
+
+| ERD field | M3 disposition | Why |
+|---|---|---|
+| `primary_client_party_id` | **Rejected** | Duplicate persistence. `project_parties` already carries participation, and the ERD gives it an `is_primary` flag. Two mechanisms for one fact drift apart, and the column-shaped one additionally re-creates the "client" concept D-078 refused. If primary designation is retained it lives on `project_parties`. See **D-092**. |
+| `status` | Retained, vocabulary unchanged | Canonical in ERD section 7. Not a workflow stage and not a deletion state — section 10 below. |
+| `deleted_at` | Retained | Soft delete is the persistence-level state, distinct from business status. |
+| everything else | Provisionally retained | Field-level review belongs to M3.1, which owns the schema. M3.0 locks the shape, not the column list. |
+
+Recording a rejection here is the point: a future reader finding `primary_client_party_id` in
+the ERD and not in the schema should find the reason in the same repository rather than
+assume an oversight.
+
+---
+
+## 6. Project Data Scope predicates
+
+M2 left `projects.*` in `PermissionScopeRules`' permissive default with an explicit note that
+narrowing it would mean *"deciding what `notary.deeds.approve` at `OWN` means before the
+Notary domain has been designed."* M3 is where that decision becomes legitimate for Project,
+and only for Project.
+
+```text
+OWN        project.created_by   == actor.id
+ASSIGNED   project.pic_user_id  == actor.id
+OFFICE     project.office_id    == actor.office_id
+ALL        cross-office Project reach
+TEAM       no Project-domain grant
+```
+
+Four things follow, and each is load-bearing:
+
+**These are predicates, not a ladder.** `ALL` does not "outrank" `OFFICE`; it is an
+independent condition that happens to subsume it. Multiple grants **union** their predicates
+(D-028). Nothing ranks or collapses them.
+
+**`OWN` is `created_by` here, and that is not a contradiction of M2.** M2 refused `OWN` for
+Party on Party-specific reasoning — a Party is a shared directory record, and the colleague
+who typed it in has no claim on the person it describes. A Project is not a shared reference
+record; it is a unit of work somebody opened. The reasoning did not transfer, so the answer
+did not either.
+
+**`ASSIGNED` is the PIC and nothing else.** `pic_user_id`, one column, one comparison.
+
+**Future Matter or stage assignment must never expand Project `ASSIGNED`.** When M4 adds
+`matters.pic_user_id` and M4's workflow adds `matter_stage_instances.assigned_user_id`, it
+will be tempting to let those widen a person's Project reach, on the reasoning that somebody
+working a Matter must see its Project. That is a **new grant** wearing an existing scope's
+name, and it would silently widen every role already configured with Project `ASSIGNED`. If
+Matter workers need Project visibility, that is its own decision and its own predicate.
+
+**Unknown or missing scope metadata fails closed** (D-039), unchanged.
+
+See **D-088**.
+
+---
+
+## 7. Mutation boundaries
+
+Three capabilities that a naive implementation would fold into one ordinary update, kept
+apart deliberately.
+
+```text
+projects.update          ordinary attributes
+projects.assign          project.pic_user_id, and nothing else
+projects.change_status   project.status, and nothing else
+```
+
+**`projects.assign` means mutating `pic_user_id`.** Generic `projects.update` must not touch
+it. Reassigning work is a different act from correcting a title, and the registry has always
+had a separate code for it.
+
+**Workflow and stage assignees are not Project assignment.** They do not exist yet, and when
+they do they will not write `pic_user_id`.
+
+**`projects.change_status` is separate from `projects.update`.** Generic update must not
+mutate status. Status moves through a dedicated action and authorization boundary.
+
+**M3 invents no transition matrix.** Which status may follow which is an operational rule
+nobody has specified. M3 authorizes *who may change status*; it does not encode *which
+changes are legal*. Inventing one here would be exactly the failure `CLAUDE.md` section 62
+prohibits, one domain removed.
+
+See **D-091**.
+
+---
+
+## 8. Party participation
+
+`project_parties` is the **canonical and only** source of Project ↔ Party participation.
+
+- **The role lives on the relationship**, never on the Party record (`CLAUDE.md` section 17,
+  D-078). The same person is a client on one Project and a counterparty on another.
+- **No raw Party sensitive identity is copied into any Project-domain table.** No NIK, no
+  NPWP, no `tax_id`, no mask, no fingerprint. Project references a Party by id and reads
+  identity, if it ever needs to, through the Party surfaces that already authorize it (D-082).
+- **No Client persistence.** No `clients` table, no `client_id`, no denormalized Party copy
+  (D-078).
+- **No `primary_client_party_id`.** See section 5.
+
+**M3 invents no participant semantics.** Not a mandatory primary client, not an
+exactly-one-primary rule, not a catalogue of legal participant roles. `03_DATABASE_ERD.md`
+offers *example* role codes and labels them as examples; a real catalogue, and any cardinality
+rule attached to it, needs domain authority.
+
+See **D-092**.
+
+---
+
+## 9. Internal reference
+
+A Project's internal reference is **ordinary office identification**. Its shape follows
+`CLAUDE.md` section 38's internal-reference examples.
+
+It is explicitly **not**:
+
+```text
+a deed number
+a repertorium number
+a land or government registration number
+any legally significant document number
+```
+
+`CLAUDE.md` section 38 already separates the two concepts; this restates it for Project so no
+future reader treats `PRJ-2026-000001` as carrying legal weight.
+
+**No `MAX(number) + 1` allocator**, which is unsafe under concurrency. The exact allocation
+and concurrency design — sequence, advisory lock, or table-based allocator, and its behaviour
+across offices and years — is **locked before M3.2 implementation** and is deliberately not
+guessed here. M3.2 owns it.
+
+See **D-094**.
+
+---
+
+## 10. Lifecycle: three separate concerns
+
+`CLAUDE.md` section 18 and `08_NOTARY_WORKFLOW.md` section 4 both insist these not be merged.
+Project keeps them apart:
+
+```text
+Business status      the canonical ERD section 7 vocabulary
+Workflow stage       does not exist in M3 — M4 owns it
+Persistence state    deleted_at, soft delete
+```
+
+**Archive is the awkward one, and the awkwardness is named rather than smoothed over.** The
+business vocabulary contains `ARCHIVED`, and the table separately carries `deleted_at`. They
+are **different states with unfortunately similar names**.
+
+`projects.restore` is retained, and its meaning is narrow:
+
+> **restore a soft-deleted Project persistence record.**
+
+It does **not** mean: change business status `ARCHIVED` back to `OPEN`; reverse a workflow;
+undo a completion; or undo any legal event.
+
+**Party gains no restore for symmetry.** M2 refused to invent one because no restore
+permission existed for it; Project has `projects.restore` in the canonical registry and Party
+does not. The registry is the reason, and it applies to one and not the other.
+
+See **D-093**.
+
+---
+
+## 11. Permission surface
+
+**M3 adds no permission. The canonical count stays at 171.** All eight `projects.*` codes are
+already canonical (`02_MENU_AND_PERMISSIONS.md` section 7).
+
+```text
+projects.view
+projects.view_all      superseded for reach — see below
+projects.create
+projects.update
+projects.assign
+projects.change_status
+projects.archive
+projects.restore
+```
+
+### `view_all` is superseded by Data Scope `ALL`
+
+`projects.view_all`, `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all` and
+`calendar.view_all` predate the Data Scope model. They express reach, which is exactly what a
+Data Scope expresses, and `CLAUDE.md` section 26 warns against duplicating a permission per
+scope.
+
+The ruling:
+
+- The codes **remain registered**, for compatibility and documentation history. **The count
+  stays at 171** and M3.0 removes nothing.
+- For **reach semantics they are superseded by Data Scope `ALL`**.
+- **No `view_all` code may be used as backend cross-office authorization authority.** Not
+  `projects.view_all`, not the Matter or Task or Calendar equivalents.
+- **No second reach mechanism may exist alongside `EffectiveAccessResolver`.** One resolver
+  answers reach, or two answers eventually disagree and the looser one wins by accident.
+
+This is a supersession, not a deletion, and it is recorded rather than silently ignored.
+
+See **D-090**.
+
+### Authorization shape, unchanged
+
+Inherited from M1 and M2 without modification: `Controller::authorize` → Policy →
+`EffectiveAccessResolver` → Data Scope. No permission-code authorization as backend authority,
+no role-name authorization, no `SUPER_ADMIN` bypass (D-048, D-032, D-041).
+
+`PermissionScopeRules` gains a Project-domain entry replacing the permissive default — in
+**M3.1**, which owns the code. M3.0 edits no registry and no rules class.
+
+---
+
+## 12. The Project → Matter boundary (documented, not built)
+
+Recorded so M4 inherits a boundary rather than inventing one:
+
+- Matter references Project. Project does not embed Matter.
+- Matter is a **child aggregate with its own lifecycle**, not a component.
+- Cardinality is **undecided** and is M4's to decide.
+- The Matter capability surface is **already split by domain** in the canonical registry —
+  `notary.matters.*` and `ppat.matters.*`, with no generic `matters.*` — and the MVP sidebar
+  (`02_MENU_AND_PERMISSIONS.md` section 26) splits the navigation the same way while listing
+  `Projects` as a single top-level entry.
+- That split is the main reason M4 deserves its own architecture lock: a single `matters`
+  table discriminated by `domain` would mean the Matter Policy selects its permission
+  namespace from row data, which is a genuinely new authorization shape in this codebase.
+
+M3 builds none of it.
+
+---
+
+## 13. Non-goals
+
+Not part of the M3 foundation, and not to be introduced incidentally:
+
+```text
+documents / uploads                 property and land records
+deed generation                     legal numbering of any kind
+invoices / payments / billing       tasks
+calendar                            notifications
+global search                       persistent audit-log product
+Party merge                         cross-office Party consolidation
+workflow engine                     service_types master data
+Matter, matter_parties              Notary / PPAT deed, Minuta, Warkah,
+                                    register and report surfaces
+```
+
+`08_NOTARY_WORKFLOW.md` and `09_PPAT_WORKFLOW.md` remain placeholders requiring domain
+authority. **Nothing may be implemented from them** — not service type rules, stage sequences,
+approvals, deed numbering, Warkah composition, registers, reporting, or any Notary/PPAT
+workflow semantics.
+
+---
+
+## 14. Milestone decomposition
+
+```text
+M3.0   Project architecture lock                  <- this document
+M3.1   Project schema + authorization foundation
+M3.2   Project internal reference foundation
+M3.3   Project core management
+M3.4   Project <-> Party participation
+M3.5   M3 quality gate
+```
+
+**M3.1** owns the table, the Policy, the Data Scope predicates from section 6, the
+`PermissionScopeRules` Project entry, database constraints, and architecture tests — **not
+CRUD UI**, following the M2.1 precedent. It is also where the M2-era guard tests asserting
+`projects` does not exist are **narrowed rather than deleted**: the parts that stay true are
+that Party gains no Project foreign key and that no deed, Warkah, or property surface appears.
+
+**M4.0** opens Matter with its own architecture lock.
+
+---
+
+## 15. Unresolved items
+
+| Question | Status | Blocks M3.1? |
+|---|---|---|
+| Project internal reference allocation and concurrency design | Locked before M3.2, deliberately not guessed at M3.0 | **No** |
+| Participant role catalogue and any cardinality rule | Requires domain authority; ERD codes are examples only | **No** |
+| Status transition matrix | Not invented; M3 authorizes who may change status, not which changes are legal | **No** |
+| Project Office transfer | Refused for M3; requires its own architecture decision | **No** |
+| Project-to-Matter cardinality | M4 | **No** |
+| Whether Matter workers need Project visibility | A new predicate if ever needed; must not silently widen `ASSIGNED` | **No** |
+
+None blocks M3.1. Each is recorded rather than quietly assumed.
+
+---
+
+**Status:** `LOCKED — M3.0`
