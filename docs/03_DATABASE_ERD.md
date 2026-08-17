@@ -381,8 +381,8 @@ locked before M3.2 (D-094). See `13_M3_PROJECT_ARCHITECTURE.md`.
   `tasks`, and the values are given once. Nullable.
 
 **`project_number` arrived at M3.2**, together with its allocator — neither ships alone
-(D-094). It holds the formatted reference `PRJ-YYYY-NNNNNN` as `varchar(32)`, **nullable**
-until M3.3 assigns one at creation, and is unique **per Office**:
+(D-094). It holds the formatted reference `PRJ-YYYY-NNNNNN` as `varchar(32)` and is unique
+**per Office**:
 
 ```text
 UNIQUE (office_id, project_number)
@@ -392,6 +392,13 @@ Never global. Each Office runs an independent annual sequence, so Office A and O
 both legitimately hold `PRJ-2026-000001`; a global index would fail the second Office's first
 project of the year for no explicable reason. The namespace is stable because Project Office is
 immutable (D-089), and the reference is immutable once allocated.
+
+The column is **`NOT NULL` since M3.3** *(D-097)*, tightened by forward migration
+`2026_08_16_180000_require_project_internal_reference`. It was nullable at M3.2 only because no
+creation path existed yet to allocate a reference; M3.3 owns the one path that creates a Project
+and it always allocates. The precondition was verified rather than assumed — zero Projects and
+zero null references — and **no backfill was invented**, so a deployment holding null references
+must resolve them deliberately.
 
 ### project_reference_counters *(added M3.2)*
 

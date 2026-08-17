@@ -349,8 +349,8 @@ See **D-093**.
 
 ## 11. Permission surface
 
-**M3 adds no permission. The canonical count stays at 171.** All eight `projects.*` codes are
-already canonical (`02_MENU_AND_PERMISSIONS.md` section 7).
+**M3.0 added no permission, and the canonical count stayed at 171 through M3.3.** All eight
+`projects.*` lifecycle codes were already canonical (`02_MENU_AND_PERMISSIONS.md` section 7).
 
 ```text
 projects.view
@@ -363,6 +363,12 @@ projects.archive
 projects.restore
 ```
 
+**M3.4 took the count to 173** *(D-098)*, adding the two participation capabilities recorded in
+section 8 — `projects.parties.view` and `projects.parties.manage`, the first codes any milestone
+has added since the catalogue was transcribed. That addition was deliberate and reviewed, not a
+drift from the sentence above; this section stated the M3.0 position and is corrected at M3.5 to
+say which part of it expired and when.
+
 ### `view_all` is superseded by Data Scope `ALL`
 
 `projects.view_all`, `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all` and
@@ -372,8 +378,8 @@ scope.
 
 The ruling:
 
-- The codes **remain registered**, for compatibility and documentation history. **The count
-  stays at 171** and M3.0 removes nothing.
+- The codes **remain registered**, for compatibility and documentation history. **M3.0 removes
+  nothing**, and this ruling changed no count.
 - For **reach semantics they are superseded by Data Scope `ALL`**.
 - **No `view_all` code may be used as backend cross-office authorization authority.** Not
   `projects.view_all`, not the Matter or Task or Calendar equivalents.
@@ -501,7 +507,15 @@ be same-Office, and why a refusal keys on presence rather than emptiness are all
 exactly as M3.1 predicted: they now assert that no surface appears beyond the milestone that
 owns it, and that Project is never a Party sub-resource.
 
-**M3.4** adds `project_parties`. **M4.0** opens Matter with its own architecture lock.
+**M3.4 — delivered.** `project_parties` and the five nested routes that maintain it, one forward
+migration (22 total), and the **two permissions that took the canonical count to 173**. The
+design and every rule it declined to invent are in section 8 and **D-098**.
+
+**M3.5 — delivered.** The M3 quality gate. **No migration** (22) and **no permission** (173); no
+new product capability, by design. Its findings, and what it deliberately left open, are in
+`CHANGELOG.md`.
+
+**M4.0** opens Matter with its own architecture lock.
 
 ---
 

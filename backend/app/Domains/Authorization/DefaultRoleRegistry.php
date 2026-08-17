@@ -19,8 +19,8 @@ namespace App\Domains\Authorization;
  * Only `SUPER_ADMIN` receives permissions at bootstrap, and it receives every
  * canonical one explicitly (D-057). The other eight are created empty: the
  * high-level matrix in section 5 grades modules as F / V / A / —, which cannot
- * be translated into 171 permission codes and their Data Scopes without
- * inventing the mapping. They are shells to configure through the Permission
+ * be translated into the canonical permission codes and their Data Scopes
+ * without inventing the mapping. They are shells to configure through the Permission
  * Matrix, not guesses.
  */
 class DefaultRoleRegistry

@@ -7,9 +7,9 @@ namespace App\Domains\Authorization;
  * held as plain data.
  *
  * This exists so a decision can be made **without touching the database**, which
- * is what lets one permission and all 171 share the same decision function
- * (D-061). The state is loaded once — for a single permission or for the whole
- * registry — and the rule is applied to it identically either way.
+ * is what lets one permission and the whole catalogue share the same decision
+ * function (D-061). The state is loaded once — for a single permission or for
+ * the whole registry — and the rule is applied to it identically either way.
  *
  * Values are raw strings exactly as stored. Nothing is parsed or normalized
  * here: interpreting `effect` and `scope` is the decision's job, and it must

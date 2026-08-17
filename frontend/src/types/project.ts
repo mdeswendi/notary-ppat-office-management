@@ -35,9 +35,10 @@ export type ProjectOffice = {
  * A Project as the list and detail endpoints return it.
  *
  * Note what has no type here, because the backend sends none of it: no
- * participant collection — `project_parties` is M3.4 — and nothing Matter,
- * workflow, document, or deed shaped. A key for any of them would invite a
- * component to render something the API never sends.
+ * participant collection — participation is its own nested surface with its own
+ * types (M3.4) — and nothing Matter, workflow, document, or deed shaped. A key
+ * for any of them would invite a component to render something the API never
+ * sends.
  *
  * `project_number` is **system-generated, immutable, and unique only within its
  * Office** (D-096). It is displayed and never submitted, and it does not identify

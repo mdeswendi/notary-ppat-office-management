@@ -413,9 +413,9 @@ it('does not scale its query count with the size of the registry', function (): 
     $one = $count(fn () => $resolver->resolve($fresh, 'projects.view'));
     $all = $count(fn () => $resolver->resolveAll($fresh));
 
-    // Resolving 171 permissions costs the same handful of queries as resolving
-    // one. Anything proportional would mean the projection re-derives state per
-    // permission.
+    // Resolving the whole catalogue costs the same handful of queries as
+    // resolving one. Anything proportional would mean the projection re-derives
+    // state per permission.
     expect($all)->toBeLessThanOrEqual($one)
         ->and($all)->toBeLessThan(10)
         ->and(PermissionRegistry::count())->toBeGreaterThan(100);

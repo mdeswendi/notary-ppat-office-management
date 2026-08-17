@@ -32,9 +32,9 @@ use Illuminate\Support\Collection;
  * **Deliberately absent, each for its own reason:** assignment and status
  * changes, which have their own capabilities and controllers (D-091);
  * archived-record discovery, which answers to `projects.restore` rather than
- * `projects.view` (D-093); Party participation, which is M3.4 (D-092); and
- * anything Matter-shaped, which is M4. `DELETE` archives — Project records are
- * never destroyed.
+ * `projects.view` (D-093); Party participation, which has its own controller and
+ * its own two capabilities (M3.4, D-098); and anything Matter-shaped, which is
+ * M4. `DELETE` archives — Project records are never destroyed.
  *
  * **`projects.view_all` is not consulted anywhere in this class.** It is
  * superseded by Data Scope `ALL` for reach (D-090), and a second reach mechanism

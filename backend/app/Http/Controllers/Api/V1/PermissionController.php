@@ -85,10 +85,15 @@ class PermissionController extends Controller
      * The flag exists to stop an administrator granting a capability and
      * wondering why nothing happens. It therefore covers permissions sitting
      * *inside a module the interface otherwise presents as working* — not every
-     * unimplemented code. `projects.create` needs no flag because Projects is
-     * absent from the navigation entirely (D-064); `security.settings.view`
-     * does, because its neighbours `security.sessions.*` and
-     * `security.mfa.manage` are live, so the namespace looks implemented.
+     * unimplemented code. `notary.matters.create` needs no flag because the
+     * Notary module is absent from the navigation entirely (D-064);
+     * `security.settings.view` does, because its neighbours
+     * `security.sessions.*` and `security.mfa.manage` are live, so the namespace
+     * looks implemented.
+     *
+     * That example named `projects.create` until M3.5. M3.3 put Projects in the
+     * navigation and gave every `projects.*` lifecycle code a route, so the
+     * sentence had quietly become false (D-077).
      *
      * `users.reset_password` was here from M1.5 until M1.9 built the flow
      * (O-028, D-071). Removing it is the point of keeping this list honest: a
@@ -100,7 +105,7 @@ class PermissionController extends Controller
      * **The Company lifecycle codes joined at M2.2 and left at M2.3**, and both
      * moves are the flag working rather than the list churning. Before M2.2 the
      * Party module was absent from navigation, so `companies.view` needed no
-     * badge for the same reason `projects.create` does not. M2.2 shipped
+     * badge for the same reason `notary.matters.create` does not. M2.2 shipped
      * Individuals, navigation gained "Clients & Parties", the namespace started
      * looking implemented — and it was not. M2.3 makes it true: `companies.view`,
      * `create`, `update`, and `archive` each have a reachable route now, so the
@@ -116,6 +121,15 @@ class PermissionController extends Controller
      * its neighbours `security.sessions.*` and `security.mfa.manage` are live, so
      * the namespace looks implemented and no global security-settings surface
      * exists.
+     *
+     * **`projects.view_all` is deliberately not here, and M3.3 is what makes
+     * that worth stating.** Once Projects reached the navigation, the code
+     * matched this list's shape exactly: registered, routeless, and sitting
+     * inside a module the interface presents as working. It stays off anyway,
+     * because *deferred* means **not built yet** and this one will never be
+     * built — D-090 supersedes it by Data Scope `ALL` for reach, permanently,
+     * and no `view_all` code may be backend reach authority. Badging it would
+     * promise an implementation that is refused rather than pending.
      *
      * Every Party-domain code is deliberately **not** here. Each has a reachable
      * route, and tests check that claim against the router in both directions

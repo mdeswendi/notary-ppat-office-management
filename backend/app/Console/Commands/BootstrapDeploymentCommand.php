@@ -34,8 +34,8 @@ use Spatie\Permission\PermissionRegistrar;
  *
  * The other eight roles are created **empty**. The high-level matrix in
  * `02_MENU_AND_PERMISSIONS.md` section 5 grades modules F / V / A / —, which
- * cannot be turned into 171 permission codes and their Data Scopes without
- * inventing the mapping, and invented authorization is worse than absent
+ * cannot be turned into the canonical permission codes and their Data Scopes
+ * without inventing the mapping, and invented authorization is worse than absent
  * authorization. They are configured through the Permission Matrix.
  *
  * Rerunning on an initialized deployment changes nothing. Nothing resynchronizes

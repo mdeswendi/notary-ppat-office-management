@@ -24,10 +24,10 @@ import type { CurrentUser, DataScope } from "@/types/auth";
  *   `implemented`         does the route exist and is it meant to be reachable?
  *   `requiredPermission`  may this account use it?
  *
- * Both must hold. Since bootstrap gives `SUPER_ADMIN` all 171 canonical
- * permissions (D-057), permission alone would light up navigation for every
- * future module — Projects, Notary, PPAT, Billing — and send an administrator to
- * routes that do not exist. Registering a permission is not shipping a feature
+ * Both must hold. Since bootstrap gives `SUPER_ADMIN` every canonical
+ * permission (D-057), permission alone would light up navigation for every
+ * future module — Notary, PPAT, Billing — and send an administrator to routes
+ * that do not exist. Registering a permission is not shipping a feature
  * (D-064).
  *
  * A future module's entry may be added here with `implemented: false` and stay

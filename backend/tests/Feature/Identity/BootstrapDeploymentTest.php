@@ -120,7 +120,7 @@ it('gives the administrator role its power through explicit grants, not a bypass
 
 it('leaves the other eight roles completely empty', function (): void {
     // The high-level matrix grades modules F / V / A / —, which cannot be
-    // turned into 171 codes and scopes without inventing the mapping.
+    // turned into the canonical codes and scopes without inventing the mapping.
     runBootstrap()->assertSuccessful();
 
     foreach (DefaultRoleRegistry::withoutPermissions() as $name) {

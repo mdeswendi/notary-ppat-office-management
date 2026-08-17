@@ -5,6 +5,166 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M3.5 M3 Quality Gate
+
+Branch `feat/m3-project-matter`. **No migration** (22 total) and **no permission** (173). An
+audit milestone: no new product capability, no M4, no merge to `main`. Backend **1591 tests /
+5329 assertions**, unchanged — every fix was to a comment or a document, and none needed new
+coverage. i18n **731 / 731** exact.
+
+### What the gate found
+
+Nine findings, and every one is the shape M1.10 named (D-077): a claim the repository made about
+itself that had quietly stopped being true, or a premise that changed without anything recording
+the consequence. M3.4 and M3.3 between them are what expired all nine.
+
+**1. Eight live sites still said the canonical catalogue holds 171 permissions.** M3.4 moved the
+total to 173 and pinned it in one place — `PermissionRegistryTest` — precisely so a legitimate
+addition would not have to be applied in six files. That worked for the *assertions*. It did not
+reach the prose, and the number had been copied into five source files and two test comments:
+`AuthorizationState`, `EffectiveAccessResolver`, `DefaultRoleRegistry`,
+`BootstrapDeploymentCommand`, `role-permission-matrix.tsx`, `EffectiveAccessProjectionTest`, and
+`BootstrapDeploymentTest`, plus `navigation.ts`.
+
+In every one of them the number was **incidental** — the point was "one permission and the whole
+catalogue", "one round trip per permission", "the matrix cannot be turned into codes and scopes
+without inventing the mapping". So the fix is not a re-pin to 173, which would rot again on the
+next legitimate addition; each now says what it actually means. D-035 keeps the historical
+figure, marked as the count when that decision was recorded.
+
+**2. The deferred-permission badge documented itself with an example that M3.3 falsified.**
+`PermissionController` explained the flag with *"`projects.create` needs no flag because Projects
+is absent from the navigation entirely"*. M3.3 put Projects in the sidebar and gave every
+`projects.*` lifecycle code a route. The example now uses `notary.matters.create`, whose module
+genuinely is absent, and the correction says when the old one expired.
+
+**3. `projects.view_all` now matches the badge's shape and is still deliberately unbadged.**
+This is what made finding 2 worth more than a comment fix. Once Projects reached the navigation,
+`projects.view_all` became exactly what the deferred list describes: registered, routeless, and
+inside a module the interface presents as working. It stays off the list, and the reason is now
+written where the list lives — **deferred means not built yet, and this one will never be built.**
+D-090 supersedes it by Data Scope `ALL`, permanently, and no `view_all` code may be backend reach
+authority. Badging it would promise an implementation that is refused rather than pending. No
+route and no alternate authorization path was added.
+
+**4. The M3 architecture lock contradicted itself about its own permission count.** Section 11
+opened *"M3 adds no permission. The canonical count stays at 171"* while section 8 of the same
+document recorded `171 -> 173`. The M3.0 position is preserved as the scoped historical claim it
+was, and the sentence now says which part of it expired and when.
+
+**5. `ProjectResource` said "Project references no Party yet".** False since M3.4. The resource
+genuinely carries no participant collection — that is a separate nested surface with its own
+Resource — but the *reason* had inverted, and the wording claimed Project touched no Party at all.
+
+**6. The ERD described `project_number` as nullable.** M3.3 tightened it to `NOT NULL` by forward
+migration (D-097), and `03_DATABASE_ERD.md` still described the M3.2 state. This was the sharpest
+of the documentation findings, because the ERD is the canonical schema document and a reader had
+no way to discover the constraint from it. Confirmed `NOT NULL` against real PostgreSQL before
+the text was changed. The `project_parties` section, by contrast, was already fully current.
+
+**7–9. Three dated deferrals pointing at a delivered milestone.** `Project`, `ProjectController`,
+and `project.ts` each described participation as something M3.4 *would* own. The facts they
+guarded are still true; only the tense pointed forward.
+
+### Re-verified rather than corrected
+
+**No N+1.** M2.6's defect was a per-row `EffectiveAccessResolver` call, and a participation list
+has exactly that shape. M3.4 had already applied the lesson — `ProjectParticipantVisibility`
+resolves once per subtype branch and asks the record predicate in bulk — and both list surfaces
+are pinned by tests asserting the query count is **constant** rather than merely smaller. The
+gate confirmed the tests exist and pass rather than trusting the docblock that claims it.
+
+**O-018 re-verified, and its wording corrected.** next-intl is still **4.13.5** and
+`setRequestLocale` is still load-bearing in exactly three files. But the register said the package
+"contains no reference to `next/root-params`", and that is no longer literally true: the
+`@deprecated` notice in `RequestLocaleCache` links the migration blog, in the compiled module and
+its type declaration. Those two strings are the only occurrences and they are a pointer, not an
+implementation, so migration is still blocked upstream — but a claim that is checked by counting
+matches should say what it counts.
+
+**O-031, O-032, O-033 unchanged**, each confirmed against the code rather than carried on trust:
+the directory Office filter is still derived from the page in view, the frontend still has no test
+runner, and the six fields are still translated in both locales while no component collects or
+displays them. O-010 unchanged — `gh` is still absent, so CI remains the user's to observe.
+
+### Verification
+
+```text
+Backend        1591 tests, 5329 assertions — unchanged, no new coverage needed
+Pint           passed
+Frontend       format:check, lint, typecheck, build all clean
+composer       validate --strict passed
+i18n           731 / 731 exact
+Migrations     22, none pending
+Permissions    173 registry / 173 database, sync idempotent twice
+Disposable DB  full chain from empty PostgreSQL; migrated 0 -> 22; both composite FKs,
+               the support key and NOT NULL project_number confirmed; cross-office
+               participation refused in BOTH directions by the FK named in each case;
+               rolled back all 22 leaving only an empty migrations table; re-migrated;
+               dropped; absence proven
+Smoke          80/80 over real PostgreSQL and Sanctum cookie sessions, 0 failures
+Clean clone    installed, keyed, formatted, linted, typechecked, tested and built from
+               tracked files alone
+```
+
+The smoke walked M3.1 through M3.4 in one run: reference allocation from `PRJ-2026-000001` and
+the refusal to rewrite it, the D-091 mutation boundaries with generic update reaching neither
+assignment nor status, archive/restore with the reference surviving both, all four Project
+predicates including **TEAM failing closed**, participation add/correct/unlink with the Project
+and the Party both surviving, `view` and `manage` proven independent in both directions,
+`projects.update` reaching neither, an actor with `manage` but no Party visibility getting an
+empty candidate list and a **422 on a real id it should not know**, archived and cross-office
+Parties excluded as candidates, an `ALL` actor reaching another Office's Project while being
+refused a participation that would bridge two Offices, nested binding answering **404** under the
+wrong parent, and no NIK, NPWP, `tax_id` or mask anywhere in a participation payload.
+
+### The database guard fired, and this is the report of it
+
+M3.3 once contacted persistent development data, and the rule that followed — prove the serving
+process's own database, from inside that process, before the first smoke request — **caught a real
+wrong-database condition here.**
+
+The first serving attempt reported `notary_ppat_office`, the persistent development database, not
+the disposable one. The cause is worth recording because it will recur: **`php artisan serve` does
+not pass a shell `DB_DATABASE` override to the `php -S` subprocess it spawns.** The override
+reached every artisan CLI command — `migrate`, `tinker`, `permissions:sync` all connected to the
+disposable database and said so — and was then filtered out of the one process that actually
+serves requests. A shell override is not evidence about the serving process, exactly as the rule
+says. Recorded as **O-034**.
+
+**No smoke request ran against persistent data.** The probe was the first request, it is
+read-only, and the run was aborted on its answer. The server was launched directly as `php -S`
+instead, re-probed, and only then did the smoke begin. The persistent database was compared
+against its pre-gate baseline immediately after the abort and again at the end: **all sixteen
+tracked counts identical both times, `sessions` included.**
+
+Unlike M3.4, whose "before" capture was truncated by a shell pipeline, this gate holds a complete
+sixteen-row before *and* after capture of the persistent database, and they match exactly.
+
+Two further method notes, reported rather than smoothed over. The smoke's first complete run
+scored 77/80, and **all three failures were the harness's own**: it asserted `pic_user` where the
+resource returns `pic`, used `??` to test for a null `role_code` — which cannot distinguish a null
+value from an absent key — and requested a Party id from `individuals/{individual}`, which is keyed
+by the subtype. The product was correct in all three cases; the fixture was fixed and the
+disposable database reset so the final 80/80 is a genuine clean run rather than a patched one. The
+same lesson M1.10 and M2.6 both recorded. Separately, the smoke needed
+`SANCTUM_STATEFUL_DOMAINS` to include its own port before the session cookie was honoured — a
+harness configuration detail, not a product finding.
+
+The temporary probe route lived in `routes/api.php` for the duration of the smoke and was removed
+afterwards; the file's SHA-256 was recorded before and re-verified after, and it is byte-identical.
+
+### Open items
+
+**O-034 added** (`artisan serve` does not propagate a shell database override to its serving
+subprocess). O-010, O-018, O-031, O-032 and O-033 remain open; O-018's evidence was re-verified
+and its wording corrected. No open item was closed for the sake of a clean checklist.
+
+**M4 remains unstarted.** No Matter, no `matter_parties`, no workflow, no service types, no legal
+role catalogue.
+
+---
+
 ## 2026-08-17 — M3.4 Project ↔ Party participation
 
 Branch `feat/m3-project-matter`. **One forward migration** (22 total). **Two permissions**

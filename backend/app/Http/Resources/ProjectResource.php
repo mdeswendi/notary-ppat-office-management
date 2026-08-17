@@ -9,12 +9,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * One Project, as the list and detail endpoints return it.
  *
- * **Note what has no field here.** No participant collection — `project_parties`
- * is M3.4 (D-092). No Matter, workflow, document, or deed data — none of it
- * exists, and a key for it would invite a component to render something the API
- * never sends. No Party identity of any kind: Project references no Party yet,
- * and when it does, identity will stay behind the surfaces that already authorize
- * it (D-082).
+ * **Note what has no field here.** No participant collection: `project_parties`
+ * exists since M3.4, but it is its own nested surface with its own Resource
+ * (D-098), so a Project payload never carries one. No Matter, workflow,
+ * document, or deed data — none of it exists, and a key for it would invite a
+ * component to render something the API never sends. No Party identity of any
+ * kind: Project reaches a Party only through `project_parties`, and identity
+ * stays behind the surfaces that already authorize it (D-082).
  *
  * `project_number` is displayed and never accepted: it is system-generated,
  * immutable once allocated, and — because uniqueness is per Office (D-096) — it

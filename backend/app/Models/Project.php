@@ -34,7 +34,8 @@ use RuntimeException;
  *
  * **No Matter relation exists here, and none may be added before M4.** Matter
  * will reference Project, not the reverse (D-087), and Project holds no
- * participant collection either — `project_parties` belongs to M3.4 (D-092).
+ * participant collection either — `project_parties` is maintained through its
+ * own model and its own nested endpoints (M3.4, D-098).
  */
 #[Fillable([
     'title',

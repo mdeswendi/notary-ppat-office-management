@@ -77,8 +77,8 @@ class EffectiveAccessResolver
         $canonical = PermissionRegistry::all();
 
         // Loaded once for the whole registry — four queries, regardless of how
-        // many permissions exist. Resolving each name separately would be 171
-        // round trips to answer one question.
+        // many permissions exist. Resolving each name separately would be one
+        // round trip per canonical permission to answer one question.
         $state = $this->loadState($user, $canonical);
 
         $granted = [];

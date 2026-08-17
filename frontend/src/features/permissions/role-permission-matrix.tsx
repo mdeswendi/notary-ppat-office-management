@@ -31,8 +31,8 @@ type Draft = Record<string, string>;
 /**
  * Configure what a role may do.
  *
- * The permission list is loaded from the backend catalogue — none of the 171
- * codes appear in frontend source, because the registry is the single source of
+ * The permission list is loaded from the backend catalogue — no canonical code
+ * appears in frontend source, because the registry is the single source of
  * truth and a copy here would drift.
  *
  * A permission is either off, or on with **an explicitly chosen scope**. Nothing
