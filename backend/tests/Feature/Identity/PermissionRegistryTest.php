@@ -14,8 +14,16 @@ use Illuminate\Support\Facades\DB;
  * Asserting the exact number turns any accidental addition, removal, or
  * duplicate into a failing test rather than a silent change to the
  * authorization surface.
+ *
+ * 171 from M1 through M3.3. **173 since M3.4**, which added
+ * `projects.parties.view` and `projects.parties.manage` — the first codes any
+ * milestone has added since the catalogue was transcribed, and deliberate rather
+ * than accidental (D-098). This constant is the one place the total is pinned;
+ * milestone tests assert that *their own* domain group is unchanged instead, so
+ * a later milestone's legitimate addition does not have to be applied in six
+ * places.
  */
-const CANONICAL_PERMISSION_COUNT = 171;
+const CANONICAL_PERMISSION_COUNT = 173;
 
 it('publishes a non-empty catalogue', function (): void {
     expect(PermissionRegistry::all())->not->toBeEmpty();

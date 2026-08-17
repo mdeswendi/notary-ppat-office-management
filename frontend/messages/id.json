@@ -158,6 +158,52 @@
       "server": "Terjadi kesalahan server. Silakan coba lagi."
     }
   },
+  "projectParties": {
+    "section": "Pihak Terkait",
+    "sectionDescription": "Pihak yang terlibat dalam Project ini saat ini. Bukan riwayat: menghapus tautan tidak menyimpan catatan.",
+    "loading": "Memuat pihak terkait",
+    "empty": "Belum ada pihak yang ditautkan pada Project ini.",
+    "errorTitle": "Pihak terkait tidak dapat dimuat",
+    "unknownParty": "Pihak tidak tersedia",
+    "noRole": "Tanpa klasifikasi",
+    "primary": "Utama",
+    "archivedParty": "Diarsipkan",
+    "partyTypes": {
+      "INDIVIDUAL": "Perorangan",
+      "COMPANY": "Perusahaan"
+    },
+    "addAction": "Tambah Pihak",
+    "addTitle": "Tambah pihak pada Project",
+    "addDescription": "Pilih pihak dari kantor Project ini. Pilihan hanya menampilkan pihak yang boleh Anda lihat.",
+    "addConfirm": "Tambahkan",
+    "searchLabel": "Cari pihak",
+    "searchPlaceholder": "Ketik nama",
+    "partyLabel": "Pihak",
+    "selectParty": "Pilih pihak",
+    "noCandidates": "Tidak ada pihak yang dapat dipilih. Wewenang mengelola pihak terkait tidak dengan sendirinya memberi akses ke data pihak.",
+    "candidateHint": "Hanya pihak aktif dari kantor Project ini yang dapat ditautkan.",
+    "roleLabel": "Klasifikasi hubungan",
+    "rolePlaceholder": "Opsional",
+    "roleHint": "Kode bebas untuk keperluan administrasi kantor. Bukan peran hukum dan tidak diperiksa terhadap daftar baku.",
+    "primaryLabel": "Tandai sebagai utama",
+    "primaryHint": "Penandaan saja. Tidak ada aturan jumlah: beberapa pihak boleh ditandai utama, dan boleh juga tidak ada.",
+    "notesLabel": "Catatan",
+    "editAction": "Ubah",
+    "editTitle": "Ubah pihak terkait",
+    "editDescription": "Hanya klasifikasi, penandaan utama, dan catatan yang dapat diubah. Untuk mengganti pihaknya, hapus tautan ini lalu tambahkan pihak yang lain.",
+    "removeAction": "Hapus tautan",
+    "removeTitle": "Hapus tautan pihak ini?",
+    "removeDescription": "Hanya tautan yang dihapus. Data Project dan data pihak tetap utuh dan tidak diarsipkan. Tautan yang dihapus tidak disimpan sebagai riwayat dan tidak dapat dipulihkan.",
+    "removeConfirm": "Hapus tautan",
+    "errors": {
+      "forbidden": "Anda tidak memiliki wewenang atas pihak terkait Project ini.",
+      "notFound": "Data tidak ditemukan.",
+      "validation": "Pihak tersebut tidak dapat ditautkan pada Project ini.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Coba lagi nanti.",
+      "network": "Tidak dapat terhubung ke server.",
+      "server": "Terjadi kesalahan pada server."
+    }
+  },
   "parties": {
     "title": "Direktori Pihak",
     "subtitle": "Cari orang atau badan usaha.",

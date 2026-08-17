@@ -282,11 +282,30 @@ projects.assign
 projects.change_status
 projects.archive
 projects.restore
+projects.parties.view
+projects.parties.manage
 ```
 
 Avoid normal hard-delete permission.
 
-**M3.0 locked what three of these mean, and added none** — the canonical count stays at 171.
+**M3.0 locked what three of these mean, and added none** — the canonical count stayed at 171
+through M3.3.
+
+**M3.4 added the two participation codes, taking the canonical count to 173** *(D-098)*. They are
+the first additions since this catalogue was transcribed, and they follow the M2.4 precedent:
+a relationship surface gets its own capability rather than borrowing the parent's lifecycle
+permission, exactly as `companies.management.*` does.
+
+`projects.parties.view` reads a Project's participant list; `projects.parties.manage` adds,
+corrects, and removes. **Neither implies the other**, and `projects.update` reaches neither.
+Both are evaluated against the **parent Project** by the four Project Data Scope predicates
+(D-088), and there is deliberately **no `projects.parties.view_all`** — reach is Data Scope `ALL`,
+and a second reach mechanism is what D-090 refuses.
+
+Holding `projects.parties.manage` is authority over a Project's participation; it is **not**
+authority to discover Parties. Linking additionally requires ordinary Party visibility for the
+candidate — `parties.view` for an Individual, `companies.view` for a Company, evaluated
+independently.
 
 `projects.assign` means mutating `pic_user_id` **and nothing else**. Generic `projects.update`
 must not touch it: reassigning work is a different act from correcting a title. Workflow and

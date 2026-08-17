@@ -374,22 +374,39 @@ it('refuses restore outside the scope', function (): void {
 |--------------------------------------------------------------------------
 */
 
-it('introduces no participation, Matter, or workflow surface', function (): void {
+it('introduces no Matter, workflow, or Office-transfer surface', function (): void {
+    // **Narrowed at M3.4, not deleted.** Participation was on this list while it
+    // was unbuilt; M3.4 owns `projects/{project}/parties` and the
+    // `project_parties` table now, and its own tests assert their shape.
+    //
+    // Everything else is kept, including the two that were never about a
+    // milestone boundary at all: no Office endpoint and no transfer endpoint on
+    // a Project, because Project Office is immutable during M3 (D-089).
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
     foreach ([
-        'project_parties', 'projects/{project}/parties', 'projects/{project}/participants',
+        'projects/{project}/participants',
         'matters', 'workflow', 'stages', 'deeds', 'warkah', 'properties',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
     }
 
-    foreach (['project_parties', 'matters', 'matter_parties'] as $table) {
+    foreach (['matters', 'matter_parties'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 });
 
 it('adds no permission to the canonical registry', function (): void {
-    expect(count(PermissionRegistry::all()))->toBe(171);
+    // Narrowed at M3.4, which legitimately added the two participation codes
+    // (D-098). The global total is pinned once in `PermissionRegistryTest`; what
+    // M3.3 actually claimed, and what stays true, is that the Project lifecycle
+    // surface invented none of its own.
+    $lifecycle = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'projects.')
+            && ! str_starts_with($code, 'projects.parties.'),
+    ));
+
+    expect($lifecycle)->toHaveCount(8);
 });

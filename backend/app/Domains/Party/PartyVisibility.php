@@ -151,6 +151,40 @@ class PartyVisibility
     }
 
     /**
+     * Does this grant reach *existing* Party records in this Office?
+     *
+     * The same two predicates as {@see scope()}, asked about an Office rather
+     * than a row: `ALL` reaches any Office, `OFFICE` reaches the actor's own, and
+     * the other three reach nothing. Answering it here keeps the rule in the one
+     * class that owns it — a caller that re-derived "ALL or same office" would be
+     * a second copy of the predicate, and the two would eventually disagree.
+     *
+     * Deliberately separate from {@see permitsCreationIn()} despite the identical
+     * shape. That one answers "may the actor put a new Party here", this one
+     * answers "may the actor see Parties already here", and they are governed by
+     * different permission codes; collapsing them would make one method mean two
+     * things and invite a caller to pass the wrong access.
+     *
+     * Used by the Project participation surface, where a candidate must be
+     * reachable under the Party-domain permission for its own subtype before it
+     * may be linked (M3.4, D-098).
+     */
+    public function reachesOffice(User $actor, EffectiveAccess $access, string $officeId): bool
+    {
+        $scopes = $this->usable($access);
+
+        if ($scopes === []) {
+            return false;
+        }
+
+        if (in_array(DataScope::ALL, $scopes, true)) {
+            return true;
+        }
+
+        return $officeId === $actor->office_id;
+    }
+
+    /**
      * Does this grant reach beyond the actor's own Office?
      *
      * Exact membership of `ALL`, never a comparison (D-028). Used by form

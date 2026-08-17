@@ -73,6 +73,13 @@ final class PermissionRegistry
                 'projects.change_status',
                 'projects.archive',
                 'projects.restore',
+
+                // Section 7a. Project <-> Party participation (M3.4, D-098).
+                // Two codes, and deliberately no `projects.parties.view_all`:
+                // reach is Data Scope `ALL` against the parent Project, and a
+                // second reach mechanism is what D-090 refuses.
+                'projects.parties.view',
+                'projects.parties.manage',
             ],
 
             // Section 8

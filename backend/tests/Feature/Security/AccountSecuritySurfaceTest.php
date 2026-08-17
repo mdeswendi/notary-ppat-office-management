@@ -139,8 +139,26 @@ it('never puts a raw session id in a log call', function (): void {
 it('adds no new canonical permission', function (): void {
     // M1.9 uses the codes the registry already carried — users.reset_password,
     // security.sessions.view, security.sessions.revoke, security.mfa.manage —
-    // rather than inventing more. The count is the assertion.
-    expect(count(PermissionRegistry::all()))->toBe(171);
+    // rather than inventing more.
+    //
+    // Narrowed at M3.4, which moved the global total from 171 to 173 (D-098).
+    // The total is pinned once in `PermissionRegistryTest`; what belongs here is
+    // that the security group is exactly the three codes M1.9 found, and that
+    // still holds.
+    $security = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'security.'),
+    ));
+
+    sort($security);
+
+    expect($security)->toBe([
+        'security.mfa.manage',
+        'security.sessions.revoke',
+        'security.sessions.view',
+        'security.settings.manage',
+        'security.settings.view',
+    ]);
 });
 
 it('uses only registered canonical permissions in the security policy abilities', function (): void {

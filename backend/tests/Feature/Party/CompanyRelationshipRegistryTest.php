@@ -26,7 +26,17 @@ function relationshipMatrixEntries(): Collection
 }
 
 it('adds no permission in M2.4', function (): void {
-    expect(count(PermissionRegistry::all()))->toBe(171);
+    // Narrowed at M3.4, which moved the global total to 173 (D-098). The total
+    // is pinned once in `PermissionRegistryTest`; the claim that belongs here is
+    // that M2.4 invented no Company-domain code — the relationship surfaces
+    // reuse `companies.management.*` and `companies.shareholders.*` — and that
+    // still holds.
+    $companies = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'companies.'),
+    ));
+
+    expect($companies)->toHaveCount(8);
 });
 
 it('marks every relationship permission as implemented', function (string $code): void {
@@ -102,9 +112,18 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     }
 
     // Project exists now, but never as a Party sub-resource.
-    expect($uris->filter(fn (string $u): bool => str_contains($u, 'parties/')
-        || str_contains($u, 'individuals/') || str_contains($u, 'companies/'))
-        ->filter(fn (string $u): bool => str_contains($u, 'project')))->toBeEmpty();
+    //
+    // **Narrowed again at M3.4**, which ships the opposite nesting on purpose:
+    // `projects/{project}/parties` is a Project sub-resource, authorized by the
+    // Project's Data Scope. What must stay false is the Party-rooted direction —
+    // a Party surface that reaches Project would put Project work behind Party
+    // permissions. So the test now anchors on the root segment instead of
+    // matching the substring anywhere in the URI.
+    $partyRooted = $uris->filter(fn (string $u): bool => str_starts_with($u, 'api/v1/parties/')
+        || str_starts_with($u, 'api/v1/individuals/')
+        || str_starts_with($u, 'api/v1/companies/'));
+
+    expect($partyRooted->filter(fn (string $u): bool => str_contains($u, 'project')))->toBeEmpty();
 
     // What duplicate detection does expose is candidate checks, and only those.
     expect($uris->filter(fn (string $u): bool => str_contains($u, 'duplicate'))

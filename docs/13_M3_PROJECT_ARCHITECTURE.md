@@ -212,6 +212,36 @@ rule attached to it, needs domain authority.
 
 See **D-092**.
 
+**Built at M3.4** *(D-098)*, which answered the questions building it raised:
+
+```text
+projects.parties.view     read the list          171 -> 173
+projects.parties.manage   add, correct, remove
+```
+
+Two dedicated capabilities, neither implying the other, both judged against the **parent
+Project** by the four D-088 predicates. `projects.update` reaches neither, and there is no
+`projects.parties.view_all`.
+
+The same-Office invariant is **structural**: composite foreign keys through one `office_id`
+carrier make a cross-office participation unrepresentable, and `projects` gained the
+`UNIQUE (id, office_id)` support key the pattern requires. `ALL` reaches a Project in another
+Office and links a Party from *that* Office; it never bridges two.
+
+**Managing participation is not authority to discover Parties.** A candidate must also be
+reachable under `parties.view` or `companies.view` — the two branches evaluated independently —
+and a submitted `party_id` is re-resolved through that authorized query rather than trusted.
+
+**Participation is current working state, not history.** No `updated_at`, no `deleted_at`, no
+period columns; removing a participation deletes the row and leaves both records untouched.
+`company_people` keeps history because deeds depend on it (D-083); nothing yet depends on a
+Project's participant list as it stood last week, and the mechanism is not built ahead of the
+requirement.
+
+`role_code` stays nullable and opaque, `is_primary` stays a designation with no cardinality, and
+a Project with no participants is complete rather than a draft — M3.3's create surface was not
+changed.
+
 ---
 
 ## 9. Internal reference

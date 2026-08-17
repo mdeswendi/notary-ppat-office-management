@@ -18,8 +18,18 @@ $partyPermissions = [
 ];
 
 it('adds no permission in M2.1', function (): void {
-    expect(count(PermissionRegistry::all()))->toBe(171)
-        ->and(PermissionRegistry::count())->toBe(171);
+    // Narrowed at M3.4. This asserted the global total of 171, which M3.4
+    // legitimately moved to 173 by adding the two participation codes (D-098).
+    // The global total is pinned once, in `PermissionRegistryTest`; what belongs
+    // here is the claim the test was always really making — that M2.1 invented
+    // no Party-domain code — and that is unchanged.
+    $party = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'parties.'),
+    ));
+
+    expect($party)->toHaveCount(8)
+        ->and(PermissionRegistry::count())->toBe(count(PermissionRegistry::all()));
 });
 
 it('uses only permission codes that already exist in the registry', function (string $code): void {

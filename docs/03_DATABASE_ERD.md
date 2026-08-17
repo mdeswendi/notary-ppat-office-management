@@ -452,6 +452,32 @@ no mandatory primary client, and no exactly-one-primary rule — each needs doma
 The role lives on the relationship, never on the Party record, and **no raw Party sensitive
 identity is copied into any Project-domain table** (D-082, D-092).
 
+**Built at M3.4** *(D-098)*, with one column beyond the list above and no other departure:
+
+- **`office_id`, a constraint carrier rather than data.** Two composite foreign keys reference
+  `projects (id, office_id)` and `parties (id, office_id)` through the **same** column, so both
+  endpoints must agree with it and therefore with each other. A cross-office participation is
+  *unrepresentable*, following `company_people` (D-080). `projects` gained the matching
+  `UNIQUE (id, office_id)` support key in the same migration; `parties` has carried its
+  equivalent since M2.1. All foreign keys are `ON DELETE RESTRICT`.
+
+`role_code` is `varchar(30)` **nullable**, with no enum and no `CHECK` — constraining it would
+turn the six examples above into the catalogue this section says they are not. `is_primary` is
+`boolean NOT NULL DEFAULT false`, a designation with no cardinality rule attached.
+
+**No uniqueness on `(project_id, party_id)`** and none on that pair plus `role_code`. Either
+would assert a participant cardinality no canonical document states — one Party may legitimately
+appear twice under two classifications. Ordinary non-unique indexes on `project_id` and
+`party_id` only.
+
+**The absent columns are the deliberate part.** No `updated_at`, no `updated_by`, no
+`deleted_at`, and no `effective_from` / `effective_until`. Participation is **current working
+state**, not the historical ledger `company_people` is: that table carries periods because a
+deed executed in March depends on who was a director in March (D-083), and nothing yet depends on
+who was listed on a Project last Tuesday. Removing a participation deletes the row; the Project
+and the Party are untouched. If participation history is later required it needs its own decision
+and its own columns.
+
 ---
 
 ## 8. Service Types

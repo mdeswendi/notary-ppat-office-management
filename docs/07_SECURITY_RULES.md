@@ -220,7 +220,8 @@ That rule has teeth because a second mechanism already exists in the catalogue.
 `projects.view_all`, `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all` and
 `calendar.view_all` predate the Data Scope model and express exactly what Data Scope `ALL`
 expresses. **They are superseded for reach semantics** (D-090). They remain registered for
-compatibility and documentation history — the canonical count stays at 171 — but:
+compatibility and documentation history — and no `view_all` sibling has been added since, which
+is why M3.4's participation surface has **no `projects.parties.view_all`** (D-098) — but:
 
 - **no `view_all` code may be used as backend cross-office authorization authority**; and
 - **no second reach mechanism may be built beside the resolver.**
@@ -259,8 +260,35 @@ excludes soft-deleted records and the permission would otherwise be unusable by 
 identifies a record for people; it decides nothing about who may reach it. Reach is
 `office_id`, `created_by`, and `pic_user_id` through the resolver, and nothing else. Allocation
 adds **no permission** — it is an internal service concern, not a user-facing ability, so there
-is no `projects.number`, `projects.reference`, or `projects.generate_number`. The count stays
-at 171.
+is no `projects.number`, `projects.reference`, or `projects.generate_number`. Allocation left the
+count at 171; **M3.4 later moved it to 173** by adding the two participation capabilities, which
+is a different kind of change — a user-facing ability rather than an internal service concern
+(D-098).
+
+### Participation is not a way around Party authorization *(M3.4)*
+
+`projects.parties.manage` is authority over a Project's participant list. It is **not** authority
+to discover Parties, and the distinction is enforced rather than documented: a candidate must
+additionally be reachable under the Party-domain permission for its own subtype —
+`parties.view` for an Individual, `companies.view` for a Company — **evaluated independently**,
+because an actor may hold one branch and not the other (D-028).
+
+A submitted `party_id` is **re-resolved through that authorized candidate query** rather than
+trusted. An id obtained elsewhere — guessed, remembered, copied from a record the actor may not
+open — cannot become a participation. Every ineligibility answers one indistinguishable 422, so
+the endpoint is not an existence oracle for another Office's directory.
+
+**Cross-office participation is unrepresentable, not merely refused.** Two composite foreign keys
+resolve both endpoints through one `office_id` carrier, so the database rejects a mismatch. `ALL`
+does not bridge Offices; it reaches a Project elsewhere and links a Party from *that* Project's
+Office.
+
+**The participation surface exposes no sensitive identity.** A Party appears as an id, a display
+name, a subtype, an archived flag, and a `can_view_party` hint — no NIK, NPWP, `tax_id`,
+fingerprint, contact, or address, and **no masks**, because a mask is still a statement about a
+sensitive value (D-082). A Party the reader cannot open is still listed as that stub: the
+participation is Project data, and withholding it would misreport the Project's composition to
+somebody authorized to read it.
 
 Two consequences worth stating because they are easy to lose later. The reference is
 **guessable by construction** — `PRJ-2026-000002` follows `PRJ-2026-000001` — so it must never

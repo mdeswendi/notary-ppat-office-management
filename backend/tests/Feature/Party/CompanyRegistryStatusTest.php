@@ -36,7 +36,15 @@ function companyMatrixEntries(): Collection
 }
 
 it('adds no permission in M2.3', function (): void {
-    expect(count(PermissionRegistry::all()))->toBe(171);
+    // Narrowed at M3.4, which moved the global total to 173 (D-098). The total
+    // is pinned once in `PermissionRegistryTest`; the claim that belongs here is
+    // that M2.3 invented no Company-domain code, and that still holds.
+    $companies = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'companies.'),
+    ));
+
+    expect($companies)->toHaveCount(8);
 });
 
 it('marks every Company lifecycle permission as implemented', function (string $code): void {

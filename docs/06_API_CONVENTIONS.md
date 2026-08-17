@@ -459,6 +459,34 @@ still an instruction — here, an instruction to unassign — and it belongs to 
 owns the field. Pair `prohibited` with an `after` validation hook that fails on any
 system-controlled key merely present in the payload.
 
+### Relationship sub-resources *(M3.4)*
+
+A relationship between two aggregates is nested under the one that owns it, and authorized by
+that one's Data Scope:
+
+```text
+GET    /api/v1/projects/{project}/parties                    projects.parties.view
+POST   /api/v1/projects/{project}/parties                    projects.parties.manage
+PATCH  /api/v1/projects/{project}/parties/{projectParty}     projects.parties.manage
+DELETE /api/v1/projects/{project}/parties/{projectParty}     projects.parties.manage
+GET    /api/v1/projects/{project}/party-options              projects.parties.manage
+```
+
+**There is no top-level collection**, deliberately: a relationship row must not be reachable
+without naming the parent, because the parent is where the authorization lives. The nested id is
+resolved *against* the parent in the query, and a row belonging to a different parent answers
+**404** rather than 403 — a 403 would confirm the row exists and hint at which parent it belongs
+to (D-098).
+
+`DELETE` here genuinely deletes, and the surface says so. That is not a contradiction of
+section 21: the rule is that `DELETE` must never destroy a *record* like a Project or a Party,
+and this removes only the association between two records that both survive it.
+
+**A sub-resource that names another aggregate must authorize that aggregate separately.** Holding
+the relationship capability is authority over the relationship, never over the thing it points
+at: the candidate source applies the Party-domain permissions on top, and a submitted id is
+re-resolved through the authorized query rather than trusted.
+
 ---
 
 ## 23. Workflow Transition

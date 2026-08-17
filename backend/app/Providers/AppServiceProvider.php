@@ -4,10 +4,12 @@ namespace App\Providers;
 
 use App\Models\Company;
 use App\Models\Individual;
+use App\Models\ProjectParty;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\PermissionPolicy;
+use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -55,6 +57,13 @@ class AppServiceProvider extends ServiceProvider
         // what" for every model in the application.
         Gate::policy(Individual::class, IndividualPolicy::class);
         Gate::policy(Company::class, CompanyPolicy::class);
+
+        // Project participation (M3.4). Registered explicitly because its
+        // abilities are unusual enough to be worth pointing at: they take the
+        // parent **Project**, not a ProjectParty row, since participation
+        // authority is judged against the Project's Data Scope (D-098). Callers
+        // authorize with `[ProjectParty::class, $project]`.
+        Gate::policy(ProjectParty::class, ProjectPartyPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

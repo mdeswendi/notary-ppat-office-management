@@ -2663,6 +2663,117 @@ accepted for a Party in another Office. A soft-deleted Project answers 404, beca
 binding never resolves it — the two codes mean different things and neither is a leak worth
 trading the other for.
 
+### D-098 — Project participation: dedicated capabilities, a structural Office invariant, and current state rather than history
+
+*(Added at M3.4, which built `project_parties`. D-092 ruled where participation lives and what
+must not be invented; these are the questions building it actually raised. The pre-implementation
+review found two of them genuinely unanswered by any canonical source and stopped rather than
+guessing — what follows is the resolution, not a discovery.)*
+
+**Participation has two dedicated capabilities, and neither implies the other.**
+
+```text
+projects.parties.view     read the participation list
+projects.parties.manage   add, correct, remove
+```
+
+The canonical count moves **171 → 173**, the first addition since the catalogue was transcribed.
+Dedicated codes follow the M2.4 precedent exactly: `companies.management.*` and
+`companies.shareholders.*` govern Company relationships rather than `companies.update`, and for
+the same reason — maintaining who is involved in something is a different act from editing the
+thing itself. **`projects.update` reaches neither**, or the dedicated codes would be decoration.
+
+That `manage` does not imply `view` is the half that feels wrong and is nonetheless deliberate.
+The registry defines two codes; an administrator who wants both grants both. A silently implied
+capability is one nobody configured and nobody can revoke, which is the same discipline D-091
+applies to `update`, `assign`, and `change_status`.
+
+There is **no `projects.parties.view_all`**. Reach is Data Scope `ALL` against the parent
+Project, and a second reach mechanism is what D-090 refuses.
+
+**Authorization is judged against the parent Project**, by the four D-088 predicates — `OWN` is
+its creator, `ASSIGNED` its PIC, `OFFICE` its Office, `ALL` cross-office, `TEAM` nothing. A
+participation belongs to the Project the way its title does. Judging against the Party instead
+would put Project work behind Party permissions, which govern something else.
+
+**The same-Office invariant is structural, not validated.**
+
+```text
+project_parties.office_id  ->  projects (id, office_id)
+                           ->  parties  (id, office_id)
+```
+
+Two composite foreign keys through the **same** carrier column, so both endpoints must agree
+with it and therefore with each other. A cross-office participation is *unrepresentable* rather
+than discouraged — the M2.4 pattern (D-080), applied because the same sentence holds here: `ALL`
+grants visibility and administrative reach, never permission to redefine domain ownership. An
+`ALL`-scoped actor may reach a Project in another Office and link a Party **from that Project's
+Office**; it never bridges two.
+
+`parties` already carried `parties_id_office_id_unique`. `projects` did not, so M3.4 adds
+`UNIQUE (projects.id, projects.office_id)` — a composite foreign key needs a unique index on the
+referenced pair, and without it the invariant could only be checked in code.
+
+**Managing participation is not authority to discover Parties**, and this is the boundary the
+milestone exists to get right. Linking requires **both** `projects.parties.manage` over the
+Project **and** ordinary Party visibility for the candidate — `parties.view` for an Individual,
+`companies.view` for a Company, **evaluated independently**, because an actor may genuinely hold
+one branch and not the other (D-028). A submitted `party_id` is **re-resolved through the
+authorized candidate query** rather than trusted, so an id obtained elsewhere cannot become a
+participation. Every failure — absent, archived, another Office, an unreachable subtype — answers
+one indistinguishable 422, because telling them apart would answer a question the caller has no
+permission to ask.
+
+Candidates are same-Office and not archived. No User or Party permission was widened to populate
+a picker.
+
+**A linked Party is never withdrawn from the list.** A participation the office recorded is
+Project data: a reader authorized for the list sees every row, each as a minimal stub — id,
+display name, subtype, archived flag, and `can_view_party`. Hiding rows would misreport the
+Project's composition to somebody entitled to read it, which is worse than declining to link
+onward. The same holds when a Party is archived later: it stays listed and marked, is not
+unlinked, and is simply no longer offered as a candidate.
+
+**No sensitive identity crosses this surface** — no NIK, NPWP, `tax_id`, fingerprint, contact, or
+address, and **no masks either**, since a mask is still a statement about a sensitive value
+(D-082).
+
+**Participation is current working state, not a historical ledger.** This is the sharpest
+departure from `company_people` and it is deliberate:
+
+```text
+company_people    effective_from  effective_until   history, because deeds depend on it
+project_parties   created_at  created_by            what is true now
+```
+
+`03_DATABASE_ERD.md` section 7 gives participation no period columns, no `updated_at`, and no
+`deleted_at`, and none was added. Removing a participation **hard-deletes the relationship row
+and nothing else** — the Project and the Party both remain, unarchived and unaltered. A soft
+delete would have created a half-history: rows nobody lists, no mechanism to read them, and a
+schema claiming preservation that no surface honours. D-083 keeps history because "who was the
+director in March" decides the validity of a deed executed in March; nothing yet depends on who
+was listed on a Project last Tuesday, and building the mechanism before the requirement would be
+building for an imagined caller. **If participation history is later required it needs its own
+decision and its own columns**, not a `deleted_at` added quietly.
+
+Correcting a participation writes `role_code`, `is_primary`, and `notes` only. Re-pointing it at
+a different Party is refused: that is a different relationship, not an edit, and allowing it
+would let one row silently become another while keeping the first one's attribution — and would
+skip the candidate authorization the add path performs.
+
+**`role_code` stays an opaque, nullable classification.** No enum, no `Rule::in`, no `CHECK`. The
+ERD's six codes are labelled examples and are not a catalogue, so constraining the column would
+invent the participant-role vocabulary M3 has no authority to write (CLAUDE.md section 62). A
+code the ERD never mentions stores exactly as one it does.
+
+**`is_primary` is a designation and carries no cardinality.** Not exactly-one, not at-least-one,
+not one-per-role, and not an assertion of client or legal authority. Several participants may be
+primary at once and none has to be. **A Project with no participants at all is complete, not a
+draft** — M3.3's create surface was not retroactively given a participant field, and no
+uniqueness constrains `(project_id, party_id)`, so one Party may appear twice under two
+classifications. Each of these absences is a rule nobody has stated; inventing any of them
+through an index or a validator would be a business rule wearing an implementation's clothing.
+
 ### M3 implementation order
 
 ```text

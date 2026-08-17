@@ -267,5 +267,27 @@ it('never offers TEAM for a Project permission', function (): void {
 });
 
 it('adds no permission to the canonical registry', function (): void {
-    expect(count(PermissionRegistry::all()))->toBe(171);
+    // Narrowed at M3.4, which legitimately added `projects.parties.view` and
+    // `projects.parties.manage` (D-098). The global total is pinned once in
+    // `PermissionRegistryTest`; what M3.1 claimed, and what stays true, is that
+    // the eight Project lifecycle codes are exactly the ones the registry
+    // already carried — this Policy invented none.
+    $lifecycle = array_values(array_filter(
+        PermissionRegistry::all(),
+        fn (string $code): bool => str_starts_with($code, 'projects.')
+            && ! str_starts_with($code, 'projects.parties.'),
+    ));
+
+    sort($lifecycle);
+
+    expect($lifecycle)->toBe([
+        'projects.archive',
+        'projects.assign',
+        'projects.change_status',
+        'projects.create',
+        'projects.restore',
+        'projects.update',
+        'projects.view',
+        'projects.view_all',
+    ]);
 });

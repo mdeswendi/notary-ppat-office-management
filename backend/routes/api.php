@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProjectAssignmentController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\ProjectPartyController;
 use App\Http\Controllers\Api\V1\ProjectStatusController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
@@ -203,8 +204,8 @@ Route::prefix('v1')->group(function (): void {
          * `DELETE` archives. Project records are never destroyed, and `restore`
          * is a POST to the archived record rather than an inverse `DELETE`.
          *
-         * No Matter route, and no `project_parties` route: M4 and M3.4
-         * respectively.
+         * Participation is nested under the Project (M3.4) — see below. No Matter
+         * route: that is M4.
          */
         Route::get('projects/archived', [ArchivedProjectController::class, 'index'])
             ->name('api.v1.projects.archived.index');
@@ -218,6 +219,39 @@ Route::prefix('v1')->group(function (): void {
 
         Route::patch('projects/{project}/status', [ProjectStatusController::class, 'update'])
             ->whereUlid('project')->name('api.v1.projects.status.update');
+
+        /*
+         * Project <-> Party participation (M3.4, D-098).
+         *
+         * Nested under the Project because that is what owns it: participation
+         * authority is the parent Project's Data Scope, and there is deliberately
+         * no top-level `/project-parties` collection to reach a row without
+         * naming the Project it belongs to.
+         *
+         * Two capabilities: `projects.parties.view` reads the list,
+         * `projects.parties.manage` writes it. Neither implies the other and
+         * `projects.update` reaches neither.
+         *
+         * `party-options` is the candidate source. It is authorized by `manage`
+         * **and** additionally applies Party-domain visibility per subtype, so
+         * managing participation never becomes a way to discover Parties.
+         *
+         * `DELETE` here genuinely deletes — the relationship row only, never the
+         * Project and never the Party. `project_parties` is current working
+         * state rather than a ledger, which is the one place M3.4 deliberately
+         * differs from `company_people` (D-083 vs D-098).
+         */
+        Route::get('projects/{project}/party-options', [ProjectPartyController::class, 'options'])
+            ->whereUlid('project')->name('api.v1.projects.parties.options');
+
+        Route::get('projects/{project}/parties', [ProjectPartyController::class, 'index'])
+            ->whereUlid('project')->name('api.v1.projects.parties.index');
+        Route::post('projects/{project}/parties', [ProjectPartyController::class, 'store'])
+            ->whereUlid('project')->name('api.v1.projects.parties.store');
+        Route::patch('projects/{project}/parties/{projectParty}', [ProjectPartyController::class, 'update'])
+            ->whereUlid('project')->whereUlid('projectParty')->name('api.v1.projects.parties.update');
+        Route::delete('projects/{project}/parties/{projectParty}', [ProjectPartyController::class, 'destroy'])
+            ->whereUlid('project')->whereUlid('projectParty')->name('api.v1.projects.parties.destroy');
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');

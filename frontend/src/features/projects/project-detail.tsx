@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProjectAssignmentSection } from "@/features/projects/project-assignment-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
+import { ProjectPartiesSection } from "@/features/projects/project-parties-section";
 import { toProjectErrorKey } from "@/features/projects/project-errors";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
@@ -47,6 +48,7 @@ import { PROJECT_STATUSES, type Project, type ProjectStatus } from "@/types/proj
 export function ProjectDetail({ projectId }: { projectId: string }) {
   const t = useTranslations("projects");
   const tActions = useTranslations("actions");
+  const tParties = useTranslations("projectParties");
 
   const query = useQuery({
     queryKey: projectQueryKeys.detail(projectId),
@@ -145,6 +147,21 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
 
         <ProjectAssignmentSection project={project} />
+      </section>
+
+      {/*
+        Participation (M3.4). Rendered unconditionally rather than behind a
+        capability flag on the Project: the section answers to its own
+        permissions, and the component asks its own endpoint — which returns 403
+        for a reader who holds neither, and that is the honest state to show.
+      */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-base font-medium">{tParties("section")}</h2>
+          <p className="text-muted-foreground text-sm">{tParties("sectionDescription")}</p>
+        </div>
+
+        <ProjectPartiesSection projectId={project.id} />
       </section>
     </div>
   );

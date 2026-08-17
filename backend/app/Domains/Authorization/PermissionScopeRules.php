@@ -123,6 +123,14 @@ class PermissionScopeRules
         'projects.change_status',
         'projects.archive',
         'projects.restore',
+
+        // Participation is evaluated against the **parent Project** by the same
+        // four predicates (M3.4, D-098), so it belongs in this list rather than
+        // in the Party one. The Party a row points at is reached through Party
+        // visibility separately; that is a different question with a different
+        // answer, and mixing the two here would encode one boundary as two.
+        'projects.parties.view',
+        'projects.parties.manage',
     ];
 
     /**

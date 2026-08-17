@@ -244,13 +244,17 @@ it('introduces no Matter persistence', function (): void {
         ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse();
 });
 
-it('introduces no participation, workflow, or later-milestone table', function (): void {
-    // project_parties is M3.4 (D-092); the rest are M4 and beyond.
+it('introduces no workflow or later-milestone table', function (): void {
+    // **Narrowed at M3.4, not deleted.** `project_parties` was on this list
+    // while participation was still unbuilt; M3.4 owns it now, and its own
+    // schema test asserts its shape. Everything else is M4 and beyond and stays
+    // exactly as it was.
+    //
     // `project_reference_counters` is deliberately absent from this list — M3.2
     // added it, and it is Project allocator infrastructure rather than a
     // later-milestone surface.
     foreach ([
-        'project_parties', 'service_types', 'workflow_templates', 'workflow_stages',
+        'service_types', 'workflow_templates', 'workflow_stages',
         'matter_workflows', 'matter_stage_instances', 'documents', 'properties', 'tasks',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
@@ -276,6 +280,9 @@ it('exposes exactly the expected Project routes and nothing more', function (): 
     // M3.3 ships the product surface, so the assertion becomes an inventory —
     // which is the more useful guard anyway: a new route now has to be added
     // here deliberately.
+    //
+    // Extended at M3.4 with the five participation routes, deliberately and in
+    // one place.
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_starts_with($route->uri(), 'api/v1/projects'))
         ->map(fn ($route): string => implode('|', array_diff($route->methods(), ['HEAD'])).' '.$route->uri())
@@ -283,14 +290,19 @@ it('exposes exactly the expected Project routes and nothing more', function (): 
 
     expect($routes)->toBe([
         'DELETE api/v1/projects/{project}',
+        'DELETE api/v1/projects/{project}/parties/{projectParty}',
         'GET api/v1/projects',
         'GET api/v1/projects/archived',
         'GET api/v1/projects/{project}',
         'GET api/v1/projects/{project}/assignment/options',
+        'GET api/v1/projects/{project}/parties',
+        'GET api/v1/projects/{project}/party-options',
         'PATCH api/v1/projects/{project}',
         'PATCH api/v1/projects/{project}/assignment',
+        'PATCH api/v1/projects/{project}/parties/{projectParty}',
         'PATCH api/v1/projects/{project}/status',
         'POST api/v1/projects',
+        'POST api/v1/projects/{project}/parties',
         'POST api/v1/projects/{project}/restore',
     ]);
 });

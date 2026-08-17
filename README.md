@@ -170,7 +170,7 @@ Belum ada pengguna bawaan dan **tidak ada seeder akun**. Siapkan deployment baru
 php artisan app:bootstrap
 ```
 
-Perintah itu membuat satu Organization, satu Office, sembilan role bawaan, seluruh 171
+Perintah itu membuat satu Organization, satu Office, sembilan role bawaan, seluruh 173
 permission kanonik, dan administrator pertama. Perintah berjalan interaktif dan menanyakan
 kata sandi tanpa menampilkannya — kata sandi tidak pernah diterima sebagai argumen baris
 perintah (D-060).

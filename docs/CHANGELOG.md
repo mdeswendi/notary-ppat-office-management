@@ -5,6 +5,136 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M3.4 Project ↔ Party participation
+
+Branch `feat/m3-project-matter`. **One forward migration** (22 total). **Two permissions**
+(171 → **173**) — the first codes added since the catalogue was transcribed. Backend
+**1591 tests / 5329 assertions** — 115 new. Five routes, one Project-detail section, i18n at
+**731/731** exact parity. One new decision, **D-098**.
+
+### What shipped
+
+`project_parties`, and the surface to maintain it:
+
+```text
+GET    /api/v1/projects/{project}/parties                  projects.parties.view
+POST   /api/v1/projects/{project}/parties                  projects.parties.manage
+PATCH  /api/v1/projects/{project}/parties/{projectParty}   projects.parties.manage
+DELETE /api/v1/projects/{project}/parties/{projectParty}   projects.parties.manage
+GET    /api/v1/projects/{project}/party-options            projects.parties.manage
+```
+
+Nested under the Project, with **no top-level collection**: a relationship row must not be
+reachable without naming the parent, because the parent is where the authorization lives. A row
+belonging to a different Project answers 404, not 403.
+
+### Two capabilities, and neither implies the other
+
+Authorization is judged against the **parent Project** by the four D-088 predicates. Following
+the M2.4 precedent, a relationship surface gets its own capability rather than borrowing the
+parent's lifecycle permission — **`projects.update` reaches neither**, or the dedicated codes
+would be decoration. No `projects.parties.view_all`: reach is Data Scope `ALL`, and a second
+reach mechanism is what D-090 refuses.
+
+That `manage` does not imply `view` is the half that feels wrong and is deliberate. The registry
+defines two codes; an administrator who wants both grants both. A silently implied capability is
+one nobody configured and nobody can revoke.
+
+### The same-Office invariant is structural
+
+```text
+project_parties.office_id  ->  projects (id, office_id)
+                           ->  parties  (id, office_id)
+```
+
+Two composite foreign keys through one carrier column, so both endpoints must agree with it and
+therefore with each other. A cross-office participation is **unrepresentable**, not merely
+refused — the M2.4 pattern (D-080), because the same sentence holds: `ALL` grants visibility and
+administrative reach, never permission to redefine domain ownership. `projects` gained the
+`UNIQUE (id, office_id)` support key a composite foreign key requires; `parties` has carried its
+equivalent since M2.1.
+
+An `ALL`-scoped actor reaches a Project in another Office and links a Party from **that Office**.
+It never bridges two — proven in the smoke, not just asserted.
+
+### Managing participation is not authority to discover Parties
+
+This is the boundary the milestone exists to get right. Linking requires **both**
+`projects.parties.manage` over the Project **and** ordinary Party visibility for the candidate —
+`parties.view` for an Individual, `companies.view` for a Company, **evaluated independently**,
+because an actor may hold one branch and not the other.
+
+A submitted `party_id` is **re-resolved through the authorized candidate query** rather than
+trusted, so a real and correct id obtained elsewhere cannot become a participation. Every
+ineligibility — absent, archived, another Office, an unreachable subtype — answers one
+indistinguishable 422.
+
+**A linked Party is never withdrawn from the list.** A reader who cannot open the Party still
+sees the row as a minimal stub with `can_view_party: false`; hiding it would misreport the
+Project's composition to somebody entitled to read it. No NIK, NPWP, `tax_id`, contact, address —
+and no masks, since a mask is still a statement about a sensitive value.
+
+### Current state, not history
+
+The sharpest departure from `company_people`, and deliberate:
+
+```text
+company_people    effective_from  effective_until   history, because deeds depend on it
+project_parties   created_at  created_by            what is true now
+```
+
+The ERD gives participation no period columns, no `updated_at`, and no `deleted_at`, and none was
+added. Unlinking **hard-deletes the relationship row** and leaves both records untouched. A soft
+delete would have created a half-history: rows nobody lists, no mechanism to read them, and a
+schema claiming preservation that no surface honours. If participation history is later required
+it needs its own decision and its own columns.
+
+### What was deliberately not invented
+
+`role_code` is nullable and opaque — no enum, no `Rule::in`, no `CHECK`. The ERD's six codes are
+labelled examples, so constraining the column would turn them into the catalogue the document
+says they are not. `is_primary` is a designation with **no cardinality**: several may be primary
+at once and none has to be. No `UNIQUE (project_id, party_id)`, so one Party may appear twice
+under two classifications. **A Project with no participants is complete, not a draft** — M3.3's
+create surface was not changed.
+
+Each of these is a rule nobody has stated. Inventing any of them through an index or a validator
+would be a business rule wearing an implementation's clothing.
+
+### One defect found and fixed
+
+A participation created without `is_primary` serialized as `null` in its own 201 response while
+the database stored `false` — the creating client and a later reader would have been told
+different things about the same row. Fixed by mirroring the column default on the model.
+
+### Verification
+
+**Disposable PostgreSQL 18.4**, uniquely named: migrated from zero through all 22, both composite
+foreign keys and the support key confirmed, M3.4 rolled back, **M3.3 state confirmed restored**
+(21 migrations, no `project_parties`, support key gone), reapplied, dropped, and **absence
+proven**.
+
+**HTTP smoke over real PostgreSQL and Sanctum cookie sessions: 57 checks, 0 failures.**
+
+The M3.3 rule was applied and it earned its keep. Before the first smoke request, the **serving
+process itself** reported its connected database — via `SELECT current_database()`, not config,
+through a proof endpoint running in that same process — and the smoke was written to abort if it
+disagreed. It did abort on the first run, on a BOM in the expected-name file rather than a wrong
+target, which is the guard behaving correctly.
+
+Twelve M2/M3 guard tests were **narrowed rather than deleted**. Six asserted the global
+permission total of 171 in six separate places; the total is now pinned once, in
+`PermissionRegistryTest`, and each milestone test asserts its own domain group instead — so a
+later legitimate addition no longer has to be applied in six files. The rest asserted that
+participation did not exist yet, which M3.4 intentionally makes false.
+
+The persistent development database differs from its M3.3-verified baseline in exactly three
+ways, all intended: migrations 21 → 22, permissions 171 → 173, and the new empty
+`project_parties` table. Every other count is unchanged, `sessions` included — the smoke left no
+residue.
+
+---
+
 ## 2026-08-16 — M3.3 Project core management
 
 Branch `feat/m3-project-matter`. **One forward migration** (21 total). **No permission** (171):
