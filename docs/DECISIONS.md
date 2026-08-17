@@ -3080,6 +3080,87 @@ the count 173 → 177.** **M4.6 and M4.7 build mechanism only.**
 
 ---
 
+## 2026-08-17 — M4.1 Service Type master-data foundation
+
+### D-106 — Service Types are Office-owned reference data, retired rather than deleted
+
+One forward migration (23 total) and **no permission — the count stays at 173**; both
+`master.services.view` and `master.services.manage` were already canonical. **Backend foundation
+only**: no route, controller, request, resource, frontend page, or navigation entry, following the
+M2.1 and M3.1 precedent.
+
+**Office-owned, not deployment-global.** `03_DATABASE_ERD.md` section 8 gives `service_types` an
+`office_id`, and the genuinely global tables — roles, permissions — carry none. So the
+`allowsGlobally()` pattern D-044 built for Role definitions does **not** apply here: two Offices
+each maintain their own catalogue, and the same service exists as two rows.
+
+**Data Scope is `OFFICE` and `ALL` only** — the Party answer (D-080) rather than the Project one
+(D-088), because the reasoning that separated them applies again. `OWN` would have to mean
+`created_by`, and the table deliberately has no such column: a Service Type is a **shared reference
+record**, and the colleague who typed it in has no claim on the service the office offers.
+`ASSIGNED` has no assignment entity — nobody is the PIC of a catalogue entry. `TEAM` has no Team
+entity (D-042).
+
+`PermissionScopeRules` offers exactly the two scopes the visibility class can honour, so an
+administrator cannot grant `master.services.view` at `OWN`, see it saved, and receive a silently
+powerless grant — the dead control D-080 named. **Only the Service Type family is narrowed**; the
+other twelve `master.*` families keep the permissive default, because their domains are still
+undesigned and narrowing them would repeat the mistake this entry corrects, one module across.
+
+**`view` and `manage` are independent, and `manage` does not imply `view`** (D-098's answer): the
+registry defines two codes, so an administrator who wants both grants both.
+
+**Creation always lands in the actor's own Office, including for an actor holding `ALL`.** `ALL` is
+reach over records that already exist, never authority to decide which Office a new one belongs
+to — the same line D-098 drew for participation.
+
+**Office, `code` and `domain` are identity, not content**, and the model refuses to change any of
+them after creation. Other records classify themselves by all three, so rewriting one silently
+redefines what they mean: `code` is the handle, `domain` decides which Matter surface may offer
+the service at all (D-101), and Office is the security boundary. Both names, both descriptions,
+`sort_order` and `default_duration_days` are ordinary content an office may correct.
+
+`code` is a **stable classification handle, never an internal reference and never legal numbering**
+(D-103). It is stored exactly as submitted, with **no case normalization**, because no canonical
+document defines one and inventing a rule would silently decide whether `AJB` and `ajb` are the
+same code. `UNIQUE (office_id, code)` is composite and never global — the O-023 shape, reached for
+the same reason — and **`domain` is deliberately outside that namespace**, so one code cannot mean
+two things inside one Office.
+
+**`UNIQUE (id, office_id)` is added now, ahead of its use.** M4.2's `matters.service_type_id` is
+intended to carry the same-Office guarantee structurally through `(service_type_id, office_id) ->
+service_types (id, office_id)`, and the support key is one index today versus a second migration
+later. This is a deliberate exception to "add nothing on speculation": the shape is already fixed
+by D-105 and by the `company_people` (D-080) and `project_parties` (D-098) precedents, and
+`projects` gained its equivalent at M3.4 for exactly this reason.
+
+**Retirement is `is_active`, and there is no other lifecycle** — no delete, no soft delete, no
+archive, no restore. The ERD lists `is_active` and no `deleted_at`; the `offices` migration set the
+precedent in the same words; and the registry offers no code that could authorize a deletion. It is
+also the only choice that survives M4.2: a Matter referencing a deleted Service Type would lose the
+classification a historical record depends on, which `CLAUDE.md` section 63 forbids. **An inactive
+entry stays readable and keeps every existing reference intact** — inactive means unavailable for
+new selection, never erased from history — and the future Matter foreign key must therefore be
+restrictive and **never `SET NULL`**.
+
+**`legal_term` and `preserve_legal_term` are withheld.** They appear in the ERD field list and are
+defined nowhere else in the repository, while a separate `legal_terms` table carries its own
+`preserve_original_term` concept — a foreign key, a free-text term, and a display-fallback flag are
+all plausible readings. Withheld until validated, exactly as M3.1 withheld `project_number` until
+its construction was settled (D-095, D-086).
+
+**Zero production rows, and fixtures that cannot be mistaken for a catalogue.** No validated
+service catalogue exists (D-102), so nothing seeds one and the factory emits `UJI_` codes and
+`Layanan Uji` names rather than plausible legal services somebody could later copy into a seeder.
+
+**Verified on real PostgreSQL, and it caught a false claim.** The migration originally documented
+`unsignedInteger` as making `default_duration_days` non-negative. **PostgreSQL has no unsigned
+integer type and silently maps it to `integer`** — proven by inserting `-1`, which the database
+accepted. Non-negativity is now enforced by an explicit CHECK beside the domain one, and the
+comment says what is actually true.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

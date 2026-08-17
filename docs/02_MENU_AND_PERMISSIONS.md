@@ -652,6 +652,23 @@ master.legal_terms.view
 master.legal_terms.manage
 ```
 
+**M4.1 built the Service Type foundation and added no permission — the count stays at 173**
+*(D-106)*. `master.services.view` and `master.services.manage` were already canonical, and the two
+are **independent**: `manage` does not imply `view`.
+
+Their Data Scopes are narrowed to exactly **`OFFICE` and `ALL`**. Service Types are Office-owned
+reference data, so `OWN` would have to mean `created_by` — a column the table deliberately does not
+have — `ASSIGNED` has no assignee to match, and `TEAM` has no Team entity (D-042). Offering any of
+the three would let an administrator save a silently powerless grant.
+
+**The other twelve `master.*` families keep the permissive default**, because their domains are
+still undesigned; narrowing them now would repeat the mistake that narrowing corrects.
+
+**M4.1 ships no route and no navigation entry.** Master Data stays absent from the sidebar, so no
+sibling `master.*` code sits inside a module the interface presents as working, and the
+deferred-permission list is unchanged. Backend foundation is not a reachable product route
+(D-064).
+
 ---
 
 ## 19. User & Role Permissions

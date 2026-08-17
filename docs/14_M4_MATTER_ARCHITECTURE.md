@@ -493,6 +493,46 @@ long as the catalogue is empty, which is the M3.2 lesson about `project_number` 
 (D-095): a constraint that outruns the data it constrains blocks the milestone that would satisfy
 it.
 
+### Delivered at M4.1 *(D-106)*
+
+One forward migration (23 total) and **no permission — the count stays at 173**; both codes were
+already canonical. **Backend foundation only: no route, controller, request, resource, frontend
+page, or navigation entry**, following the M2.1 and M3.1 precedent.
+
+```text
+service_types    Office-owned, one row per service the office offers
+                 code + domain + both names required; both descriptions optional
+UNIQUE (office_id, code)    a code identifies one service within its Office
+UNIQUE (id, office_id)      the support key M4.2's composite FK will reference
+CHECK domain IN (NOTARY, PPAT)
+CHECK default_duration_days IS NULL OR >= 0
+```
+
+**Office, `code`, and `domain` are identity, not content**, and the model refuses to change any of
+them after creation: other records classify themselves by them, so rewriting one silently
+redefines what they mean. Both names, both descriptions, `sort_order` and `default_duration_days`
+are ordinary content an office may correct.
+
+**Retirement is `is_active`, and there is no other lifecycle** — no delete, no soft delete, no
+archive, no restore, and no canonical code that could authorize one. An inactive Service Type
+stays readable so records referencing it keep their classification (`CLAUDE.md` section 63), which
+is also why M4.2's Matter foreign key must never be designed as `SET NULL`.
+
+**Data Scope is `OFFICE` and `ALL` only** — the Party answer (D-080), not the Project one. `OWN`
+would have to mean `created_by` and the table deliberately has no such column; `ASSIGNED` has no
+assignee to match; `TEAM` has no Team entity. `PermissionScopeRules` offers exactly the two the
+visibility class can honour, so an administrator cannot save a silently powerless grant. The other
+twelve `master.*` families keep the permissive default — their domains are still undesigned.
+
+**Creation always lands in the actor's own Office, including for `ALL`.** `ALL` is reach over
+records that already exist, never authority to decide which Office a new one belongs to (D-098's
+line, restated).
+
+**`legal_term` and `preserve_legal_term` are withheld.** They appear in the ERD field list and are
+defined nowhere else in the repository, and a separate `legal_terms` table exists with its own
+permissions — at least three readings are plausible. Withheld until validated, exactly as M3.1
+withheld `project_number` (D-095).
+
 ---
 
 ## 13. Sensitive identity
@@ -559,6 +599,9 @@ M4.6   Workflow templates + stages
 M4.7   Matter workflow instances + stage transitions
 M4.8   M4 quality gate
 ```
+
+**M4.1 — delivered** *(D-106)*. See section 12. One forward migration (23), no permission (173),
+backend foundation only.
 
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.

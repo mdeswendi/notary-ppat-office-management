@@ -5,6 +5,147 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M4.1 Service Type master-data foundation
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (23 total). **No permission** (173):
+both `master.services.*` codes were already canonical. Backend **1650 passed + 2 skipped = 1652
+tests / 5474 assertions** — 61 new. i18n **731 / 731** exact, because a backend foundation adds no
+UI string. One new decision, **D-106**.
+
+**The two skips are the first in this suite and are deliberate.** Both assert database behaviour
+that only PostgreSQL has — the `domain` CHECK and the non-negative duration CHECK — and the test
+connection is in-memory SQLite, which cannot add a CHECK after the fact and accepts a negative
+integer into an `unsigned` column. Asserting either there would pin behaviour the production engine
+does not share. Both are proven instead against real PostgreSQL in the disposable-database run
+below, which is where they belong.
+
+**Backend foundation only** — no route, controller, request, resource, frontend page, or navigation
+entry, following the M2.1 and M3.1 precedent. `service_types` is the first master-data table in the
+repository and the first anywhere to carry bilingual `name_id` / `name_en` columns.
+
+### Office-owned, and that settles the authorization question
+
+The ERD gives `service_types` an `office_id`; the genuinely global tables — roles, permissions —
+carry none. So the `allowsGlobally()` pattern D-044 built for Role definitions does **not** apply,
+and the answer lands on the **Party** side rather than the Project side:
+
+```text
+OFFICE   service_types.office_id = actor office
+ALL      cross-office reach
+OWN      withheld — would have to mean created_by, and there is no such column
+ASSIGNED withheld — nobody is the PIC of a catalogue entry
+TEAM     withheld — no Team entity (D-042)
+```
+
+D-080's reasoning transfers exactly: a Service Type is a **shared reference record**, and the
+colleague who typed it in has no claim on the service the office offers. `PermissionScopeRules`
+offers exactly the two scopes the visibility class can honour, so an administrator cannot save a
+silently powerless grant — the dead control D-080 named. **Only the Service Type family is
+narrowed**; the other twelve `master.*` families keep the permissive default because their domains
+are still undesigned.
+
+`view` and `manage` stay independent, and **`manage` does not imply `view`** (D-098's answer).
+**Creation always lands in the actor's own Office, including for `ALL`** — reach over existing
+records is not authority to decide where a new one belongs.
+
+### Identity versus content
+
+Office, `code` and `domain` are **identity**, and the model refuses to change any of them after
+creation. Other records classify themselves by all three: `code` is the handle, `domain` decides
+which Matter surface may offer the service at all (D-101), and Office is the security boundary.
+Both names, both descriptions, `sort_order` and `default_duration_days` are ordinary content.
+
+`code` is a stable classification handle — **never an internal reference and never legal
+numbering** (D-103). Stored exactly as submitted with **no case normalization**, because no
+canonical document defines one. `UNIQUE (office_id, code)` is composite and never global, the
+O-023 shape for the same reason, and **`domain` is deliberately outside that namespace** so one
+code cannot mean two things in one Office.
+
+**`UNIQUE (id, office_id)` is added now, ahead of its use** — the support key M4.2's
+`matters.service_type_id` will reference through a composite foreign key. A deliberate exception to
+"add nothing on speculation": the shape is already fixed by D-105 and the two precedents that
+built it, and it costs one index today against a second migration later.
+
+### Retirement, not deletion
+
+`is_active` is the whole lifecycle. No delete, no soft delete, no archive, no restore — and no
+canonical code that could authorize one. The ERD lists `is_active` and no `deleted_at`, and the
+`offices` migration set the precedent in the same words. It is also the only choice that survives
+M4.2: a Matter referencing a deleted Service Type would lose the classification a historical record
+depends on (`CLAUDE.md` section 63). **Inactive means unavailable for new selection, never erased
+from history**, which is why the future Matter foreign key must be restrictive and never
+`SET NULL`.
+
+**`legal_term` and `preserve_legal_term` are withheld.** They appear in the ERD field list and are
+defined nowhere else, while a separate `legal_terms` table carries its own `preserve_original_term`
+concept — a foreign key, a free-text term, and a display-fallback flag are all plausible readings.
+Withheld until validated, exactly as M3.1 withheld `project_number` (D-095).
+
+**Zero production rows.** The factory emits `UJI_` codes and `Layanan Uji` names rather than
+plausible legal services somebody could later copy into a seeder.
+
+### The disposable database caught a false claim
+
+The migration originally documented `unsignedInteger` as making `default_duration_days`
+non-negative. **PostgreSQL has no unsigned integer type and silently maps it to `integer`** —
+proven by inserting `-1`, which the database accepted. An explicit CHECK now enforces
+non-negativity beside the domain one, and the comment says what is actually true. The local suite
+would never have caught it: SQLite's dynamic typing accepts the value too, so the assertion is
+PostgreSQL-only and was skipped there.
+
+### Two M3-era guards narrowed rather than deleted
+
+`ProjectSchemaTest` and `ProjectPartySchemaTest` both asserted that `service_types` does not
+exist — true when written, and intentionally made false by this milestone. Each keeps every other
+table on its list and gains the assertion the test was always really about: **Project and
+participation gain no foreign key into any later milestone**, so `projects.service_type_id` and
+`project_parties.service_type_id` are now pinned absent. The same treatment M3.1 and M3.4 applied
+to the M2-era guards they invalidated.
+
+### Two stale authorization comments corrected
+
+`RolePolicy` stated in the present tense that *"Spatie registers a `Gate::before` that grants any
+ability matching a permission the user holds"*, citing O-027. **D-048 resolved that** —
+`register_permission_check_method` is `false`, the package registers no callback, and a test
+asserts zero. `UserPolicy` already said the correct thing. `PermissionPolicy` cited O-027 as live
+reasoning. Both now record what changed and why the naming convention still holds — the D-077
+shape, found during M4.1 reconnaissance and fixed rather than carried into a new Policy modelled on
+them.
+
+### Verification
+
+```text
+Backend        1650 passed + 2 skipped, 5474 assertions — 61 new
+Pint           passed
+composer       validate --strict passed
+Frontend       format:check, lint, typecheck, build all clean
+i18n           731 / 731 exact — no UI string added
+Migrations     23, none pending
+Permissions    173 registry / 173 database, sync idempotent twice
+Disposable DB  full chain from empty PostgreSQL; migrated 0 -> 23; every constraint
+               verified; invalid domain, negative duration, duplicate (office_id, code)
+               and Office deletion all refused by the database; same code in a second
+               Office accepted; M4.1 rolled back alone leaving exact M3 state (22, no
+               service_types, project_parties intact); rolled back all 23 leaving only an
+               empty migrations table; re-migrated; dropped; absence proven
+```
+
+No HTTP smoke: M4.1 exposes no route, controller, or resource, so there is no Service Type HTTP
+behaviour to exercise and no temporary endpoint was manufactured to create one. O-034 remains open
+and untouched.
+
+The persistent development database was compared before and after: **all sixteen tracked counts
+identical**, still at 22 migrations, and no `service_types` table — M4.1's migration was never
+applied to it.
+
+### Open items
+
+None opened, closed, or modified. O-010, O-018, O-031, O-032, O-033 and O-034 are unchanged.
+
+**M4.2 has not started.** No `matters` table, no Matter Policy, no workflow anything.
+
+---
+
 ## 2026-08-17 — M4.0 Matter and Workflow architecture lock
 
 Branch `feat/m4-matter-workflow`, opened from the accepted `main` tip `c17684e`.

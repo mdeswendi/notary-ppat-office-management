@@ -134,6 +134,32 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Service Type catalogue, whose predicates M4.1 settled.
+     *
+     * `OFFICE` and `ALL` only — the Party answer (D-080), not the Project one
+     * (D-088), because the reasoning that separated them applies here too. A
+     * Service Type is a **shared reference record**: `OWN` would have to mean
+     * `created_by`, and the table deliberately has no such column, since the
+     * colleague who typed an entry in has no claim on the service the office
+     * offers. `ASSIGNED` has no assignment entity — nobody is the PIC of a
+     * catalogue entry. `TEAM` has no Team entity at all (D-042).
+     *
+     * Withholding them matters because the Permission Matrix offers exactly this
+     * list. Leaving `master.services.*` in the permissive default below would let
+     * an administrator grant it at `OWN`, see it saved, and get a silently
+     * powerless grant — the dead control D-080 named.
+     *
+     * **Only the Service Type family is narrowed.** The other twelve `master.*`
+     * codes keep the permissive default, because their domains are still
+     * undesigned and narrowing them would repeat the mistake this entry corrects,
+     * one module across.
+     */
+    private const MASTER_SERVICE_TYPES = [
+        'master.services.view',
+        'master.services.manage',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -158,6 +184,10 @@ class PermissionScopeRules
 
         if (in_array($permission, self::PROJECT_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::MASTER_SERVICE_TYPES, true)) {
+            return [DataScope::OFFICE, DataScope::ALL];
         }
 
         // Everything else, including every permission whose module is not built

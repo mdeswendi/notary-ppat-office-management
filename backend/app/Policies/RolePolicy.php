@@ -25,10 +25,18 @@ use Spatie\Permission\Models\Role;
  * assigned, or office-held record — see `allowsGlobally()` and D-044.
  *
  * The ability names below (`viewAny`, `view`, …) deliberately are not permission
- * names. Spatie registers a `Gate::before` that grants any ability matching a
- * permission the user holds, so an ability named `roles.view` would be answered
- * by the package — from direct user grants, with no scope check — before this
- * policy ever ran. See O-027.
+ * names. This paragraph used to explain that as a live hazard: Spatie *did*
+ * register a `Gate::before` answering any ability matching a held permission —
+ * from direct user grants, with no scope check — so an ability named `roles.view`
+ * would have been answered by the package before this policy ran (O-027).
+ *
+ * **That is no longer true, and the convention holds for a different reason.**
+ * D-048 resolved O-027 by setting `register_permission_check_method` to `false`,
+ * so the package registers no Gate callback at all and a permission name reaching
+ * the Gate now fails closed — asserted by test. Keeping ability names distinct
+ * from permission codes remains right because a Policy ability and a capability
+ * identifier are different things, and because reintroducing the package
+ * integration must never silently re-open the hole. Corrected at M4.1 (D-077).
  */
 class RolePolicy
 {

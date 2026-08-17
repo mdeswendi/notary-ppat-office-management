@@ -516,6 +516,37 @@ NOTARY
 PPAT
 ```
 
+**Built at M4.1** *(D-106)*, Office-owned as this field list says, with these dispositions:
+
+- **`code`, `domain` and `office_id` are immutable after creation.** Other records classify
+  themselves by them, so rewriting one silently redefines what they mean. `code` is a stable
+  classification handle — **never an internal reference and never legal numbering** (D-103) — and
+  is stored exactly as submitted, with no case normalization, because no canonical document
+  defines one.
+- **`UNIQUE (office_id, code)`**, composite and never global: two Offices may both offer the same
+  service. `domain` is deliberately outside the namespace, so one code cannot mean two things in
+  one Office.
+- **`UNIQUE (id, office_id)`**, the support key M4.2's `matters.service_type_id` will reference
+  through a composite foreign key, making a cross-office Service Type reference unrepresentable.
+- **`is_active` is the only retirement mechanism.** No `deleted_at`, no archive, no restore, and no
+  canonical permission that could authorize one. An inactive entry stays readable so records
+  already referencing it keep their classification.
+- **`default_duration_days` is informational planning metadata only** — not an SLA, not a workflow
+  deadline, not a legal timing rule. Non-negativity is enforced by a CHECK, because
+  `unsignedInteger` maps to plain `integer` on PostgreSQL and does not constrain the sign.
+- **`sort_order` is presentation ordering only**, carrying no legal or process meaning.
+- **`created_by` / `updated_by` are absent**, as this field list has them: reference data is not
+  owned by whoever typed it, which is also why `OWN` is withheld from its Data Scopes.
+- **`legal_term` and `preserve_legal_term` are withheld** *(M4.1)*. They appear here and are
+  defined nowhere else in the repository, and the separate `legal_terms` table in section 26 has
+  its own `preserve_original_term` concept — at least three readings are plausible. Withheld until
+  the semantics are validated, exactly as `project_number` was until its construction was settled
+  (D-095).
+
+**The table ships empty and stays empty.** No validated Notary or PPAT service catalogue exists —
+it is the first open question in both workflow drafts — so nothing seeds one, and test fixtures use
+deliberately non-domain values (D-102).
+
 ---
 
 ## 9. Matters

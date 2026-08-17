@@ -5,12 +5,14 @@ namespace App\Providers;
 use App\Models\Company;
 use App\Models\Individual;
 use App\Models\ProjectParty;
+use App\Models\ServiceType;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
+use App\Policies\ServiceTypePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -64,6 +66,11 @@ class AppServiceProvider extends ServiceProvider
         // authority is judged against the Project's Data Scope (D-098). Callers
         // authorize with `[ProjectParty::class, $project]`.
         Gate::policy(ProjectParty::class, ProjectPartyPolicy::class);
+
+        // The Service Type catalogue (M4.1). Laravel would discover this pair on
+        // its own; it is listed here so one file still answers "which policy
+        // guards what" for every model in the application.
+        Gate::policy(ServiceType::class, ServiceTypePolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

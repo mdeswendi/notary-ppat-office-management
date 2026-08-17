@@ -22,7 +22,12 @@ use App\Models\User;
  * read; `SUPER_ADMIN` gets no bypass.
  *
  * The ability names are `viewAny` and `assign` rather than the permission codes
- * themselves — see O-027 for why that distinction is load-bearing.
+ * themselves. O-027 was the original reason — Spatie's `Gate::before` would have
+ * answered an ability named after a permission — and **D-048 resolved it** by
+ * disabling that integration, so the Gate now refuses permission names outright.
+ * The distinction is kept because a Policy ability and a capability identifier
+ * are different things, and it is asserted by test rather than left to
+ * convention. Citation corrected at M4.1 (D-077).
  */
 class PermissionPolicy
 {

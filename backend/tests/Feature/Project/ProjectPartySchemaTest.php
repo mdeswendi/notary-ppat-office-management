@@ -353,13 +353,21 @@ it('records who linked the Party and survives that person', function (): void {
 */
 
 it('introduces no Matter or later-milestone persistence', function (): void {
+    // **Narrowed at M4.1, not deleted.** `service_types` was on this list while
+    // master data was unbuilt; M4.1 owns it now (D-106) and its own schema test
+    // asserts its shape. Everything else is M4.2 and beyond and stays exactly as
+    // it was — and the point this test was always making holds: participation
+    // gains no foreign key into any later milestone.
     foreach ([
-        'matters', 'matter_parties', 'service_types',
+        'matters', 'matter_parties',
         'workflow_templates', 'workflow_instances', 'workflow_stages',
         'documents', 'properties', 'warkah', 'deeds', 'tasks',
     ] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse();
+        expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    expect(Schema::hasColumn('project_parties', 'matter_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'service_type_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected participation routes and nothing more', function (): void {

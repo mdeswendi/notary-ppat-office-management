@@ -250,15 +250,25 @@ it('introduces no workflow or later-milestone table', function (): void {
     // schema test asserts its shape. Everything else is M4 and beyond and stays
     // exactly as it was.
     //
+    // **Narrowed again at M4.1**, which builds `service_types` (D-106). The
+    // Service Type catalogue was on this list while master data was unbuilt; it
+    // has its own schema test now. What this test was always really about is
+    // unchanged and still asserted below: **Project gains no foreign key into
+    // any of it.**
+    //
     // `project_reference_counters` is deliberately absent from this list — M3.2
     // added it, and it is Project allocator infrastructure rather than a
     // later-milestone surface.
     foreach ([
-        'service_types', 'workflow_templates', 'workflow_stages',
+        'workflow_templates', 'workflow_stages',
         'matter_workflows', 'matter_stage_instances', 'documents', 'properties', 'tasks',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The point that survives every narrowing: Project points at none of it.
+    expect(Schema::hasColumn('projects', 'service_type_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse();
 });
 
 it('generalizes the counter into no legal numbering framework', function (): void {
