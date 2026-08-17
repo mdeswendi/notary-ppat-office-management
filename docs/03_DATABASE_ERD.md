@@ -588,6 +588,29 @@ CANCELLED
 ARCHIVED
 ```
 
+**Built at M4.2** *(D-107)*, with two structural invariants and two deferrals:
+
+```text
+matters (project_id, office_id)              -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+UNIQUE (matters.id, office_id)                the support key M4.5 will reference
+CHECK domain / status / priority
+```
+
+The Service Type key carries **three** columns because it enforces two rules at once — same Office
+*and* same domain — so a Notary Matter classified with a PPAT service is unrepresentable. That
+required adding `UNIQUE (id, office_id, domain)` to `service_types` in the same migration: M4.1
+shipped only `(id, office_id)`, and a composite foreign key needs a unique index on exactly the
+columns it references. `service_type_id` remains nullable, and a composite key with a NULL
+component is satisfied, so an unclassified Matter stays valid.
+
+**`matter_number` and `current_stage_id` are absent from the delivered table.** The first arrives at
+M4.3 with its allocator, the second at M4.7 with the real stage-instance foreign key; neither is
+stubbed as a nullable placeholder (D-095's rule).
+
+**`deleted_at` exists as reserved schema capability with no lifecycle reaching it**, and the model
+uses no `SoftDeletes`, so no global scope filters any query.
+
 **M4 dispositions** *(M4.0 — see `14_M4_MATTER_ARCHITECTURE.md`)*:
 
 - **`project_id` is required** (D-099). A Matter always names one Project; a Project may hold many

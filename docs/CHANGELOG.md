@@ -5,6 +5,149 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M4.2 Matter schema and authorization foundation
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (24 total). **No permission** (173):
+the sixteen Matter codes were already canonical. Backend **1750 passed + 5 skipped = 1755 tests /
+5742 assertions** — 103 new. i18n **731 / 731** exact. One new decision, **D-107**.
+
+**Backend foundation only** — no route, controller, request, resource, frontend page, or
+navigation entry, following M2.1, M3.1 and M4.1. `matters` is the M4 root, one table with a
+`domain` discriminator; no `notary_matters`, no `ppat_matters` (D-102).
+
+### Two invariants the database enforces, not the application
+
+```text
+matters (project_id, office_id)              -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+```
+
+The first makes a Matter whose Office disagrees with its Project's **unrepresentable** — Office is
+inherited from the parent (D-099), never caller-selected.
+
+The second is **one key doing two jobs**: same Office *and* same domain, so a Notary Matter
+classified with a PPAT service cannot exist. That required adding `UNIQUE (id, office_id, domain)`
+to `service_types` in the same migration — M4.1 shipped only `(id, office_id)`, and a composite
+foreign key needs a unique index on exactly the columns it references. `service_type_id` stays
+nullable and PostgreSQL treats a composite key with a NULL component as satisfied, so an
+unclassified Matter remains valid. **Never `SET NULL`**: erasing a classification because a
+catalogue was tidied would lose data a historical record depends on.
+
+`matters` also gains `UNIQUE (id, office_id)` — the support key M4.5's `matter_parties` will
+reference, the M4.1 pattern of one index now against a second migration later.
+
+### Deferred, and deliberately not stubbed
+
+`matter_number` belongs to M4.3 **with its allocator**, and `current_stage_id` to M4.7 **with the
+real stage-instance foreign key**. Neither exists as a nullable placeholder: the first would be a
+column somebody fills in wrongly and the second a pointer validated by nothing (D-095's rule,
+applied for the third time).
+
+`deleted_at` exists as **reserved schema capability** and the model uses **no `SoftDeletes`**. The
+trait would install a global scope silently filtering every query — including `MatterVisibility` —
+making "invisible because soft-deleted" indistinguishable from "unreachable by scope", and would
+settle visibility semantics before the milestone that owns archiving exists to settle them.
+`ARCHIVED` remains a business status, never soft deletion.
+
+### The domain comes from the caller, never the row
+
+One `MatterPolicy`, and every ability takes an explicit `MatterDomain` that selects the permission
+namespace. Reading `$matter->domain` to *choose* the permission would be the new authorization
+shape `13_M3_PROJECT_ARCHITECTURE.md` flagged; route-derived namespacing keeps the question
+ordinary. A **separate** rule keeps the row honest — the supplied domain must equal the persisted
+one or the ability refuses — and at M4.4 the route binding turns that into the canonical 404
+(D-101). The two answer different questions, and collapsing them would reinstate the row-derived
+namespace by the back door. A source guard pins it: `$matter->domain` appears exactly once in the
+Policy, in the equality check.
+
+Eight abilities, each answering to its own code, **none implying another** — proven exhaustively:
+holding any one of the six record capabilities authorizes that one and refuses the other five.
+
+### Creation
+
+Four conditions, and the third is the one worth naming: the domain's own `create` code at a scope
+that can describe a record about to exist (`OWN`, `OFFICE`, `ALL` — **`ASSIGNED` cannot**, because
+a new Matter has no PIC, and an actor holding `ASSIGNED` *and* `OFFICE` creates normally);
+**`projects.view` on the parent**, the minimum coherent proof somebody may open work beneath it and
+the *only* place Matter authorization consults the parent; **the parent in the actor's own Office,
+refused even at `ALL`** (D-097's ruling, one domain across); and a Project that is **not archived**,
+which falls out of using the canonical reach check rather than a separate lookup.
+
+**Parent Project reach confers no Matter access** — an actor holding `projects.view` and
+`projects.update` at `OFFICE` reaches no Matter at all — and two source guards forbid the branches
+that would change that: no project join in `MatterVisibility`, and no stage-assignment branch.
+
+### Scope rules
+
+**Fourteen codes, not sixteen.** Every actionable Matter capability gets `OWN`, `ASSIGNED`,
+`OFFICE`, `ALL`; `TEAM` is withheld. **Both `view_all` codes are excluded** and consulted by no
+ability — an actor holding only `view_all` at `ALL` reaches nothing, proven for both domains
+(D-090).
+
+`create` needs no special entry, and that is worth stating because it looks as though it might: the
+`ASSIGNED` exclusion belongs to the predicate, not the assignable-scope list. Encoding it in the
+rules would confuse *what may be granted* with *what a grant can match*.
+
+### Enums
+
+`MatterDomain` is **its own enum** rather than a reuse of `ServiceTypeDomain` — Matter is not a
+master-data concept, and naming its domain after that type would make the aggregate depend on a
+master-data detail. A parity test keeps the two value lists identical so a divergence must be
+deliberate. `priority` **reuses `ProjectPriority`**, whose docblock already records that the ERD
+names the column on projects, matters and tasks and defines the vocabulary exactly once.
+
+### Five guards narrowed, one of them M4.1's own
+
+`ProjectSchemaTest`, `ProjectPartySchemaTest`, `ProjectLifecycleTest`, `PartySchemaTest` and
+`ServiceTypeSchemaTest` all asserted that `matters` does not exist. Each keeps every other table and
+retains the point it was really making — no foreign key or column reaching into a later milestone.
+`ProjectLifecycleTest`'s **route** assertions were left untouched and still pass, because M4.2 ships
+no Matter endpoint.
+
+A sixth was narrowed for a different reason: `ServiceTypeSchemaTest`'s migrate/rollback probe rolled
+back one step while `service_types` was the newest migration. `matters` now is, and it holds a
+foreign key into that table, so the probe rolls back two.
+
+### Verification
+
+```text
+Backend        1750 passed + 5 skipped, 5742 assertions — 103 new
+Pint           passed
+composer       validate --strict passed
+Frontend       format:check, lint, typecheck, build all clean
+i18n           731 / 731 exact — no UI string added
+Migrations     24, none pending
+Permissions    173 registry / 173 database, sync idempotent twice
+Disposable DB  full chain from empty PostgreSQL; migrated 0 -> 24; every constraint,
+               index and support key verified; ten database invariants proven, including
+               cross-office Project refused, cross-office Service Type refused,
+               same-Office wrong-domain Service Type refused, null Service Type accepted,
+               invalid domain/status/priority refused, and RESTRICT on both parents;
+               M4.2 rolled back alone leaving exact M4.1 state (23, no `matters`, M4.1's
+               support key kept and M4.2's removed); rolled back all 24 leaving only an
+               empty migrations table; re-migrated; dropped; absence proven
+```
+
+The five skips are PostgreSQL-only assertions — three CHECK constraints here plus M4.1's two —
+which in-memory SQLite cannot reproduce. All are proven against real PostgreSQL in the disposable
+run.
+
+No HTTP smoke: M4.2 exposes no Matter route, and no temporary endpoint was manufactured to create
+one. O-034 remains open and untouched.
+
+**Persistent development database unchanged**: all sixteen tracked counts identical before and
+after, still at 22 migrations with neither `service_types` nor `matters` present — M4.1's and
+M4.2's migrations have never been applied to it.
+
+### Open items
+
+None opened, closed, or modified. O-010, O-018, O-031, O-032, O-033 and O-034 are unchanged.
+
+**M4.3 has not started.** No `matter_number`, no allocator, no Matter route, controller, resource,
+or UI, no `matter_parties`, no workflow tables, no extension tables.
+
+---
+
 ## 2026-08-17 — M4.1 Service Type master-data foundation
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (23 total). **No permission** (173):

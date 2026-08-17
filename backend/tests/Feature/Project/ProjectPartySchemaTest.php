@@ -358,8 +358,10 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     // asserts its shape. Everything else is M4.2 and beyond and stays exactly as
     // it was — and the point this test was always making holds: participation
     // gains no foreign key into any later milestone.
+    // **Narrowed again at M4.2**, which builds `matters` (D-107). Its own schema
+    // test asserts its shape; everything else here is M4.5 and beyond.
     foreach ([
-        'matters', 'matter_parties',
+        'matter_parties',
         'workflow_templates', 'workflow_instances', 'workflow_stages',
         'documents', 'properties', 'warkah', 'deeds', 'tasks',
     ] as $table) {

@@ -62,11 +62,13 @@ it('records no actor metadata and no soft delete', function (): void {
 });
 
 it('introduces no matter or workflow relation', function (): void {
-    // M4.1 is the catalogue and nothing else. Matter references Service Type at
-    // M4.2, not the reverse, and workflow templates belong to M4.6.
+    // M4.1 is the catalogue and nothing else. Workflow templates belong to M4.6.
+    //
+    // **Narrowed at M4.2**, which builds `matters` (D-107) — and the direction is
+    // the point this test was always making: Matter references Service Type, not
+    // the reverse, so `service_types` still gains no column pointing at it.
     expect(Schema::hasColumn('service_types', 'workflow_template_id'))->toBeFalse()
         ->and(Schema::hasColumn('service_types', 'matter_id'))->toBeFalse()
-        ->and(Schema::hasTable('matters'))->toBeFalse()
         ->and(Schema::hasTable('workflow_templates'))->toBeFalse();
 });
 
@@ -225,12 +227,18 @@ it('carries the same-office support key m4.2 will reference', function (): void 
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    // **Two steps since M4.2, not one.** This rolled back a single migration
+    // while `service_types` was the newest; `matters` is now, and it holds a
+    // foreign key into this table, so both must come off together. The assertion
+    // is unchanged in substance — this migration is reversible and repeatable.
+    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
 
-    expect(Schema::hasTable('service_types'))->toBeFalse();
+    expect(Schema::hasTable('service_types'))->toBeFalse()
+        ->and(Schema::hasTable('matters'))->toBeFalse();
 
     $this->artisan('migrate')->assertSuccessful();
 
     expect(Schema::hasTable('service_types'))->toBeTrue()
-        ->and(Schema::hasColumn('service_types', 'is_active'))->toBeTrue();
+        ->and(Schema::hasColumn('service_types', 'is_active'))->toBeTrue()
+        ->and(Schema::hasTable('matters'))->toBeTrue();
 });

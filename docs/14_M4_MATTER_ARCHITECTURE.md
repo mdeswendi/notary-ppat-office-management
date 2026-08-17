@@ -603,6 +603,36 @@ M4.8   M4 quality gate
 **M4.1 — delivered** *(D-106)*. See section 12. One forward migration (23), no permission (173),
 backend foundation only.
 
+**M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
+`PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
+migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
+
+```text
+matters (project_id, office_id)             -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+UNIQUE (matters.id, office_id)               the support key M4.5 will reference
+CHECK domain / status / priority
+```
+
+The Service Type key does **two jobs at once**: same Office *and* same domain, so a Notary Matter
+classified with a PPAT service is unrepresentable rather than merely refused. That required adding
+`UNIQUE (id, office_id, domain)` to `service_types` — M4.1 shipped only `(id, office_id)`, and a
+composite foreign key needs a unique index on the exact referenced columns.
+
+**Deferred and not stubbed:** `matter_number` to M4.3 with its allocator (D-095's rule), and
+`current_stage_id` to M4.7 with the real stage-instance foreign key. Neither exists as a nullable
+placeholder.
+
+**`deleted_at` exists as reserved schema capability and the model uses no `SoftDeletes`** — no
+global scope filters any query, so "invisible because soft-deleted" cannot be confused with
+"unreachable by scope" before the milestone that owns archiving exists to decide it.
+
+**Authorization** is one `MatterPolicy` taking an **explicit `MatterDomain` supplied by the
+caller**, never read from the row to choose a permission (D-101). Eight abilities, each answering
+to its own code, none implying another. Creation additionally requires `projects.view` on the
+parent, the parent in the actor's **own** Office — refused even at `ALL` — and a Project that is
+not archived.
+
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.
 

@@ -4,11 +4,13 @@ namespace App\Providers;
 
 use App\Models\Company;
 use App\Models\Individual;
+use App\Models\Matter;
 use App\Models\ProjectParty;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\IndividualPolicy;
+use App\Policies\MatterPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
@@ -71,6 +73,14 @@ class AppServiceProvider extends ServiceProvider
         // its own; it is listed here so one file still answers "which policy
         // guards what" for every model in the application.
         Gate::policy(ServiceType::class, ServiceTypePolicy::class);
+
+        // Matter (M4.2). Registered explicitly because its abilities are unusual
+        // enough to be worth pointing at: every one takes an explicit
+        // `MatterDomain` supplied by the caller's route context, which is what
+        // selects the permission namespace (D-101). `create` additionally takes
+        // the parent Project. Callers authorize with `[$matter, $domain]`, or
+        // `[Matter::class, $domain, $project]` for creation.
+        Gate::policy(Matter::class, MatterPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

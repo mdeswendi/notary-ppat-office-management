@@ -384,6 +384,8 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // a Project, because Project Office is immutable during M3 (D-089).
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
+    // **The route half is untouched at M4.2**, which ships no Matter endpoint —
+    // `matters` stays on this list and stays true.
     foreach ([
         'projects/{project}/participants',
         'matters', 'workflow', 'stages', 'deeds', 'warkah', 'properties',
@@ -392,7 +394,10 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
     }
 
-    foreach (['matters', 'matter_parties'] as $table) {
+    // **The table half is narrowed at M4.2**, which builds `matters` (D-107).
+    // Participation remains M4.5, and the point that survives is that Project
+    // exposes no surface reaching into either.
+    foreach (['matter_parties'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 });

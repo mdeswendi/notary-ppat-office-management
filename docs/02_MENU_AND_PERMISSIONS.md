@@ -420,6 +420,14 @@ and PPAT alike, were already canonical. Four rulings govern how they are used
   lifecycle reaching it, and `CANCELLED` / `COMPLETED` / `ARCHIVED` are business statuses, never
   synonyms for soft deletion.
 
+**M4.2 built the Matter foundation and added no permission — the count stays at 173** *(D-107)*.
+Fourteen of the sixteen codes — every one except the two `view_all` — are narrowed in
+`PermissionScopeRules` to the four Project-shaped scopes `OWN`, `ASSIGNED`, `OFFICE`, `ALL`, with
+`TEAM` withheld. `create` needs no special entry: an administrator may grant it at `ASSIGNED`, and
+it simply authorizes nothing, because the predicate is false for a record that has no PIC yet.
+**Both `view_all` codes stay out of those rules and are consulted by no Policy ability.** M4.2 ships
+no route, so navigation is unchanged.
+
 **Matter participation is expected to add four codes at M4.5** *(D-105)* —
 `notary.matters.parties.view`, `notary.matters.parties.manage`, `ppat.matters.parties.view`,
 `ppat.matters.parties.manage`, moving the count **173 → 177**. Four rather than two because the

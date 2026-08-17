@@ -3161,6 +3161,90 @@ comment says what is actually true.
 
 ---
 
+## 2026-08-17 — M4.2 Matter schema and authorization foundation
+
+### D-107 — The Matter root, its two structural invariants, and where the domain comes from
+
+One forward migration (24 total) and **no permission — the count stays at 173**; the sixteen
+Matter codes were already canonical. **Backend foundation only**: no route, controller, request,
+resource, frontend page, or navigation entry, following M2.1, M3.1 and M4.1.
+
+**Two invariants are structural rather than validated**, because a rule the database cannot
+express is one somebody eventually routes around:
+
+```text
+matters (project_id, office_id)              -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+```
+
+The first makes a Matter whose Office disagrees with its Project's unrepresentable — the Office is
+**inherited from the parent** (D-099), never caller-selected. The second does **two jobs with one
+key**: same Office *and* same domain, so a Notary Matter classified with a PPAT service cannot
+exist. That required adding `UNIQUE (id, office_id, domain)` to `service_types`, because M4.1
+shipped only `(id, office_id)` and a composite foreign key needs a unique index on exactly the
+referenced columns. `service_type_id` stays nullable and PostgreSQL treats a composite key with a
+NULL component as satisfied, so a Matter with no Service Type remains valid (D-102). Never
+`SET NULL`: erasing a classification because a catalogue was tidied would lose data a historical
+record depends on.
+
+`matters` also gains `UNIQUE (id, office_id)`, the support key M4.5's `matter_parties` will
+reference — the M4.1 pattern, one index now against a second migration later.
+
+**Deferred and deliberately not stubbed.** `matter_number` belongs to M4.3 *with* its allocator
+(D-095's rule, proven twice now), and `current_stage_id` to M4.7 *with* the real stage-instance
+foreign key. A nullable placeholder for either would be a column somebody fills in wrongly or a
+pointer validated by nothing.
+
+**`deleted_at` is reserved schema capability and the model uses no `SoftDeletes`.** The column
+exists because the ERD carries it; the trait would install a global scope silently filtering every
+query — including `MatterVisibility` — making "invisible because soft-deleted" indistinguishable
+from "unreachable by scope", and settling visibility semantics before the milestone that owns
+archiving exists to settle them. `ARCHIVED` remains a **business status**, never soft deletion.
+
+**Matter Data Scope** is the four D-100 predicates: `OWN` = `created_by`, `ASSIGNED` =
+`pic_user_id`, `OFFICE` = `office_id`, `ALL` = cross-office reach, `TEAM` nothing. Fourteen
+actionable codes get that scope set; **`view_all` is excluded from the rules and consulted by no
+ability** (D-090). Two branches must never enter `MatterVisibility` and both are pinned by source
+guards: a parent-Project join, which would make Project reach a silent superset of Matter reach,
+and a stage-assignment branch, which would widen `ASSIGNED` for every role already holding it.
+
+**The domain comes from the caller, never from the row.** There is one `MatterPolicy`, and every
+ability takes an explicit `MatterDomain` that selects the permission namespace. Reading
+`$matter->domain` to choose the permission would be the new authorization shape the M3 lock
+flagged; route-derived namespacing keeps the question ordinary. A **separate** rule keeps the row
+honest — the supplied domain must equal the persisted one, or the ability refuses — and at M4.4 the
+route binding turns that mismatch into the canonical 404 (D-101). The two answer different
+questions, and collapsing them would reinstate the row-derived namespace by the back door.
+
+Eight abilities, each answering to its own code, **none implying another**: `update` does not reach
+assignment, `assign` does not reach update, `change_stage` does not imply `complete`, `complete`
+does not imply `cancel`. No umbrella `manage` code, and no archive, restore, or delete.
+
+**Creation requires four things**, and the third is the one worth stating: the domain's own
+`create` code at a scope that can describe a record about to exist (`OWN`, `OFFICE`, `ALL` —
+`ASSIGNED` cannot, because a new Matter has no PIC); **`projects.view` on the parent**, which is
+the minimum coherent proof somebody may open work beneath it and is the *only* place Matter
+authorization consults the parent (D-100 keeps them independent everywhere else); **the parent in
+the actor's own Office, refused even at `ALL`**, because `ALL` is cross-office reach over existing
+Matters and not authority to file new work elsewhere (D-097's ruling, one domain across); and a
+Project that is **not archived**, which falls out of using the canonical reach check rather than a
+separate lookup.
+
+**Same-Office PIC is locked and enforced at M4.4**, where the assignment surface lives: `ASSIGNED`
+grants reach when `pic_user_id == actor.id`, so a cross-office assignment would hand somebody reach
+their scope never included. No `(pic_user_id, office_id)` composite key is added here — `users`
+carries no matching support key, and building one for an invariant another milestone owns would be
+construction ahead of requirement.
+
+**`MatterDomain` is its own enum**, not a reuse of `ServiceTypeDomain`: Matter is not a master-data
+concept, and naming its domain after the Service Type type would make the aggregate depend on a
+master-data detail. A parity test keeps the two lists identical so a divergence must be deliberate.
+**`priority` reuses `ProjectPriority`**, because that enum already records that the ERD names the
+column on projects, matters and tasks and defines the vocabulary exactly once — one vocabulary, one
+enum, and no refactor of accepted M3 ownership for naming elegance.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

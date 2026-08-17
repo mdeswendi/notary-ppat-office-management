@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Models;
+
+use App\Domains\Matter\Enums\MatterDomain;
+use App\Domains\Matter\Enums\MatterStatus;
+use App\Domains\Matter\MatterVisibility;
+use App\Domains\Project\Enums\ProjectPriority;
+use Database\Factories\MatterFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
+
+/**
+ * The operational unit of work inside a Project (M4.2, D-107).
+ *
+ * **Not fillable, each for its own reason** — the D-091 mutation boundary
+ * expressed where it cannot be forgotten:
+ *
+ * ```text
+ *   project_id      parentage, fixed at creation
+ *   office_id       the security boundary, inherited from the Project (D-099)
+ *   domain          decides which capability namespace authorizes this record
+ *   status          answers to `*.matters.complete` / `.cancel` / a status
+ *                   capability, never to ordinary update
+ *   pic_user_id     answers to `*.matters.assign`, never to ordinary update
+ *   created_by      actor metadata, written by the application
+ *   updated_by      actor metadata, never request input
+ *   service_type_id classification, set at creation by a path M4.4 owns
+ * ```
+ *
+ * A future `UpdateMatter` Action accepting a request body therefore cannot
+ * reassign a Matter, move its status, or move it between Offices by accident:
+ * the model refuses the fields rather than trusting the Action to filter them.
+ *
+ * **Three fields are identity and are refused even to `forceFill`.** `project_id`,
+ * `office_id`, and `domain` are guarded in `updating()` because `Fillable` alone
+ * does not stop a direct attribute assignment. Office is the security boundary
+ * and M4 designs no transfer (D-099); `domain` selects the permission namespace
+ * (D-101), so flipping it would reclassify work already done; and re-parenting a
+ * Matter would move it between Projects whose Offices may differ, which the
+ * composite foreign key would refuse anyway — better to say why than to let a
+ * database error explain it.
+ *
+ * **No `SoftDeletes`, deliberately** (D-102). The table carries `deleted_at` as
+ * reserved schema capability because the ERD lists it, but M4 ships no archive or
+ * restore lifecycle and the canonical registry defines no code that could
+ * authorize one. Adding the trait would install a global scope that silently
+ * filters every query — including {@see MatterVisibility} —
+ * making "invisible because soft-deleted" indistinguishable from "unreachable by
+ * scope", and would settle visibility semantics before the milestone that owns
+ * archiving exists to settle them.
+ *
+ * `ARCHIVED` is a **business status**, never soft deletion.
+ *
+ * **No Matter number and no current stage.** `matter_number` belongs to M4.3 with
+ * its allocator (D-095's rule), and `current_stage_id` to M4.7 with the real
+ * stage-instance foreign key. Neither is stubbed here.
+ *
+ * No participant collection either — `matter_parties` belongs to M4.5 (D-105) —
+ * and no workflow relation, which is M4.6 and M4.7.
+ */
+#[Fillable([
+    'title',
+    'priority',
+    'opened_at',
+    'target_completion_date',
+    'completed_at',
+    'notes',
+])]
+class Matter extends Model
+{
+    /** @use HasFactory<MatterFactory> */
+    use HasFactory;
+
+    use HasUlids;
+
+    /**
+     * Refuse an identity change before it reaches SQL.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $matter): void {
+            foreach (['project_id', 'office_id', 'domain'] as $attribute) {
+                if ($matter->isDirty($attribute)) {
+                    throw new RuntimeException(
+                        "matters.{$attribute} is immutable during M4 (D-099, D-101, D-107). "
+                        .'Parentage, Office ownership, and domain are identity rather than content: '
+                        .'the Office is a security boundary, the domain selects the capability '
+                        .'namespace that authorizes this record, and re-parenting would move work '
+                        .'between Offices. Lifting any of them needs its own architecture decision.'
+                    );
+                }
+            }
+        });
+    }
+
+    /**
+     * @return BelongsTo<Project, $this>
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * @return BelongsTo<Office, $this>
+     */
+    public function office(): BelongsTo
+    {
+        return $this->belongsTo(Office::class);
+    }
+
+    /**
+     * The optional classification. Null is a complete Matter, not a draft
+     * (D-102): no validated service catalogue exists yet.
+     *
+     * @return BelongsTo<ServiceType, $this>
+     */
+    public function serviceType(): BelongsTo
+    {
+        return $this->belongsTo(ServiceType::class);
+    }
+
+    /**
+     * The person in charge — the `ASSIGNED` Data Scope predicate (D-100).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function picUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pic_user_id');
+    }
+
+    /**
+     * The creator — the `OWN` Data Scope predicate (D-100).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'domain' => MatterDomain::class,
+            'status' => MatterStatus::class,
+
+            // Reused rather than duplicated: `ProjectPriority` records that
+            // `03_DATABASE_ERD.md` names `priority` on projects, matters, and
+            // tasks and defines the vocabulary exactly once. One shared
+            // vocabulary, one enum — a `MatterPriority` with identical values
+            // would be duplication that can drift, and refactoring the accepted
+            // M3 enum's ownership for naming elegance would touch closed work.
+            'priority' => ProjectPriority::class,
+
+            'opened_at' => 'date',
+            'target_completion_date' => 'date',
+            'completed_at' => 'datetime',
+        ];
+    }
+}

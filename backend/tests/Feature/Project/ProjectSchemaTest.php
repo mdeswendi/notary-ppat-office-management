@@ -234,9 +234,15 @@ it('copies no Party sensitive identity into the project table', function (): voi
 */
 
 it('introduces no Matter persistence', function (): void {
-    // D-087: Matter is M4. Project does not point at it either — Matter will
-    // reference Project, not the reverse.
-    foreach (['matters', 'matter_parties', 'notary_matters', 'ppat_matters'] as $table) {
+    // D-087: Matter is M4. Project does not point at it either — Matter
+    // references Project, not the reverse.
+    //
+    // **Narrowed at M4.2, not deleted.** `matters` was on this list while Matter
+    // was unbuilt; M4.2 owns it now (D-107) and its own schema test asserts its
+    // shape. The rest stays: participation is M4.5, and the extension tables are
+    // M6/M7 (D-102). What this test was always really about is unchanged and
+    // still asserted below — **Project gains no column pointing at any of it.**
+    foreach (['matter_parties', 'notary_matters', 'ppat_matters'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 

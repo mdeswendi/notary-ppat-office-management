@@ -160,6 +160,52 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Matter domain, whose predicates M4.2 settled (D-100).
+     *
+     * All four assignable scopes mean something here, exactly as they do for
+     * Project:
+     *
+     *   OWN       matters.created_by  = actor id
+     *   ASSIGNED  matters.pic_user_id = actor id
+     *   OFFICE    matters.office_id   = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **Fourteen codes, not sixteen.** `notary.matters.view_all` and
+     * `ppat.matters.view_all` are deliberately absent: they are superseded by
+     * Data Scope `ALL` for reach and are not part of the Matter authorization
+     * surface (D-090). No Policy ability consults either. Listing them here would
+     * assert they are live capabilities with meaningful scopes, which is precisely
+     * what supersession denies — the same treatment `projects.view_all` receives.
+     *
+     * **`create` needs no special entry, and that is worth stating** because it
+     * looks as though it might. An administrator may legitimately grant
+     * `notary.matters.create` at `ASSIGNED`; the grant simply authorizes nothing
+     * on its own, because the `ASSIGNED` predicate is false for a record that has
+     * no PIC yet (D-097, D-107). That exclusion belongs to the predicate, not to
+     * the assignable-scope list — encoding it here would confuse *what may be
+     * granted* with *what a grant can match*.
+     */
+    private const MATTER_DOMAIN = [
+        'notary.matters.view',
+        'notary.matters.create',
+        'notary.matters.update',
+        'notary.matters.assign',
+        'notary.matters.change_stage',
+        'notary.matters.complete',
+        'notary.matters.cancel',
+
+        'ppat.matters.view',
+        'ppat.matters.create',
+        'ppat.matters.update',
+        'ppat.matters.assign',
+        'ppat.matters.change_stage',
+        'ppat.matters.complete',
+        'ppat.matters.cancel',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -188,6 +234,10 @@ class PermissionScopeRules
 
         if (in_array($permission, self::MASTER_SERVICE_TYPES, true)) {
             return [DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::MATTER_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 
         // Everything else, including every permission whose module is not built
