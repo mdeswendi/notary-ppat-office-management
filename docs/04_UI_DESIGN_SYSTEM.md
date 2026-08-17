@@ -505,7 +505,7 @@ Billing
 Header:
 
 ```text
-N-2026-00312
+N-2026-000312
 Akta Perubahan — PT ABC
 
 NOTARY
@@ -539,7 +539,7 @@ Workflow should use a vertical stepper when long.
 Header:
 
 ```text
-P-2026-00128
+P-2026-000128
 
 AJB — Akta Jual Beli
 Deed of Sale and Purchase

@@ -227,14 +227,16 @@ it('carries the same-office support key m4.2 will reference', function (): void 
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    // **Two steps since M4.2, not one.** This rolled back a single migration
-    // while `service_types` was the newest; `matters` is now, and it holds a
-    // foreign key into this table, so both must come off together. The assertion
+    // **Three steps since M4.3.** This rolled back one migration while
+    // `service_types` was the newest, then two once `matters` landed on top of
+    // it; M4.3's reference migration is now the newest, and each layer holds a
+    // dependency on the one below, so all three come off together. The assertion
     // is unchanged in substance — this migration is reversible and repeatable.
-    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
 
     expect(Schema::hasTable('service_types'))->toBeFalse()
-        ->and(Schema::hasTable('matters'))->toBeFalse();
+        ->and(Schema::hasTable('matters'))->toBeFalse()
+        ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse();
 
     $this->artisan('migrate')->assertSuccessful();
 

@@ -56,9 +56,11 @@ use RuntimeException;
  *
  * `ARCHIVED` is a **business status**, never soft deletion.
  *
- * **No Matter number and no current stage.** `matter_number` belongs to M4.3 with
- * its allocator (D-095's rule), and `current_stage_id` to M4.7 with the real
- * stage-instance foreign key. Neither is stubbed here.
+ * **`matter_number` arrived at M4.3** with its allocator (D-103), and is
+ * **immutable once the row exists** — see the guard below. It is nullable until
+ * M4.4 integrates allocation into the creating transaction and tightens the
+ * column. **`current_stage_id` is still deferred to M4.7**, with the real
+ * stage-instance foreign key; it is not stubbed here.
  *
  * No participant collection either — `matter_parties` belongs to M4.5 (D-105) —
  * and no workflow relation, which is M4.6 and M4.7.
@@ -94,6 +96,25 @@ class Matter extends Model
                         .'between Offices. Lifting any of them needs its own architecture decision.'
                     );
                 }
+            }
+
+            // The internal reference is allocated once and then belongs to the
+            // record (D-103). **Every** change is refused, including `null -> a
+            // reference`: M4.4 stamps the reference inside the creating
+            // transaction, so a Matter is never created bare and numbered
+            // afterwards. That is stricter than the Project guard, which had to
+            // permit `null -> reference` while M3.2's column was nullable and
+            // dropped the branch at M3.3; Matter can start strict because its
+            // create path does not exist yet to have relied on the looser rule.
+            //
+            // This fires on `updating` only, so it never blocks the stamp itself:
+            // an allocation lands on a new model, which is an insert.
+            if ($matter->isDirty('matter_number')) {
+                throw new RuntimeException(
+                    'matters.matter_number is immutable once the row exists (D-103). '
+                    .'A reference belongs to the Matter that received it, and one is stamped '
+                    .'during creation rather than added by a later update.'
+                );
             }
         });
     }

@@ -603,6 +603,9 @@ M4.8   M4 quality gate
 **M4.1 — delivered** *(D-106)*. See section 12. One forward migration (23), no permission (173),
 backend foundation only.
 
+**M4.3 — delivered** *(D-108)*. See section 11. One forward migration (25), no permission (173),
+backend foundation only; `matter_number` nullable until M4.4 integrates allocation.
+
 **M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
 `PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
 migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
@@ -622,6 +625,35 @@ composite foreign key needs a unique index on the exact referenced columns.
 **Deferred and not stubbed:** `matter_number` to M4.3 with its allocator (D-095's rule), and
 `current_stage_id` to M4.7 with the real stage-instance foreign key. Neither exists as a nullable
 placeholder.
+
+### Delivered at M4.3 *(D-108)*
+
+The internal reference and the counter that allocates it. One forward migration (25 total), **no
+permission — the count stays at 173**, and **no HTTP or frontend surface**.
+
+```text
+matter_reference_counters   PRIMARY KEY (office_id, reference_year, domain)
+matters.matter_number       varchar(32), nullable in M4.3
+UNIQUE (matters.office_id, matter_number)
+CHECK  matter_number IS NULL OR (NOTARY -> 'N-%') OR (PPAT -> 'P-%')
+```
+
+**Three namespace dimensions**, because `N-` and `P-` are distinct prefixes and a shared counter
+would make `N-2026-000001` and `P-2026-000001` compete for one value. A **dedicated** counter
+table: the M3.2 allocator is reused as a *pattern*, never as a table, and the generic numbering
+engine `03_DATABASE_ERD.md` section 27 sketches is deliberately not used.
+
+**`domain` is absent from the Matter unique key** — the formatted string already carries the
+prefix, so a Notary and a PPAT reference in one Office-year cannot collide. The domain belongs in
+the counter's key, where it separates sequences.
+
+**Nullable until M4.4**, exactly as `project_number` was until M3.3: no creation path allocates
+yet, so `NOT NULL` would make Matter unwritable for a whole milestone. **Nothing was backfilled** —
+the persistent development database has no `matters` table at all.
+
+**Immutable once the row exists**, and stricter than the Project guard: `null → value`,
+`value → other`, and `value → null` are all refused, because M4.4 stamps inside the creating
+transaction rather than numbering a Matter afterwards.
 
 **`deleted_at` exists as reserved schema capability and the model uses no `SoftDeletes`** — no
 global scope filters any query, so "invisible because soft-deleted" cannot be confused with

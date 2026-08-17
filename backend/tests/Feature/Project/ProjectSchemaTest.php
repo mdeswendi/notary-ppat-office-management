@@ -282,12 +282,23 @@ it('generalizes the counter into no legal numbering framework', function (): voi
     // `legal_number_sequences` or `deed_sequences` table would pull deed,
     // repertorium, and register numbering — none of which has a validated
     // domain rule — into a milestone that owns none of them.
+    //
+    // **Narrowed at M4.3, not deleted.** `matter_reference_counters` was on this
+    // list as a stand-in for "the Project counter got generalized". M4.3 creates
+    // it as a **separate, dedicated** table (D-108), which is what M3.2 said
+    // should happen rather than what it warned against — so the table's existence
+    // is now checked for the opposite reason, below.
     foreach ([
         'legal_number_sequences', 'number_sequences', 'sequences', 'deed_sequences',
-        'matter_sequences', 'matter_reference_counters', 'reference_counters',
+        'matter_sequences', 'reference_counters',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The Project counter stayed Project-shaped: it gained no domain dimension
+    // and no Matter column when Matter got its own allocator.
+    expect(Schema::hasColumn('project_reference_counters', 'domain'))->toBeFalse()
+        ->and(Schema::hasColumn('project_reference_counters', 'matter_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected Project routes and nothing more', function (): void {

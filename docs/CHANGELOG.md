@@ -5,6 +5,166 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M4.3 Matter internal reference foundation
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (25 total). **No permission** (173):
+allocation is system-controlled infrastructure, not a user capability. Backend **1792 passed + 7
+skipped = 1799 tests / 5850 assertions** — 44 new. i18n **731 / 731** exact. One new decision,
+**D-108**.
+
+**Backend foundation only** — no route, controller, request, resource, frontend page, or
+navigation entry. The allocator exists now; M4.4 integrates it into the real `CreateMatter`
+transaction.
+
+```text
+N-YYYY-NNNNNN     Notary
+P-YYYY-NNNNNN     PPAT
+```
+
+Ordinary office identification and nothing more — not a deed number, a repertorium number, a
+minuta or Warkah number, a PPAT register entry, or any government numbering.
+
+### Three namespace dimensions, and a dedicated counter
+
+`matter_reference_counters`, primary key `(office_id, reference_year, domain)`. Project counts per
+Office and year; Matter adds the domain, because a shared counter would make `N-2026-000001` and
+`P-2026-000001` compete for one value. Office A's Notary and PPAT sequences, Office B's Notary
+sequence, and Office A's next-year sequence are four independent counters, each starting at 1 —
+verified as four counter rows on PostgreSQL.
+
+**The M3.2 allocator is reused as a pattern, never as a table.**
+`13_M3_PROJECT_ARCHITECTURE.md` §9 refused to generalize it into anything Matter-shaped, and the
+generic configurable numbering engine `03_DATABASE_ERD.md` §27 sketches — prefix patterns, monthly
+resets, `master.numbering.*` — is deliberately not used. A test asserts the Project counter gained
+no `domain` dimension when Matter got its own.
+
+### One atomic statement
+
+`INSERT … ON CONFLICT (office_id, reference_year, domain) DO UPDATE SET last_value = last_value + 1
+RETURNING last_value`. The increment happens inside the database against a row the engine locks for
+the duration of the upsert, so two concurrent callers cannot both compute the same value — neither
+computes it at all. `MAX+1`, `COUNT+1`, `latest()+1` and read-then-write are forbidden and guarded
+by a comment-stripped source scan, and a transaction alone would not fix a `SELECT`-then-`UPDATE`
+because under `READ COMMITTED` two transactions can both read before either writes.
+
+**Concurrency evidence is taken on PostgreSQL only.** 16 simultaneous OS processes, 25 allocations
+each, in one namespace: **400 values, all distinct, contiguous 1–400, the counter landing exactly
+on 400**, and the other three namespaces untouched. SQLite runs the identical statement, so there is
+one execution path — but it proves nothing about contention and is not claimed to.
+
+**The allocator opens no transaction of its own** and commits nothing, so it participates in the
+caller's. The consequence is stated rather than hidden: the counter row stays locked from allocation
+until that transaction ends, serialising concurrent creates *within one Office-year-domain* for the
+duration of a single insert. The namespace split means Notary and PPAT creates never block each
+other.
+
+### Gaps, precisely
+
+If allocation and insert share a transaction that rolls back, **the counter increment rolls back
+with it and the number is not lost** — proven by test. If an allocation **commits** and is then not
+used, the number is permanently skipped. Both are acceptable: this is an internal identifier, not
+legal numbering, and nothing may treat the sequence as a record count.
+
+### Schema
+
+`matters.matter_number` `varchar(32)`, **nullable in M4.3**, `UNIQUE (office_id, matter_number)`.
+Nullable for the M3.2 reason: no creation path allocates yet, so `NOT NULL` would make Matter
+unwritable for a whole milestone including by its own factory. M4.4 tightens it.
+
+**`domain` is deliberately absent from that unique key** — the formatted string already carries the
+prefix, so the two domains cannot collide as strings, and including it would permit
+`N-2026-000001` twice in one Office if the domains differed. Verified: one Office holds both
+`N-2026-000001` and `P-2026-000001`; two Offices each hold `N-2026-000001`; the same reference twice
+in one Office is refused by the unique index.
+
+**A nullable-aware CHECK enforces prefix–domain agreement** and only that — a NOTARY Matter carrying
+`P-2026-000001` is refused by the database, independent of PHP. Full format correctness stays in
+`MatterReference`; turning PostgreSQL into a second parser would duplicate the rule where it is
+harder to read.
+
+**Two counter CHECKs exist because Laravel's unsigned types do not.** `unsignedSmallInteger` and
+`unsignedInteger` are MySQL concepts and PostgreSQL maps both to signed columns, so
+`reference_year >= 0` and `last_value >= 0` are what actually enforce the claim — the M4.1
+`default_duration_days` lesson applied before it could bite. A negative counter is refused.
+
+### No backfill, and the evidence for it
+
+**The persistent development database has no `matters` table at all** — it is still at 22
+migrations, so no Matter row has ever existed outside an in-memory test or a disposable
+verification database. This was inspected rather than inferred from "no route exists". Nothing was
+backfilled and no ordering was invented.
+
+### Immutability, stricter than Project's
+
+`null → value`, `value → other value`, and `value → null` are **all** refused. The Project guard had
+to permit `null → reference` while M3.2's column was nullable; Matter starts strict because its
+create path does not exist yet to have relied on the looser rule, and M4.4 stamps inside the
+creating transaction rather than numbering a Matter afterwards. The guard fires on `updating` only,
+so it never blocks the stamp itself.
+
+### Six digits are a minimum
+
+The 1 000 000th reference formats as seven digits rather than wrapping to `000000` or truncating —
+either of which would silently break uniqueness. `varchar(32)` is sized for it. The M3.2 rule
+adopted verbatim.
+
+`MatterReference` exposes exactly `prefix`, `format`, and `matchesFormat` — **a formatter, not a
+parser**, asserted by reflection. The prefix map lives there rather than on `MatterDomain`, keeping
+an authorization type free of presentation concerns.
+
+### Three guards narrowed and two stale mockups corrected
+
+`MatterSchemaTest` asserted the reference was deferred to M4.3 — intentionally falsified, narrowed
+to assert the column exists and is still nullable. `ServiceTypeSchemaTest`'s rollback probe now
+takes three steps as each milestone layers on the one below. And `ProjectSchemaTest` listed
+`matter_reference_counters` among tables that must not exist, as a stand-in for "the Project
+counter got generalized" — M4.3 creates it as a **separate, dedicated** table, which is what M3.2
+said should happen rather than what it warned against, so the guard now checks the Project counter
+gained no `domain` dimension instead.
+
+**`04_UI_DESIGN_SYSTEM.md` showed five-digit references** — `N-2026-00312` and `P-2026-00128` —
+contradicting the locked six-digit minimum in `03_DATABASE_ERD.md` §27 and `CLAUDE.md` §38.
+Corrected to `N-2026-000312` and `P-2026-000128`. Mockup text only; no UI was redesigned.
+
+### Verification
+
+```text
+Backend        1792 passed + 7 skipped, 5850 assertions — 44 new
+Pint           passed
+composer       validate --strict passed
+Frontend       format:check, lint, typecheck, build all clean
+i18n           731 / 731 exact — no UI string added
+Migrations     25, none pending
+Permissions    173 registry / 173 database, sync idempotent twice
+Disposable DB  full chain from empty PostgreSQL; migrated 0 -> 25; counter schema, PK,
+               FK and all three CHECKs verified; sequential allocation, domain, Office
+               and year independence proven; 16-process contention giving 400 distinct
+               contiguous values; wrong prefix, duplicate reference and negative counter
+               all refused; same reference accepted in a second Office; M4.3 rolled back
+               alone leaving exact M4.2 state (24, no counter table, no column, M4.2
+               constraints intact); rolled back all 25 leaving only an empty migrations
+               table; re-migrated; allocator re-verified; dropped; absence proven
+```
+
+The 7 skips are PostgreSQL-only assertions — two new CHECK tests plus the five carried from M4.1
+and M4.2 — which in-memory SQLite cannot reproduce. All are proven against real PostgreSQL.
+
+No HTTP smoke: M4.3 exposes no route. O-034 remains open and untouched.
+
+**Persistent development database unchanged**: all sixteen tracked counts identical before and
+after, still at 22 migrations with none of `service_types`, `matters`, or
+`matter_reference_counters` present.
+
+### Open items
+
+None opened, closed, or modified. O-010, O-018, O-031, O-032, O-033 and O-034 are unchanged.
+
+**M4.4 has not started.** No `CreateMatter`, no Matter route, controller, request or resource, no
+assignment or status surface, no participation, no workflow, and `matter_number` is not yet
+`NOT NULL`.
+
+---
+
 ## 2026-08-17 — M4.2 Matter schema and authorization foundation
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (24 total). **No permission** (173):

@@ -3245,6 +3245,112 @@ enum, and no refactor of accepted M3 ownership for naming elegance.
 
 ---
 
+## 2026-08-17 — M4.3 Matter internal reference foundation
+
+### D-108 — A dedicated Matter allocator over an Office, year, and domain namespace
+
+One forward migration (25 total) and **no permission — the count stays at 173**. Reference
+allocation is system-controlled infrastructure, not a user capability, so there is no
+`matters.number`, `matters.allocate`, or `matters.reference` code and no route that could write
+one. **Backend foundation only.**
+
+```text
+N-YYYY-NNNNNN     Notary
+P-YYYY-NNNNNN     PPAT
+```
+
+**Ordinary office identification and nothing more** — not a deed number, a repertorium number, a
+minuta or Warkah number, a PPAT register entry, or a land or government registration number. The
+`N` and `P` prefixes carry no legal meaning.
+
+**Three namespace dimensions: Office + calendar year + domain.** Project counts per Office and
+year; Matter adds the domain, because a shared counter would make `N-2026-000001` and
+`P-2026-000001` compete for one value. Office A's Notary and PPAT sequences, Office B's Notary
+sequence, and Office A's next-year sequence are four independent counters, each starting at 1.
+
+**A dedicated counter table, `matter_reference_counters`**, with the natural composite primary key
+`(office_id, reference_year, domain)` and no ULID surrogate — allocator infrastructure is not a
+business-domain entity. `office_id` cascades on delete, following the Project counter: a counter
+row is infrastructure, not work. **The M3.2 allocator is reused as a pattern, never as a table**;
+`13_M3_PROJECT_ARCHITECTURE.md` section 9 refused to generalize it into anything Matter-shaped,
+and the generic configurable numbering engine `03_DATABASE_ERD.md` section 27 sketches — prefix
+patterns, monthly resets, `master.numbering.*` — is deliberately not used.
+
+**One atomic statement, no read-then-write:** `INSERT … ON CONFLICT (office_id, reference_year,
+domain) DO UPDATE SET last_value = last_value + 1 RETURNING last_value`. The increment happens
+inside the database against a row the engine locks for the duration of the upsert, so two
+concurrent callers cannot both compute the same value — neither computes it at all. `MAX+1`,
+`COUNT+1`, `latest()+1` and read-then-write are forbidden, and a transaction alone would not fix a
+`SELECT`-then-`UPDATE` because under `READ COMMITTED` two transactions can both read before either
+writes. Identical SQL on PostgreSQL and SQLite 3.35+, so there is one execution path; **concurrency
+evidence is taken on PostgreSQL only** — 16 simultaneous OS processes, 400 allocations in one
+namespace, every value distinct, contiguous 1–400, the counter landing exactly on 400, and the
+other three namespaces untouched.
+
+**The allocator opens no transaction of its own** and commits nothing, so it participates in the
+caller's. M4.4 will allocate and insert inside one transaction, matching `CreateProject`. The
+consequence, stated rather than hidden: the counter row stays locked from allocation until that
+transaction ends, serialising concurrent creates *within one Office-year-domain* for the duration
+of a single insert — and the namespace split means Notary and PPAT creates never block each other.
+
+**Gaps are acceptable, and the distinction is precise.** If allocation and insert share a
+transaction that rolls back, the counter increment rolls back with it and the number is **not**
+lost — proven by test. If an allocation **commits** and is then not used, the number is permanently
+skipped. Nothing may treat the sequence as a record count, and sequential appearance carries no
+legal weight.
+
+**The year comes from the application clock** (`Date::now()`), never from a request body, browser,
+locale, Matter or Project date, or a value parsed back out of an existing reference. **No
+Office-timezone semantics** were invented — `offices.timezone` exists but no code reads it, and
+doing so here would create a concept the repository does not have. Rollover is proven with a frozen
+clock.
+
+**Six digits are a minimum, not a maximum.** The 1 000 000th reference in one namespace formats as
+seven digits rather than wrapping to `000000` or truncating — either of which would silently break
+uniqueness, the one property an identifier may not lose. `varchar(32)` is sized for it. This is the
+M3.2 rule adopted verbatim.
+
+**Uniqueness is `(office_id, matter_number)`, and `domain` is deliberately absent from it.** The
+formatted string already begins with `N-` or `P-`, so the two domains cannot collide as strings;
+adding `domain` would widen the index without excluding anything and would permit `N-2026-000001`
+to exist twice in one Office if the domains differed, which the prefix makes nonsense. Never
+global: two Offices may both hold `N-2026-000001`.
+
+**A nullable-aware database CHECK enforces prefix–domain agreement** — a NOTARY Matter may not
+carry a `P-` reference and vice versa — and only that. Full format correctness stays in
+`MatterReference`, the only thing that ever constructs a reference; turning PostgreSQL into a
+second parser would duplicate the rule in a language where it is harder to read and change.
+
+**Two counter CHECKs exist because Laravel's unsigned types do not.** `unsignedSmallInteger` and
+`unsignedInteger` are MySQL concepts; PostgreSQL has no unsigned integer type and silently maps
+both to signed columns, so `reference_year >= 0` and `last_value >= 0` are the constraints that
+actually enforce what the schema claims. This is the M4.1 `default_duration_days` lesson applied
+before it could bite.
+
+**`matter_number` is nullable in M4.3**, exactly as `project_number` was at M3.2 and for the same
+reason: no creation path allocates yet, so `NOT NULL` would make Matter unwritable for a whole
+milestone including by its own factory. M4.4 integrates allocation into `CreateMatter` and may then
+tighten by forward migration. **Nothing was backfilled and nothing invented** — the persistent
+development database was inspected and holds no `matters` table at all, so no Matter row has ever
+existed outside an in-memory test or a disposable verification database. Had rows existed, the
+correct action was to stop and report, because inventing a historical reference is the `MAX+1`
+guessing this decision forbids.
+
+**Immutable once the row exists, and stricter than Project's guard.** `null → value`,
+`value → other value`, and `value → null` are all refused. The Project guard had to permit
+`null → reference` while M3.2's column was nullable; Matter can start strict because its create
+path does not exist yet to have relied on the looser rule, and M4.4 will stamp inside the creating
+transaction rather than numbering a Matter afterwards. The column is withheld from mass assignment,
+and the guard fires on `updating` only, so it never blocks the stamp itself.
+
+**`MatterReference` is a formatter, not a parser.** It exposes exactly `prefix`, `format`, and
+`matchesFormat`, allocates nothing, and reads no database. Nothing may read the year, sequence, or
+domain back out of a formatted reference — that would make displayed text an input to logic. The
+prefix map lives here rather than on `MatterDomain`, keeping an authorization type free of
+presentation concerns.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

@@ -37,22 +37,29 @@ it('carries exactly the canonical M4.2 columns', function (): void {
     $columns = Schema::getColumnListing('matters');
     sort($columns);
 
+    // `matter_number` joined at M4.3 with its allocator (D-103).
     $expected = [
         'completed_at', 'created_at', 'created_by', 'deleted_at', 'domain', 'id',
-        'notes', 'office_id', 'opened_at', 'pic_user_id', 'priority', 'project_id',
-        'service_type_id', 'status', 'target_completion_date', 'title', 'updated_at',
-        'updated_by',
+        'matter_number', 'notes', 'office_id', 'opened_at', 'pic_user_id', 'priority',
+        'project_id', 'service_type_id', 'status', 'target_completion_date', 'title',
+        'updated_at', 'updated_by',
     ];
     sort($expected);
 
     expect($columns)->toBe($expected);
 });
 
-it('defers the internal reference to M4.3', function (): void {
-    // D-095's rule: the column and its allocator arrive together, so no
-    // milestone inherits a backfill and a uniqueness question it has not
-    // answered.
-    expect(Schema::hasColumn('matters', 'matter_number'))->toBeFalse();
+it('carries the internal reference delivered at M4.3', function (): void {
+    // **Narrowed at M4.3, not deleted.** This asserted the column was absent,
+    // which M4.3 intentionally makes false — it arrived together with its
+    // allocator, which was D-095's rule all along. What stays true, and is what
+    // this test was really guarding, is that the column is nullable until M4.4
+    // integrates allocation into the creating transaction.
+    expect(Schema::hasColumn('matters', 'matter_number'))->toBeTrue();
+
+    $matter = Matter::factory()->create(['matter_number' => null]);
+
+    expect($matter->fresh()->matter_number)->toBeNull();
 });
 
 it('defers the current stage pointer to M4.7', function (): void {
@@ -329,9 +336,15 @@ it('rejects an invalid domain, status, or priority at the database level', funct
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    // **Two steps since M4.3, not one.** This rolled back a single migration
+    // while `matters` was the newest; the reference migration is now, and it adds
+    // a column and a counter table on top, so both must come off together. The
+    // assertion is unchanged in substance — this migration is reversible and
+    // repeatable.
+    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
 
     expect(Schema::hasTable('matters'))->toBeFalse()
+        ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse()
         // The M4.1 table survives, and only the support key M4.2 added is gone.
         ->and(Schema::hasTable('service_types'))->toBeTrue();
 
