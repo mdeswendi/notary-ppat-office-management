@@ -606,6 +606,9 @@ backend foundation only.
 **M4.3 — delivered** *(D-108)*. See section 11. One forward migration (25), no permission (173),
 backend foundation only; `matter_number` nullable until M4.4 integrates allocation.
 
+**M4.4 — delivered** *(D-109)*. See "Delivered at M4.4" below. One forward migration (26), no
+permission (173); the first Matter milestone with an HTTP and frontend surface.
+
 **M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
 `PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
 migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
@@ -633,7 +636,7 @@ permission — the count stays at 173**, and **no HTTP or frontend surface**.
 
 ```text
 matter_reference_counters   PRIMARY KEY (office_id, reference_year, domain)
-matters.matter_number       varchar(32), nullable in M4.3
+matters.matter_number       varchar(32), nullable in M4.3, NOT NULL from M4.4
 UNIQUE (matters.office_id, matter_number)
 CHECK  matter_number IS NULL OR (NOTARY -> 'N-%') OR (PPAT -> 'P-%')
 ```
@@ -664,6 +667,51 @@ caller**, never read from the row to choose a permission (D-101). Eight abilitie
 to its own code, none implying another. Creation additionally requires `projects.view` on the
 parent, the parent in the actor's **own** Office — refused even at `ALL` — and a Project that is
 not archived.
+
+### Delivered at M4.4 *(D-109)*
+
+Matter creation, listing, detail, ordinary editing, assignment, completion and cancellation —
+backend and frontend. One forward migration (26 total) that adds nothing and tightens
+`matters.matter_number` to `NOT NULL`, and **no permission — the count stays at 173**.
+
+```text
+GET    /api/v1/{domain}/matters                             index
+POST   /api/v1/{domain}/matters                             store
+GET    /api/v1/{domain}/matters/service-type-options        pickers
+GET    /api/v1/{domain}/matters/{matter}                    show
+PATCH  /api/v1/{domain}/matters/{matter}                    update
+PATCH  /api/v1/{domain}/matters/{matter}/assignment         assign / unassign
+GET    /api/v1/{domain}/matters/{matter}/assignment/options  eligible users
+POST   /api/v1/{domain}/matters/{matter}/complete           complete
+POST   /api/v1/{domain}/matters/{matter}/cancel             cancel
+```
+
+Nine routes per domain, eighteen in total, `{domain}` a **literal** `notary` or `ppat` segment in
+every registered route. The domain travels as a route *default* and is read back by name from the
+route, never accepted as a controller argument — Laravel binds non-model parameters positionally,
+which during implementation handed `show()` the Matter id where the domain belonged. A Matter of
+the other domain resolves to **404**, so the pair of endpoints cannot be used to discover that a
+record exists on the far side of the Notary/PPAT boundary.
+
+**The Office is inherited from the parent Project**, never from the actor, which is what keeps the
+composite foreign key of section 11 satisfiable by construction. Allocation runs inside the
+creating transaction. Wrong-Office, wrong-domain, retired and nonexistent Service Types are one
+indistinguishable 422, as are all four ineligible-assignee cases.
+
+**No status control exists, deliberately.** The registry gives Matter `complete` and `cancel` and
+no `change_status`, so `OPEN → COMPLETED` and `OPEN → CANCELLED` are the only reachable
+transitions and there is **no status dropdown anywhere in the interface**. `IN_PROGRESS`,
+`WAITING`, `ON_HOLD` and `ARCHIVED` remain filterable vocabulary that nothing can set. Inventing a
+`matters.change_status` code to fill the gap would be inventing an authorization surface; the gap
+is recorded instead, and M4.7 is where intermediate states properly come from. `complete` stamps
+`completed_at`; `cancel` records no reason, no timestamp and no history.
+
+**Not built:** participation, workflow, stages, deeds, archive/restore. `matters.change_stage`
+stays registered and **deferred**, and the Permission Matrix reports it as such.
+
+**Frontend:** eight locale routes across the two domains, `Notary` and `PPAT` navigation groups
+carrying Matters only, each gated on its own `*.matters.view`, and 75 message keys per locale
+(810 per locale in total, at exact parity).
 
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.

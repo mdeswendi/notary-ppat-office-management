@@ -128,7 +128,10 @@ it('introduces no surface beyond the milestone that owns it', function (): void 
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
-    foreach (['matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+    // **Narrowed at M4.4**, which ships the Matter surface at its own domain
+    // roots (D-109). What this guard was always about survives: no Matter, deed,
+    // document, property, or Warkah surface hangs off a **Company** address.
+    foreach (['companies/{company}/matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 });

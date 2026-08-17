@@ -1,11 +1,14 @@
 import {
   ArchiveRestore,
   BookUser,
+  Briefcase,
   Building2,
   Contact,
   FolderKanban,
   KeyRound,
+  Landmark,
   LayoutDashboard,
+  Scale,
   Settings,
   UserRound,
   Users,
@@ -26,9 +29,14 @@ import type { CurrentUser, DataScope } from "@/types/auth";
  *
  * Both must hold. Since bootstrap gives `SUPER_ADMIN` every canonical
  * permission (D-057), permission alone would light up navigation for every
- * future module — Notary, PPAT, Billing — and send an administrator to routes
- * that do not exist. Registering a permission is not shipping a feature
+ * future module — Billing, Documents, Tasks — and send an administrator to
+ * routes that do not exist. Registering a permission is not shipping a feature
  * (D-064).
+ *
+ * **The Notary and PPAT groups carry only Matters** *(M4.4)*. Deeds, Minuta,
+ * Warkah, registers and protocols belong to M6 and M7 and are absent rather than
+ * shown dark, because a group whose every child is unreachable is a promise the
+ * product does not keep.
  *
  * A future module's entry may be added here with `implemented: false` and stay
  * dark until its route lands.
@@ -119,6 +127,43 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // must be able to reach the page even if they hold nothing else, which is
         // why this is its own entry rather than a control inside the list.
         requiredPermission: "projects.restore",
+      },
+    ],
+  },
+  {
+    key: "notary",
+    translationKey: "notary",
+    icon: Scale,
+    // Added at M4.4, when the routes landed — not at M4.2 when the schema did,
+    // and not at M4.3 when the allocator did (D-064).
+    implemented: true,
+    children: [
+      {
+        key: "notary.matters",
+        translationKey: "notaryMatters",
+        href: "/notary/matters",
+        icon: Briefcase,
+        implemented: true,
+        // The domain's own capability. An account may hold Notary Matter access
+        // and not PPAT, or the reverse — the two are independent, so each entry
+        // is gated on its own code rather than on a shared one (D-101).
+        requiredPermission: "notary.matters.view",
+      },
+    ],
+  },
+  {
+    key: "ppat",
+    translationKey: "ppat",
+    icon: Landmark,
+    implemented: true,
+    children: [
+      {
+        key: "ppat.matters",
+        translationKey: "ppatMatters",
+        href: "/ppat/matters",
+        icon: Briefcase,
+        implemented: true,
+        requiredPermission: "ppat.matters.view",
       },
     ],
   },

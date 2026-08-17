@@ -384,11 +384,18 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // a Project, because Project Office is immutable during M3 (D-089).
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
-    // **The route half is untouched at M4.2**, which ships no Matter endpoint —
-    // `matters` stays on this list and stays true.
+    // **Narrowed again at M4.4**, which ships the Matter product surface (D-109).
+    // `matters` leaves this list; everything else stays, including the two that
+    // were never about a milestone boundary — no Office endpoint and no transfer
+    // endpoint on a Project.
+    //
+    // The point that survives is the one this guard was always making: **no
+    // Matter surface hangs off a Project address.** A Matter is reached at
+    // `/notary/matters` or `/ppat/matters`, never `/projects/{id}/matters`,
+    // because the domain root is what selects the permission namespace (D-101).
     foreach ([
-        'projects/{project}/participants',
-        'matters', 'workflow', 'stages', 'deeds', 'warkah', 'properties',
+        'projects/{project}/participants', 'projects/{project}/matters',
+        'workflow', 'stages', 'deeds', 'warkah', 'properties',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);

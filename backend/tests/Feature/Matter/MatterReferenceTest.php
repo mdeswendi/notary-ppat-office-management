@@ -42,14 +42,16 @@ afterEach(function (): void {
 |--------------------------------------------------------------------------
 */
 
-it('adds a nullable matter number of the expected width', function (): void {
+it('requires a matter number on every matter', function (): void {
+    // **Narrowed at M4.4, not deleted.** M4.3 asserted the column was nullable,
+    // which was true while no creation path allocated. M4.4 ships creation, every
+    // path allocates, and the column carries the guarantee it always wanted
+    // (D-109). What stays true is the column's shape and that the allocator is
+    // the only thing that fills it.
     expect(Schema::hasColumn('matters', 'matter_number'))->toBeTrue();
 
-    // Nullable in M4.3 by design: no creation path allocates yet, so NOT NULL
-    // would make Matter unwritable for a whole milestone. M4.4 tightens it.
-    $matter = Matter::factory()->create(['matter_number' => null]);
-
-    expect($matter->fresh()->matter_number)->toBeNull();
+    expect(fn () => Matter::factory()->create(['matter_number' => null]))
+        ->toThrow(QueryException::class);
 });
 
 it('creates the counter table keyed by office, year, and domain', function (): void {
@@ -319,15 +321,21 @@ it('returns the number to the sequence when the allocating transaction rolls bac
 });
 
 it('derives no reference from a row count', function (): void {
+    // **Narrowed at M4.4.** The factory now allocates, so "rows exist and the
+    // sequence is untouched" is no longer constructible. The point survives in a
+    // form that is: the counter, not the table, decides the next value — deleting
+    // rows does not rewind it, which `COUNT(*) + 1` would.
     Date::setTestNow('2026-05-17 09:00:00');
 
     $office = Office::factory()->create();
-
-    // Three Matters exist with no references at all; the sequence is unaffected.
     $project = Project::factory()->for($office)->create();
+
     Matter::factory()->for($project)->count(3)->create();
 
-    expect(matterAllocator()->forOffice($office, MatterDomain::NOTARY))->toBe('N-2026-000001');
+    Matter::query()->delete();
+
+    expect(Matter::query()->count())->toBe(0)
+        ->and(matterAllocator()->forOffice($office, MatterDomain::NOTARY))->toBe('N-2026-000004');
 });
 
 /*
@@ -366,10 +374,13 @@ it('rejects a reference whose prefix contradicts the matter domain', function ()
     'CHECK constraints are PostgreSQL-only here; MatterReference refuses it on SQLite.',
 );
 
-it('still accepts a matter with no reference at all', function (): void {
+it('refuses a matter with no reference at all', function (): void {
+    // The other half of the M4.4 tightening: what M4.3 accepted, the database now
+    // refuses, because every creation path allocates (D-109).
     $office = Office::factory()->create();
 
-    expect(referencedMatter($office, MatterDomain::NOTARY, null)->exists)->toBeTrue();
+    expect(fn () => referencedMatter($office, MatterDomain::NOTARY, null))
+        ->toThrow(QueryException::class);
 });
 
 it('refuses a negative counter value or year on postgresql', function (): void {
@@ -406,17 +417,11 @@ it('refuses to rewrite an allocated reference', function (): void {
     })->toThrow(RuntimeException::class);
 });
 
-it('refuses to add a reference to an existing matter', function (): void {
-    // Stricter than the Project guard, deliberately: M4.4 stamps inside the
-    // creating transaction, so a Matter is never created bare and numbered later.
-    $office = Office::factory()->create();
-    $matter = referencedMatter($office, MatterDomain::NOTARY, null);
-
-    expect(function () use ($matter): void {
-        $matter->matter_number = 'N-2026-000001';
-        $matter->save();
-    })->toThrow(RuntimeException::class);
-});
+// The `null -> reference` case the M4.3 guard also refused is **unreachable
+// since M4.4**: the column is NOT NULL, so no Matter can exist without one to be
+// given later. The guard still covers the branch and the branch can no longer be
+// entered — the assertion was removed rather than left as dead reassurance,
+// exactly as M3.3 did to the Project guard's equivalent case.
 
 it('refuses to clear an allocated reference', function (): void {
     $office = Office::factory()->create();
@@ -555,11 +560,19 @@ it('does not share or generalize the project counter', function (): void {
 });
 
 it('exposes no route that writes a reference', function (): void {
-    $routes = collect(app('router')->getRoutes()->getRoutes())
+    // **Narrowed at M4.4, not deleted.** This asserted there was no Matter route
+    // at all, which was true while M4.3 shipped allocation without a product
+    // surface. M4.4 ships that surface, so the assertion becomes the part that
+    // always mattered: no endpoint accepts or mutates a reference. It is
+    // allocated server-side and immutable, so there is nothing for a caller to
+    // send — the create and update Requests both refuse the field outright.
+    $forbidden = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'matter'));
+        ->filter(fn (string $uri): bool => str_contains($uri, 'matter-number')
+            || str_contains($uri, 'matter_number')
+            || str_contains($uri, 'reference'));
 
-    expect($routes)->toBeEmpty();
+    expect($forbidden)->toBeEmpty();
 });
 
 it('adds no matter allocation permission', function (): void {
@@ -585,7 +598,9 @@ it('adds no matter allocation permission', function (): void {
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    // **Two steps since M4.4**, which tightened the column in its own forward
+    // migration on top of this one.
+    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
 
     expect(Schema::hasTable('matter_reference_counters'))->toBeFalse()
         ->and(Schema::hasColumn('matters', 'matter_number'))->toBeFalse()

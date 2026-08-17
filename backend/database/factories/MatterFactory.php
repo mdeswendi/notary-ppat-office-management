@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Domains\MasterData\Enums\ServiceTypeDomain;
+use App\Domains\Matter\AllocateMatterReference;
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Domains\Matter\Enums\MatterStatus;
 use App\Domains\Project\Enums\ProjectPriority;
@@ -63,6 +64,30 @@ class MatterFactory extends Factory
 
             'service_type_id' => null,
             'domain' => MatterDomain::NOTARY,
+
+            // Allocated through the real allocator rather than faked, because
+            // `matter_number` became NOT NULL at M4.4 and a made-up value would
+            // let a test pass against a reference the product could never
+            // produce — and would quietly become a second numbering path beside
+            // the one D-103 locked. The closure runs after `office_id` and
+            // `domain` resolve, so the allocation lands in the right namespace.
+            // Nullable in the closure's own return type on purpose: a test that
+            // deliberately passes a null Office or domain must reach the database
+            // and be refused there, not die in the factory.
+            'matter_number' => function (array $attributes): ?string {
+                $officeId = $attributes['office_id'] ?? null;
+                $domain = $attributes['domain'] ?? null;
+
+                if ($officeId === null || $domain === null) {
+                    return null;
+                }
+
+                return app(AllocateMatterReference::class)->forOffice(
+                    (string) $officeId,
+                    $domain instanceof MatterDomain ? $domain : MatterDomain::from((string) $domain),
+                );
+            },
+
             'title' => 'Pekerjaan Uji '.fake()->unique()->numberBetween(1, 999999),
             'status' => MatterStatus::OPEN,
             'priority' => ProjectPriority::NORMAL,

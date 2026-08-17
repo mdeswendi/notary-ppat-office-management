@@ -122,6 +122,18 @@ class PermissionController extends Controller
      * the namespace looks implemented and no global security-settings surface
      * exists.
      *
+     * **`*.matters.change_stage` joined at M4.4**, and it is the flag's original
+     * case reappearing in a new module. M4.4 ships the Matter surface, so both
+     * Notary and PPAT Matters look implemented — and they are, for everything
+     * except stage movement, which has no workflow to move until M4.7 (D-104).
+     * An administrator granting `notary.matters.change_stage` today would
+     * reasonably expect something to happen, and nothing would: the code is
+     * registered, configurable, and reaches no route. That is exactly what this
+     * list is for, and the badge leaves when M4.7 gives it a target.
+     *
+     * **`*.matters.view_all` is deliberately not here**, for the same reason
+     * `projects.view_all` is not: it is *superseded*, not deferred. See below.
+     *
      * **`projects.view_all` is deliberately not here, and M3.3 is what makes
      * that worth stating.** Once Projects reached the navigation, the code
      * matched this list's shape exactly: registered, routeless, and sitting
@@ -138,5 +150,7 @@ class PermissionController extends Controller
     private const DEFERRED = [
         'security.settings.view',
         'security.settings.manage',
+        'notary.matters.change_stage',
+        'ppat.matters.change_stage',
     ];
 }

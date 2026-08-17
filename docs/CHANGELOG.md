@@ -5,6 +5,119 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-18 — M4.4 Matter core management
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (26 total) that adds no column and no
+table: it tightens `matters.matter_number` to `NOT NULL`, which M4.3 scheduled for the milestone
+that gives Matter a creation path. **No permission** (173). Backend **1841 passed + 7 skipped =
+1848 tests / 5998 assertions** — 50 new in `MatterManagementTest`, net +49 after guard narrowing.
+i18n **810 / 810** exact, 79 new keys per locale. One new decision, **D-109**.
+
+The first Matter milestone with an HTTP and frontend surface: create, list, detail, ordinary edit,
+assign, complete, cancel.
+
+### Eighteen routes, nine per domain, generated from one array
+
+```text
+GET    /api/v1/{domain}/matters
+POST   /api/v1/{domain}/matters
+GET    /api/v1/{domain}/matters/service-type-options
+GET    /api/v1/{domain}/matters/{matter}
+PATCH  /api/v1/{domain}/matters/{matter}
+PATCH  /api/v1/{domain}/matters/{matter}/assignment
+GET    /api/v1/{domain}/matters/{matter}/assignment/options
+POST   /api/v1/{domain}/matters/{matter}/complete
+POST   /api/v1/{domain}/matters/{matter}/cancel
+```
+
+`{domain}` is a **literal** `notary` or `ppat` segment in every registered route, never a wildcard.
+The domain travels as a route **default** and `ResolvesMatterDomain` reads it back by name from
+`$request->route()`.
+
+**It is deliberately not a controller argument, and the reason is a defect this milestone hit.**
+Laravel binds non-model route parameters positionally, so declaring `show(Request, Matter, MatterDomain)`
+handed the method the Matter *id* where the domain belonged — a silent mis-binding that the type
+declaration did nothing to prevent. Reading the default by name is order-independent, and a route
+declaring no domain throws rather than guessing one. (`RouteRegistrar::defaults()` does not exist on
+a group either, so the default is applied per route.)
+
+**A Matter of the other domain answers 404, not 403.** Resolution is domain-constrained before
+authorization is consulted, so a Notary address handed a PPAT id behaves as though nothing is
+there. A 403 would confirm that a record exists in a domain the caller never named, making the
+paired endpoints an existence oracle across the boundary `CLAUDE.md` §16 draws.
+
+### The Office comes from the Project, never from the actor
+
+`CreateMatter` reads `$project->office_id`. Taking it from the creating user would let somebody
+with cross-Office reach create a Matter in Office A underneath a Project in Office B — precisely
+what the composite foreign key `matters (project_id, office_id) -> projects (id, office_id)` exists
+to make unrepresentable. **Seven fields are system-controlled** — `office_id`, `domain`,
+`matter_number`, `status`, `pic_user_id`, and the reference allocation — and the Form Requests mark
+them `prohibited` *and* refuse them on presence, so sending one is a 422 rather than a silently
+ignored field. Allocation runs **inside the creating transaction**, so a rollback takes the counter
+increment with it.
+
+### One indistinguishable 422 for every ineligible reference
+
+Wrong Office, wrong domain, retired, and nonexistent produce the same Service Type field error;
+inactive, other-Office, and nonexistent produce the same assignee error. Distinguishing them would
+let a caller enumerate another Office's reference data and staff list through error messages.
+
+`pic_user_id` is validated `present` + `nullable`: **null means unassign, absent means a malformed
+request.** No other combination separates those two.
+
+`service-type-options` is authorized by the **Matter capability alone** — `viewAny` for the route's
+domain — filtered to the actor's own Office, the route's domain, and active rows. No
+`master.service_types.view` gate was invented for a picker.
+
+### No status control, and this is a recorded gap rather than a silence
+
+The canonical registry gives Matter `complete` and `cancel` and **no `change_status`**, unlike
+Project. So `OPEN → COMPLETED` and `OPEN → CANCELLED` are the only reachable transitions, and
+**there is no status dropdown anywhere in the Matter interface**. `IN_PROGRESS`, `WAITING`,
+`ON_HOLD` and `ARCHIVED` remain vocabulary a filter can select on and a badge can render, and
+nothing in the product can set them.
+
+Inventing a `matters.change_status` code to close the gap would be inventing an authorization
+surface the registry does not define — `CLAUDE.md` §62 in the small. The gap is recorded instead,
+and M4.7 is where intermediate states properly come from. A test asserts **no status or stage route
+exists**.
+
+`complete` stamps `completed_at`; `cancel` records no reason, no timestamp, and **no history
+table** — a lifecycle history has real questions inside it (who, when, why, and whether it is the
+audit log's job) that M4.4 does not get to answer in passing.
+
+### Not built
+
+No Matter participation, no workflow, no stages, no deeds, no archive or restore.
+`matters.change_stage` stays **registered and deferred** in both domains, and the Permission Matrix
+reports it as such — the deferred badge's original case reappearing in a new module.
+
+### Frontend
+
+Eight locale routes across the two domains — list, `new`, detail, `edit` — plus **Notary** and
+**PPAT** navigation groups carrying **Matters only**. Each is gated on its own `*.matters.view`
+code, never a shared one, because the two capabilities are independent and the role matrix gives
+Notary Staff and PPAT Staff different reach across the pair. Deeds, Minuta, Warkah and registers
+are absent rather than rendered dark: a group whose every child is unreachable is a promise the
+product does not keep.
+
+Query keys are **domain-first** (`['matters', domain, …]`), so a Notary list and a PPAT list can
+never share a cache entry.
+
+### Guards narrowed rather than deleted
+
+Nine guard files moved, following the standing discipline. `exposes no matter http surface in m4.2`
+became `exposes no matter surface beyond the milestone that owns it`; `adds a nullable matter
+number` became `requires a matter number on every matter`; and `leaves only the security settings
+codes deferred` in the Party suite became `leaves no Party-domain code deferred` — it had been
+pinning the *global* deferred set from inside a Party test, which stopped being the right subject
+the moment another module registered a code ahead of its surface. The global set stays pinned once,
+in `PermissionMatrixTest`. The reference-immutability guard lost its `null → value` case because
+`NOT NULL` now makes it unrepresentable; `value → other` and `value → null` remain.
+
+---
+
 ## 2026-08-17 — M4.3 Matter internal reference foundation
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (25 total). **No permission** (173):

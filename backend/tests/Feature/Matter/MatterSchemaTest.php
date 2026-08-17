@@ -50,16 +50,15 @@ it('carries exactly the canonical M4.2 columns', function (): void {
 });
 
 it('carries the internal reference delivered at M4.3', function (): void {
-    // **Narrowed at M4.3, not deleted.** This asserted the column was absent,
-    // which M4.3 intentionally makes false — it arrived together with its
-    // allocator, which was D-095's rule all along. What stays true, and is what
-    // this test was really guarding, is that the column is nullable until M4.4
-    // integrates allocation into the creating transaction.
+    // **Narrowed at M4.3 and again at M4.4.** M4.2 asserted the column was
+    // absent; M4.3 added it nullable; M4.4 tightened it once every creation path
+    // allocates (D-109). What stays true throughout is that the column exists and
+    // only the allocator fills it.
     expect(Schema::hasColumn('matters', 'matter_number'))->toBeTrue();
 
-    $matter = Matter::factory()->create(['matter_number' => null]);
+    $matter = Matter::factory()->create();
 
-    expect($matter->fresh()->matter_number)->toBeNull();
+    expect($matter->fresh()->matter_number)->not->toBeNull();
 });
 
 it('defers the current stage pointer to M4.7', function (): void {
@@ -341,7 +340,9 @@ it('migrates, rolls back, and re-migrates cleanly', function (): void {
     // a column and a counter table on top, so both must come off together. The
     // assertion is unchanged in substance — this migration is reversible and
     // repeatable.
-    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+    // Three steps since M4.4, which tightened the reference column on top of the
+    // M4.3 migration that added it.
+    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
 
     expect(Schema::hasTable('matters'))->toBeFalse()
         ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse()

@@ -604,9 +604,13 @@ shipped only `(id, office_id)`, and a composite foreign key needs a unique index
 columns it references. `service_type_id` remains nullable, and a composite key with a NULL
 component is satisfied, so an unclassified Matter stays valid.
 
-**`matter_number` and `current_stage_id` are absent from the delivered table.** The first arrives at
-M4.3 with its allocator, the second at M4.7 with the real stage-instance foreign key; neither is
-stubbed as a nullable placeholder (D-095's rule).
+**`current_stage_id` is absent from the delivered table**, arriving at M4.7 with the real
+stage-instance foreign key rather than as a nullable placeholder (D-095's rule).
+
+**`matter_number` arrived at M4.3 and became `NOT NULL` at M4.4.** It was absent at M4.2 for the
+same reason, added nullable at M4.3 alongside its allocator (D-108), and tightened by a forward
+migration once M4.4 gave Matter a creation path that stamps it inside the creating transaction
+(D-109) — the sequence `project_number` followed from M3.1 to M3.3.
 
 **`deleted_at` exists as reserved schema capability with no lifecycle reaching it**, and the model
 uses no `SoftDeletes`, so no global scope filters any query.
@@ -631,6 +635,28 @@ uses no `SoftDeletes`, so no global scope filters any query.
   **business statuses and never synonyms for soft deletion.**
 - **No transition matrix is defined.** M4 authorizes *who* may change, complete or cancel a Matter,
   never *which* status may follow which.
+
+### matter_reference_counters *(added M4.3)*
+
+```text
+office_id
+reference_year
+domain
+last_value
+created_at
+updated_at
+```
+
+`PRIMARY KEY (office_id, reference_year, domain)` — the same natural composite key as
+`project_reference_counters`, with **domain added as a third namespace dimension** because
+`N-2026-000001` and `P-2026-000001` are distinct references and a shared counter would make them
+compete for one value (D-108). A **dedicated** table: the M3.2 allocator is reused as a pattern,
+never as a table, and the generic numbering engine sketched in section 27 is deliberately not
+used. `office_id` cascades on delete, as a counter row is infrastructure rather than work.
+
+`reference_year >= 0` and `last_value >= 0` carry explicit `CHECK` constraints, because Laravel's
+`unsignedSmallInteger` and `unsignedInteger` are MySQL concepts that PostgreSQL silently maps to
+signed columns.
 
 ### matter_parties
 

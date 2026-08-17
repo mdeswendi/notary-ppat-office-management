@@ -548,12 +548,29 @@ it('reads no role name and no permission code as authority', function (): void {
     }
 });
 
-it('exposes no matter http surface in m4.2', function (): void {
-    $routes = collect(app('router')->getRoutes()->getRoutes())
-        ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'matters'));
+it('exposes no matter surface beyond the milestone that owns it', function (): void {
+    // **Narrowed at M4.4, not deleted.** M4.2 asserted there was no Matter route
+    // at all, which was true while it shipped schema and authorization only. M4.4
+    // ships the product surface and pins its exact inventory in
+    // `MatterManagementTest`. What stays true here is the boundary this guard was
+    // really protecting: no participation surface (M4.5), no workflow or stage
+    // surface (M4.6 / M4.7), and no archive or restore, which M4 does not have.
+    $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
-    expect($routes)->toBeEmpty();
+    foreach ([
+        'matters/{matter}/parties', 'matter-parties',
+        'matters/{matter}/stage', 'matters/{matter}/workflow',
+        'matters/{matter}/archive', 'matters/{matter}/restore', 'matters/archived',
+    ] as $absent) {
+        expect($uris->filter(fn (string $uri): bool => str_contains($uri, $absent)))->toBeEmpty($absent);
+    }
+
+    // And no destructive verb: Matter records are never deleted (D-102).
+    $destructive = collect(app('router')->getRoutes()->getRoutes())
+        ->filter(fn ($route): bool => str_contains($route->uri(), 'matters')
+            && in_array('DELETE', $route->methods(), true));
+
+    expect($destructive)->toBeEmpty();
 });
 
 it('copies no party or legal identity into the matter aggregate', function (): void {

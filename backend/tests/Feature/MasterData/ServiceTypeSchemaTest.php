@@ -232,7 +232,9 @@ it('migrates, rolls back, and re-migrates cleanly', function (): void {
     // it; M4.3's reference migration is now the newest, and each layer holds a
     // dependency on the one below, so all three come off together. The assertion
     // is unchanged in substance — this migration is reversible and repeatable.
-    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
+    // Four steps since M4.4 — each milestone layers one migration on the one
+    // below, and each holds a dependency on its predecessor.
+    $this->artisan('migrate:rollback', ['--step' => 4])->assertSuccessful();
 
     expect(Schema::hasTable('service_types'))->toBeFalse()
         ->and(Schema::hasTable('matters'))->toBeFalse()

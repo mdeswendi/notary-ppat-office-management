@@ -428,6 +428,34 @@ it simply authorizes nothing, because the predicate is false for a record that h
 **Both `view_all` codes stay out of those rules and are consulted by no Policy ability.** M4.2 ships
 no route, so navigation is unchanged.
 
+**M4.4 gave those codes routes and added no permission — the count stays at 173** *(D-109)*.
+Eighteen endpoints, nine per domain, under literal `/api/v1/notary/matters` and
+`/api/v1/ppat/matters` prefixes, with the domain carried as a **route default** read back by name
+rather than taken as a controller argument. A Matter of the other domain answers **404**, so the
+paired endpoints cannot be used to prove a record exists across the Notary/PPAT boundary.
+
+**Ten of the sixteen codes are now reachable through a route:** `view`, `create`, `update`,
+`assign`, `complete` and `cancel`, in both domains. `change_stage` remains **registered and
+deferred** — `PermissionController` lists it as such, so the Permission Matrix shows it as not yet
+implemented rather than as a working capability — and the two `view_all` codes remain non-authority.
+
+**No `change_status` code exists for Matter, and M4.4 invents none.** Project has one; Matter has
+`complete` and `cancel` instead. The consequence is stated rather than papered over: `OPEN`,
+`COMPLETED` and `CANCELLED` are the only statuses the product can reach, and **there is no status
+dropdown anywhere in the Matter interface**. `IN_PROGRESS`, `WAITING`, `ON_HOLD` and `ARCHIVED`
+stay filterable vocabulary that nothing can set until M4.7 gives Matter a workflow.
+
+**Navigation gains two groups** — **Notary → Matters** and **PPAT → Matters** — each gated on its
+own domain code, `notary.matters.view` and `ppat.matters.view`. Never on a shared gate: the two
+capabilities are independent, and the section 5 role matrix deliberately gives Notary Staff and
+PPAT Staff different reach across the pair. Each group carries Matters and nothing else; Deeds,
+Minuta, Warkah, registers and protocols belong to M6 and M7 and are absent rather than rendered
+dark.
+
+**`service-type-options` is authorized by the Matter capability alone** — `viewAny` for the route's
+domain — and no `master.service_types.view` gate was invented for it. A picker is not a resource,
+and an account that may create Matters must be able to see what to create them as.
+
 **Matter participation is expected to add four codes at M4.5** *(D-105)* —
 `notary.matters.parties.view`, `notary.matters.parties.manage`, `ppat.matters.parties.view`,
 `ppat.matters.parties.manage`, moving the count **173 → 177**. Four rather than two because the
@@ -987,6 +1015,12 @@ Calendar
 Master Data
 Settings
 ```
+
+**As implemented through M4.4**, the sidebar carries Dashboard, Projects, Notary → Matters,
+PPAT → Matters, and Clients & Parties → Directory / Individuals / Companies, plus Settings. The
+two domain groups appear with **Matters only**: the Deeds, Drafts, Land & Property and Warkah
+children above are the M6 and M7 destinations, and an entry renders when its route exists, not
+when its permission is registered (D-064).
 
 Later milestones may activate:
 

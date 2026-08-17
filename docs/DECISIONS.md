@@ -3351,6 +3351,117 @@ presentation concerns.
 
 ---
 
+### D-109 — Matter core management: the domain comes from the route, the Office from the Project, and there is no status control
+
+One forward migration (**26 total**) and **no permission — the count stays at 173**. The migration
+adds no column and no table: it tightens `matters.matter_number` from nullable to `NOT NULL`, which
+D-108 scheduled for the milestone that gives Matter a creation path. Backend and frontend both.
+
+**Eighteen routes, nine per domain, and the pair is generated from one array** rather than written
+twice:
+
+```text
+GET    /api/v1/{domain}/matters
+POST   /api/v1/{domain}/matters
+GET    /api/v1/{domain}/matters/service-type-options
+GET    /api/v1/{domain}/matters/{matter}
+PATCH  /api/v1/{domain}/matters/{matter}
+PATCH  /api/v1/{domain}/matters/{matter}/assignment
+GET    /api/v1/{domain}/matters/{matter}/assignment/options
+POST   /api/v1/{domain}/matters/{matter}/complete
+POST   /api/v1/{domain}/matters/{matter}/cancel
+```
+
+`{domain}` is `notary` or `ppat` — a literal segment in each registered route, never a wildcard.
+Two domains that shared one `/api/v1/matters` prefix would have to read the domain from somewhere,
+and every available somewhere is worse than the URL.
+
+**The domain is a route default, read explicitly, and it decides the permission namespace.** This
+is D-101 applied to Matter, and the mechanism matters as much as the rule. Each route carries
+`->defaults('domain', 'NOTARY'|'PPAT')`, and `ResolvesMatterDomain` reads it back off
+`$request->route()`. It is **not** taken as a controller argument: Laravel fills non-model
+parameters positionally, and during implementation that handed `show()` the Matter id where the
+domain belonged — a silent mis-binding that a typed argument did nothing to prevent. Reading the
+default by name is order-independent, and a route that declares none throws rather than guessing a
+domain. Nothing reads the domain from a request body, a Project, or the Matter row: a caller
+holding only `ppat.matters.view` must not reach a Notary Matter by addressing a shared endpoint,
+and a caller must never be able to move which permission guards a request by changing data.
+
+**A Matter of the other domain answers 404, not 403.** Resolution is domain-constrained before
+authorization has anything to say, so a Notary address handed a PPAT id behaves as though the
+record is not there. A 403 would confirm the existence of a record in a domain the caller never
+named, turning the endpoint into an existence oracle across the Notary/PPAT boundary that
+`CLAUDE.md` section 16 draws.
+
+**Seven fields are system-controlled at creation and none of them is a request field.**
+`project_id` comes from the validated body; `office_id`, `domain`, `matter_number`, `status`,
+`pic_user_id` and the reference allocation are decided by `CreateMatter`. The Form Requests mark
+the system-controlled names `prohibited` **and** refuse them on presence, so sending
+`office_id` is a 422 rather than a silently ignored field — an ignored field teaches a caller that
+it works.
+
+**The Office is inherited from the parent Project, not from the actor.** `CreateMatter` reads
+`$project->office_id`. Taking it from the creating user would let somebody with cross-Office reach
+create a Matter in Office A underneath a Project in Office B, breaking the composite-foreign-key
+invariant D-107 exists to make structurally impossible. The Project is the only correct source
+because the Project already *is* the Office context.
+
+**Allocation happens inside the creating transaction**, exactly as D-108 anticipated: allocate,
+then insert, one transaction. A rollback takes the counter increment with it.
+
+**Service Type selection is validated as one indistinguishable 422.** Wrong Office, wrong domain,
+retired, or nonexistent all produce the same field error. Distinguishing them would let a caller
+enumerate another Office's reference data through the error message. The same rule governs
+assignment: an inactive user, a user of another Office, and a nonexistent user are one message.
+
+**`service-type-options` is authorized by the Matter capability alone.** `viewAny` on Matter for the
+route's domain opens it, and the list is filtered to the actor's own Office, the route's domain, and
+active rows. Requiring a separate `master.service_types.view` would mean an account that may create
+Matters could not see what to create them as; adding a new permission for a picker would be a
+permission for a widget rather than for records. The Office filter is the actor's own because a
+Matter is created under a Project the actor can already reach.
+
+**Assignment sends `pic_user_id` as `present` and `nullable`.** Null means unassign, absent means
+the caller sent a malformed request. `present` + `nullable` is the only combination that separates
+those two, and treating them the same would make "unassign" and "forgot the field" identical.
+
+**There is no status control, and this is a known, accepted gap.** The canonical registry gives
+Matter `complete` and `cancel` and **no `change_status`**, unlike Project. So `OPEN`, `COMPLETED`
+and `CANCELLED` are the only reachable states in M4; `IN_PROGRESS`, `WAITING`, `ON_HOLD` and
+`ARCHIVED` remain in the enum as vocabulary a filter can select on and a badge can render, and
+nothing in the product can set them. **No status dropdown exists anywhere in the Matter interface**
+— the alternative was to invent a `matters.change_status` capability, which would be inventing an
+authorization surface the registry does not define, exactly what section 62 forbids. The interface
+says what it can do rather than offering a control that would 403 or, worse, one backed by a
+permission nobody decided to grant. Revisit when M4.5 gives Matter a workflow, which is where
+intermediate states properly come from.
+
+**`complete` stamps `completed_at`; `cancel` stamps nothing.** This departs from `ChangeProjectStatus`,
+which deliberately records no timestamp, and the difference is the point: `complete` is a named
+lifecycle act with a moment attached, while `cancel` records only that the Matter stopped. No
+cancellation reason, no timestamp, and **no history table** — a lifecycle history is a real design
+with real questions (who, when, why, and whether it is the audit log's job) and M4.4 does not get to
+answer them in passing.
+
+**Nothing about participation, workflow, deeds, or archiving exists.** No Matter party pivot, no
+workflow instance, no stage, no `archive`/`restore` pair. `matters.change_stage` is registered and
+**deferred**, listed as such by `PermissionController` so the Permission Matrix shows it as not yet
+implemented rather than as a working capability.
+
+**Frontend: eight routes, two navigation entries, 75 message keys per locale.** `/{locale}/notary/matters`
+and `/{locale}/ppat/matters`, each with `new`, `[id]`, and `[id]/edit`. Navigation gains **Notary**
+and **PPAT** groups carrying Matters and nothing else — Deeds, Minuta, Warkah and registers belong
+to M6 and M7 and are absent rather than shown dark, since a group whose every child is unreachable
+is a promise the product does not keep. Each entry is gated on its own `*.matters.view` code, never
+on a shared one, because the two capabilities are independent. Message keys reach exact parity at
+810 per locale.
+
+**The one query-key rule worth stating: keys are domain-first.** `['matters', domain, …]`, so a
+Notary list and a PPAT list can never share a cache entry. A domain-last key would let TanStack
+Query serve one domain's rows under the other's address.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

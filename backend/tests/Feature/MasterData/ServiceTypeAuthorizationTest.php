@@ -321,21 +321,30 @@ it('introduces no scope ranking', function (): void {
         ->and($visibility)->not->toContain('rank(');
 });
 
-it('exposes no service type http surface in m4.1', function (): void {
-    // Backend foundation only. A route would make the deferred-badge question
-    // live for twelve sibling master.* codes, which M4.1 deliberately does not
-    // open.
+it('exposes no master data service type http surface', function (): void {
+    // **Narrowed at M4.4, not deleted.** M4.1 asserted there was no Service Type
+    // route at all. M4.4 adds a **Matter-scoped** options endpoint — authorized by
+    // the Matter capability and bounded to the actor's own Office, domain, and
+    // active entries (D-109) — which is not the master-data surface this guard was
+    // protecting.
+    //
+    // What stays true, and is the part that mattered: there is still no
+    // `master/service-types` CRUD surface, so the deferred-badge question for the
+    // twelve sibling `master.*` codes stays closed.
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'service-type') || str_contains($uri, 'service_types'));
+        ->filter(fn (string $uri): bool => str_contains($uri, 'master/service-types')
+            || str_contains($uri, 'service_types'));
 
     expect($routes)->toBeEmpty();
 });
 
-it('introduces no matter or workflow surface', function (): void {
+it('introduces no workflow surface', function (): void {
+    // **Narrowed at M4.4**, which legitimately ships the Matter product surface
+    // (D-109). Workflow remains M4.6 and M4.7 and stays absent.
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'matters') || str_contains($uri, 'workflow'));
+        ->filter(fn (string $uri): bool => str_contains($uri, 'workflow') || str_contains($uri, 'stages'));
 
     expect($routes)->toBeEmpty();
 });
