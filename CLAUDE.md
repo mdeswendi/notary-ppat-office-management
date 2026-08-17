@@ -522,10 +522,16 @@ Project
 Do not merge Project and Matter into one database entity.
 
 They are also separate **milestones**: M3 implements Project, M4 implements Matter and the
-Workflow Engine (D-087). Project is the M3 aggregate root; Matter is a future child aggregate
-with its own lifecycle, and no Project-to-Matter cardinality is fixed until M4 decides it.
+Workflow Engine (D-087). Project is the M3 aggregate root; Matter is a child aggregate with its
+own lifecycle.
+
+**M4.0 fixed the cardinality** (D-099): `matters.project_id` is required, one Project may hold
+many Matters, and a Project with zero Matters is complete rather than a draft. Matter Office is
+inherited from the parent Project and immutable during M4, and **reaching a Project confers no
+Matter authority** (D-100) — each is judged by its own capability and its own Data Scope.
 
 The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
+The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
 
 ---
 
@@ -1649,11 +1655,12 @@ docs/
 ├── 11_LEGAL_REFERENCES.md
 ├── 12_M2_PARTY_ARCHITECTURE.md
 ├── 13_M3_PROJECT_ARCHITECTURE.md
+├── 14_M4_MATTER_ARCHITECTURE.md
 ├── DECISIONS.md
 └── CHANGELOG.md
 ```
 
-`12_` and `13_` are milestone architecture locks. Each records what its domain may build,
+`12_`, `13_` and `14_` are milestone architecture locks. Each records what its domain may build,
 what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
 

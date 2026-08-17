@@ -220,11 +220,15 @@ Examples:
 
 ```text
 GET /api/v1/projects?status=IN_PROGRESS
-GET /api/v1/matters?domain=PPAT
-GET /api/v1/matters?pic_user_id=...
+GET /api/v1/notary/matters?status=IN_PROGRESS
+GET /api/v1/ppat/matters?pic_user_id=...
 ```
 
 Use stable machine codes.
+
+**`?domain=` is not a Matter filter** *(M4.0, D-101)*. This section previously showed
+`GET /api/v1/matters?domain=PPAT`. The domain is carried by the path, not by a query parameter,
+because it selects the permission namespace — see section 13.
 
 ---
 
@@ -248,13 +252,34 @@ Prefer plural REST resource names:
 
 ```text
 /projects
-/matters
 /documents
 /tasks
 /properties
 ```
 
 Nested endpoints should only be used when the relationship is meaningful and does not create excessive nesting.
+
+### Matter resources are domain-split *(M4.0, D-101)*
+
+```text
+/api/v1/notary/matters      ->  notary.matters.*
+/api/v1/ppat/matters        ->  ppat.matters.*
+```
+
+This section previously listed a generic `/matters`, which contradicted three things at once: the
+canonical registry, which splits the Matter capability surface into `notary.matters.*` and
+`ppat.matters.*` with **no generic `matters.*` namespace**; `02_MENU_AND_PERMISSIONS.md` section 26,
+which splits the sidebar the same way; and section 22 of *this document*, which already used
+domain-prefixed paths for deeds and Warkah. The generic form is **corrected at M4.0**, not left for
+whoever writes the first route to discover.
+
+**The domain comes from the path, never from the request body.** The route determines which
+permission namespace authorizes the call, so a Policy never selects its capability from row data —
+the new authorization shape `13_M3_PROJECT_ARCHITECTURE.md` section 12 flagged and M4.0 declined to
+introduce. For an existing Matter the persisted `domain` must match the route, and a mismatch
+answers **404** through the canonical binding convention, exactly as a nested resource under the
+wrong parent does (D-098): a 403 would confirm the record exists in a domain the caller did not
+name.
 
 ---
 
@@ -421,11 +446,16 @@ Domain actions may use explicit verbs when they represent commands rather than C
 Examples:
 
 ```text
-POST /api/v1/matters/{id}/move-stage
+POST /api/v1/notary/matters/{id}/move-stage
+POST /api/v1/ppat/matters/{id}/move-stage
 POST /api/v1/notary/deeds/{id}/approve
 POST /api/v1/notary/deeds/{id}/finalize
 POST /api/v1/ppat/warkah/{id}/verify
 ```
+
+The first example read `POST /api/v1/matters/{id}/move-stage` until M4.0, which was the generic
+form section 13 now refuses (D-101). The deed and Warkah examples were already domain-prefixed;
+the inconsistency was in the Matter line alone.
 
 These actions must be authorized and validated on the backend.
 

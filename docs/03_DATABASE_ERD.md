@@ -557,6 +557,27 @@ CANCELLED
 ARCHIVED
 ```
 
+**M4 dispositions** *(M4.0 — see `14_M4_MATTER_ARCHITECTURE.md`)*:
+
+- **`project_id` is required** (D-099). A Matter always names one Project; a Project may hold many
+  Matters or none. Office is **required, inherited from the parent Project, and immutable during
+  M4**, enforced structurally by `(project_id, office_id) -> projects (id, office_id)` against the
+  support key `projects` has carried since M3.4.
+- **`matters` gains `UNIQUE (id, office_id)`**, the support key `matter_parties` needs (D-105).
+- **`service_type_id` is nullable in M4** (D-102). M4 owns the service-type container but seeds no
+  catalogue, and requiring the column would make Matter uncreatable for as long as the catalogue is
+  empty.
+- **`matter_number` is an operational identifier, never a legal deed number** (D-103):
+  `N-YYYY-NNNNNN` for Notary and `P-YYYY-NNNNNN` for PPAT, allocated per **Office + calendar year +
+  domain** by a dedicated atomic allocator. No `MAX+1`. Immutable once assigned; gaps carry no
+  meaning.
+- **`deleted_at` is reserved schema capability with no API lifecycle in M4** (D-102). No Matter
+  archive or restore endpoint exists, and the canonical registry defines no `archive` or `restore`
+  code for Matter — unlike Project, which has both. `CANCELLED`, `COMPLETED` and `ARCHIVED` are
+  **business statuses and never synonyms for soft deletion.**
+- **No transition matrix is defined.** M4 authorizes *who* may change, complete or cancel a Matter,
+  never *which* status may follow which.
+
 ### matter_parties
 
 ```text
@@ -595,9 +616,48 @@ AUTHORIZED_PERSON
 
 Role codes are stored on the relationship, never permanently on the Party record.
 
+**These are examples, not a catalogue** *(M4.0, D-105)*, exactly as the `project_parties` codes
+are. M4 invents no legal participant role list, no mandatory role, and no cardinality rule; each
+needs domain authority. `role_code` stays `nullable` and **opaque** — no enum, no `Rule::in`, no
+`CHECK` — because constraining it would turn the examples above into the catalogue this section
+says they are not.
+
+**One column beyond the list, and it is a constraint carrier rather than data** *(M4.0, D-105)*:
+
+```text
+office_id
+```
+
+Two composite foreign keys reference `matters (id, office_id)` and `parties (id, office_id)`
+through the **same** column, so both endpoints must agree with it and therefore with each other. A
+cross-office Matter participation becomes *unrepresentable*, including for an actor holding `ALL`.
+`matters` carries the matching `UNIQUE (id, office_id)` support key; `parties` has carried its
+equivalent since M2.1. This is the same recorded departure `project_parties` made at M3.4 (D-098),
+and it is written here so a reader finding the field list without it does not assume an oversight.
+
+**Two listed fields are deliberately deferred and are not built in M4** *(D-105)*:
+
+| Field | Status |
+|---|---|
+| `represented_by_party_id` | **DOMAIN VALIDATION REQUIRED.** A Party acting through another Party is representation, proxy, or legal capacity. Which it means, when it is permitted, and what it implies for a deed have no canonical answer here, and guessing would invent an Indonesian notarial rule (`CLAUDE.md` section 62). |
+| `sequence_no` | **Semantics unvalidated.** Display order, signing order, legal priority and appearance order are four different things and the name distinguishes none of them. A wrong guess stays invisible until a deed is drafted from it. |
+
+**Participation is current working state, not a historical ledger** — no effective periods, no
+`deleted_at`, no versioning. `company_people` carries periods because a deed executed in March
+depends on who was a director in March (D-083); nothing yet depends on a Matter's participant list
+as it stood last week.
+
 ---
 
 ## 10. Notary and PPAT Extensions
+
+**Neither table is built in M4** *(M4.0, D-102)*. M4 builds one root — `matters`, with its
+canonical `domain` discriminator — and persists **no** field standing in for these: not
+`deed_category`, `requires_minuta`, `requires_register_entry`, `land_office_region`,
+`tax_processing_required`, or `registration_required`. Every one of them is domain-semantic and
+unvalidated, and `01_ARCHITECTURE.md` section 28 places **M6 — Notary** and **M7 — PPAT** after the
+Matter milestone. This follows D-095: a column added on speculation is one somebody fills in
+wrongly.
 
 ### notary_matters
 

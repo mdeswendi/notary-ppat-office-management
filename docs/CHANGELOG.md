@@ -5,6 +5,166 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-17 — M4.0 Matter and Workflow architecture lock
+
+Branch `feat/m4-matter-workflow`, opened from the accepted `main` tip `c17684e`.
+**Documentation only.** No migration (22), no permission (173), no model, policy, controller,
+route, request, resource, factory, or frontend page. Backend **1591 tests / 5329 assertions**
+unchanged; i18n **731 / 731** exact, because an architecture lock adds no UI string.
+
+Seven new decisions, **D-099 through D-105**, and a new canonical document:
+`14_M4_MATTER_ARCHITECTURE.md`.
+
+### What M4 is, and the sentence that governs its size
+
+> **M4 builds a configurable workflow mechanism. It seeds no workflow content, because none
+> exists.**
+
+`08_NOTARY_WORKFLOW.md` and `09_PPAT_WORKFLOW.md` are still `DRAFT — DOMAIN VALIDATION REQUIRED`,
+each stamped `DO NOT IMPLEMENT FROM THIS DOCUMENT YET`, and between them they carry sixteen
+unanswered domain questions. Section 4 of both is explicit that the structural vocabulary they do
+carry consists of *"architectural facts, not legal rules"* — and that distinction is the only
+reason M4 can proceed at all. The engine's **shape** is canonical; its **content** does not exist.
+
+Stated plainly rather than as a limitation: **the office's actual workflow is blocked on domain
+validation, not on engineering.** When a qualified source completes those two documents, the
+content becomes configuration entered through the master-data surfaces, and no schema change
+should be needed to accept it (D-104).
+
+### The rulings
+
+**Matter is a required child of Project, and its Office is inherited** *(D-099)*.
+`matters.project_id` is required; one Project may hold many Matters; a Project with zero Matters is
+complete, not a draft. Office is inherited from the parent at creation and immutable during M4,
+enforced **structurally** by `(project_id, office_id) -> projects (id, office_id)` — reusing the
+`UNIQUE (id, office_id)` support key `projects` has carried since M3.4, at no migration cost. A
+Matter whose Office disagrees with its Project's is *unrepresentable*, the pattern already proven
+for `company_people` (D-080) and `project_parties` (D-098).
+
+**Matter authorization is independent of Project authorization** *(D-100)*. This is deliberately
+the harder answer. "If you can see the Project you can see its Matters" would make Project reach a
+silent superset of Matter reach, so an administrator granting `projects.view` would have granted
+Notary and PPAT work visibility without ever naming those capabilities. **One interaction
+survives**: creating a Matter validates the parent Project through canonical Project authorization,
+because a parent is being chosen. Reading, updating, assigning, completing and cancelling answer
+only to their own capability.
+
+Matter Data Scope: `OWN` = `created_by`, `ASSIGNED` = `matter.pic_user_id`, `OFFICE` =
+`matter.office_id`, `ALL` = cross-office reach, `TEAM` = no grant. And the rule that will be
+tempting to break at M4.7: **`matter_stage_instances.assigned_user_id` does not count toward Matter
+`ASSIGNED`** — that would be a new grant wearing an existing scope's name, the failure D-088 named
+one milestone earlier, one domain across. D-088's rule holds in the other direction unchanged, so
+neither leaks.
+
+**Domain-split routes, and the namespace comes from the path** *(D-101)*. `/api/v1/notary/matters`
+and `/api/v1/ppat/matters`; the generic `/api/v1/matters?domain=…` form is refused. This is the
+ruling that keeps M4 inside the authorization shape the codebase already has:
+`13_M3_PROJECT_ARCHITECTURE.md` section 12 flagged the alternative as *"a genuinely new
+authorization shape"* — a Policy selecting its permission namespace from the record it is being
+asked about. Route-derived namespacing makes the question ordinary again. For an existing Matter
+the persisted `domain` must match the route, and a mismatch answers **404** through the canonical
+binding convention, for the D-098 reason: a 403 would confirm the record exists in a domain the
+caller did not name.
+
+**The root only** *(D-102)*. One `matters` table with a `domain` discriminator. **Neither
+`notary_matters` nor `ppat_matters` is built**, and no field standing in for one is persisted —
+`deed_category`, `requires_minuta`, `requires_register_entry`, `land_office_region`,
+`tax_processing_required`, `registration_required` all belong to **M6 and M7** with their domain
+content. M4 owns the service-type container but seeds no catalogue, so **`service_type_id` is
+nullable**: requiring it would make Matter uncreatable for as long as the catalogue is empty, which
+is the D-095 lesson in reverse.
+
+**No Matter archive or restore** *(D-102)*. The canonical registry gives Matter eight codes per
+domain and neither is `archive` nor `restore` — unlike Project, which has both. The absence is the
+registry's and M4 does not fill it by invention. `deleted_at` may exist as reserved schema
+capability with **no API lifecycle reaching it**: a column without a surface is honest; a surface
+without a permission is not. And the trap worth naming, because Matter has no restore path to
+recover from a wrong answer: **`CANCELLED`, `COMPLETED` and `ARCHIVED` are business statuses and
+never synonyms for soft deletion.** No transition matrix is invented (D-091's reasoning, one domain
+across).
+
+**Matter reference** *(D-103)*: `N-YYYY-NNNNNN` and `P-YYYY-NNNNNN`, both transcribed from
+`CLAUDE.md` section 38, allocated per **Office + calendar year + domain** — three components,
+because a shared counter would make the two prefixes compete for one value. A **dedicated**
+allocator: `13_M3_PROJECT_ARCHITECTURE.md` section 9 refused to generalize the Project one into
+anything Matter-shaped, and M4 honours that refusal rather than reversing it by extending the same
+table. The M3.2 *pattern* is reused — one atomic upsert-returning statement — but not the table. No
+`MAX+1`, no `COUNT+1`, no read-then-write. Gaps carry no meaning; a reference is immutable once
+assigned.
+
+**Matter participation is independent of Project participation** *(D-105)*: not inherited, not
+copied, not synchronized. Project participants may later serve as **candidate context** only —
+convenience for whoever is typing, not a data relationship, because two tables that silently mirror
+each other drift apart and the drift is found by somebody reading the wrong one. The same-Office
+invariant is structural again, through one `office_id` carrier and two composite foreign keys, and
+`matters` gains its own `UNIQUE (id, office_id)` for it.
+
+Four permissions are expected at **M4.5**, moving the count **173 → 177**: the participation pair,
+per domain. Four rather than two because the role matrix gives Notary Staff full access to Notary
+Matters and view-only on PPAT Matters, and the reverse for PPAT Staff — one pair spanning both would
+hand each of them the other's participation. `view` and `manage` independent, `manage` not implying
+`view` (D-098). **Not registered at M4.0.**
+
+**Two ERD fields deliberately not built** *(D-105)*. `represented_by_party_id` is
+**DOMAIN VALIDATION REQUIRED** — a Party acting through another Party is representation, proxy, or
+legal capacity, and which it means has no canonical answer here. `sequence_no` is deferred because
+display order, signing order, legal priority and appearance order are four different things the
+column name distinguishes between none of, and a wrong guess stays invisible until a deed is
+drafted from it. `role_code` stays nullable and opaque; the ERD's `SELLER` / `BUYER` /
+`SELLER_SPOUSE` / `DIRECTOR` / `COMMISSIONER` codes are labelled examples and are not promoted.
+
+### Stale and contradictory documentation corrected
+
+**1. `06_API_CONVENTIONS.md` contradicted itself about Matter routes.** It showed a generic
+`/matters` in section 13, `GET /api/v1/matters?domain=PPAT` in section 11, and
+`POST /api/v1/matters/{id}/move-stage` in section 22 — while *the same section 22* already used
+domain-prefixed paths for deeds and Warkah. Three canonical sources disagreed with the generic
+form and the fourth disagreed with itself. Corrected in all three places, with the supersession
+recorded rather than silently applied.
+
+**2. `02_MENU_AND_PERMISSIONS.md` still asserted the permission count was 171.** In the M2.5
+subsection on composed navigation entries — *"No such permission exists, and the count stays at
+171."* The count has been **173** since M3.4. This is the same class of defect M3.5 fixed in eight
+other places and **did not catch here**; the M2.5 context is preserved and the current total stated
+beside it.
+
+**3. The ERD's `matter_parties` recorded neither the Office carrier nor the two deferrals.** It
+lists the field set without `office_id`, exactly as it listed `project_parties` without one, and
+gives `represented_by_party_id` and `sequence_no` no status at all. All three are now recorded
+where a reader will find them, so the carrier reads as a decision rather than an oversight.
+
+**4. `13_M3_PROJECT_ARCHITECTURE.md`'s unresolved-items table carried two rows that were M4's.**
+Project-to-Matter cardinality is now resolved by D-099; "whether Matter workers need Project
+visibility" is answered in one direction by D-100 and remains open in the other. The M3-era wording
+and the `Blocks M3.1?` column are left intact rather than rewritten to read as though they had
+always known the answer.
+
+### Verification
+
+```text
+Backend        1591 tests, 5329 assertions — unchanged
+Pint           passed
+composer       validate --strict passed
+Frontend       format:check, lint, typecheck, build all clean
+i18n           731 / 731 exact — no UI string added
+Migrations     22, none pending
+Permissions    173
+Matter files   none — no migration, model, policy, route, resource, or page created
+```
+
+No disposable database and no HTTP smoke: M4.0 changes no schema and no code path, so there is
+nothing for either to exercise. The M1.10, M2.6 and M3.5 gates ran them because those milestones
+touched behaviour; M3.0 and M2.0, the comparable architecture locks, did not.
+
+### Open items
+
+No open item was opened, closed, or modified. O-010, O-018, O-031, O-032, O-033 and O-034 remain
+exactly as they were.
+
+**M4.1 has not started.** No Matter implementation exists.
+
+---
+
 ## 2026-08-17 — M3.5 M3 Quality Gate
 
 Branch `feat/m3-project-matter`. **No migration** (22 total) and **no permission** (173). An

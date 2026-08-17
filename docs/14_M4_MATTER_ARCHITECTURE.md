@@ -1,0 +1,597 @@
+# M4 — Matter & Workflow Architecture
+
+**Status:** `LOCKED — M4.0`
+
+Sibling of `12_M2_PARTY_ARCHITECTURE.md` and `13_M3_PROJECT_ARCHITECTURE.md`. Where those
+locked the Party and Project aggregates, this one locks Matter and the Workflow Engine. It
+records what M4 may build, what it must not, and — as importantly — which of its statements are
+transcribed from canonical sources, which are engineering decisions taken here, and which remain
+questions nobody has the authority to answer yet.
+
+Every ruling below was reviewed and accepted before this document was written. Nothing in it is
+inference promoted to fact.
+
+---
+
+## 1. Scope
+
+M4 implements **Matter and the Workflow Engine mechanism**.
+
+M4 does **not** implement any Notary or PPAT legal output. `01_ARCHITECTURE.md` section 28 places
+**M6 — Notary** and **M7 — PPAT** after this milestone, and that ordering is why deeds, Drafts,
+Minuta Akta, Repertorium, Notary Protocol, PPAT Deeds, property and land records, Warkah, tax
+processing, registers and PPAT reports are all outside M4 entirely.
+
+The single most important sentence in this document:
+
+> **M4 builds a configurable workflow mechanism. It seeds no workflow content, because none
+> exists.**
+
+See section 9, and **D-104**.
+
+---
+
+## 2. Terminology
+
+```text
+Project    one client engagement, transaction, or larger legal requirement   (M3, delivered)
+Matter     the operational unit of work inside it                            (M4)
+Workflow   the configurable stage mechanism a Matter runs through            (M4)
+```
+
+**Matter Status and Workflow Stage are different concepts and must never be merged.** `CLAUDE.md`
+section 18, `00_PROJECT_OVERVIEW.md` section 6, and section 4 of both workflow drafts all say so
+independently.
+
+```text
+Matter Status:   IN_PROGRESS
+Workflow Stage:  NOTARY_REVIEW
+```
+
+---
+
+## 3. Matter is a required child of Project
+
+`matters.project_id` is **required**. A Matter always belongs to exactly one Project.
+
+```text
+Project  1 ────< Matter  0..*
+```
+
+- One Project may have **many** Matters.
+- A Project may exist with **zero** Matters — a Project with no Matter is complete, not a draft.
+- **Project never embeds Matter state.** No counter, no current-Matter pointer, no rolled-up
+  status. Matter references Project, never the reverse (D-087).
+- Matter is a **child aggregate with its own lifecycle**, not a component of Project. It does not
+  inherit Project's archive rules, and Project's lifecycle actions do not cascade into it.
+
+M3 deliberately fixed no cardinality (D-087). M4 fixes it, and only the half it has authority
+over: the *structural* requirement that a Matter names a parent. Whether an office's practice
+expects every Project to carry at least one Matter is an operational question, and no minimum is
+encoded anywhere.
+
+See **D-099**.
+
+---
+
+## 4. Office ownership
+
+`matters.office_id` is **required**, **inherited from the parent Project at creation**, and
+**immutable for the duration of M4**.
+
+It is not a free field. The creating actor does not choose it and cannot submit it; it is copied
+from the parent Project, which is the only thing that can legitimately decide it.
+
+**The same-Office relationship is structural, not merely validated:**
+
+```text
+matters (project_id, office_id)  ->  projects (id, office_id)
+```
+
+`projects` has carried the `UNIQUE (id, office_id)` support key this composite foreign key
+requires **since M3.4** (D-098), so M4 reuses it rather than adding one. A Matter whose Office
+disagrees with its Project's Office is *unrepresentable*, not merely refused — the pattern proven
+twice already, for `company_people` (D-080) and `project_parties` (D-098).
+
+`matters` additionally carries its own `UNIQUE (id, office_id)` support key, because
+`matter_parties` will need it at M4.5 (section 8).
+
+**M4 ships no Office-transfer operation** for Project or Matter — no endpoint, no Action, no
+administrative path. This is an **engineering boundary, not a claim of legal impossibility**,
+identical in reasoning to D-089: what a transfer would mean for participants, references already
+issued, and workflow already run is undesigned, and inventing it is worse than refusing it.
+
+See **D-099**.
+
+---
+
+## 5. Authorization
+
+### 5.1 The shape is inherited unchanged
+
+```text
+Controller::authorize(...)  ->  Matter Policy  ->  EffectiveAccessResolver  ->  Data Scope
+```
+
+No permission-code authorization as backend authority, no role-name authorization, no
+`SUPER_ADMIN` bypass (D-048, D-032, D-041). Data Scopes are **predicates, never a ladder**;
+multiple grants **union** (D-028); unknown or missing scope metadata **fails closed** (D-039).
+No widest-scope, no rank, no `maxScope`.
+
+### 5.2 Matter Data Scope predicates
+
+`matters.*` sat in `PermissionScopeRules`' permissive default with an explicit note that
+narrowing it would mean deciding what a scope meant for a domain nobody had designed. M4 is where
+that becomes legitimate — for Matter, and only for Matter.
+
+```text
+OWN        matter.created_by   == actor.id
+ASSIGNED   matter.pic_user_id  == actor.id
+OFFICE     matter.office_id    == actor.office_id
+ALL        cross-office Matter reach
+TEAM       no Matter-domain grant
+```
+
+`TEAM` is withheld here as everywhere: no Team entity exists (D-042).
+
+### 5.3 Matter authorization is independent of Project authorization
+
+**Reaching a Project confers no Matter authority.** An actor who may view, update, or even
+archive a Project gains, by that fact alone, no right to view or change any Matter beneath it.
+Every Matter ability is judged against the Matter by the predicates above.
+
+This is deliberately the harder answer. The easy one — "if you can see the Project you can see its
+Matters" — would make Project reach a silent superset of Matter reach, and would mean an
+administrator granting `projects.view` had granted Notary and PPAT work visibility without ever
+naming those capabilities.
+
+**The converse is already forbidden and stays forbidden.** D-088 and `07_SECURITY_RULES.md`
+prohibit Matter or stage assignment from widening Project `ASSIGNED`. M4 adds the symmetric rule
+so neither direction leaks.
+
+### 5.4 The one place the parent is consulted
+
+**Creating a Matter validates the parent Project through canonical Project authorization.** A
+Matter may not be created under a Project the actor cannot canonically reach, and the check is the
+ordinary Project reach question answered by the ordinary Project mechanism — not a new predicate,
+and not a relaxation.
+
+That is the whole of the interaction. It applies to creation, where a parent is being chosen. It
+does not extend to reading, updating, assigning, completing, or cancelling an existing Matter,
+each of which answers only to its own capability.
+
+### 5.5 Stage assignment is not Matter assignment
+
+**`matter_stage_instances.assigned_user_id` does not count toward Matter `ASSIGNED`.**
+
+Matter `ASSIGNED` means `matter.pic_user_id == actor.id`, one column, one comparison. When the
+workflow gains stage assignees at M4.7 it will be tempting to let them widen Matter reach, on the
+reasoning that somebody working a stage must see its Matter. That would be a **new grant wearing
+an existing scope's name**, silently widening every role already configured with Matter
+`ASSIGNED` — the exact failure D-088 named one milestone earlier, one domain across. If stage
+workers need Matter visibility, that is its own decision and its own predicate.
+
+See **D-100**.
+
+---
+
+## 6. Domain split: routes, namespaces, and persistence
+
+### 6.1 One table, one discriminator
+
+M4 builds **one root table, `matters`, carrying a canonical `domain` discriminator**:
+
+```text
+NOTARY
+PPAT
+```
+
+This follows `03_DATABASE_ERD.md` section 9 exactly.
+
+**M4 builds neither `notary_matters` nor `ppat_matters`.** Those extension tables and every field
+in them — `deed_category`, `requires_minuta`, `requires_register_entry`, `land_office_region`,
+`tax_processing_required`, `registration_required` — are domain-semantic, unvalidated, and belong
+to **M6 and M7**. M4 persists none of them, and adds no column of its own standing in for one.
+
+This follows D-095 exactly: a column added on speculation is one somebody fills in wrongly.
+
+### 6.2 Domain-split routes
+
+```text
+/api/v1/notary/matters
+/api/v1/ppat/matters
+```
+
+and their nested descendants. **The generic `/api/v1/matters?domain=...` form is refused.**
+
+`06_API_CONVENTIONS.md` carried the generic form while the same document used domain-prefixed
+paths for deeds, the canonical registry splits the capability surface with no generic namespace,
+and `02_MENU_AND_PERMISSIONS.md` section 26 splits the sidebar the same way. Three sources against
+one, and the one was internally inconsistent. **The generic form is corrected at M4.0**, not left
+to be discovered by whoever writes the first route.
+
+### 6.3 The permission namespace comes from the route, never the body
+
+```text
+Notary route  ->  notary.matters.*
+PPAT route    ->  ppat.matters.*
+```
+
+**The namespace is a property of the route context.** It is never selected from a request-body
+`domain` field, and no Policy reads row data to decide which permission to resolve.
+
+This is the ruling that keeps M4 inside the authorization shape this codebase already has.
+`13_M3_PROJECT_ARCHITECTURE.md` section 12 flagged the alternative as *"a genuinely new
+authorization shape"* — a Policy choosing its own permission namespace from the record it is being
+asked about. Route-derived namespacing makes the question ordinary again: each route knows its
+capability before it touches the database.
+
+**For an existing Matter, the persisted `domain` must match the domain route.** A Notary route
+handed a PPAT Matter's id **fails closed through the repository's canonical binding convention** —
+the same **404** that M3.4's nested participation binding returns for a foreign parent (D-098), and
+for the same reason: a 403 would confirm the record exists in a domain the caller did not name.
+
+See **D-101**.
+
+---
+
+## 7. Permission surface
+
+**M4.0 adds no permission. The canonical count stays at 173.**
+
+All sixteen Matter codes are already canonical (`02_MENU_AND_PERMISSIONS.md` sections 10 and 11):
+
+```text
+notary.matters.view          ppat.matters.view
+notary.matters.view_all      ppat.matters.view_all         superseded for reach — D-090
+notary.matters.create        ppat.matters.create
+notary.matters.update        ppat.matters.update
+notary.matters.assign        ppat.matters.assign
+notary.matters.change_stage  ppat.matters.change_stage
+notary.matters.complete      ppat.matters.complete
+notary.matters.cancel        ppat.matters.cancel
+```
+
+`master.services.*`, `master.workflows.*` and `master.requirements.*` are likewise already
+canonical, so the master-data and workflow milestones add nothing either.
+
+**`view_all` remains a registered compatibility identifier and is not an alternate reach
+mechanism** (D-090). No `view_all` code may be used as backend cross-office authorization
+authority, and no second reach mechanism may exist beside `EffectiveAccessResolver`.
+
+### The one expected addition, and it is not at M4.0
+
+Matter participation has **no canonical permission**, exactly as Project participation had none
+before M3.4 registered two (D-098). **M4.5 is expected to add four:**
+
+```text
+notary.matters.parties.view     notary.matters.parties.manage
+ppat.matters.parties.view       ppat.matters.parties.manage
+173 -> 177
+```
+
+Four rather than two, because the domain split is real: the role matrix in
+`02_MENU_AND_PERMISSIONS.md` section 5 gives Notary Staff full access to Notary Matters and
+view-only on PPAT Matters, and the reverse for PPAT Staff. A single pair spanning both domains
+would hand each of them the other's participation.
+
+**`view` and `manage` are independent, and `manage` does not imply `view`** — the M3.4 answer
+(D-098), for the M3.4 reason: a silently implied capability is one nobody configured and nobody
+can revoke. Neither is reached by `notary.matters.update` or `ppat.matters.update`.
+
+**They are not registered at M4.0.** The count moves when the milestone that gives them routes
+registers them, following the M3.4 precedent exactly.
+
+---
+
+## 8. Matter ↔ Party participation
+
+`matter_parties` is **independent of `project_parties`**. Not inherited, not copied, not
+synchronized — three distinct mechanisms, all refused.
+
+A Project's participants may later serve as **candidate context** when adding a Matter
+participant, which is a convenience for whoever is typing. It is not a data relationship, and
+nothing propagates in either direction. Two tables that silently mirror each other drift apart,
+and the drift is discovered by somebody reading the wrong one.
+
+**The same-Office invariant is structural**, as it is everywhere else:
+
+```text
+matter_parties.office_id  ->  matters (id, office_id)
+                          ->  parties (id, office_id)
+```
+
+Two composite foreign keys through **one** carrier column, so both endpoints must agree with it
+and therefore with each other. `matters` provides its `UNIQUE (id, office_id)` support key
+(section 4); `parties` has carried its equivalent since M2.1. **A cross-office Matter
+participation is unrepresentable, including for an actor holding `ALL`** — `ALL` grants reach and
+administrative visibility, never permission to redefine domain ownership.
+
+`03_DATABASE_ERD.md` section 9 lists `matter_parties` without `office_id`, exactly as it listed
+`project_parties` without one. The carrier is a **recorded departure**, not an oversight, and it
+is recorded in the ERD itself.
+
+### What M4 does not build into it
+
+| ERD field | M4 disposition | Why |
+|---|---|---|
+| `represented_by_party_id` | **Deferred — DOMAIN VALIDATION REQUIRED** | A Party acting through another Party is representation, proxy, or legal capacity. Which of those it means, when it is permitted, and what it implies for a deed are legal questions with no canonical answer here. Guessing would invent an Indonesian notarial rule (CLAUDE.md section 62). |
+| `sequence_no` | **Deferred — semantics unvalidated** | Display order, signing order, legal priority, and appearance order are four different things and the column name distinguishes none of them. A wrong guess is invisible until a deed is drafted from it. |
+| `role_code` | Built, **nullable and opaque** | No enum, no `Rule::in`, no `CHECK`. The ERD's `SELLER`, `BUYER`, `SELLER_SPOUSE`, `DIRECTOR`, `COMMISSIONER`, `WITNESS` and the rest are labelled **example role codes**; constraining the column would turn examples into the catalogue the document says they are not (D-092, D-098). |
+
+**No cardinality rule is invented.** Not a mandatory role, not a required seller, not a
+one-buyer-per-Matter limit, not an exactly-one anything. Each such rule is a business rule wearing
+an implementation's clothing.
+
+**Participation is current working state, not historical legal participation.** No effective
+periods, no historical versioning, no soft delete, no legal audit history. `company_people` keeps
+history because deeds executed in March depend on who was a director in March (D-083); nothing yet
+depends on a Matter's participant list as it stood last week, and the mechanism is not built ahead
+of the requirement. If correction semantics are later needed they must be designed explicitly in
+the milestone that needs them, not approximated now.
+
+See **D-105**.
+
+---
+
+## 9. The Workflow Engine
+
+### 9.1 What exists and what does not
+
+**The engine's shape is canonical. Its content does not exist.**
+
+`08_NOTARY_WORKFLOW.md` and `09_PPAT_WORKFLOW.md` are `DRAFT — DOMAIN VALIDATION REQUIRED`,
+each stamped `DO NOT IMPLEMENT FROM THIS DOCUMENT YET`, each stating that no workflow content has
+been authored and **none may be inferred from other documents in this repository**. Between them
+they carry sixteen unanswered domain questions.
+
+Section 4 of both drafts is explicit that the structural vocabulary they do carry consists of
+*"architectural facts, not legal rules"*. That distinction is what makes M4 possible at all.
+
+### 9.2 What M4 may build
+
+The mechanism, from `03_DATABASE_ERD.md` section 11:
+
+```text
+workflow_templates        office + service type, versioned, default/active flags
+workflow_stages           ordered stages belonging to a template version
+matter_workflows          one Matter's instantiation of a template version
+matter_stage_instances    per-stage state, with name snapshots taken at instantiation
+matter_stage_history      append-only record of transitions
+```
+
+**Snapshotting is the point, not decoration.** `CLAUDE.md` section 18 requires that editing a
+template must not retroactively change a Matter already running. `matter_stage_instances` carries
+`stage_code` and both snapshot names for exactly that reason, and `matter_workflows` records the
+`workflow_version` it was instantiated from.
+
+Stage instance status, canonical:
+
+```text
+PENDING  ACTIVE  COMPLETED  SKIPPED  BLOCKED
+```
+
+### 9.3 What M4 must never seed or infer
+
+```text
+Notary stage sequences          PPAT stage sequences
+default templates               approval points
+required-before-stage rules     tax gating
+deed gating                     legal completion conditions
+service type catalogue content  responsible-role-per-stage rules
+```
+
+A configurable engine shipped with no content is the correct outcome, and it is stated plainly
+rather than presented as a limitation: **the office's actual workflow is blocked on domain
+validation, not on engineering.** When a qualified domain source completes the two workflow
+documents, the content becomes configuration, entered through the master-data surfaces, and no
+schema change should be required to accept it.
+
+### 9.4 Transitions
+
+M4 authorizes **who may change a stage** — `notary.matters.change_stage` and
+`ppat.matters.change_stage`, already canonical. It does **not** encode which stage may follow
+which, because no canonical document defines that.
+
+**Whether a stage transition carries legal state, as opposed to being purely operational, is
+undecided and recorded as such.** It matters: if a transition ever gates deed finalization, its
+immutability and audit requirements are stricter than an operational status field's.
+`matter_stage_history` is therefore treated as append-only from the outset, which is the safe
+direction to be wrong in.
+
+See **D-104**.
+
+---
+
+## 10. Lifecycle
+
+### 10.1 Business status
+
+Canonical vocabulary, transcribed from `03_DATABASE_ERD.md` section 9:
+
+```text
+OPEN  IN_PROGRESS  WAITING  ON_HOLD  COMPLETED  CANCELLED  ARCHIVED
+```
+
+**M4 invents no transition matrix.** It authorizes *who* may change, complete, or cancel a
+Matter — three separate canonical capabilities — and never *which* status may follow which. That
+is an operational rule nobody has specified, and inventing one is exactly what `CLAUDE.md`
+section 62 prohibits, one domain removed. The M3 precedent is D-091, taken for the same reason.
+
+### 10.2 Archive and restore are not in M4
+
+**M4 ships no Matter archive or restore lifecycle**, and **M4.0 registers no archive or restore
+permission.** The canonical registry gives Matter eight codes per domain and none of them is
+`archive` or `restore` — unlike Project, which has both. The absence is the registry's, and M4
+does not fill it by invention.
+
+`matters.deleted_at` may exist as reserved schema capability where the locked ERD carries it, with
+**no API lifecycle reaching it.** A column without a surface is honest; a surface without a
+permission is not.
+
+**Business status and persistence deletion remain separate concepts**, and this is the trap worth
+naming: `CANCELLED`, `COMPLETED` and `ARCHIVED` are **business statuses and must never be reused
+as synonyms for soft deletion.** `ARCHIVED` and `deleted_at` are different states with
+unfortunately similar names — the same awkwardness D-093 named for Project, restated here because
+the Matter vocabulary contains the same trap and Matter has no restore path to recover from a
+wrong answer.
+
+---
+
+## 11. Internal reference
+
+A Matter's internal reference is **ordinary office identification**, following `CLAUDE.md`
+section 38. It is explicitly **not** a deed number, a repertorium number, a land or government
+registration number, or any legally significant document number.
+
+```text
+N-YYYY-NNNNNN     Notary
+P-YYYY-NNNNNN     PPAT
+```
+
+Both prefixes are transcribed from `CLAUDE.md` section 38's internal-reference examples.
+
+**Namespace: Office + calendar year + domain.** Three components, because the two prefixes are
+distinct and a shared counter would make `N-2026-000001` and `P-2026-000001` compete for the same
+value.
+
+**A dedicated Matter allocator.** The M3.2 Project allocator is deliberately **not** generalized —
+`13_M3_PROJECT_ARCHITECTURE.md` section 9 refused to turn it into `legal_number_sequences` or
+anything deed-, repertorium- or Matter-shaped, and M4 honours that refusal rather than quietly
+reversing it by extending the same table.
+
+**One atomic statement, no read-then-write.** The M3.2 pattern — `INSERT … ON CONFLICT … DO UPDATE
+SET last_value = last_value + 1 RETURNING last_value` — is the proven approach, and it runs
+identically on PostgreSQL and SQLite 3.35+.
+
+Forbidden, all of them unsafe under concurrency:
+
+```text
+MAX(number) + 1     COUNT(*) + 1     latest() + 1     read-then-write
+```
+
+**Gaps are expected and carry no meaning.** The sequence is not a record count and its order
+carries no legal weight. **A reference is immutable once assigned.**
+
+See **D-103**.
+
+---
+
+## 12. Service types
+
+M4 owns the **service type master-data infrastructure** — the table, its bilingual fields, its
+Office and domain scoping, and the surfaces that maintain it. `master.services.view` and
+`master.services.manage` are already canonical.
+
+**No legal service catalogue is canonical yet, and none is seeded.** Which services a Notary and
+PPAT office actually offers is the first open question in both workflow drafts. M4 ships the
+container empty.
+
+**`matters.service_type_id` is therefore nullable in M4.** A Matter may exist without a service
+type until domain content is validated. Making it required would make Matter uncreatable for as
+long as the catalogue is empty, which is the M3.2 lesson about `project_number` in reverse
+(D-095): a constraint that outruns the data it constrains blocks the milestone that would satisfy
+it.
+
+---
+
+## 13. Sensitive identity
+
+NIK, NPWP, tax identifiers and every other protected Party identifier remain **exclusively** in
+the Party identity architecture (D-082).
+
+They are never copied into:
+
+```text
+matters                  matter_parties           workflow_templates
+workflow_stages          matter_stage_instances   matter_stage_history
+browser storage          URLs                     query keys
+logs                     ordinary Matter resources
+```
+
+Matter participation exposure follows the M3.4 pattern when it is built: a **minimal Party stub**
+— id, display name, type, archived flag, and a `can_view_party` computed from canonical Party and
+Company visibility per subtype — with **no masks**, because a mask is still a statement about a
+sensitive value.
+
+**Visibility is evaluated in bulk, never per row.** The actor's effective access does not vary by
+row, so a per-row resolve is the N+1 M2.6 measured and fixed on the Party reverse view and M3.4
+avoided by construction.
+
+**Free-text audit fields are a leak surface and are named as one.** `matter_stage_history.reason`
+and comparable fields are audit-shaped free text: they must never be used to persist Party
+identity or an uncontrolled identity copy, and nothing in the product may populate them from
+identity data.
+
+---
+
+## 14. Non-goals
+
+Not part of M4, and not to be introduced incidentally:
+
+```text
+documents / uploads / versioning     M5        tasks                              M5
+Notarial Deeds, Drafts, Minuta       M6        Repertorium, Notary Protocol       M6
+PPAT Deeds, property and land        M7        Warkah, taxes, registers, reports  M7
+billing / invoices / payments        M8        dashboard analytics                M8
+global search                        later     deed or legal numbering of any kind
+participant legal-role catalogue               legal workflow content
+Project or Matter Office transfer              notary_matters / ppat_matters tables
+represented_by_party_id                        sequence_no
+Matter archive / restore lifecycle             status transition matrix
+```
+
+`08_NOTARY_WORKFLOW.md` and `09_PPAT_WORKFLOW.md` remain placeholders requiring domain authority.
+**Nothing may be implemented from them.**
+
+---
+
+## 15. Milestone decomposition
+
+```text
+M4.0   Matter / Workflow architecture lock        <- this document
+M4.1   Service Types + master-data foundation
+M4.2   Matter schema + authorization foundation
+M4.3   Matter internal reference foundation
+M4.4   Matter core management
+M4.5   Matter <-> Party participation
+M4.6   Workflow templates + stages
+M4.7   Matter workflow instances + stage transitions
+M4.8   M4 quality gate
+```
+
+**M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
+foreign key cannot point at a table that does not exist.
+
+**M4.2 is schema, Policy, predicates, constraints and architecture tests — not CRUD UI**,
+following the M2.1 and M3.1 precedent exactly.
+
+**M4.3 owns the allocator**, and the column and its allocator arrive together, following D-095.
+
+**M4.5 is expected to move the permission count 173 → 177** (section 7).
+
+**M4.6 and M4.7 build mechanism only.** Neither may seed workflow content.
+
+---
+
+## 16. Unresolved items
+
+| Question | Status | Blocks M4.1? |
+|---|---|---|
+| Notary and PPAT workflow content — stages, sequences, approvals, gating | **DOMAIN VALIDATION REQUIRED.** Both workflow documents are placeholders; nothing may be inferred from them | **No** — M4 builds mechanism, not content |
+| Which service types the office actually handles | **DOMAIN VALIDATION REQUIRED.** The container ships empty and `service_type_id` is nullable | **No** |
+| `represented_by_party_id` semantics | **DOMAIN VALIDATION REQUIRED.** Deferred; not built in M4 | **No** |
+| `sequence_no` semantics | Deferred; four plausible meanings, no canonical answer | **No** |
+| Participant role catalogue and any cardinality rule | **DOMAIN VALIDATION REQUIRED.** ERD codes are labelled examples | **No** |
+| Matter status transition matrix | Not invented. M4 authorizes who may change status, never which changes are legal | **No** |
+| Whether a stage transition carries legal state | **OPEN.** Treated as append-only from the outset, which is the safe direction | **No** |
+| Matter archive / restore | Refused for M4; no canonical permission exists. Needs its own ruling and its own codes | **No** |
+| `notary_matters` / `ppat_matters` extension tables | Deferred to M6 / M7 with their domain content | **No** |
+| Whether stage workers need Matter visibility | A new predicate if ever needed; must not silently widen `ASSIGNED` | **No** |
+| Project or Matter Office transfer | Refused for M4; requires its own architecture decision | **No** |
+
+None blocks M4.1. Each is recorded rather than quietly assumed.
+
+---
+
+**Status:** `LOCKED — M4.0`

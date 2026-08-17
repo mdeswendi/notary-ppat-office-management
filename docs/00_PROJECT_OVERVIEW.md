@@ -109,18 +109,29 @@ Akuisisi Tanah PT ABC
 
 A simple engagement may also contain only one Matter.
 
-**Project is the M3 aggregate root** *(M3.0)*. Matter is a **future child aggregate with its
-own lifecycle**, not a component of Project, so M4 decides Matter's archive and lifecycle
-rules rather than inheriting Project's. **No Project-to-Matter cardinality is fixed**: whether
-a Project must have a Matter, may have none, or is capped is an M4 question with a domain
-component. The example above shows what a Project *may* contain, not what one must.
+**Project is the M3 aggregate root** *(M3.0)*. Matter is a **child aggregate with its own
+lifecycle**, not a component of Project, so M4 decides Matter's archive and lifecycle rules
+rather than inheriting Project's.
+
+**Cardinality, fixed at M4.0** *(D-099)*: `matters.project_id` is **required**, so a Matter always
+names exactly one Project; one Project may hold **many** Matters; and **a Project with zero Matters
+is complete, not a draft.** No minimum is encoded — whether an office's practice expects every
+Project to carry a Matter is operational, not architectural. The example above therefore shows what
+a Project *may* contain, not what one must.
 
 ---
 
 ## 6. Matter Concept
 
-**Matter is M4** *(D-087)*. This section describes the intended concept; nothing here may be
-implemented during M3.
+**Matter is M4** *(D-087)*, and its architecture is locked in `14_M4_MATTER_ARCHITECTURE.md`
+*(M4.0)*. This section describes the concept; the lock decides what M4 may build.
+
+Two things this list does **not** imply. **Legal output belongs to M6 and M7**, not to M4 —
+`01_ARCHITECTURE.md` section 28 places the Notary and PPAT milestones after Matter, so deeds,
+Minuta Akta, Warkah and registers are outside M4 entirely. And **the workflow M4 builds is a
+mechanism with no content**: both workflow specifications remain `DRAFT — DOMAIN VALIDATION
+REQUIRED`, so M4 ships a configurable engine and seeds no stage, sequence, or approval rule
+(D-104).
 
 A **Matter** is the operational unit of work.
 

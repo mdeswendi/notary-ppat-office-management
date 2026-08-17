@@ -404,6 +404,31 @@ notary.matters.complete
 notary.matters.cancel
 ```
 
+**M4.0 adds no permission — the canonical count stays at 173.** All sixteen Matter codes, Notary
+and PPAT alike, were already canonical. Four rulings govern how they are used
+*(`14_M4_MATTER_ARCHITECTURE.md`)*:
+
+- **The namespace comes from the route** *(D-101)*: `/api/v1/notary/matters` resolves
+  `notary.matters.*`, `/api/v1/ppat/matters` resolves `ppat.matters.*`. Never from a request-body
+  `domain`, and never from row data.
+- **Matter Data Scope** *(D-100)*: `OWN` = `created_by`, `ASSIGNED` = `matter.pic_user_id`,
+  `OFFICE` = `matter.office_id`, `ALL` = cross-office reach, `TEAM` = no grant. **Project reach
+  confers no Matter authority**, and a stage assignee never widens `ASSIGNED`.
+- **`view_all` remains superseded for reach** *(D-090)* and is not backend authority.
+- **No `archive` or `restore` code exists for Matter, and M4 invents none** *(D-102)*. The absence
+  is the registry's. `matters.deleted_at` may exist as reserved schema capability with no API
+  lifecycle reaching it, and `CANCELLED` / `COMPLETED` / `ARCHIVED` are business statuses, never
+  synonyms for soft deletion.
+
+**Matter participation is expected to add four codes at M4.5** *(D-105)* —
+`notary.matters.parties.view`, `notary.matters.parties.manage`, `ppat.matters.parties.view`,
+`ppat.matters.parties.manage`, moving the count **173 → 177**. Four rather than two because the
+role matrix in section 5 gives Notary Staff full access to Notary Matters and view-only on PPAT
+Matters, and the reverse for PPAT Staff; one pair spanning both domains would hand each of them the
+other's participation. `view` and `manage` are independent, `manage` does not imply `view`, and
+neither is reached by `…matters.update`. **They are not registered at M4.0** — the count moves in
+the milestone that gives them routes, following the M3.4 precedent.
+
 ### Deeds
 
 ```text
@@ -849,8 +874,10 @@ Companies      companies.view
 Requiring both would hide a page that works. Inventing `parties.directory.view` would be worse:
 a permission for a *page* rather than for the records on it, which would let an administrator
 grant the directory without granting sight of anything in it, or withhold it from somebody who
-can already open every record it lists. **No such permission exists, and the count stays at
-171.**
+can already open every record it lists. **No such permission exists**, and M2.5 added none — the
+count stood at 171 through that milestone. *(It is **173** today: M3.4 added the two Project
+participation codes, D-098. Corrected at M4.0, which found this sentence still asserting the
+older total in the present tense.)*
 
 Implemented in `frontend/src/config/navigation.ts` as an `anyPermissions` list beside the
 existing `requiredPermission`. Where both fields are set, both must hold, so adding

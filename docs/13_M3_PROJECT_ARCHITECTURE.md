@@ -528,10 +528,15 @@ new product capability, by design. Its findings, and what it deliberately left o
 | Participant role catalogue and any cardinality rule | Requires domain authority; ERD codes are examples only | **No** |
 | Status transition matrix | Not invented; M3 authorizes who may change status, not which changes are legal | **No** |
 | Project Office transfer | Refused for M3; requires its own architecture decision | **No** |
-| Project-to-Matter cardinality | M4 | **No** |
-| Whether Matter workers need Project visibility | A new predicate if ever needed; must not silently widen `ASSIGNED` | **No** |
+| Project-to-Matter cardinality | **Resolved at M4.0** — `matters.project_id` is required, one Project may hold many Matters, and a Project with zero Matters is complete. See D-099 | **No** |
+| Whether Matter workers need Project visibility | **Still open, and answered in one direction at M4.0.** D-100 rules that Project reach confers no Matter authority; the converse — Matter or stage work widening Project `ASSIGNED` — remains forbidden by D-088 and is not what M4.0 settled. If Matter workers ever need Project visibility it is a new predicate | **No** |
 
 None blocks M3.1. Each is recorded rather than quietly assumed.
+
+The last two rows were carried as **M4 questions**, and the column header above asks about M3.1
+because that is what this table was written to answer. Their current dispositions are recorded in
+`14_M4_MATTER_ARCHITECTURE.md` section 16 *(clarified at M4.0)*; the M3-era wording is left intact
+rather than rewritten to read as though it had always known the answer.
 
 ---
 

@@ -301,6 +301,25 @@ workflow-stage assignees exist, letting either extend Project `ASSIGNED` would b
 wearing an old scope's name — widening every role already configured with it, without anybody
 editing a role.
 
+**Neither direction leaks, and M4.0 closed the other one** *(D-100)*. Matter authorization is
+**independent of Project authorization**: reaching a Project confers no right to view or change any
+Matter beneath it. The convenient reading — "if you can see the Project you can see its Matters" —
+would make Project reach a silent superset of Matter reach, so an administrator granting
+`projects.view` would have granted Notary and PPAT work visibility without ever naming those
+capabilities. **One interaction survives**: creating a Matter validates the parent Project through
+canonical Project authorization, because a parent is being chosen. It extends to nothing else.
+
+**`matter_stage_instances.assigned_user_id` does not count toward Matter `ASSIGNED`** *(D-100)*,
+for the same reason the rule above protects Project: Matter `ASSIGNED` is `pic_user_id`, one column,
+one comparison, and letting a stage assignee widen it would silently widen every role already
+configured with it.
+
+**The Matter permission namespace comes from the route, never the request body** *(D-101)*.
+`/api/v1/notary/matters` authorizes through `notary.matters.*` and `/api/v1/ppat/matters` through
+`ppat.matters.*`, so no Policy selects its capability from row data. For an existing Matter the
+persisted `domain` must match the route, and a mismatch answers **404** through the canonical
+binding convention — a 403 would confirm the record exists in a domain the caller did not name.
+
 ---
 
 ## 11. Sensitive Data
