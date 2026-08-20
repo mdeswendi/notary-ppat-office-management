@@ -1,26 +1,28 @@
 <?php
 
-namespace App\Domains\Project;
+namespace App\Domains\Party;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Party\Enums\PartyType;
-use App\Domains\Party\PartyVisibility;
 use App\Models\Party;
-use App\Models\Project;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The Party half of Project participation (M3.4, D-098).
+ * The Party half of participation, wherever participation happens.
  *
  * **Participation authority and Party visibility are two separate questions**,
- * and this class exists so the second one is never skipped. `ProjectPolicy` and
- * `ProjectPartyPolicy` answer "may this actor work on this Project's
- * participation" against the parent Project. That says nothing whatever about
- * which Parties the actor may see, and treating the first as an answer to the
- * second would make `projects.parties.manage` a back door into the Party
- * directory — a capability granted for organising work quietly becoming one for
- * discovering people.
+ * and this class exists so the second one is never skipped. A participation
+ * Policy — `ProjectPartyPolicy`, `MatterPartyPolicy` — answers "may this actor
+ * work on this record's participation" against the parent record. The
+ * references are deliberately plain text rather than `@see` tags: Pint's
+ * `fully_qualified_strict_types` turns a tagged reference into a real `use`
+ * statement, and a Party-domain class importing two Policies to satisfy a
+ * comment is a dependency nothing asked for. That says nothing whatever
+ * about which Parties the actor may see, and treating the first as an answer to
+ * the second would make `*.parties.manage` a back door into the Party directory:
+ * a capability granted for organising work quietly becoming one for discovering
+ * people.
  *
  * **The two subtype branches stay independent.** An Individual candidate is
  * reachable under `parties.view`; a Company candidate under `companies.view`.
@@ -29,13 +31,25 @@ use Illuminate\Database\Eloquent\Builder;
  * hold one and not the other. Collapsing them into a single "can see Parties"
  * test would silently widen whichever branch the actor lacks.
  *
+ * ## Why this is one class rather than one per parent domain
+ *
+ * It was `ProjectParticipantVisibility` at M3.4, and M4.5 generalized it rather
+ * than copying it (D-110). Every question it answers is keyed on an **Office
+ * id** and a Party subtype; the parent record contributed nothing but
+ * `office_id`. Two copies of a security check drift, and the drift is silent —
+ * one domain gains a fix the other does not, and nothing fails to announce it.
+ * D-105 keeps `matter_parties` independent of `project_parties` as *data*, which
+ * is a statement about tables and rows; it is not an instruction to re-implement
+ * the Party permission rule twice.
+ *
  * Note what this class does **not** decide: whether a Party already linked stays
- * listed. It does not — a participation the office recorded is Project data, and
- * it remains visible as a minimal stub with `can_view_party = false`. Withdrawing
- * the row would misreport the Project's composition to somebody authorized to
- * read it, which is worse than declining to link onward.
+ * listed. It does not — a participation the office recorded is the parent
+ * record's data, and it remains visible as a minimal stub with
+ * `can_view_party = false`. Withdrawing the row would misreport the record's
+ * composition to somebody authorized to read it, which is worse than declining
+ * to link onward.
  */
-class ProjectParticipantVisibility
+class ParticipantVisibility
 {
     /**
      * Which Party-domain permission governs each subtype.
@@ -86,33 +100,31 @@ class ProjectParticipantVisibility
     }
 
     /**
-     * Candidate Parties this actor may link to this Project.
+     * Candidate Parties this actor may link inside this Office.
      *
      * Three conditions apply together, and each is load-bearing:
      *
-     *   1. the Party is in the **Project's** Office — a cross-office
-     *      participation is unrepresentable in the database anyway (D-098), and
-     *      offering one would be an existence oracle for another Office's
-     *      directory;
+     *   1. the Party is in the **parent record's** Office — a cross-office
+     *      participation is unrepresentable in the database anyway (D-098,
+     *      D-105), and offering one would be an existence oracle for another
+     *      Office's directory;
      *   2. the Party is **not archived** — a retired record should not be picked
      *      for new work, though one already linked stays listed (D-081);
      *   3. the actor **reaches that Office under the subtype's own permission**.
      *
      * Condition 3 is why `ALL` does not help here in the way a reader might
      * expect. `ALL` on the Party side lets an actor *see* another Office's
-     * Parties, but condition 1 has already fixed the Office to the Project's, so
-     * the only thing `ALL` buys is reaching a Project in an Office that is not
-     * the actor's own. It never bridges the two Offices.
+     * Parties, but condition 1 has already fixed the Office to the parent
+     * record's, so the only thing `ALL` buys is reaching a parent record in an
+     * Office that is not the actor's own. It never bridges the two Offices.
      *
      * A branch the actor cannot reach contributes nothing rather than
      * everything — the query starts closed and each branch opens only itself.
      *
      * @return Builder<Party>
      */
-    public function candidateQuery(User $actor, Project $project): Builder
+    public function candidateQuery(User $actor, string $officeId): Builder
     {
-        $officeId = $project->office_id;
-
         $allowedTypes = [];
 
         foreach (self::PERMISSION_FOR_TYPE as $type => $permission) {
@@ -141,15 +153,15 @@ class ProjectParticipantVisibility
      * existing rather than the Action reading `Party::find()`. An id obtained
      * elsewhere — guessed, remembered from another Office, copied from a record
      * the actor may not open — must not become a participation merely because
-     * the actor may manage this Project's participants.
+     * the actor may manage this record's participants.
      *
      * Returns `null` for every failure mode without distinguishing them. "No
      * such Party", "another Office", "archived", and "a subtype you cannot see"
      * are one answer, because telling them apart would answer a question the
      * caller has no permission to ask.
      */
-    public function resolveCandidate(User $actor, Project $project, string $partyId): ?Party
+    public function resolveCandidate(User $actor, string $officeId, string $partyId): ?Party
     {
-        return $this->candidateQuery($actor, $project)->whereKey($partyId)->first();
+        return $this->candidateQuery($actor, $officeId)->whereKey($partyId)->first();
     }
 }

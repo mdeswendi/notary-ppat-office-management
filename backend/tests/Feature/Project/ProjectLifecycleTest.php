@@ -401,12 +401,14 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
     }
 
-    // **The table half is narrowed at M4.2**, which builds `matters` (D-107).
-    // Participation remains M4.5, and the point that survives is that Project
-    // exposes no surface reaching into either.
-    foreach (['matter_parties'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
+    // **The table half is narrowed at M4.2**, which builds `matters` (D-107),
+    // and again at M4.5, which builds `matter_parties` (D-105). Both exist now
+    // and their own schema tests assert their shape. What this file still owns
+    // is the claim the route list above makes: **Project exposes no surface
+    // reaching into either**, and neither table points back at a Project.
+    expect(Schema::hasTable('matter_parties'))->toBeTrue()
+        ->and(Schema::hasColumn('matter_parties', 'project_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'matter_id'))->toBeFalse();
 });
 
 it('adds no permission to the canonical registry', function (): void {

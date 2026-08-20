@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\IndividualIdentityController;
 use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
+use App\Http\Controllers\Api\V1\MatterPartyController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
@@ -288,7 +289,18 @@ Route::prefix('v1')->group(function (): void {
          *
          * `service-type-options` is registered **before** the `{matter}` binding;
          * reversed, the literal path would be read as a Matter id and answer 404.
-         * Participation is M4.5 and appears nowhere here.
+         *
+         * **Participation (M4.5, D-105)** is nested under the Matter because that
+         * is what owns it: participation authority is the parent Matter's Data
+         * Scope, and there is deliberately no top-level `/matter-parties`
+         * collection to reach a row without naming the Matter it belongs to.
+         * `*.matters.parties.view` reads the list, `*.matters.parties.manage`
+         * writes it, neither implies the other, and `*.matters.update` reaches
+         * neither. `party-options` is the candidate source, authorized by
+         * `manage` **and** additionally applying Party-domain visibility per
+         * subtype, so managing participation never becomes a way to discover
+         * Parties. `DELETE` here genuinely deletes — the relationship row only,
+         * never the Matter and never the Party.
          */
         foreach ([
             'notary' => MatterDomain::NOTARY,
@@ -315,6 +327,20 @@ Route::prefix('v1')->group(function (): void {
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('complete');
                     Route::post('matters/{matter}/cancel', [MatterLifecycleController::class, 'cancel'])
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('cancel');
+
+                    Route::get('matters/{matter}/party-options', [MatterPartyController::class, 'options'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.options');
+
+                    Route::get('matters/{matter}/parties', [MatterPartyController::class, 'index'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.index');
+                    Route::post('matters/{matter}/parties', [MatterPartyController::class, 'store'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.store');
+                    Route::patch('matters/{matter}/parties/{matterParty}', [MatterPartyController::class, 'update'])
+                        ->whereUlid('matter')->whereUlid('matterParty')
+                        ->defaults('domain', $domainValue)->name('parties.update');
+                    Route::delete('matters/{matter}/parties/{matterParty}', [MatterPartyController::class, 'destroy'])
+                        ->whereUlid('matter')->whereUlid('matterParty')
+                        ->defaults('domain', $domainValue)->name('parties.destroy');
 
                     Route::get('matters', [MatterController::class, 'index'])
                         ->defaults('domain', $domainValue)->name('index');

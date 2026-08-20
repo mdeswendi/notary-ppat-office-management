@@ -609,6 +609,10 @@ backend foundation only; `matter_number` nullable until M4.4 integrates allocati
 **M4.4 — delivered** *(D-109)*. See "Delivered at M4.4" below. One forward migration (26), no
 permission (173); the first Matter milestone with an HTTP and frontend surface.
 
+**M4.5 — delivered** *(D-110)*. See "Delivered at M4.5" below. One forward migration (27) and the
+**four permissions this document scheduled: 173 → 177**. Ten routes, five per domain, and a
+participation section on the Matter detail page.
+
 **M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
 `PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
 migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
@@ -713,6 +717,48 @@ stays registered and **deferred**, and the Permission Matrix reports it as such.
 carrying Matters only, each gated on its own `*.matters.view`, and 75 message keys per locale
 (810 per locale in total, at exact parity).
 
+### Delivered at M4.5 *(D-110)*
+
+Matter ↔ Party participation: read the list, add, correct, remove, and search candidates. One
+forward migration (27 total) and **four permissions — the count moves 173 → 177**.
+
+```text
+matter_parties (matter_id, office_id) -> matters (id, office_id)
+matter_parties (party_id,  office_id) -> parties (id, office_id)
+NO UNIQUE (matter_id, party_id)        no cardinality rule is invented
+role_code varchar(30) NULL, opaque     no enum, no CHECK, no dropdown
+```
+
+**This migration adds no support key**, unlike M3.4's: `parties_id_office_id_unique` has existed
+since M2.1 and `matters_id_office_id_unique` since M4.2, which added it for exactly this table. It
+therefore drops none on rollback either.
+
+**No `UNIQUE (matter_id, party_id)`.** Such an index would assert one Party holds at most one role
+in a Matter, and the same person may legitimately be a seller in their own right and another
+party's authorized representative. That is a domain question with no canonical answer, and section
+7's rule holds: no cardinality rule is invented.
+
+**Column set transcribed, not designed:** `notes` and `updated_at` are present because the ERD
+lists them; `is_primary` is absent because it does not, even though `project_parties` has one.
+`deleted_at`, `effective_from` and `effective_until` are absent — participation is current working
+state, and removal is a hard delete of the relationship row that touches neither endpoint.
+`sequence_no` and `represented_by_party_id` are **refused by the Form Requests**, not silently
+dropped, because they are deferred rather than optional.
+
+**`ProjectParticipantVisibility` was generalized into `ParticipantVisibility`**, keyed on an Office
+id, and M3.4's call sites moved to it. Section 7 keeps `matter_parties` independent of
+`project_parties` **as data**; that is a statement about tables, not an instruction to write the
+`parties.view` / `companies.view` rule twice. Nothing reads `project_parties`, no column points
+either way, and the parent Project's participants are not offered as candidates.
+
+**Managing participation is never authority to discover Parties.** The candidate query applies each
+subtype's own Party permission at its own Data Scope, independently; an actor holding neither gets
+an empty list, not the Office. Nonexistent, other-Office, archived and unseeable-subtype produce
+one indistinguishable 422. `can_view_party` is computed in **bulk**.
+
+**`view` and `manage` are independent in both directions**, and `*.matters.update` reaches neither.
+No `*.matters.parties.view_all` exists.
+
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.
 
@@ -721,7 +767,8 @@ following the M2.1 and M3.1 precedent exactly.
 
 **M4.3 owns the allocator**, and the column and its allocator arrive together, following D-095.
 
-**M4.5 is expected to move the permission count 173 → 177** (section 7).
+**M4.5 moved the permission count 173 → 177** (section 7), as expected and in the milestone that
+gave the four codes routes.
 
 **M4.6 and M4.7 build mechanism only.** Neither may seed workflow content.
 

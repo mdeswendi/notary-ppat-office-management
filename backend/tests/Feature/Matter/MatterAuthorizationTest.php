@@ -489,10 +489,17 @@ it('keeps view_all out of the matter scope rules', function (): void {
     expect($matterBlock)->not->toContain('view_all');
 });
 
-it('adds no permission to the canonical registry', function (): void {
+it('adds no permission to the matter lifecycle namespace', function (): void {
+    // Narrowed at M4.5. This inventory covered every `.matters.` code, which was
+    // right while M4.2 owned all of them and stopped being right when M4.5 added
+    // the four participation codes D-105 scheduled at M4.0. The claim this file
+    // owns is that the **lifecycle** surface M4.2 built has gained nothing;
+    // participation has its own inventory in `MatterPartyTest`, and the global
+    // total stays pinned once in `PermissionRegistryTest`.
     $matters = array_values(array_filter(
         PermissionRegistry::all(),
-        fn (string $code): bool => str_contains($code, '.matters.'),
+        fn (string $code): bool => str_contains($code, '.matters.')
+            && ! str_contains($code, '.matters.parties.'),
     ));
 
     sort($matters);
@@ -516,14 +523,25 @@ it('registers no generic matters namespace', function (): void {
     expect($generic)->toBe([]);
 });
 
-it('registers no matter participation permission yet', function (): void {
-    // Those four belong to M4.5.
+it('registers the four matter participation permissions and no more', function (): void {
+    // **Narrowed at M4.5, not deleted.** This asserted the four codes did *not*
+    // exist, which was the correct claim while they were scheduled and unbuilt.
+    // M4.5 built them, so the claim inverts to the one that still guards
+    // something: exactly four, two per domain, and no fifth invented alongside
+    // them (D-105).
     $participation = array_values(array_filter(
         PermissionRegistry::all(),
         fn (string $code): bool => str_contains($code, 'matters.parties.'),
     ));
 
-    expect($participation)->toBe([]);
+    sort($participation);
+
+    expect($participation)->toBe([
+        'notary.matters.parties.manage',
+        'notary.matters.parties.view',
+        'ppat.matters.parties.manage',
+        'ppat.matters.parties.view',
+    ]);
 });
 
 /*
@@ -549,25 +567,32 @@ it('reads no role name and no permission code as authority', function (): void {
 });
 
 it('exposes no matter surface beyond the milestone that owns it', function (): void {
-    // **Narrowed at M4.4, not deleted.** M4.2 asserted there was no Matter route
+    // **Narrowed twice, never deleted.** M4.2 asserted there was no Matter route
     // at all, which was true while it shipped schema and authorization only. M4.4
     // ships the product surface and pins its exact inventory in
-    // `MatterManagementTest`. What stays true here is the boundary this guard was
-    // really protecting: no participation surface (M4.5), no workflow or stage
-    // surface (M4.6 / M4.7), and no archive or restore, which M4 does not have.
+    // `MatterManagementTest`; M4.5 ships participation and pins its own in
+    // `MatterPartyTest`. What stays true here is the boundary that is still
+    // ahead: no workflow or stage surface (M4.6 / M4.7), no archive or restore,
+    // which M4 does not have at all, and **no top-level `matter-parties`
+    // collection** — a participation is reachable only by naming its Matter.
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
     foreach ([
-        'matters/{matter}/parties', 'matter-parties',
+        'matter-parties',
         'matters/{matter}/stage', 'matters/{matter}/workflow',
         'matters/{matter}/archive', 'matters/{matter}/restore', 'matters/archived',
     ] as $absent) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $absent)))->toBeEmpty($absent);
     }
 
-    // And no destructive verb: Matter records are never deleted (D-102).
+    // And no destructive verb **on a Matter itself**: Matter records are never
+    // deleted (D-102). Narrowed at M4.5, which added
+    // `DELETE .../parties/{matterParty}` — that removes a relationship row and
+    // touches neither endpoint (D-105), so the distinction the guard needs is
+    // between deleting a Matter and unlinking a Party from one.
     $destructive = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_contains($route->uri(), 'matters')
+            && ! str_contains($route->uri(), '/parties/')
             && in_array('DELETE', $route->methods(), true));
 
     expect($destructive)->toBeEmpty();

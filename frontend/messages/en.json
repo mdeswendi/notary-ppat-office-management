@@ -208,6 +208,50 @@
       "server": "Something went wrong on the server."
     }
   },
+  "matterParties": {
+    "sectionTitle": "Parties",
+    "sectionDescription": "Who is currently involved in this Matter. Not a history: removing a link keeps no record. This list stands on its own and is not taken from the parent Project's Related Parties.",
+    "loading": "Loading parties",
+    "empty": "No Party is linked to this Matter yet.",
+    "errorTitle": "Parties could not be loaded",
+    "unknownParty": "Party unavailable",
+    "noRole": "No classification",
+    "archivedParty": "Archived",
+    "partyTypes": {
+      "INDIVIDUAL": "Individual",
+      "COMPANY": "Company"
+    },
+    "addAction": "Add Party",
+    "addTitle": "Add a Party to this Matter",
+    "addDescription": "Choose a Party from this Matter's Office. The list shows only Parties you may already see.",
+    "addConfirm": "Add",
+    "searchLabel": "Search parties",
+    "searchPlaceholder": "Type a name",
+    "partyLabel": "Party",
+    "selectParty": "Select a Party",
+    "noCandidates": "No Party is available to choose. Authority to manage parties is not by itself access to Party records.",
+    "candidateHint": "Only active Parties from this Matter's Office can be linked.",
+    "roleLabel": "Relationship classification",
+    "rolePlaceholder": "Optional",
+    "roleHint": "A free code for office administration. Not a legal role, and not checked against any catalogue.",
+    "notesLabel": "Notes",
+    "notesHint": "Readable by everyone who may see the parties. Do not enter NIK, NPWP, or other identity data.",
+    "editAction": "Edit",
+    "editTitle": "Edit participation",
+    "editDescription": "Only the classification and notes can be changed. To use a different Party, remove this link and add the other one.",
+    "removeAction": "Remove link",
+    "removeTitle": "Remove this Party link?",
+    "removeDescription": "Only the link is removed. The Matter and the Party both stay intact and neither is archived. A removed link is kept as no history and cannot be restored.",
+    "removeConfirm": "Remove link",
+    "errors": {
+      "forbidden": "You do not have authority over this Matter's parties.",
+      "notFound": "That record was not found.",
+      "validation": "That Party cannot be linked to this Matter.",
+      "tooManyAttempts": "Too many requests. Please try again later.",
+      "network": "Could not reach the server.",
+      "server": "Something went wrong on the server."
+    }
+  },
   "matters": {
     "notaryTitle": "Notary Matters",
     "notarySubtitle": "Notary work this office is currently handling.",

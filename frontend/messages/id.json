@@ -208,6 +208,50 @@
       "server": "Terjadi kesalahan pada server."
     }
   },
+  "matterParties": {
+    "sectionTitle": "Para Pihak",
+    "sectionDescription": "Pihak yang terlibat dalam Pekerjaan ini saat ini. Bukan riwayat: menghapus tautan tidak menyimpan catatan. Daftar ini berdiri sendiri dan tidak diambil dari Pihak Terkait Proyek induk.",
+    "loading": "Memuat para pihak",
+    "empty": "Belum ada pihak yang ditautkan pada Pekerjaan ini.",
+    "errorTitle": "Para pihak tidak dapat dimuat",
+    "unknownParty": "Pihak tidak tersedia",
+    "noRole": "Tanpa klasifikasi",
+    "archivedParty": "Diarsipkan",
+    "partyTypes": {
+      "INDIVIDUAL": "Perorangan",
+      "COMPANY": "Perusahaan"
+    },
+    "addAction": "Tambah Pihak",
+    "addTitle": "Tambah pihak pada Pekerjaan",
+    "addDescription": "Pilih pihak dari Kantor Pekerjaan ini. Pilihan hanya menampilkan pihak yang boleh Anda lihat.",
+    "addConfirm": "Tambahkan",
+    "searchLabel": "Cari pihak",
+    "searchPlaceholder": "Ketik nama",
+    "partyLabel": "Pihak",
+    "selectParty": "Pilih pihak",
+    "noCandidates": "Tidak ada pihak yang dapat dipilih. Wewenang mengelola para pihak tidak dengan sendirinya memberi akses ke data pihak.",
+    "candidateHint": "Hanya pihak aktif dari Kantor Pekerjaan ini yang dapat ditautkan.",
+    "roleLabel": "Klasifikasi hubungan",
+    "rolePlaceholder": "Opsional",
+    "roleHint": "Kode bebas untuk keperluan administrasi kantor. Bukan peran hukum dan tidak diperiksa terhadap daftar baku.",
+    "notesLabel": "Catatan",
+    "notesHint": "Terbaca oleh setiap pengguna yang boleh melihat para pihak. Jangan mengisi NIK, NPWP, atau data identitas lain.",
+    "editAction": "Ubah",
+    "editTitle": "Ubah pihak terkait",
+    "editDescription": "Hanya klasifikasi dan catatan yang dapat diubah. Untuk mengganti pihaknya, hapus tautan ini lalu tambahkan pihak yang lain.",
+    "removeAction": "Hapus tautan",
+    "removeTitle": "Hapus tautan pihak ini?",
+    "removeDescription": "Hanya tautan yang dihapus. Data Pekerjaan dan data pihak tetap utuh dan tidak diarsipkan. Tautan yang dihapus tidak disimpan sebagai riwayat dan tidak dapat dipulihkan.",
+    "removeConfirm": "Hapus tautan",
+    "errors": {
+      "forbidden": "Anda tidak memiliki wewenang atas para pihak Pekerjaan ini.",
+      "notFound": "Data tidak ditemukan.",
+      "validation": "Pihak tersebut tidak dapat ditautkan pada Pekerjaan ini.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Coba lagi nanti.",
+      "network": "Tidak dapat terhubung ke server.",
+      "server": "Terjadi kesalahan pada server."
+    }
+  },
   "matters": {
     "notaryTitle": "Pekerjaan Notaris",
     "notarySubtitle": "Pekerjaan Notaris yang sedang ditangani kantor ini.",

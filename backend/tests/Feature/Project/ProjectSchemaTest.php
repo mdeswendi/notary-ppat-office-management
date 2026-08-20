@@ -239,10 +239,11 @@ it('introduces no Matter persistence', function (): void {
     //
     // **Narrowed at M4.2, not deleted.** `matters` was on this list while Matter
     // was unbuilt; M4.2 owns it now (D-107) and its own schema test asserts its
-    // shape. The rest stays: participation is M4.5, and the extension tables are
-    // M6/M7 (D-102). What this test was always really about is unchanged and
-    // still asserted below — **Project gains no column pointing at any of it.**
-    foreach (['matter_parties', 'notary_matters', 'ppat_matters'] as $table) {
+    // shape. **Narrowed again at M4.5**, which builds `matter_parties` (D-105).
+    // The extension tables remain M6/M7 (D-102). What this test was always
+    // really about is unchanged and still asserted below — **Project gains no
+    // column pointing at any of it.**
+    foreach (['notary_matters', 'ppat_matters'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 

@@ -106,6 +106,13 @@ export type Matter = {
   can_assign?: boolean;
   can_complete?: boolean;
   can_cancel?: boolean;
+
+  // Participation (M4.5, D-105). Two flags rather than one, because the two
+  // codes are independent and `manage` does not imply `view` — an interface told
+  // only "can manage" would have to guess whether to render the list it is
+  // offering to edit.
+  can_view_parties?: boolean;
+  can_manage_parties?: boolean;
 };
 
 export type MatterListQuery = {

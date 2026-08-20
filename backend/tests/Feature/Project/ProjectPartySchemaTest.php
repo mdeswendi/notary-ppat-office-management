@@ -358,18 +358,24 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     // asserts its shape. Everything else is M4.2 and beyond and stays exactly as
     // it was — and the point this test was always making holds: participation
     // gains no foreign key into any later milestone.
-    // **Narrowed again at M4.2**, which builds `matters` (D-107). Its own schema
-    // test asserts its shape; everything else here is M4.5 and beyond.
+    // **Narrowed again at M4.2**, which builds `matters` (D-107), and at M4.5,
+    // which builds `matter_parties` (D-105). Both have their own schema tests;
+    // everything left here is M4.6 and beyond.
     foreach ([
-        'matter_parties',
         'workflow_templates', 'workflow_instances', 'workflow_stages',
         'documents', 'properties', 'warkah', 'deeds', 'tasks',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
+    // The point this test was always making, and the one M4.5 makes sharper:
+    // Project participation gains no foreign key into Matter participation. The
+    // two tables are independent — not inherited, not copied, not synchronized
+    // (D-105) — and a column here pointing at one is how that would start.
     expect(Schema::hasColumn('project_parties', 'matter_id'))->toBeFalse()
-        ->and(Schema::hasColumn('project_parties', 'service_type_id'))->toBeFalse();
+        ->and(Schema::hasColumn('project_parties', 'matter_party_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'service_type_id'))->toBeFalse()
+        ->and(Schema::hasColumn('matter_parties', 'project_party_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected participation routes and nothing more', function (): void {

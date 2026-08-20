@@ -172,7 +172,7 @@ class PermissionScopeRules
      *
      * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
      *
-     * **Fourteen codes, not sixteen.** `notary.matters.view_all` and
+     * **Eighteen codes as of M4.5, not twenty.** `notary.matters.view_all` and
      * `ppat.matters.view_all` are deliberately absent: they are superseded by
      * Data Scope `ALL` for reach and are not part of the Matter authorization
      * surface (D-090). No Policy ability consults either. Listing them here would
@@ -196,6 +196,14 @@ class PermissionScopeRules
         'notary.matters.complete',
         'notary.matters.cancel',
 
+        // Participation is evaluated against the **parent Matter** by the same
+        // four predicates (M4.5, D-105), so it belongs in this list rather than
+        // in the Party one. The Party a row points at is reached through Party
+        // visibility separately; that is a different question with a different
+        // answer, and mixing the two here would encode one boundary as two.
+        'notary.matters.parties.view',
+        'notary.matters.parties.manage',
+
         'ppat.matters.view',
         'ppat.matters.create',
         'ppat.matters.update',
@@ -203,6 +211,9 @@ class PermissionScopeRules
         'ppat.matters.change_stage',
         'ppat.matters.complete',
         'ppat.matters.cancel',
+
+        'ppat.matters.parties.view',
+        'ppat.matters.parties.manage',
     ];
 
     /**

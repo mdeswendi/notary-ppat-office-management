@@ -3462,6 +3462,131 @@ Query serve one domain's rows under the other's address.
 
 ---
 
+## 2026-08-18 — M4.5 Matter ↔ Party participation
+
+### D-110 — Matter participation invents no cardinality, and the Party-visibility rule is written once
+
+One forward migration (**27 total**) and **four permissions — the count moves 173 → 177**, exactly
+as D-105 scheduled at M4.0 and in the milestone that gives them routes, following the M3.4
+precedent. Backend and frontend both.
+
+```text
+GET    /api/v1/{domain}/matters/{matter}/party-options
+GET    /api/v1/{domain}/matters/{matter}/parties
+POST   /api/v1/{domain}/matters/{matter}/parties
+PATCH  /api/v1/{domain}/matters/{matter}/parties/{matterParty}
+DELETE /api/v1/{domain}/matters/{matter}/parties/{matterParty}
+```
+
+Five per domain, ten in total, nested under the Matter because that is what owns them. There is
+deliberately **no top-level `/matter-parties` collection**: a participation is reachable only by
+naming the Matter it belongs to, and a foreign participation answers **404**, not 403.
+
+`{domain}` stays a **literal** segment carrying a route default, and the domain is read back by
+name (D-101, D-109). A `{domain}` wildcard would put the permission namespace under the caller's
+control.
+
+**No `UNIQUE (matter_id, party_id)`, and this is the decision the milestone turned on.** The M4.5
+specification asked for one; D-105 and the `project_parties` migration both refuse the equivalent,
+and the refusal wins. Such an index asserts that one Party holds **at most one role** in a Matter —
+and an Indonesian notarial or PPAT matter may legitimately need the same person as `SELLER` in
+their own right and as `AUTHORIZED_PERSON` for somebody else. Whether that is permitted is a
+domain question with no canonical answer here, and *a unique index is a business rule wearing an
+index's clothing*. No `UNIQUE (matter_id, party_id, role_code)` either: it would assert the triple
+is the identity, and it would additionally be meaningless while `role_code` is nullable. A test
+pins the behaviour rather than the index name. **If the office later decides duplicates are wrong,
+that is a rule to state and validate, not a constraint to add quietly.**
+
+**The same-Office invariant is structural, and this migration adds no support key.** Two composite
+foreign keys — `(matter_id, office_id) -> matters (id, office_id)` and
+`(party_id, office_id) -> parties (id, office_id)` — resolve through **one** `office_id` carrier,
+so both endpoints must agree with it and therefore with each other. A cross-office participation is
+unrepresentable, **including for an actor holding `ALL`**: `ALL` grants reach and administrative
+visibility, never permission to redefine domain ownership. Unlike M3.4, which had to add
+`projects_id_office_id_unique`, both support keys already existed — `parties` since M2.1 and
+`matters` since M4.2, which added `matters_id_office_id_unique` for precisely this table. So the
+migration adds none and drops none on the way back down.
+
+**The Office carrier is written from the Matter and is never request input.** `office_id` is
+withheld from mass assignment alongside `matter_id` and `party_id`; the Form Requests refuse all
+three on *presence*, not emptiness (D-097).
+
+**`role_code` stays nullable, opaque, and `varchar(30)`.** No enum, no `Rule::in`, no `CHECK`, and
+**no dropdown in the interface** — the ERD's `SELLER`, `BUYER`, `SELLER_SPOUSE`,
+`AUTHORIZED_PERSON`, `WITNESS`, `DIRECTOR`, `COMMISSIONER` and `SHAREHOLDER` are labelled *example*
+codes, and constraining the column would turn examples into the catalogue the document says they
+are not. 30 characters matches `project_parties`; no canonical length exists, and two
+participation tables disagreeing about it would be an arbitrary difference to explain later. **No
+cardinality rule of any kind** — not a mandatory role, not a required seller, not an exactly-one
+anything.
+
+**The column set is transcribed, not designed.** `notes` and `updated_at` are present because
+`03_DATABASE_ERD.md` section 9 lists them for `matter_parties`; `is_primary` is absent because that
+section does not list it, even though `project_parties` has one. There is no `updated_by`, so a
+correction records *when* it happened and never *who* made it — which is what the canonical field
+list asks for, and inventing the missing half would be the first step of a ledger this table
+declines to be.
+
+**Current working state, not history.** No `deleted_at`, no `effective_from`, no `effective_until`.
+Removal is a hard delete of the relationship row: the Matter is untouched, the Party is untouched,
+and neither is archived. `company_people` keeps history because deeds executed in March depend on
+who was a director in March (D-083); nothing yet depends on a Matter's participant list as it stood
+last week. A soft delete here would create a half-history — rows nobody lists and no mechanism
+reads — and the confirmation dialog says plainly that there is nothing to restore from.
+
+**`sequence_no` and `represented_by_party_id` are refused rather than ignored.** Both are deferred
+pending domain validation (D-105), and the Form Requests list them as prohibited so sending one is
+a 422. Accepting and dropping them would teach a caller that the fields work.
+
+**`ProjectParticipantVisibility` became `ParticipantVisibility`, keyed on an Office id.** Every
+question it answers — bulk `can_view_party`, the candidate query, re-resolving a submitted
+`party_id` — depends on an Office and a Party subtype; the parent record contributed nothing but
+`office_id`. Copying ~130 lines of security-critical code for the Matter domain would have created
+two implementations of the `parties.view` / `companies.view` rule, and **two copies of a security
+check drift silently** — one domain gains a fix the other does not, and nothing announces it. D-105
+keeps `matter_parties` independent of `project_parties` **as data**, which is a statement about
+tables and rows; it is not an instruction to re-implement the Party permission rule twice. M3.4's
+call sites moved to the shared class in the same change.
+
+**Managing participation is never authority to discover Parties.** `*.matters.parties.manage` over
+the Matter is necessary but not sufficient: the candidate query additionally applies `parties.view`
+to Individuals and `companies.view` to Companies, **each at its own Data Scope and each
+independently**, so an actor holding one and not the other sees only that branch, and one holding
+neither gets an empty list rather than the whole Office. A submitted `party_id` is re-resolved
+through that same authorized query. Nonexistent, another Office, archived, and a subtype the actor
+cannot see produce **one indistinguishable 422**.
+
+**`view` and `manage` are independent in both directions.** `manage` does not imply `view` — the
+direction that matters more, since an actor who may edit the list is not thereby authorized to read
+it — and `view` does not imply `manage`. `*.matters.update` reaches neither. Four codes rather than
+two because the section 5 role matrix gives Notary Staff and PPAT Staff opposite reach across the
+two domains. There is no `*.matters.parties.view_all`: reach is Data Scope `ALL` against the parent
+Matter (D-090).
+
+**Party visibility is evaluated in bulk**, two queries at most, one per subtype branch — and the
+test measures it as a **comparison between two list sizes** rather than against a guessed
+threshold, because the property D-105 requires is that the count does not grow with the rows.
+
+**No Party identity anywhere.** The stub is `id`, `display_name`, `party_type`, `is_archived`,
+`can_view_party` and nothing else: no NIK, no NPWP, no `tax_id`, and **no masks**, since a mask is
+still a statement about a sensitive value. A Party the actor cannot open **still appears** as a
+stub with `can_view_party = false` — hiding it would misreport the Matter's composition to somebody
+authorized to read it — and an archived Party stays listed, marked archived, and is simply not
+offered as a candidate.
+
+**Independent of Project participation, and nothing bridges them.** Nothing reads `project_parties`,
+no column points either way, and the parent Project's participants are **not** offered as
+candidates. Offering them would be the first step toward two tables that silently mirror each other
+and then drift.
+
+**Frontend: a section on the Matter detail page, not a tab.** It follows the Project precedent
+exactly and renders only when `can_view_parties` is true. `matters` gains `can_view_parties` and
+`can_manage_parties` — two flags, because the two codes are independent. Query keys stay
+domain-first: `['matters', domain, 'detail', matterId, 'parties']`. Message keys reach exact parity
+at 848 per locale, 38 new in a `matterParties` namespace.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

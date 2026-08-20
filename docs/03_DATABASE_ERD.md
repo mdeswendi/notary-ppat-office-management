@@ -727,6 +727,37 @@ and it is written here so a reader finding the field list without it does not as
 depends on who was a director in March (D-083); nothing yet depends on a Matter's participant list
 as it stood last week.
 
+### Built at M4.5 *(D-110)*
+
+The table exists as described above, with the `office_id` carrier and both composite foreign keys.
+**This migration added no support key**: `parties_id_office_id_unique` has existed since M2.1 and
+`matters_id_office_id_unique` since M4.2, which added it for exactly this purpose. Four permissions
+were registered, moving the canonical count **173 → 177**.
+
+Delivered columns, and the two departures from the field list above:
+
+```text
+id  matter_id  party_id  office_id  role_code  notes
+created_by  created_at  updated_at
+```
+
+- **`is_primary` is absent**, even though `project_parties` has one, because this section's field
+  list does not name it. The two participation tables are transcribed from their own lists rather
+  than made to match each other.
+- **`sequence_no` and `represented_by_party_id` are absent and are actively refused** by the Form
+  Requests, not silently dropped. Accepting and ignoring them would teach a caller that the fields
+  work; a 422 says plainly that the concepts are not built.
+
+**No `UNIQUE (matter_id, party_id)` and no cardinality rule of any kind.** Such an index would
+assert that one Party holds at most one role in a Matter, and the same person may legitimately be a
+seller in their own right and another party's authorized representative — a domain question with no
+canonical answer here. Indexes are `matter_id`, `party_id` and `office_id`, all plain; all four
+foreign keys are `ON DELETE RESTRICT`.
+
+**Removal is a hard delete of the relationship row.** The Matter is untouched and the Party is
+untouched — neither archived nor altered. There is no history to restore from, and the interface
+says so before asking for confirmation.
+
 ---
 
 ## 10. Notary and PPAT Extensions

@@ -68,6 +68,14 @@ class MatterController extends Controller
         'can_assign' => 'assign',
         'can_complete' => 'complete',
         'can_cancel' => 'cancel',
+
+        // Participation (M4.5, D-105). Two flags rather than one, because the two
+        // codes are independent and `manage` does not imply `view` — an interface
+        // told only "can manage" would have to guess whether to render the list it
+        // is offering to edit. Both resolve through the same bulk path as the
+        // others, so a Matter list costs no extra query for carrying them.
+        'can_view_parties' => 'parties.view',
+        'can_manage_parties' => 'parties.manage',
     ];
 
     public function __construct(

@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
-use App\Domains\Project\ProjectParticipantVisibility;
+use App\Domains\Party\ParticipantVisibility;
 use App\Domains\Project\ProjectVisibility;
 use App\Models\Project;
 use App\Models\User;
@@ -43,7 +43,7 @@ use App\Models\User;
  * anywhere and `SUPER_ADMIN` receives no bypass.
  *
  * Party visibility is **not** decided here — see
- * {@see ProjectParticipantVisibility}. Holding `manage` is
+ * {@see ParticipantVisibility}. Holding `manage` is
  * authority over this Project's participation, never authority to discover
  * Parties.
  */

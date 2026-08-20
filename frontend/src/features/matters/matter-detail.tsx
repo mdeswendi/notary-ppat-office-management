@@ -16,6 +16,7 @@ import {
 } from "@/features/matters/matter-badges";
 import { matterBasePath } from "@/features/matters/matter-domain";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
+import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
 import { Link } from "@/i18n/navigation";
 import {
   assignMatterPic,
@@ -47,11 +48,17 @@ import type { MatterDomain } from "@/types/matter";
  * deferred because no workflow exists to move until M4.7 (D-104). A screen that
  * showed a stepper here would be describing something the product does not have.
  *
- * Participation is M4.5 and appears nowhere on this page.
+ * **Participation is a section, not a tab** *(M4.5)*, following the Project
+ * detail page. It renders only when `can_view_parties` is true — `view` and
+ * `manage` are independent codes, so an actor may hold one without the other
+ * (D-105) — and it is deliberately not inlined into this page's own query: it
+ * answers to its own capability and its own endpoint, and folding it into the
+ * Matter resource would make `*.matters.view` a way to read who is involved.
  */
 export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matterId: string }) {
   const t = useTranslations("matters");
   const tActions = useTranslations("actions");
+  const tParties = useTranslations("matterParties");
   const locale = useLocale();
   const queryClient = useQueryClient();
 
@@ -164,6 +171,15 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
         <section className="flex flex-col gap-2">
           <h3 className="text-sm font-medium">{t("notesLabel")}</h3>
           <p className="text-muted-foreground text-sm whitespace-pre-line">{matter.notes}</p>
+        </section>
+      ) : null}
+
+      {matter.can_view_parties ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <h3 className="text-sm font-medium">{tParties("sectionTitle")}</h3>
+          <p className="text-muted-foreground text-xs">{tParties("sectionDescription")}</p>
+
+          <MatterPartiesSection domain={domain} matterId={matter.id} />
         </section>
       ) : null}
 

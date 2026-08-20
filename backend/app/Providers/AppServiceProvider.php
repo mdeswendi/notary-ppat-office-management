@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Models\Company;
 use App\Models\Individual;
 use App\Models\Matter;
+use App\Models\MatterParty;
 use App\Models\ProjectParty;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\IndividualPolicy;
+use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
@@ -81,6 +83,15 @@ class AppServiceProvider extends ServiceProvider
         // the parent Project. Callers authorize with `[$matter, $domain]`, or
         // `[Matter::class, $domain, $project]` for creation.
         Gate::policy(Matter::class, MatterPolicy::class);
+
+        // Matter participation (M4.5). Two unusual things at once, which is why
+        // this is spelled out: the abilities take the parent **Matter**, not a
+        // MatterParty row, because participation authority is judged against the
+        // Matter's Data Scope (D-105); and they additionally take an explicit
+        // `MatterDomain` from the caller's route, which selects between
+        // `notary.matters.parties.*` and `ppat.matters.parties.*` (D-101).
+        // Callers authorize with `[MatterParty::class, $matter, $domain]`.
+        Gate::policy(MatterParty::class, MatterPartyPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

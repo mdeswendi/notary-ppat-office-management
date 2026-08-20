@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Party\ParticipantVisibility;
 use App\Domains\Project\Actions\AddProjectParty;
 use App\Domains\Project\Actions\RemoveProjectParty;
 use App\Domains\Project\Actions\UpdateProjectParty;
-use App\Domains\Project\ProjectParticipantVisibility;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectPartyRequest;
 use App\Http\Requests\Project\UpdateProjectPartyRequest;
@@ -30,7 +30,7 @@ use Illuminate\Http\Response;
  *
  * **Managing participation is not authority to discover Parties.** Every path
  * that names a Party — the candidate list and the link body alike — resolves it
- * through {@see ProjectParticipantVisibility}, which applies the Party-domain
+ * through {@see ParticipantVisibility}, which applies the Party-domain
  * permission for that Party's own subtype. A submitted `party_id` is re-resolved
  * through that same authorized query rather than trusted, so an id obtained
  * elsewhere cannot become a participation.
@@ -42,7 +42,7 @@ use Illuminate\Http\Response;
 class ProjectPartyController extends Controller
 {
     public function __construct(
-        private readonly ProjectParticipantVisibility $participants,
+        private readonly ParticipantVisibility $participants,
     ) {}
 
     /**
@@ -119,7 +119,7 @@ class ProjectPartyController extends Controller
     {
         $this->authorize('manage', [ProjectParty::class, $project]);
 
-        $query = $this->participants->candidateQuery($request->user(), $project);
+        $query = $this->participants->candidateQuery($request->user(), $project->office_id);
 
         if ($search = trim((string) $request->query('search', ''))) {
             $query->whereLike('display_name', "%{$search}%");
@@ -153,7 +153,7 @@ class ProjectPartyController extends Controller
 
         $party = $this->participants->resolveCandidate(
             $request->user(),
-            $project,
+            $project->office_id,
             $request->validated('party_id'),
         );
 

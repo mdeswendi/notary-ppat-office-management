@@ -78,9 +78,16 @@ it('registers exactly the expected matter routes and nothing more', function ():
     // An inventory rather than an absence check: a new Matter route now has to be
     // added here deliberately. No DELETE and no stage route — M4 ships no archive
     // lifecycle (D-102) and no workflow (D-104).
+    //
+    // **Narrowed at M4.5** to the Matter surface this file owns. Participation
+    // routes are M4.5's and are pinned, just as exactly, in `MatterPartyTest`;
+    // listing them in both places would mean every future participation change
+    // had to be applied twice, which is how one of the two copies goes stale.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
-        ->filter(fn (string $route): bool => str_contains($route, 'matters'))
+        ->filter(fn (string $route): bool => str_contains($route, 'matters')
+            && ! str_contains($route, 'parties')
+            && ! str_contains($route, 'party-options'))
         ->values()->sort()->values()->all();
 
     expect($routes)->toBe([
@@ -440,12 +447,24 @@ it('carries no party, workflow, or legal identity in the payload', function (): 
     $project = Project::factory()->for($office)->create();
     $matter = Matter::factory()->for($project)->withServiceType()->create();
 
-    $raw = json_encode(
-        $this->actingAs($actor)->getJson("/api/v1/notary/matters/{$matter->getKey()}")->assertOk()->json()
-    );
+    $payload = $this->actingAs($actor)
+        ->getJson("/api/v1/notary/matters/{$matter->getKey()}")->assertOk()->json('data');
 
-    foreach (['nik', 'npwp', 'tax_id', 'parties', 'participants', 'stage', 'workflow', 'deed', 'warkah'] as $absent) {
-        expect(str_contains(strtolower($raw), $absent))->toBeFalse($absent);
+    $raw = json_encode($payload);
+
+    foreach (['nik', 'npwp', 'tax_id', 'stage', 'workflow', 'deed', 'warkah'] as $absent) {
+        expect(str_contains(strtolower((string) $raw), $absent))->toBeFalse($absent);
+    }
+
+    // **Narrowed at M4.5**, which added `can_view_parties` and
+    // `can_manage_parties` — capability flags, not Party data. A raw substring
+    // search for "parties" now matches those and would fail for the wrong
+    // reason. The claim worth keeping is that the Matter payload **embeds no
+    // participant list**: participation is its own endpoint with its own
+    // capability, and a Matter resource that inlined it would make
+    // `*.matters.view` a way to read who is involved (D-105).
+    foreach (['parties', 'participants', 'matter_parties'] as $embedded) {
+        expect($payload)->not->toHaveKey($embedded);
     }
 });
 

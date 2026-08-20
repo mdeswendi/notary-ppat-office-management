@@ -587,8 +587,11 @@ it('adds no matter allocation permission', function (): void {
                 || str_contains($code, 'reference')),
     ));
 
-    expect($codes)->toBe([])
-        ->and(PermissionRegistry::count())->toBe(173);
+    // The total is pinned once, in `PermissionRegistryTest`. This file asserted
+    // it too until M4.5, which legitimately moved it to 177 and made a second
+    // copy of the number a thing to update in two places (D-105). What this file
+    // owns is the claim above: allocation invented no capability.
+    expect($codes)->toBe([]);
 });
 
 /*
@@ -598,12 +601,14 @@ it('adds no matter allocation permission', function (): void {
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    // **Two steps since M4.4**, which tightened the column in its own forward
-    // migration on top of this one.
-    $this->artisan('migrate:rollback', ['--step' => 2])->assertSuccessful();
+    // **Three steps since M4.5**: this migration, M4.4's tightening of the
+    // column, and M4.5's participation table, which holds a foreign key into
+    // `matters` and so must come off before anything below it.
+    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
 
     expect(Schema::hasTable('matter_reference_counters'))->toBeFalse()
         ->and(Schema::hasColumn('matters', 'matter_number'))->toBeFalse()
+        ->and(Schema::hasTable('matter_parties'))->toBeFalse()
         // M4.2 survives untouched.
         ->and(Schema::hasTable('matters'))->toBeTrue()
         ->and(Schema::hasTable('service_types'))->toBeTrue();

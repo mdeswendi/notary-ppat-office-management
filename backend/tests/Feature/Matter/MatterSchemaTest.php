@@ -89,9 +89,13 @@ it('builds no notary or ppat extension table', function (): void {
     }
 });
 
-it('builds no workflow or participation table', function (): void {
+it('builds no workflow table', function (): void {
+    // **Narrowed at M4.5, not deleted.** `matter_parties` was listed here while
+    // participation was scheduled and unbuilt; M4.5 built it, and its own schema
+    // guard lives in `MatterPartyTest`. Workflow is still ahead — M4.6 and M4.7 —
+    // and nothing may stub any of it in the meantime (D-095).
     foreach ([
-        'matter_parties', 'workflow_templates', 'workflow_stages',
+        'workflow_templates', 'workflow_stages',
         'matter_workflows', 'matter_stage_instances', 'matter_stage_history',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
@@ -341,11 +345,12 @@ it('migrates, rolls back, and re-migrates cleanly', function (): void {
     // assertion is unchanged in substance — this migration is reversible and
     // repeatable.
     // Three steps since M4.4, which tightened the reference column on top of the
-    // M4.3 migration that added it.
-    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
+    // M4.3 migration that added it. Four since M4.5's participation table.
+    $this->artisan('migrate:rollback', ['--step' => 4])->assertSuccessful();
 
     expect(Schema::hasTable('matters'))->toBeFalse()
         ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse()
+        ->and(Schema::hasTable('matter_parties'))->toBeFalse()
         // The M4.1 table survives, and only the support key M4.2 added is gone.
         ->and(Schema::hasTable('service_types'))->toBeTrue();
 

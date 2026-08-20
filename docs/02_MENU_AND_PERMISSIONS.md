@@ -456,14 +456,25 @@ dark.
 domain — and no `master.service_types.view` gate was invented for it. A picker is not a resource,
 and an account that may create Matters must be able to see what to create them as.
 
-**Matter participation is expected to add four codes at M4.5** *(D-105)* —
-`notary.matters.parties.view`, `notary.matters.parties.manage`, `ppat.matters.parties.view`,
-`ppat.matters.parties.manage`, moving the count **173 → 177**. Four rather than two because the
-role matrix in section 5 gives Notary Staff full access to Notary Matters and view-only on PPAT
-Matters, and the reverse for PPAT Staff; one pair spanning both domains would hand each of them the
-other's participation. `view` and `manage` are independent, `manage` does not imply `view`, and
-neither is reached by `…matters.update`. **They are not registered at M4.0** — the count moves in
-the milestone that gives them routes, following the M3.4 precedent.
+**M4.5 added the four Matter participation codes, taking the canonical count to 177** *(D-105,
+D-110)* — `notary.matters.parties.view`, `notary.matters.parties.manage`,
+`ppat.matters.parties.view`, `ppat.matters.parties.manage`. Four rather than two because the role
+matrix in section 5 gives Notary Staff full access to Notary Matters and view-only on PPAT Matters,
+and the reverse for PPAT Staff; one pair spanning both domains would hand each of them the other's
+participation. `view` and `manage` are **independent in both directions** — `manage` does not imply
+`view`, which is the direction that matters more, since an actor who may edit the list is not
+thereby authorized to read it — and neither is reached by `…matters.update`. They were registered
+at M4.5 rather than M4.0, in the milestone that gave them routes, following the M3.4 precedent.
+
+Each is scoped by the four Matter predicates `OWN`, `ASSIGNED`, `OFFICE`, `ALL`, judged against the
+**parent Matter**; `TEAM` is withheld as everywhere. There is deliberately no
+`*.matters.parties.view_all` — reach is Data Scope `ALL`, and a second reach mechanism is what
+D-090 refuses.
+
+**Holding `manage` is not authority to discover Parties.** The candidate endpoint additionally
+applies `parties.view` to Individuals and `companies.view` to Companies, each at its own Data
+Scope and each independently, so it can never surface a Party the actor could not already reach in
+the Party directory. No Party permission was widened to populate a picker.
 
 ### Deeds
 

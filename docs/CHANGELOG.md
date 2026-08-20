@@ -5,6 +5,128 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-18 — M4.5 Matter ↔ Party participation
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (27 total) creating `matter_parties`.
+**Four permissions — the count moves 173 → 177**, exactly as D-105 scheduled at M4.0 and in the
+milestone that gives them routes. Backend **1907 passed + 7 skipped = 1914 tests / 6218
+assertions** — 66 new. i18n **848 / 848** exact, 38 new keys per locale. One new decision,
+**D-110**.
+
+Ten routes, five per domain, nested under the Matter. There is deliberately no top-level
+`/matter-parties` collection, and a participation belonging to another Matter answers **404**.
+
+### The unique index the specification asked for, and why it is not there
+
+The M4.5 specification required `UNIQUE (matter_id, party_id)`. D-105 and the `project_parties`
+migration both refuse the equivalent, and the refusal won.
+
+That index asserts one Party holds **at most one role** in a Matter — and the same person may
+legitimately be a `SELLER` in their own right and an `AUTHORIZED_PERSON` for somebody else in the
+same transaction. Whether that is permitted is a question about Indonesian notarial practice, not
+about databases, and *a unique index is a business rule wearing an index's clothing*. No
+`UNIQUE (matter_id, party_id, role_code)` either: it would assert the triple is the identity, and
+would be meaningless while `role_code` is nullable. A test pins the behaviour — adding the same
+Party twice under two roles succeeds — rather than pinning an index name.
+
+If the office later decides duplicates are wrong, that is a rule to state and validate, not a
+constraint to add quietly.
+
+### Structural same-Office, and no support key added
+
+```text
+matter_parties (matter_id, office_id) -> matters (id, office_id)
+matter_parties (party_id,  office_id) -> parties (id, office_id)
+```
+
+Both keys resolve through **one** `office_id` carrier, so the two endpoints cannot disagree with
+each other. A cross-office participation is unrepresentable, **including for an actor holding
+`ALL`**: `ALL` grants reach and administrative visibility, never permission to redefine domain
+ownership. Unlike M3.4, which had to add `projects_id_office_id_unique`, both support keys already
+existed — `parties` since M2.1, `matters` since M4.2, which added its for exactly this table. So
+the migration adds none and drops none on rollback.
+
+The carrier is written from the Matter and is never request input; it is withheld from mass
+assignment alongside `matter_id` and `party_id`, and the Form Requests refuse all three on
+**presence**, not emptiness (D-097).
+
+### Column set transcribed, not designed
+
+`notes` and `updated_at` are present because `03_DATABASE_ERD.md` §9 lists them. **`is_primary` is
+absent** even though `project_parties` has one, because §9 does not list it — the two tables are
+transcribed from their own field lists rather than made to match each other. No `updated_by`, so a
+correction records *when* it happened and never *who* made it.
+
+`role_code` stays nullable, opaque, `varchar(30)` matching `project_parties`: no enum, no
+`Rule::in`, no `CHECK`, and **no dropdown in the interface**. The ERD's role codes are labelled
+examples, and constraining the column would turn them into a catalogue.
+
+`deleted_at`, `effective_from` and `effective_until` are absent. Removal is a hard delete of the
+relationship row — the Matter untouched, the Party untouched, neither archived — and the
+confirmation dialog says there is nothing to restore from. `sequence_no` and
+`represented_by_party_id` are **refused with a 422**, not silently dropped: accepting and ignoring
+them would teach a caller that the fields work.
+
+### One Party-visibility implementation, not two
+
+`ProjectParticipantVisibility` became `App\Domains\Party\ParticipantVisibility`, keyed on an Office
+id, and M3.4's call sites moved to it in the same change.
+
+Every question it answers — bulk `can_view_party`, the candidate query, re-resolving a submitted
+`party_id` — depends on an Office and a Party subtype; the parent record contributed nothing but
+`office_id`. Copying ~130 lines of security-critical code would have created two implementations of
+the `parties.view` / `companies.view` rule, and **two copies of a security check drift silently**.
+D-105 keeps `matter_parties` independent of `project_parties` **as data** — a statement about
+tables and rows, not an instruction to write the Party permission rule twice.
+
+### Managing participation is never authority to discover Parties
+
+`*.matters.parties.manage` over the Matter is necessary but not sufficient. The candidate query
+additionally applies `parties.view` to Individuals and `companies.view` to Companies, **each at its
+own Data Scope and each independently**: an actor holding one branch and not the other sees only
+that branch, and one holding neither gets an empty list rather than the whole Office. A submitted
+`party_id` is re-resolved through that same authorized query. Nonexistent, another Office,
+archived, and a subtype the actor cannot see produce **one indistinguishable 422**.
+
+`view` and `manage` are independent **in both directions**. `manage` does not imply `view` — the
+direction that matters more, since an actor who may edit the list is not thereby authorized to read
+it — and `*.matters.update` reaches neither.
+
+### No Party identity, and bulk evaluation
+
+The stub is `id`, `display_name`, `party_type`, `is_archived`, `can_view_party` and nothing else:
+no NIK, no NPWP, no `tax_id`, and **no masks**, since a mask is still a statement about a sensitive
+value. A Party the actor cannot open **still appears** as a stub with `can_view_party = false` —
+hiding it would misreport the Matter's composition to somebody authorized to read it. An archived
+Party stays listed, marked archived, and is not offered as a candidate.
+
+Visibility is computed in bulk, and the test measures it as a **comparison between two list sizes**
+rather than against a guessed threshold: two participations and twenty-four cost the same number of
+queries. A threshold only says "fewer than I guessed"; the comparison says the thing D-105 actually
+requires.
+
+### Frontend
+
+A section on the Matter detail page, not a tab — following the Project precedent, and because the
+repository's shadcn set has no `Tabs` component. It renders only when `can_view_parties` is true.
+`MatterResource` gains `can_view_parties` and `can_manage_parties`, two flags because the two codes
+are independent. Query keys stay domain-first:
+`['matters', domain, 'detail', matterId, 'parties']`.
+
+### Guards narrowed rather than deleted
+
+Nine files moved. `MatterAuthorizationTest`'s "registers no matter participation permission yet"
+inverted into "registers the four and no more"; its `.matters.` inventory narrowed to the lifecycle
+codes it owns; its DELETE guard learned the difference between deleting a Matter and unlinking a
+Party from one. `MatterSchemaTest`'s "builds no workflow or participation table" dropped
+`matter_parties` and kept workflow. `MatterManagementTest`'s route inventory and payload guard both
+narrowed — the latter had been matching the substring "parties" against the new capability flags,
+so it now asserts the real claim: **the Matter payload embeds no participant list**.
+`MatterReferenceTest` stopped keeping a second copy of the global permission total, which is pinned
+once in `PermissionRegistryTest`. Three rollback step counts moved by one.
+
+---
+
 ## 2026-08-18 — M4.4 Matter core management
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (26 total) that adds no column and no
