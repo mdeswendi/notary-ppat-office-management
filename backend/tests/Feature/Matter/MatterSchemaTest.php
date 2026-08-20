@@ -89,17 +89,21 @@ it('builds no notary or ppat extension table', function (): void {
     }
 });
 
-it('builds no workflow table', function (): void {
-    // **Narrowed at M4.5, not deleted.** `matter_parties` was listed here while
-    // participation was scheduled and unbuilt; M4.5 built it, and its own schema
-    // guard lives in `MatterPartyTest`. Workflow is still ahead — M4.6 and M4.7 —
-    // and nothing may stub any of it in the meantime (D-095).
-    foreach ([
-        'workflow_templates', 'workflow_stages',
-        'matter_workflows', 'matter_stage_instances', 'matter_stage_history',
-    ] as $table) {
+it('builds no running workflow table', function (): void {
+    // **Narrowed twice, never deleted.** `matter_parties` left at M4.5 and the
+    // two template tables at M4.6, each in the milestone that built it and each
+    // with its own schema guard. What is still ahead is the *running* side —
+    // M4.7's instances and history — and nothing may stub any of it (D-095).
+    foreach (['matter_workflows', 'matter_stage_instances', 'matter_stage_history'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // And the claim this guard was always really making, which M4.6 does not
+    // change: **`matters` gains no pointer into workflow.** The stage pointer
+    // arrives at M4.7 with the real stage-instance foreign key behind it, not as
+    // a nullable placeholder next to a template table that now exists.
+    expect(Schema::hasColumn('matters', 'current_stage_id'))->toBeFalse()
+        ->and(Schema::hasColumn('matters', 'workflow_template_id'))->toBeFalse();
 });
 
 it('reserves deleted_at without a soft delete lifecycle', function (): void {
@@ -339,18 +343,20 @@ it('rejects an invalid domain, status, or priority at the database level', funct
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    // **Two steps since M4.3, not one.** This rolled back a single migration
-    // while `matters` was the newest; the reference migration is now, and it adds
-    // a column and a counter table on top, so both must come off together. The
-    // assertion is unchanged in substance — this migration is reversible and
-    // repeatable.
-    // Three steps since M4.4, which tightened the reference column on top of the
-    // M4.3 migration that added it. Four since M4.5's participation table.
-    $this->artisan('migrate:rollback', ['--step' => 4])->assertSuccessful();
+    // **The count is derived rather than written down** *(M4.6)*. It read 1 at
+    // M4.2, then 2, 3, and 4 as each later milestone layered a migration on top
+    // — four consecutive edits to one number, and a number that decays is one
+    // that eventually rolls back something other than what it claims. The
+    // assertion is unchanged in substance: this migration is reversible and
+    // repeatable, and everything above it comes off with it.
+    $steps = rollbackStepsTo('create_matters_table');
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable('matters'))->toBeFalse()
         ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse()
         ->and(Schema::hasTable('matter_parties'))->toBeFalse()
+        ->and(Schema::hasTable('workflow_templates'))->toBeFalse()
         // The M4.1 table survives, and only the support key M4.2 added is gone.
         ->and(Schema::hasTable('service_types'))->toBeTrue();
 

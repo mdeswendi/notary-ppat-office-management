@@ -62,14 +62,17 @@ it('records no actor metadata and no soft delete', function (): void {
 });
 
 it('introduces no matter or workflow relation', function (): void {
-    // M4.1 is the catalogue and nothing else. Workflow templates belong to M4.6.
+    // M4.1 is the catalogue and nothing else.
     //
-    // **Narrowed at M4.2**, which builds `matters` (D-107) — and the direction is
-    // the point this test was always making: Matter references Service Type, not
-    // the reverse, so `service_types` still gains no column pointing at it.
+    // **Narrowed at M4.2**, which builds `matters` (D-107), and again at M4.6,
+    // which builds `workflow_templates` (D-111) — and the direction is the point
+    // this test was always making, now provable in both cases: the other tables
+    // reference Service Type, not the reverse, so `service_types` still gains no
+    // column pointing at either.
     expect(Schema::hasColumn('service_types', 'workflow_template_id'))->toBeFalse()
         ->and(Schema::hasColumn('service_types', 'matter_id'))->toBeFalse()
-        ->and(Schema::hasTable('workflow_templates'))->toBeFalse();
+        ->and(Schema::hasTable('workflow_templates'))->toBeTrue()
+        ->and(Schema::hasColumn('workflow_templates', 'service_type_id'))->toBeTrue();
 });
 
 /*
@@ -232,14 +235,21 @@ it('migrates, rolls back, and re-migrates cleanly', function (): void {
     // it; M4.3's reference migration is now the newest, and each layer holds a
     // dependency on the one below, so all three come off together. The assertion
     // is unchanged in substance — this migration is reversible and repeatable.
-    // Four steps since M4.4, five since M4.5 — each milestone layers one
-    // migration on the one below, and each holds a dependency on its predecessor.
-    $this->artisan('migrate:rollback', ['--step' => 5])->assertSuccessful();
+    // **The count is derived rather than written down** *(M4.6)*. It was 1, then
+    // 2, then 3, 4, and 5 as each milestone layered a migration on the one below
+    // — four consecutive milestones editing the same number, and a number that
+    // decays is one that eventually tests a different migration than it claims
+    // to. `rollbackStepsTo()` has existed since M1.10 for exactly this; the later
+    // milestones simply had not adopted it.
+    $steps = rollbackStepsTo('create_service_types_table');
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable('service_types'))->toBeFalse()
         ->and(Schema::hasTable('matters'))->toBeFalse()
         ->and(Schema::hasTable('matter_reference_counters'))->toBeFalse()
-        ->and(Schema::hasTable('matter_parties'))->toBeFalse();
+        ->and(Schema::hasTable('matter_parties'))->toBeFalse()
+        ->and(Schema::hasTable('workflow_templates'))->toBeFalse();
 
     $this->artisan('migrate')->assertSuccessful();
 

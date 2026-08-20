@@ -613,6 +613,10 @@ permission (173); the first Matter milestone with an HTTP and frontend surface.
 **four permissions this document scheduled: 173 → 177**. Ten routes, five per domain, and a
 participation section on the Matter detail page.
 
+**M4.6 — delivered** *(D-111)*. See "Delivered at M4.6" below. One forward migration (28) creating
+`workflow_templates` and `workflow_stages`, **no permission** (177), and `master.workflows.*`
+narrowed to `OFFICE`/`ALL`. Backend foundation only, and **both tables ship empty**.
+
 **M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
 `PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
 migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
@@ -759,6 +763,40 @@ one indistinguishable 422. `can_view_party` is computed in **bulk**.
 **`view` and `manage` are independent in both directions**, and `*.matters.update` reaches neither.
 No `*.matters.parties.view_all` exists.
 
+### Delivered at M4.6 *(D-111)*
+
+The workflow template container and its stages. One forward migration (28 total), **no permission —
+the count stays at 177** — and **no HTTP or frontend surface**.
+
+```text
+workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
+UNIQUE (office_id, code)                one row per code; `version` is a counter on it
+UNIQUE (id, office_id)                  the support key M4.7 will reference
+workflow_stages -> workflow_templates   ON DELETE CASCADE
+UNIQUE (workflow_template_id, code) / (workflow_template_id, sequence_no)
+CHECK version >= 1 / target_days >= 0 / sequence_no >= 1
+```
+
+**Mechanism only, and the tables are empty** (D-104). Nothing seeds or infers a stage sequence, a
+default template, an approval point, a required-before-stage rule, tax or deed gating, or a legal
+completion condition. A configurable engine with no content is the correct outcome — the office's
+real workflow is blocked on domain validation, not on engineering, and when it arrives it should be
+configuration rather than a schema change.
+
+**`version` is a counter, not a second row.** The specification asked for both `UNIQUE (office_id,
+code)` and multiple versions, which are mutually exclusive. The ERD settles it by giving
+`matter_workflows` both `workflow_template_id` *and* `workflow_version` — redundant under a
+row-per-version reading. The old iteration is preserved by M4.7's snapshot, which is what section 18
+of `CLAUDE.md` actually requires.
+
+**`approval_permission` is refused on save unless it names a canonical permission**, so an
+unresolvable string can never reach M4.7. Storing a code authorizes nothing; reading it still goes
+through a Policy and the resolver (D-048).
+
+**`is_default` carries no cardinality rule** — M4.7 must break a tie deterministically and say how.
+**The stage CASCADE constrains M4.7**: `matter_stage_instances.workflow_stage_id` must be `RESTRICT`
+or nullable, or deleting a template would damage the history of Matters that ran it.
+
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.
 
@@ -770,7 +808,9 @@ following the M2.1 and M3.1 precedent exactly.
 **M4.5 moved the permission count 173 → 177** (section 7), as expected and in the milestone that
 gave the four codes routes.
 
-**M4.6 and M4.7 build mechanism only.** Neither may seed workflow content.
+**M4.6 and M4.7 build mechanism only.** Neither may seed workflow content. **M4.6 delivered on
+that**: both template tables exist and both are empty, and a test asserts it alongside a source scan
+that keeps legal vocabulary out of the fixtures.
 
 ---
 

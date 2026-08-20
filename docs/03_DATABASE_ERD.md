@@ -832,6 +832,51 @@ created_at
 updated_at
 ```
 
+### Built at M4.6 *(D-111)*
+
+Both tables above, exactly as their field lists specify and with no column added beyond them. **No
+permission was registered — the count stays at 177** — and `master.workflows.view` / `.manage` were
+narrowed to `OFFICE` and `ALL`, the Service Type treatment (D-106) applied to Office-owned
+configuration. Backend foundation only: no route, controller, request, resource, seeder, or
+frontend.
+
+**Both tables ship empty and stay empty** (D-104). No Notary or PPAT stage sequence, no default
+template, no approval point, no required-before-stage rule, and no legal completion condition is
+seeded or inferred. The factories deliberately use `UJI_` codes so no fixture can be mistaken for
+validated content.
+
+```text
+workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
+UNIQUE (office_id, code)              one row per code
+UNIQUE (id, office_id)                the support key M4.7 will reference
+workflow_stages -> workflow_templates ON DELETE CASCADE
+UNIQUE (workflow_template_id, code)
+UNIQUE (workflow_template_id, sequence_no)
+CHECK version >= 1 / target_days >= 0 / sequence_no >= 1
+```
+
+**`version` is a counter on one row, not a second row.** Editing a template raises it in place, and
+what preserves the previous iteration is the M4.7 snapshot — `stage_code` plus both snapshot names
+on every stage instance — not a surviving row. That is why `matter_workflows` below carries both
+`workflow_template_id` and `workflow_version`: the id says which template, the number says which
+iteration.
+
+**`service_type_id` is nullable and the nullability is the feature**: an unbound template is the
+office's generic process, and requiring a binding would make workflow configuration impossible for
+as long as the service catalogue is empty. The composite key is satisfied when the column is NULL.
+
+**`is_default` carries no cardinality rule** — several templates may be default at once, following
+`project_parties.is_primary` (D-092). M4.7 must choose deterministically and say how, rather than
+assuming the database handed it exactly one.
+
+**The CASCADE is the only one here, and it constrains M4.7:**
+`matter_stage_instances.workflow_stage_id` must be `RESTRICT` or nullable, or deleting a template
+would reach through it and damage the history of Matters that ran it.
+
+**`approval_permission` must name a canonical permission code or be null**, refused on save
+otherwise. Storing a code authorizes nothing: whatever reads it still goes through a Policy and
+`EffectiveAccessResolver` with the actor's Data Scope (D-048, D-111).
+
 ### matter_workflows
 
 ```text

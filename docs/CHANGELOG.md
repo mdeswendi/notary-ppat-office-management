@@ -5,6 +5,121 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-18 — M4.6 Workflow templates and stages
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (28 total) creating `workflow_templates`
+and `workflow_stages`. **No permission** (177): both workflow codes were already canonical, and M4.6
+only narrows their assignable Data Scopes. Backend **1943 passed + 8 skipped = 1951 tests / 6303
+assertions** — 36 new, one skipped on SQLite by design. i18n unchanged at **848 / 848**. One new
+decision, **D-111**.
+
+**Backend foundation only** — no route, controller, request, resource, seeder, or frontend,
+following M2.1, M3.1, M4.1 and M4.2.
+
+### A mechanism, shipped deliberately empty
+
+D-104 permits the engine and forbids the content. Nothing here seeds or infers a Notary or PPAT
+stage sequence, a default template, an approval point, a required-before-stage rule, tax or deed
+gating, or a legal completion condition. A test asserts both tables are empty; a second scans the
+two factories, comments stripped, for `pemeriksaan`, `penandatanganan`, `minuta`, `warkah`, `ajb`,
+`apht`, `legalisasi`, `waarmerking`, `repertorium` and `akta` — a fixture reading like real process
+vocabulary could later be mistaken for validated content by a reader, by a copy-paste into a seeder,
+or by somebody reconstructing "how the office works" from the test suite. The fixtures say `UJI_`.
+
+**A configurable engine with no content is the correct outcome**, and is stated plainly rather than
+presented as a limitation: the office's real workflow is blocked on domain validation, not on
+engineering.
+
+### The version question the specification contradicted itself on
+
+The brief required `UNIQUE (office_id, code)` **and** said a template may have several versions.
+Those cannot both hold — two rows sharing a code violate that key.
+
+**One row per code, and `version` is a counter on it.** The ERD settles it: `matter_workflows`
+carries **both** `workflow_template_id` *and* `workflow_version`. Under a row-per-version reading
+the foreign key alone would identify the iteration and the number would be redundant. Carrying both
+only makes sense if the id says which template and the number says which iteration of it.
+
+What preserves the old iteration is not an old row but M4.7's snapshot — `stage_code` plus both
+snapshot names on every stage instance. `CLAUDE.md` §18 requires that editing a template never
+retroactively change a running Matter, and a snapshot guarantees that where a surviving row would
+not, since nothing stops an administrator editing that too.
+
+`office_id` and `code` are immutable on the model, following `ServiceType`. **`version` is
+deliberately outside that set** — bumping it is the ordinary act of editing.
+
+### `approval_permission` is validated where it is written
+
+The column stores a permission code as data, which is an authorization surface configured by text.
+**A value naming no canonical permission is refused on save.** Left open, a typo or a renamed code
+would sit in the table until M4.7 tried to resolve it and had to decide at runtime what an unknown
+string means — the case where inventing a meaning is most dangerous.
+
+Storing a code authorizes nothing. Whatever reads it still goes through a Policy and
+`EffectiveAccessResolver` with the actor's Data Scope (D-048). Null stays ordinary:
+`requires_approval` alone is meaningful, since an office may know a step needs signing off before it
+knows which capability should gate it.
+
+### Structural same-Office binding, and no support key added
+
+```text
+workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
+```
+
+Office A's template cannot bind Office B's service. `service_types` has carried the matching
+`UNIQUE (id, office_id)` since M4.1, which added it in anticipation of exactly this, so this
+migration adds no support key and drops none on rollback. A composite key with a NULL component is
+satisfied, so a generic template — `service_type_id` null — stays valid, which matters because M4.1
+ships the catalogue empty on purpose.
+
+### What is deliberately not constrained
+
+**`is_default` carries no cardinality rule.** Several templates may be default at once, following
+`project_parties.is_primary` (D-092). A partial unique index would be a business rule nobody wrote,
+and it does not exist on SQLite, so the two engines would disagree about what is representable.
+**M4.7 must break the tie deterministically and say how.**
+
+**`sequence_no` uniqueness per template is not the invented-rule trap.** D-105 deferred
+`matter_parties.sequence_no` because four meanings competed; here the meaning is settled and
+structural — the order the engine reads stages in. Two stages at position 3 leave "what comes next"
+undefined for the thing whose whole job is answering it. Noted for whoever builds a template editor:
+PostgreSQL checks unique constraints per statement, so swapping two positions needs one statement, a
+temporary out-of-range value, or a deferrable constraint.
+
+### One CASCADE, with its consequence written down now
+
+`workflow_stages.workflow_template_id` cascades: a stage is a line inside a configuration, not a
+record the office keeps. **This constrains M4.7 —
+`matter_stage_instances.workflow_stage_id` must be `RESTRICT` or nullable**, or deleting a template
+would reach through the cascade and damage the history of Matters that ran it. The snapshot columns
+exist precisely so an instance survives its stage definition.
+
+### Three CHECKs, because Laravel's unsigned types are MySQL concepts
+
+`version >= 1`, `target_days IS NULL OR target_days >= 0`, `sequence_no >= 1`. PostgreSQL maps
+`unsignedInteger` to signed `integer` without complaint — the M4.1 lesson, applied before it could
+bite and proven on the engine that enforces it.
+
+### Data Scopes narrowed
+
+`master.workflows.view` and `.manage` join `master.services.*` at `OFFICE` and `ALL`. A template is
+Office-owned configuration: `OWN` would have to mean `created_by`, a column the table deliberately
+lacks; `ASSIGNED` has no assignee; `TEAM` has no Team entity. Without the narrowing an administrator
+could grant `master.workflows.view` at `OWN`, see it save, and hold a silently powerless grant. The
+constant was renamed `MASTER_OFFICE_OWNED`, since it no longer holds one family.
+
+### A recurring maintenance defect fixed rather than repeated
+
+Four consecutive milestones edited the same hardcoded `--step` counts in the migration-reversibility
+probes, and M4.6 would have been the fifth. **A literal step count decays**: once a later milestone
+adds a migration, the test silently rolls back something other than the migration it names.
+`rollbackStepsTo()` has been in `tests/Pest.php` since M1.10 for exactly this and had not been
+adopted; the four Matter and Master Data probes now derive their counts from the migration they mean.
+
+Five other guards narrowed rather than deleted, each in the milestone that made its claim stale.
+
+---
+
 ## 2026-08-18 — M4.5 Matter ↔ Party participation
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (27 total) creating `matter_parties`.

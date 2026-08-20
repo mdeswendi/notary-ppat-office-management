@@ -920,7 +920,12 @@ it('shares no table with project participation', function (): void {
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    // Derived rather than hardcoded (M4.6): a literal `--step` silently starts
+    // testing a different migration the moment a later milestone adds one, which
+    // is what happened here the moment M4.6's workflow tables landed on top.
+    $steps = rollbackStepsTo('create_matter_parties_table');
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable('matter_parties'))->toBeFalse()
         // The support keys belong to earlier milestones and must survive: this

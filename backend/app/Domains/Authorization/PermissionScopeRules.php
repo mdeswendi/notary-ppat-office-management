@@ -134,7 +134,8 @@ class PermissionScopeRules
     ];
 
     /**
-     * The Service Type catalogue, whose predicates M4.1 settled.
+     * Office-owned master data: the Service Type catalogue, whose predicates M4.1
+     * settled, and the workflow templates M4.6 added.
      *
      * `OFFICE` and `ALL` only — the Party answer (D-080), not the Project one
      * (D-088), because the reasoning that separated them applies here too. A
@@ -149,14 +150,31 @@ class PermissionScopeRules
      * an administrator grant it at `OWN`, see it saved, and get a silently
      * powerless grant — the dead control D-080 named.
      *
-     * **Only the Service Type family is narrowed.** The other twelve `master.*`
-     * codes keep the permissive default, because their domains are still
-     * undesigned and narrowing them would repeat the mistake this entry corrects,
-     * one module across.
+     * **Two `master.*` families are narrowed, not one** *(M4.6)*. Workflow
+     * templates joined at M4.6 for exactly the same reasons, restated because
+     * they have to hold independently rather than by analogy: a template is a
+     * **shared configuration record** owned by an Office. `OWN` would have to mean
+     * `created_by`, and `workflow_templates` deliberately has no such column,
+     * since the colleague who typed a process in has no claim on how the office
+     * works. `ASSIGNED` has no assignment entity — nobody is the PIC of a
+     * template. `TEAM` has no Team entity at all (D-042).
+     *
+     * `view` and `manage` stay independent in both directions here as everywhere:
+     * neither implies the other, and there is no umbrella code.
+     *
+     * **The other ten `master.*` codes keep the permissive default**, because
+     * their domains are still undesigned and narrowing them would repeat the
+     * mistake this entry corrects, one module across.
      */
-    private const MASTER_SERVICE_TYPES = [
+    private const MASTER_OFFICE_OWNED = [
         'master.services.view',
         'master.services.manage',
+
+        // M4.6, D-111. The tables these govern exist as of M4.6; no route does,
+        // so the narrowing is what an administrator sees in the Permission
+        // Matrix rather than something an endpoint consults yet.
+        'master.workflows.view',
+        'master.workflows.manage',
     ];
 
     /**
@@ -243,7 +261,7 @@ class PermissionScopeRules
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 
-        if (in_array($permission, self::MASTER_SERVICE_TYPES, true)) {
+        if (in_array($permission, self::MASTER_OFFICE_OWNED, true)) {
             return [DataScope::OFFICE, DataScope::ALL];
         }
 

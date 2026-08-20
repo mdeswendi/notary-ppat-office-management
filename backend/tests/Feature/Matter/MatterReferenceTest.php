@@ -601,14 +601,19 @@ it('adds no matter allocation permission', function (): void {
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    // **Three steps since M4.5**: this migration, M4.4's tightening of the
-    // column, and M4.5's participation table, which holds a foreign key into
-    // `matters` and so must come off before anything below it.
-    $this->artisan('migrate:rollback', ['--step' => 3])->assertSuccessful();
+    // Everything layered above this migration comes off with it — M4.4's
+    // tightening of the column, M4.5's participation table, M4.6's workflow
+    // tables — and the count is **derived** rather than written down (M4.6),
+    // because a literal one decays into testing a different migration than it
+    // names.
+    $steps = rollbackStepsTo('add_matter_internal_reference');
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable('matter_reference_counters'))->toBeFalse()
         ->and(Schema::hasColumn('matters', 'matter_number'))->toBeFalse()
         ->and(Schema::hasTable('matter_parties'))->toBeFalse()
+        ->and(Schema::hasTable('workflow_templates'))->toBeFalse()
         // M4.2 survives untouched.
         ->and(Schema::hasTable('matters'))->toBeTrue()
         ->and(Schema::hasTable('service_types'))->toBeTrue();

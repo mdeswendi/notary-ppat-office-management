@@ -708,7 +708,22 @@ reference data, so `OWN` would have to mean `created_by` — a column the table 
 have — `ASSIGNED` has no assignee to match, and `TEAM` has no Team entity (D-042). Offering any of
 the three would let an administrator save a silently powerless grant.
 
-**The other twelve `master.*` families keep the permissive default**, because their domains are
+**M4.6 built the workflow-template foundation and added no permission — the count stays at 177**
+*(D-111)*. `master.workflows.view` and `master.workflows.manage` were already canonical, and they
+are **independent in both directions**: neither implies the other, and there is no umbrella code.
+
+Their Data Scopes are narrowed to exactly **`OFFICE` and `ALL`**, for the same reasons restated
+rather than borrowed: a workflow template is Office-owned configuration, so `OWN` would have to mean
+`created_by` — a column `workflow_templates` deliberately does not have, since the colleague who
+typed a process in has no claim on how the office works — `ASSIGNED` has no assignee to match, and
+`TEAM` has no Team entity.
+
+**M4.6 ships no route and no navigation entry.** Master Data stays absent from the sidebar, so both
+codes are registered, scoped, and reachable through no endpoint — the M4.1 position, one module
+across. The tables exist and are **deliberately empty**: no Notary or PPAT stage sequence, no
+default template, and no approval point is seeded or inferred (D-104).
+
+**The other ten `master.*` families keep the permissive default**, because their domains are
 still undesigned; narrowing them now would repeat the mistake that narrowing corrects.
 
 **M4.1 ships no route and no navigation entry.** Master Data stays absent from the sidebar, so no

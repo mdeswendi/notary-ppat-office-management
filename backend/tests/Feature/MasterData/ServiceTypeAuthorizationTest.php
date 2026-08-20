@@ -230,12 +230,19 @@ it('offers exactly OFFICE and ALL for the service type permissions', function (s
 it('leaves the other master data families on the permissive default', function (): void {
     // Their domains are still undesigned; narrowing them would repeat the mistake
     // the Service Type entry corrects, one module across.
+    //
+    // **Narrowed at M4.6**, which gave `master.workflows.*` real tables and the
+    // same `OFFICE`/`ALL` treatment (D-111). Excluding it here is not weakening
+    // the guard: the claim this file owns is that a family *without* a designed
+    // domain keeps the permissive default, and workflow now has one. Its own
+    // narrowing is asserted in `WorkflowTemplateSchemaTest`.
     $rules = app(PermissionScopeRules::class);
 
     $others = array_values(array_filter(
         PermissionRegistry::all(),
         fn (string $code): bool => str_starts_with($code, 'master.')
-            && ! str_starts_with($code, 'master.services.'),
+            && ! str_starts_with($code, 'master.services.')
+            && ! str_starts_with($code, 'master.workflows.'),
     ));
 
     expect($others)->not->toBeEmpty();

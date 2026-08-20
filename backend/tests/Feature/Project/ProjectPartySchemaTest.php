@@ -361,8 +361,10 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     // **Narrowed again at M4.2**, which builds `matters` (D-107), and at M4.5,
     // which builds `matter_parties` (D-105). Both have their own schema tests;
     // everything left here is M4.6 and beyond.
+    // **Narrowed again at M4.6**, which builds the two template tables (D-111);
+    // everything left here is M4.7 and beyond.
     foreach ([
-        'workflow_templates', 'workflow_instances', 'workflow_stages',
+        'workflow_instances', 'matter_workflows', 'matter_stage_instances',
         'documents', 'properties', 'warkah', 'deeds', 'tasks',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
@@ -375,6 +377,7 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     expect(Schema::hasColumn('project_parties', 'matter_id'))->toBeFalse()
         ->and(Schema::hasColumn('project_parties', 'matter_party_id'))->toBeFalse()
         ->and(Schema::hasColumn('project_parties', 'service_type_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'workflow_stage_id'))->toBeFalse()
         ->and(Schema::hasColumn('matter_parties', 'project_party_id'))->toBeFalse();
 });
 
