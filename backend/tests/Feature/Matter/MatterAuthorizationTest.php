@@ -577,9 +577,12 @@ it('exposes no matter surface beyond the milestone that owns it', function (): v
     // collection** — a participation is reachable only by naming its Matter.
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
+    // **Narrowed a third time at M4.7**, which gives a Matter's running workflow
+    // its three routes (D-112). What is left is what M4 genuinely does not have:
+    // archive and restore, which no canonical code could authorize (D-102), and
+    // a top-level collection reachable without naming its parent.
     foreach ([
-        'matter-parties',
-        'matters/{matter}/stage', 'matters/{matter}/workflow',
+        'matter-parties', 'matter-workflows', 'matter-stages',
         'matters/{matter}/archive', 'matters/{matter}/restore', 'matters/archived',
     ] as $absent) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $absent)))->toBeEmpty($absent);

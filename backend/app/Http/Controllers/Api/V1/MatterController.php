@@ -69,6 +69,11 @@ class MatterController extends Controller
         'can_complete' => 'complete',
         'can_cancel' => 'cancel',
 
+        // Stage movement (M4.7, D-112). Registered since the catalogue was
+        // transcribed and badged deferred from M4.4 until this milestone gave it
+        // a route.
+        'can_change_stage' => 'change_stage',
+
         // Participation (M4.5, D-105). Two flags rather than one, because the two
         // codes are independent and `manage` does not imply `view` — an interface
         // told only "can manage" would have to guess whether to render the list it
@@ -205,12 +210,11 @@ class MatterController extends Controller
 
         $serviceTypeId = $this->resolveServiceType($request->serviceTypeId(), $project->office_id, $domain);
 
-        $matter = $create->handle($actor, $project, $domain, $request->matterAttributes());
-
-        if ($serviceTypeId !== null) {
-            $matter->service_type_id = $serviceTypeId;
-            $matter->save();
-        }
+        // Passed into the action rather than assigned after it returns
+        // (corrected at M4.7). The classification must be on the row before the
+        // workflow is instantiated inside that transaction, because instantiation
+        // prefers a template configured for this Service Type (D-112).
+        $matter = $create->handle($actor, $project, $domain, $serviceTypeId, $request->matterAttributes());
 
         return (new MatterResource(
             $matter->load(['office', 'project', 'serviceType', 'picUser']),

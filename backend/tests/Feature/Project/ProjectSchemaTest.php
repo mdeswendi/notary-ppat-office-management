@@ -266,20 +266,20 @@ it('introduces no workflow or later-milestone table', function (): void {
     // `project_reference_counters` is deliberately absent from this list — M3.2
     // added it, and it is Project allocator infrastructure rather than a
     // later-milestone surface.
-    // **Narrowed again at M4.6**, which builds `workflow_templates` and
-    // `workflow_stages` (D-111). Both have their own schema test; what is left
-    // here is M4.7 and beyond.
-    foreach ([
-        'matter_workflows', 'matter_stage_instances', 'documents', 'properties', 'tasks',
-    ] as $table) {
+    // **Narrowed again at M4.6**, which builds the template tables (D-111), and
+    // at M4.7, which builds the running ones (D-112). Each has its own schema
+    // test; what is left here is M5 and beyond.
+    foreach (['documents', 'properties', 'tasks'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
     // The point that survives every narrowing: Project points at none of it —
-    // and now that a workflow template genuinely exists, the second assertion
-    // finally has something real to be false about.
+    // and now that both the template and the running workflow genuinely exist,
+    // these assertions finally have something real to be false about.
     expect(Schema::hasColumn('projects', 'service_type_id'))->toBeFalse()
-        ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse();
+        ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'matter_workflow_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse();
 });
 
 it('generalizes the counter into no legal numbering framework', function (): void {

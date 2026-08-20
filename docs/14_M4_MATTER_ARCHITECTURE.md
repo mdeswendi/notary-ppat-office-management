@@ -617,6 +617,10 @@ participation section on the Matter detail page.
 `workflow_templates` and `workflow_stages`, **no permission** (177), and `master.workflows.*`
 narrowed to `OFFICE`/`ALL`. Backend foundation only, and **both tables ship empty**.
 
+**M4.7 — delivered** *(D-112)*. See "Delivered at M4.7" below. One forward migration (29) creating
+the three running tables, **no permission** (177), and `*.matters.change_stage` given routes and
+un-deferred. Six routes, three per domain, plus a workflow section on the Matter detail page.
+
 **M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
 `PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
 migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
@@ -797,6 +801,41 @@ through a Policy and the resolver (D-048).
 **The stage CASCADE constrains M4.7**: `matter_stage_instances.workflow_stage_id` must be `RESTRICT`
 or nullable, or deleting a template would damage the history of Matters that ran it.
 
+### Delivered at M4.7 *(D-112)*
+
+The running workflow: instantiation, the stage a Matter is on, movement, and append-only history.
+One forward migration (29 total) and **no permission — the count stays at 177**.
+
+```text
+GET  /api/v1/{domain}/matters/{matter}/stages           the run: stages, current, history
+GET  /api/v1/{domain}/matters/{matter}/stages/options    open stages, not the active one
+POST /api/v1/{domain}/matters/{matter}/stages/move
+```
+
+Reading answers to `*.matters.view`; `options` and `move` to `*.matters.change_stage`, which
+`MatterPolicy` has been able to decide since M4.2 and which loses its deferred badge here.
+
+**Snapshotting is guaranteed by three things**, and the third is where it could have gone wrong:
+`workflow_version` on the run, the copied `stage_code` and both names on every instance, and
+**`matter_stage_instances.workflow_stage_id` being `RESTRICT`** — M4.6's stages cascade from their
+template, so `CASCADE` here would chain a template deletion into running Matters' history.
+
+**A move completes the stage you leave and touches nothing else.** Stages jumped over stay
+`PENDING`: skipping is a decision somebody makes, not one inferred from a navigation. `SKIPPED` and
+`BLOCKED` are therefore vocabulary nothing sets, recorded as a gap. **Still no transition matrix** —
+a backward move is ordinary. Matter Status is never written.
+
+**Completing the Matter closes its workflow**, because a stage completes by being moved away from
+and the final stage never would. No new endpoint and no new capability.
+
+**Instantiating nothing is the ordinary outcome**: no template is seeded (D-104), so on a fresh
+deployment every Matter is created without a workflow rather than refused. Where templates exist,
+the tie-break M4.6 required is Service Type first, then generic; `is_default` first, then oldest by
+ULID.
+
+**`matters.current_stage_id` is deliberately not built**, resolving the M4.2 and M4.3 deferrals: the
+`ACTIVE` instance is the current stage, and a pointer would be a second source of truth.
+
 **M4.1 precedes M4.2** because `matters.service_type_id` references it, even nullably, and a
 foreign key cannot point at a table that does not exist.
 
@@ -808,9 +847,10 @@ following the M2.1 and M3.1 precedent exactly.
 **M4.5 moved the permission count 173 → 177** (section 7), as expected and in the milestone that
 gave the four codes routes.
 
-**M4.6 and M4.7 build mechanism only.** Neither may seed workflow content. **M4.6 delivered on
-that**: both template tables exist and both are empty, and a test asserts it alongside a source scan
-that keeps legal vocabulary out of the fixtures.
+**M4.6 and M4.7 build mechanism only.** Neither may seed workflow content. **Both delivered on
+that**: the template tables exist and are empty, the running tables exist and instantiate nothing
+without configuration, and tests assert each alongside source scans that keep legal vocabulary out
+of the fixtures and keep `SKIPPED` / `BLOCKED` unset anywhere in the product.
 
 ---
 

@@ -89,21 +89,22 @@ it('builds no notary or ppat extension table', function (): void {
     }
 });
 
-it('builds no running workflow table', function (): void {
-    // **Narrowed twice, never deleted.** `matter_parties` left at M4.5 and the
-    // two template tables at M4.6, each in the milestone that built it and each
-    // with its own schema guard. What is still ahead is the *running* side —
-    // M4.7's instances and history — and nothing may stub any of it (D-095).
-    foreach (['matter_workflows', 'matter_stage_instances', 'matter_stage_history'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
-
-    // And the claim this guard was always really making, which M4.6 does not
-    // change: **`matters` gains no pointer into workflow.** The stage pointer
-    // arrives at M4.7 with the real stage-instance foreign key behind it, not as
-    // a nullable placeholder next to a template table that now exists.
+it('gains no workflow column on the matters table', function (): void {
+    // **Narrowed three times, never deleted.** `matter_parties` left at M4.5, the
+    // template tables at M4.6, and the running tables at M4.7 — each in the
+    // milestone that built it, each with its own schema guard.
+    //
+    // What survives is the claim this guard was always really making, and M4.7 is
+    // where it stops being trivially true: **`matters` gains no pointer into
+    // workflow**, even now that a running workflow genuinely exists. The ACTIVE
+    // stage instance *is* the current stage; a denormalized pointer would be a
+    // second source of truth that can disagree with it (D-112).
     expect(Schema::hasColumn('matters', 'current_stage_id'))->toBeFalse()
-        ->and(Schema::hasColumn('matters', 'workflow_template_id'))->toBeFalse();
+        ->and(Schema::hasColumn('matters', 'workflow_template_id'))->toBeFalse()
+        ->and(Schema::hasColumn('matters', 'matter_workflow_id'))->toBeFalse();
+
+    // The relationship points the other way, which is what makes that possible.
+    expect(Schema::hasColumn('matter_workflows', 'matter_id'))->toBeTrue();
 });
 
 it('reserves deleted_at without a soft delete lifecycle', function (): void {

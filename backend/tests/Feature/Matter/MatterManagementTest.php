@@ -76,18 +76,19 @@ function serviceTypeFor(Office $office, MatterDomain $domain, bool $active = tru
 
 it('registers exactly the expected matter routes and nothing more', function (): void {
     // An inventory rather than an absence check: a new Matter route now has to be
-    // added here deliberately. No DELETE and no stage route — M4 ships no archive
-    // lifecycle (D-102) and no workflow (D-104).
+    // added here deliberately. No DELETE — M4 ships no archive lifecycle (D-102).
     //
-    // **Narrowed at M4.5** to the Matter surface this file owns. Participation
-    // routes are M4.5's and are pinned, just as exactly, in `MatterPartyTest`;
-    // listing them in both places would mean every future participation change
-    // had to be applied twice, which is how one of the two copies goes stale.
+    // **Narrowed at M4.5 and again at M4.7** to the Matter lifecycle surface this
+    // file owns. Participation routes are M4.5's and stage routes are M4.7's,
+    // each pinned just as exactly in its own suite; listing them in two places
+    // would mean every future change had to be applied twice, which is how one of
+    // the two copies goes stale.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
         ->filter(fn (string $route): bool => str_contains($route, 'matters')
             && ! str_contains($route, 'parties')
-            && ! str_contains($route, 'party-options'))
+            && ! str_contains($route, 'party-options')
+            && ! str_contains($route, 'stages'))
         ->values()->sort()->values()->all();
 
     expect($routes)->toBe([
@@ -452,18 +453,25 @@ it('carries no party, workflow, or legal identity in the payload', function (): 
 
     $raw = json_encode($payload);
 
-    foreach (['nik', 'npwp', 'tax_id', 'stage', 'workflow', 'deed', 'warkah'] as $absent) {
+    foreach (['nik', 'npwp', 'tax_id', 'deed', 'warkah'] as $absent) {
         expect(str_contains(strtolower((string) $raw), $absent))->toBeFalse($absent);
     }
 
     // **Narrowed at M4.5**, which added `can_view_parties` and
-    // `can_manage_parties` — capability flags, not Party data. A raw substring
-    // search for "parties" now matches those and would fail for the wrong
-    // reason. The claim worth keeping is that the Matter payload **embeds no
-    // participant list**: participation is its own endpoint with its own
-    // capability, and a Matter resource that inlined it would make
-    // `*.matters.view` a way to read who is involved (D-105).
-    foreach (['parties', 'participants', 'matter_parties'] as $embedded) {
+    // `can_manage_parties`, and again at M4.7, which added `can_change_stage` —
+    // capability flags, not Party or workflow data. A raw substring search for
+    // "parties" or "stage" now matches those and would fail for the wrong
+    // reason.
+    //
+    // The claim worth keeping, in both cases, is that the Matter payload
+    // **embeds neither the participant list nor the workflow**. Each is its own
+    // endpoint: participation has its own capability entirely (D-105), and the
+    // workflow is a separate read that would otherwise make every Matter fetch
+    // carry a stage list nobody asked for.
+    foreach ([
+        'parties', 'participants', 'matter_parties',
+        'workflow', 'stages', 'current_stage', 'stage_history',
+    ] as $embedded) {
         expect($payload)->not->toHaveKey($embedded);
     }
 });
@@ -658,9 +666,16 @@ it('exposes no way to set the statuses no capability owns', function (): void {
     // ON_HOLD and ARCHIVED are canonical vocabulary that no M4 capability can
     // set, because Matter has no `change_status` code. Accepted deliberately
     // rather than engineered around (D-109).
+    //
+    // **Narrowed at M4.7**, which gives stages their own routes (D-112). The
+    // `matters/{matter}/stage` entry left this list because it was never about
+    // stages: Matter Status and Workflow Stage are separate concepts (CLAUDE.md
+    // section 18), and a stage route is not a way to set a *status*. What
+    // replaces it is the assertion that actually holds — moving a stage writes
+    // no `matters.status` — which `MatterWorkflowTest` proves behaviourally.
     $uris = collect(Route::getRoutes())->map(fn ($route): string => $route->uri());
 
-    foreach (['matters/{matter}/status', 'matters/{matter}/change-status', 'matters/{matter}/stage'] as $absent) {
+    foreach (['matters/{matter}/status', 'matters/{matter}/change-status'] as $absent) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $absent)))->toBeEmpty($absent);
     }
 });

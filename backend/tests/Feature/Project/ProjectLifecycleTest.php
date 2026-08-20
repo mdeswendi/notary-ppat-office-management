@@ -393,9 +393,14 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // Matter surface hangs off a Project address.** A Matter is reached at
     // `/notary/matters` or `/ppat/matters`, never `/projects/{id}/matters`,
     // because the domain root is what selects the permission namespace (D-101).
+    // **Narrowed again at M4.7**: `workflow` and `stages` left this list because
+    // a Matter's running workflow now has routes (D-112). They never belonged to
+    // Project — the point below is unchanged and is what the entries were really
+    // guarding: **no Matter or workflow surface hangs off a Project address.**
     foreach ([
         'projects/{project}/participants', 'projects/{project}/matters',
-        'workflow', 'stages', 'deeds', 'warkah', 'properties',
+        'projects/{project}/workflow', 'projects/{project}/stages',
+        'deeds', 'warkah', 'properties',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);

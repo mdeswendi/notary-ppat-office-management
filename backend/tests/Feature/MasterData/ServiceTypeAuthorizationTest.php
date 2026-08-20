@@ -346,12 +346,18 @@ it('exposes no master data service type http surface', function (): void {
     expect($routes)->toBeEmpty();
 });
 
-it('introduces no workflow surface', function (): void {
-    // **Narrowed at M4.4**, which legitimately ships the Matter product surface
-    // (D-109). Workflow remains M4.6 and M4.7 and stays absent.
+it('introduces no master workflow surface', function (): void {
+    // **Narrowed at M4.4**, which ships the Matter product surface (D-109), and
+    // again at M4.7, which gives a Matter's *running* workflow three routes
+    // (D-112). The claim this file owns is narrower and still true: M4.1 built
+    // the Service Type catalogue and no **master-data workflow surface** exists
+    // for configuring templates — `master.workflows.*` are registered, scoped at
+    // M4.6, and reachable through no endpoint.
     $routes = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'workflow') || str_contains($uri, 'stages'));
+        ->filter(fn (string $uri): bool => str_contains($uri, 'workflow')
+            || str_contains($uri, 'workflow-templates')
+            || str_contains($uri, 'master/'));
 
     expect($routes)->toBeEmpty();
 });

@@ -3717,6 +3717,152 @@ migration they actually mean.
 
 ---
 
+## 2026-08-18 — M4.7 Matter workflow instances and stage transitions
+
+### D-112 — Moving on completes the stage you leave, and nothing else is inferred
+
+One forward migration (**29 total**) creating `matter_workflows`,
+`matter_stage_instances` and `matter_stage_history`, and **no permission — the count stays at 177**.
+`notary.matters.change_stage` and `ppat.matters.change_stage` have been canonical since the
+catalogue was transcribed and carried a deferred badge from M4.4; M4.7 gives them routes and removes
+the badge. `MatterPolicy::changeStage` already existed from M4.2 and is unchanged.
+
+Six routes, three per domain: `GET .../stages`, `GET .../stages/options`, `POST .../stages/move`.
+**Reading answers to `*.matters.view`** — a stage is part of what a Matter *is*, not a separate
+resource with its own audience, unlike participation which the registry gave its own pair of codes
+(D-105). Inventing a `*.matters.stages.view` would change the canonical count for a read the
+Matter's own visibility already governs.
+
+### The three mechanisms that make snapshotting real
+
+`CLAUDE.md` section 18 requires that editing a template must not retroactively change a Matter
+already running. Three things together guarantee it, and **the third is the one that could have been
+got wrong**:
+
+1. `matter_workflows.workflow_version` records the iteration instantiated from, which is meaningful
+   because M4.6 made `version` a counter on one row rather than a row per version (D-111);
+2. every stage instance copies `stage_code`, both names and `sequence_no` at instantiation, and
+   nothing ever refreshes them;
+3. **`matter_stage_instances.workflow_stage_id` is `RESTRICT`, never `CASCADE`.** M4.6's stages
+   cascade from their template, so a `CASCADE` here would chain — deleting a template would delete
+   its stages, which would delete the instances of every Matter that ran it, destroying exactly the
+   history the other two mechanisms exist to preserve. M4.6 wrote this constraint down as a
+   consequence for M4.7 to carry; this is where the chain is cut.
+
+**`stage_name_snapshot_id` is not a foreign key.** The `_id` is the ISO 639-1 code for Bahasa
+Indonesia, matching `name_id` / `name_en` throughout the schema, and the column holds a displayable
+stage name. Every other `*_id` column in the Matter domain does hold a ULID reference, so the name
+genuinely invites a wrong join. It is transcribed from the ERD rather than renamed, and a test
+asserts it holds a name rather than a ULID. The wire format drops `_snapshot_`, because the client
+has no other source for a stage name and the distinction is one only the backend must keep.
+
+### What a move does, which the specification left open
+
+The brief said a move validates that the target exists and is open, and never said what becomes of
+the stage moved away from. Something must: two `ACTIVE` stages would leave "current stage" with no
+answer.
+
+**The stage you leave becomes `COMPLETED`**, because moving on from a stage is what finishing it
+means operationally. **Stages jumped over stay `PENDING` and are untouched** — marking them
+`SKIPPED` would infer a decision from a navigation, and skipping is something somebody chooses.
+
+So `SKIPPED` and `BLOCKED` are **vocabulary nothing sets**, recorded as a gap rather than filled by
+inference — the same shape M4.4 left for the unreachable Matter statuses (D-109), and a source scan
+asserts no code path writes either. Both still render in the interface, because the backend may one
+day return them and a stepper that could not draw them would be lying about what it knows.
+
+**There is still no transition matrix** (D-104). A backward move is ordinary and is offered exactly
+like a forward one; the only check is that a destination is somewhere you can go, which says nothing
+about which destinations follow which origins. Moving to the stage already active is refused, since
+that is not a move.
+
+**Matter Status is never written by a stage move.** The two concepts stay separate (`CLAUDE.md`
+section 18).
+
+### How a workflow completes
+
+A stage becomes `COMPLETED` by moving on from it, so the final stage would never complete on its own
+and `matter_workflows.completed_at` would be unreachable schema. **Completing the Matter closes its
+workflow**: `CompleteMatter` marks the `ACTIVE` stage complete and stamps the run, in the same
+transaction. It reuses an act an office already performs and a capability that already exists —
+`*.matters.complete` — rather than inventing a third stage endpoint and an authorization argument
+for it.
+
+**No history row is written when completing.** History records stage *transitions*, and nothing
+moves anywhere; a row whose `from` and `to` were the same stage would put a movement in the record
+that never happened.
+
+### Instantiation, and why doing nothing is the ordinary outcome
+
+**A deployment with no configured template instantiates no workflow, and the Matter is created
+anyway.** That is not an error path — D-104 forbids seeding workflow content, so on a fresh
+deployment it is *every* Matter. Failing Matter creation because nobody has configured a process yet
+would make the whole Matter module depend on domain validation that has not happened.
+
+**Called explicitly inside `CreateMatter`'s transaction, not from a model observer.** The repository
+registers none, one here would make creating a Matter silently do two things including inside every
+factory call in the suite, and a workflow that committed while its Matter rolled back would be an
+orphan the `UNIQUE (matter_id)` key then blocks forever.
+
+**M4.6 left no uniqueness on `is_default` (D-111), so this action breaks ties itself and says how**:
+the Matter's own Service Type first, then the Office's generic default; within either, `is_default`
+first and then the **oldest by ULID**. Oldest rather than newest, because the established default is
+the one the office has been using and a newest-wins rule would let a template created this morning
+silently capture every new Matter. Only `is_active` templates and only the Matter's own Office.
+
+**`is_start_stage` is deliberately not consulted.** It is a template marker whose meaning no
+canonical document settles; honouring it would be inferring workflow semantics. The first stage by
+sequence becomes `ACTIVE`, and sequence order is structural and already total.
+
+### A defect this milestone surfaced in M4.4
+
+`MatterController::store` set `service_type_id` **after** `CreateMatter` returned — a second write
+outside the transaction that left the Matter briefly unclassified. At M4.4 that was untidy; M4.7
+made it a defect, because instantiation reads `service_type_id` to prefer a template configured for
+that service, and running before the value was set meant **the preference could never fire in
+production** while passing in a directly-constructed test. `service_type_id` is now an explicit
+parameter of `CreateMatter`, set before instantiation and inside the transaction.
+
+### History is append-only, and enforced
+
+The model refuses `update` and `delete` outright; the schema carries `changed_at` and no
+`updated_at`, no `deleted_at`. D-104 records that whether a transition carries legal state is
+undecided and treats the table as append-only from the outset — the safe direction to be wrong in —
+and `CLAUDE.md` section 31 says the same of audit records generally.
+
+`from_stage_code` and `to_stage_code` are **codes, not foreign keys**: resolving them through live
+stage rows would let a later template edit rewrite what the record says happened. `reason` is free
+text and therefore a leak surface — D-105 forbids persisting Party identity there, the interface
+warns, and nothing automated can enforce it.
+
+### `matters.current_stage_id` is deliberately not built
+
+The ERD lists it and both M4.2 and M4.3 deferred it by name to M4.7. **The `ACTIVE` stage instance
+is the current stage**, so a pointer would be a second source of truth that can disagree with it,
+and correcting one without the other would be silent corruption. Recorded as not built, with the
+reason, rather than leaving the earlier deferrals dangling.
+
+### Stage assignment and approval are recorded, not performed
+
+`assigned_user_id`, `approved_at` and `approved_by` exist because the ERD names them and M4.6 gave
+stages `requires_approval` and `approval_permission`. **M4.7 ships no assignment and no approval
+act**, so all three stay null and the Form Request refuses them. Whichever milestone approves must
+resolve the stored code through a Policy and `EffectiveAccessResolver` (D-048, D-111).
+
+**A stage assignee gains no Matter reach** (D-100). Matter `ASSIGNED` means `matters.pic_user_id`
+and nothing else; a test asserts the scope predicate ignores the stage column.
+
+### Frontend
+
+A workflow **section** on the Matter detail page, not a tab — the repository has no `Tabs`
+primitive and M4.5 set the section precedent. A vertical stepper renders all five statuses with an
+icon **and** a translated label, so nothing depends on colour (`CLAUDE.md` section 49), followed by
+the append-only history. The move dialog offers every open stage rather than a "next" one, because
+offering only "next" would be the transition matrix D-104 refuses, invented by an interface. Message
+keys reach exact parity at 881 per locale, 33 new in a `matterStages` namespace.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

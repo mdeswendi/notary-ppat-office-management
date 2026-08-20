@@ -113,6 +113,10 @@ export type Matter = {
   // offering to edit.
   can_view_parties?: boolean;
   can_manage_parties?: boolean;
+
+  // Stage movement (M4.7, D-112). Reading the workflow answers to the Matter's
+  // own view capability, so there is no matching `can_view_stages`.
+  can_change_stage?: boolean;
 };
 
 export type MatterListQuery = {

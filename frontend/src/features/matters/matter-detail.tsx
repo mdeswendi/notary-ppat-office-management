@@ -17,6 +17,7 @@ import {
 import { matterBasePath } from "@/features/matters/matter-domain";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
+import { MatterWorkflowSection } from "@/features/matters/matter-workflow-section";
 import { Link } from "@/i18n/navigation";
 import {
   assignMatterPic,
@@ -59,6 +60,7 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
   const t = useTranslations("matters");
   const tActions = useTranslations("actions");
   const tParties = useTranslations("matterParties");
+  const tStages = useTranslations("matterStages");
   const locale = useLocale();
   const queryClient = useQueryClient();
 
@@ -173,6 +175,16 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           <p className="text-muted-foreground text-sm whitespace-pre-line">{matter.notes}</p>
         </section>
       ) : null}
+
+      {/* Rendered for anyone who may read the Matter: a stage is part of what a
+          Matter is, and the section itself says so when no workflow is
+          configured, which on a fresh deployment is every Matter (D-104). */}
+      <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+        <h3 className="text-sm font-medium">{tStages("sectionTitle")}</h3>
+        <p className="text-muted-foreground text-xs">{tStages("sectionDescription")}</p>
+
+        <MatterWorkflowSection domain={domain} matterId={matter.id} />
+      </section>
 
       {matter.can_view_parties ? (
         <section className="border-border flex flex-col gap-3 rounded-lg border p-4">

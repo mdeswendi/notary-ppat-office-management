@@ -352,23 +352,41 @@ it('leaves the still-undesigned master families permissive', function (string $c
 |--------------------------------------------------------------------------
 */
 
-it('exposes no workflow http surface in m4.6', function (): void {
-    // Backend foundation only, following M2.1, M3.1, M4.1 and M4.2. The routes
-    // arrive with the milestone that owns them.
+it('exposes no template configuration surface', function (): void {
+    // Backend foundation only, following M2.1, M3.1, M4.1 and M4.2.
+    //
+    // **Narrowed at M4.7**, which gives a Matter's *running* workflow three
+    // routes (D-112). Those are a different thing from what this file owns: they
+    // read and move an instance, and none of them creates, edits, or lists a
+    // **template**. `master.workflows.view` and `master.workflows.manage` remain
+    // registered, scoped, and reachable through no endpoint.
     $uris = collect(Route::getRoutes())->map(fn ($route): string => $route->uri());
 
-    foreach (['workflow', 'workflows', 'stages', 'master/workflows'] as $absent) {
+    foreach (['master/workflows', 'workflow-templates', 'workflow-stages'] as $absent) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $absent)))->toBeEmpty($absent);
     }
+
+    // And no route reaches a template by id under any spelling.
+    expect($uris->filter(fn (string $uri): bool => str_contains($uri, '{workflowTemplate}')
+        || str_contains($uri, '{workflowStage}')))->toBeEmpty();
 });
 
-it('builds no matter workflow instance table yet', function (): void {
-    // M4.7 owns the running side. Nothing is stubbed ahead of it (D-095).
-    foreach (['matter_workflows', 'matter_stage_instances', 'matter_stage_history'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
+it('keeps the template tables free of any running-instance column', function (): void {
+    // **Narrowed at M4.7, not deleted.** This asserted the three running tables
+    // did not exist, which was right while M4.7 was ahead; it built them, and
+    // `MatterWorkflowTest` owns their shape now.
+    //
+    // What still belongs to this file is the direction of the dependency:
+    // **configuration knows nothing about what is running it.** A template never
+    // points at a Matter, a workflow run, or a stage instance — the references
+    // all go the other way, which is what lets a template be edited without
+    // touching anything already in flight (D-111, D-112).
+    foreach (['matter_id', 'matter_workflow_id', 'matter_stage_instance_id'] as $column) {
+        expect(Schema::hasColumn('workflow_templates', $column))->toBeFalse($column)
+            ->and(Schema::hasColumn('workflow_stages', $column))->toBeFalse($column);
     }
 
-    // And `matters` gains no stage pointer here.
+    // And `matters` still gains no stage pointer, even now that stages run.
     expect(Schema::hasColumn('matters', 'current_stage_id'))->toBeFalse();
 });
 
@@ -440,10 +458,15 @@ it('makes several defaults representable, because no cardinality rule exists', f
 */
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {
-    $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+    // Derived rather than hardcoded, which is the M4.6 fix applying to M4.6's own
+    // probe the very next milestone: M4.7's tables layer on top of these.
+    $steps = rollbackStepsTo('create_workflow_tables');
+
+    $this->artisan('migrate:rollback', ['--step' => $steps])->assertSuccessful();
 
     expect(Schema::hasTable('workflow_templates'))->toBeFalse()
         ->and(Schema::hasTable('workflow_stages'))->toBeFalse()
+        ->and(Schema::hasTable('matter_workflows'))->toBeFalse()
         // Everything below survives untouched: this migration adds no support
         // key to another table, so it drops none.
         ->and(Schema::hasTable('service_types'))->toBeTrue()

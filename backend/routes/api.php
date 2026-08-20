@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
 use App\Http\Controllers\Api\V1\MatterPartyController;
+use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
@@ -327,6 +328,26 @@ Route::prefix('v1')->group(function (): void {
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('complete');
                     Route::post('matters/{matter}/cancel', [MatterLifecycleController::class, 'cancel'])
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('cancel');
+
+                    /*
+                     * The running workflow (M4.7, D-112). Reading answers to the
+                     * Matter's own `view` capability — a stage is part of what a
+                     * Matter is, not a separate resource with its own audience —
+                     * while `options` and `move` answer to
+                     * `*.matters.change_stage`, canonical since the catalogue was
+                     * transcribed and badged deferred until this milestone gave
+                     * it a route.
+                     *
+                     * There is **no transition matrix** (D-104): `move` checks
+                     * that the target stage belongs to this Matter's workflow and
+                     * is open, never which stage may follow which.
+                     */
+                    Route::get('matters/{matter}/stages', [MatterStageController::class, 'index'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.index');
+                    Route::get('matters/{matter}/stages/options', [MatterStageController::class, 'options'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.options');
+                    Route::post('matters/{matter}/stages/move', [MatterStageController::class, 'move'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.move');
 
                     Route::get('matters/{matter}/party-options', [MatterPartyController::class, 'options'])
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.options');

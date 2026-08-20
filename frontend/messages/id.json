@@ -208,6 +208,45 @@
       "server": "Terjadi kesalahan pada server."
     }
   },
+  "matterStages": {
+    "sectionTitle": "Alur Kerja",
+    "sectionDescription": "Tahapan Pekerjaan ini menurut template yang dipakai saat Pekerjaan dibuat. Nama tahapan disalin saat itu, sehingga mengubah template tidak mengubah Pekerjaan yang sedang berjalan.",
+    "loading": "Memuat alur kerja",
+    "errorTitle": "Alur kerja tidak dapat dimuat",
+    "noWorkflow": "Pekerjaan ini tidak memiliki alur kerja. Kantor belum menyiapkan template alur kerja.",
+    "noStages": "Template ini tidak memiliki tahapan.",
+    "versionLabel": "Versi template {version}",
+    "workflowCompleted": "Alur kerja selesai",
+    "statuses": {
+      "PENDING": "Belum dimulai",
+      "ACTIVE": "Sedang berjalan",
+      "COMPLETED": "Selesai",
+      "SKIPPED": "Dilewati",
+      "BLOCKED": "Terhambat"
+    },
+    "moveAction": "Pindah Tahap",
+    "moveTitle": "Pindah ke tahap lain",
+    "moveDescription": "Tahap yang ditinggalkan ditandai selesai. Tahap yang dilompati tetap belum dimulai.",
+    "moveConfirm": "Pindah",
+    "targetLabel": "Tahap tujuan",
+    "selectStage": "Pilih tahap",
+    "targetHint": "Semua tahap yang masih terbuka dapat dipilih, maju maupun mundur. Belum ada aturan urutan tahap.",
+    "noTargets": "Tidak ada tahap lain yang dapat dituju.",
+    "reasonLabel": "Alasan",
+    "reasonHint": "Opsional. Tercatat permanen dan terbaca oleh setiap pengguna yang boleh melihat Pekerjaan ini. Jangan mengisi data identitas.",
+    "historyTitle": "Riwayat Tahap",
+    "noHistory": "Belum ada perpindahan tahap.",
+    "historyStarted": "Alur kerja dimulai pada {to}",
+    "historyMoved": "{from} → {to}",
+    "errors": {
+      "forbidden": "Anda tidak memiliki wewenang untuk memindahkan tahap Pekerjaan ini.",
+      "notFound": "Data tidak ditemukan.",
+      "validation": "Tahap tujuan itu tidak dapat dipilih.",
+      "tooManyAttempts": "Terlalu banyak permintaan. Coba lagi nanti.",
+      "network": "Tidak dapat terhubung ke server.",
+      "server": "Terjadi kesalahan pada server."
+    }
+  },
   "matterParties": {
     "sectionTitle": "Para Pihak",
     "sectionDescription": "Pihak yang terlibat dalam Pekerjaan ini saat ini. Bukan riwayat: menghapus tautan tidak menyimpan catatan. Daftar ini berdiri sendiri dan tidak diambil dari Pihak Terkait Proyek induk.",

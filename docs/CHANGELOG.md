@@ -5,6 +5,130 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-18 — M4.7 Matter workflow instances and stage transitions
+
+Branch `feat/m4-matter-workflow`. **One forward migration** (29 total) creating `matter_workflows`,
+`matter_stage_instances` and `matter_stage_history`. **No permission** (177):
+`*.matters.change_stage` was already canonical and now has routes. Backend **2005 passed + 8
+skipped = 2013 tests / 6461 assertions** — 62 new. i18n **881 / 881** exact, 33 new keys per locale.
+One new decision, **D-112**.
+
+Six routes, three per domain. Reading answers to `*.matters.view` — a stage is part of what a Matter
+*is*, not a separate resource with its own audience, unlike participation which the registry gave
+its own codes. `options` and `move` answer to `*.matters.change_stage`, which **leaves the deferred
+list** now that it has a target.
+
+### The RESTRICT that carries the whole snapshot design
+
+M4.6 wrote down a consequence for M4.7 to honour, and this is it:
+`matter_stage_instances.workflow_stage_id` is **`RESTRICT`, never `CASCADE`**. M4.6's stages cascade
+from their template, so a `CASCADE` here would chain — deleting a template would delete its stages,
+which would delete the instances of every Matter that ran it, destroying exactly the history
+snapshotting exists to preserve. Two tests prove it: deleting a running stage is refused, and
+deleting the template is refused with all instances intact.
+
+The other two mechanisms: `workflow_version` on the run, meaningful because M4.6 made `version` a
+counter on one row rather than a row per version; and `stage_code` plus both names copied onto every
+instance and never refreshed. A test renames a template stage and asserts the running Matter still
+shows the old name.
+
+**`stage_name_snapshot_id` is not a foreign key.** The `_id` is the locale code for Bahasa
+Indonesia; the column holds a displayable name. Every other `*_id` in this domain holds a ULID, so
+the name genuinely invites a wrong join — transcribed rather than renamed, with a test asserting it
+is not a ULID.
+
+### What a move does, which the specification left open
+
+The brief validated that a target exists and is open, and never said what becomes of the stage
+moved away from. Something had to: two `ACTIVE` stages leave "current stage" with no answer.
+
+**The stage you leave becomes `COMPLETED`; stages jumped over stay `PENDING`.** Marking them
+`SKIPPED` would infer a decision from a navigation, and skipping is something somebody chooses. So
+`SKIPPED` and `BLOCKED` are **vocabulary nothing sets** — the same honest gap M4.4 left for the
+unreachable Matter statuses — and a source scan asserts no code path writes either. Both still
+render, because the backend may one day return them.
+
+**Still no transition matrix** (D-104). A backward move is ordinary and offered exactly like a
+forward one. Moving to the stage already active is refused, because that is not a move. **Matter
+Status is never written by a stage move**, and a test says so.
+
+### How a workflow completes
+
+A stage completes by being moved away from, so the final stage never would and
+`matter_workflows.completed_at` would be dead schema. **Completing the Matter closes its workflow**,
+in `CompleteMatter`'s existing transaction, marking the `ACTIVE` stage complete and stamping the
+run. It reuses an act offices already perform and a capability that already exists rather than
+inventing a third endpoint. **No history row is written** — nothing moved, and a row whose `from`
+and `to` were the same stage would record a movement that never happened.
+
+### Instantiating nothing is the ordinary outcome
+
+D-104 seeds no templates, so on a fresh deployment **every** Matter is created without a workflow.
+That is the normal path, not an edge case: refusing to create Matters until somebody configures a
+process would make the whole module depend on domain validation that has not happened.
+
+Called explicitly inside `CreateMatter`'s transaction rather than from a model observer — the
+repository registers none, one would make Matter creation silently do two things including in every
+factory call, and a workflow committing while its Matter rolled back would be an orphan the
+`UNIQUE (matter_id)` key blocks forever. A test proves the rollback.
+
+M4.6 left no uniqueness on `is_default`, so **this action breaks ties and says how**: Service Type
+first, then generic; `is_default` first, then **oldest by ULID** — the established default, not one
+created this morning. `is_start_stage` is deliberately not consulted: its meaning is unsettled, and
+honouring it would be inferring workflow semantics.
+
+### A defect this milestone surfaced in M4.4
+
+`MatterController::store` set `service_type_id` **after** `CreateMatter` returned. At M4.4 that was
+a second write outside the transaction; M4.7 made it a defect, because instantiation reads
+`service_type_id` to prefer a service-specific template, and running before the value was set meant
+**the preference could never fire in production** while passing in a directly-constructed test — the
+test would have been green and the feature dead. `service_type_id` is now an explicit parameter of
+`CreateMatter`, set before instantiation and inside the transaction.
+
+### History is append-only, and enforced
+
+The model refuses `update` and `delete`; the schema carries `changed_at` and neither `updated_at`
+nor `deleted_at`. Stage codes are stored as strings rather than foreign keys, so a later template
+edit cannot rewrite what the record says happened. `reason` is free text and a leak surface — D-105
+forbids Party identity there, and the interface warns.
+
+### `matters.current_stage_id` is deliberately not built
+
+The ERD lists it and M4.2 and M4.3 both deferred it *by name* to this milestone. The `ACTIVE` stage
+instance **is** the current stage, so a pointer would be a second source of truth that can disagree
+with it. Recorded as a decision, closing the earlier deferrals rather than leaving them dangling.
+
+### Recorded but never written
+
+`assigned_user_id`, `approved_at` and `approved_by`: M4.7 ships no stage assignment and no approval
+act, and the Form Request refuses all three. **A stage assignee confers no Matter reach** (D-100) —
+a test grants an account `ASSIGNED` Matter visibility, assigns it to a *stage*, and asserts it still
+cannot open the Matter.
+
+### Frontend
+
+A workflow **section** on the Matter detail page, not a tab: the repository has no `Tabs` primitive
+and M4.5 set the precedent. The vertical stepper renders all five statuses with an icon **and** a
+translated label, so nothing depends on colour. The move dialog offers every open stage rather than
+a "next" one — offering only "next" would be the transition matrix D-104 refuses, invented by an
+interface.
+
+### Guards narrowed rather than deleted
+
+Fourteen moved. `MatterManagementTest`'s payload guard had been matching the substring `stage`
+against the new `can_change_stage` flag; it now asserts the real claim, that the Matter payload
+embeds neither the participant list nor the workflow. `PermissionMatrixTest` inverted: it had
+checked that no stage route existed, which is the opposite of what removing the badge means, so it
+now checks that one does. M4.6's own probes narrowed the very next milestone, including its
+hardcoded rollback step.
+
+One test of mine exhausted PHP's 128MB limit by tokenizing all of `app/` in a single pass — the
+repository's comment-stripping idiom does not scale to a directory. Rewritten to tokenize only the
+handful of files that mention the enum.
+
+---
+
 ## 2026-08-18 — M4.6 Workflow templates and stages
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (28 total) creating `workflow_templates`

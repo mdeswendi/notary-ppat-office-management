@@ -208,6 +208,45 @@
       "server": "Something went wrong on the server."
     }
   },
+  "matterStages": {
+    "sectionTitle": "Workflow",
+    "sectionDescription": "This Matter's stages, from the template in use when it was created. Stage names were copied at that moment, so editing the template does not change a Matter already running.",
+    "loading": "Loading workflow",
+    "errorTitle": "Workflow could not be loaded",
+    "noWorkflow": "This Matter has no workflow. The office has not configured a workflow template yet.",
+    "noStages": "This template has no stages.",
+    "versionLabel": "Template version {version}",
+    "workflowCompleted": "Workflow complete",
+    "statuses": {
+      "PENDING": "Not started",
+      "ACTIVE": "In progress",
+      "COMPLETED": "Complete",
+      "SKIPPED": "Skipped",
+      "BLOCKED": "Blocked"
+    },
+    "moveAction": "Move stage",
+    "moveTitle": "Move to another stage",
+    "moveDescription": "The stage you leave is marked complete. Stages you pass stay not started.",
+    "moveConfirm": "Move",
+    "targetLabel": "Target stage",
+    "selectStage": "Select a stage",
+    "targetHint": "Every open stage can be chosen, forward or backward. No stage ordering rule is defined yet.",
+    "noTargets": "There is no other stage to move to.",
+    "reasonLabel": "Reason",
+    "reasonHint": "Optional. Recorded permanently and readable by everyone who may see this Matter. Do not enter identity data.",
+    "historyTitle": "Stage history",
+    "noHistory": "No stage changes recorded yet.",
+    "historyStarted": "Workflow started at {to}",
+    "historyMoved": "{from} → {to}",
+    "errors": {
+      "forbidden": "You do not have authority to move this Matter's stage.",
+      "notFound": "That record was not found.",
+      "validation": "That target stage cannot be chosen.",
+      "tooManyAttempts": "Too many requests. Please try again later.",
+      "network": "Could not reach the server.",
+      "server": "Something went wrong on the server."
+    }
+  },
   "matterParties": {
     "sectionTitle": "Parties",
     "sectionDescription": "Who is currently involved in this Matter. Not a history: removing a link keeps no record. This list stands on its own and is not taken from the parent Project's Related Parties.",

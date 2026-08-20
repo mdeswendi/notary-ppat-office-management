@@ -434,16 +434,28 @@ Eighteen endpoints, nine per domain, under literal `/api/v1/notary/matters` and
 rather than taken as a controller argument. A Matter of the other domain answers **404**, so the
 paired endpoints cannot be used to prove a record exists across the Notary/PPAT boundary.
 
-**Ten of the sixteen codes are now reachable through a route:** `view`, `create`, `update`,
-`assign`, `complete` and `cancel`, in both domains. `change_stage` remains **registered and
-deferred** — `PermissionController` lists it as such, so the Permission Matrix shows it as not yet
-implemented rather than as a working capability — and the two `view_all` codes remain non-authority.
+**Ten of the sixteen codes were reachable at M4.4:** `view`, `create`, `update`, `assign`,
+`complete` and `cancel`, in both domains.
+
+**M4.7 makes it twelve** *(D-112)*. `notary.matters.change_stage` and `ppat.matters.change_stage`
+gain routes — `matters/{matter}/stages/options` and `matters/{matter}/stages/move` — and **leave the
+deferred list**, which `PermissionController` and its tests both reflect. Keeping the badge once a
+route exists would be the stale kind that trains people to ignore badges (D-077).
+
+Worth stating because it reads like a counter-example: a deployment that has configured no workflow
+template still sees nothing happen when it grants the code, because D-104 seeds no templates and a
+Matter without a workflow has no stage to move. That is **configuration the office enters**, not a
+missing implementation, and it is true of every master-data-driven feature.
+
+The two `view_all` codes remain non-authority.
 
 **No `change_status` code exists for Matter, and M4.4 invents none.** Project has one; Matter has
 `complete` and `cancel` instead. The consequence is stated rather than papered over: `OPEN`,
 `COMPLETED` and `CANCELLED` are the only statuses the product can reach, and **there is no status
 dropdown anywhere in the Matter interface**. `IN_PROGRESS`, `WAITING`, `ON_HOLD` and `ARCHIVED`
-stay filterable vocabulary that nothing can set until M4.7 gives Matter a workflow.
+stay filterable vocabulary that nothing can set — **and M4.7 does not change that.** Giving Matter a
+workflow gave it *stages*, which are a separate concept from status (`CLAUDE.md` section 18): moving
+a stage writes no `matters.status`, and a test asserts it.
 
 **Navigation gains two groups** — **Notary → Matters** and **PPAT → Matters** — each gated on its
 own domain code, `notary.matters.view` and `ppat.matters.view`. Never on a shared gate: the two

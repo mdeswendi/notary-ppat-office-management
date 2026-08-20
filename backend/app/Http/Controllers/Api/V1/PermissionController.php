@@ -122,14 +122,21 @@ class PermissionController extends Controller
      * the namespace looks implemented and no global security-settings surface
      * exists.
      *
-     * **`*.matters.change_stage` joined at M4.4**, and it is the flag's original
-     * case reappearing in a new module. M4.4 ships the Matter surface, so both
-     * Notary and PPAT Matters look implemented — and they are, for everything
-     * except stage movement, which has no workflow to move until M4.7 (D-104).
-     * An administrator granting `notary.matters.change_stage` today would
-     * reasonably expect something to happen, and nothing would: the code is
-     * registered, configurable, and reaches no route. That is exactly what this
-     * list is for, and the badge leaves when M4.7 gives it a target.
+     * **`*.matters.change_stage` joined at M4.4 and left at M4.7**, and both
+     * moves are the flag working rather than the list churning. M4.4 shipped the
+     * Matter surface, so both domains looked implemented — and they were, for
+     * everything except stage movement, which had no workflow to move (D-104).
+     * M4.7 gives both codes a route: `matters/{matter}/stages/options` and
+     * `matters/{matter}/stages/move`, authorized through `MatterPolicy::changeStage`.
+     * Keeping the badge now would be the stale kind that trains people to ignore
+     * badges.
+     *
+     * Worth stating because it looks like a counter-example: **a deployment with
+     * no configured workflow template still gets nothing when it grants the
+     * code**, since D-104 seeds no templates and a Matter without a workflow has
+     * no stage to move. That is not deferral. The capability is built and
+     * reachable; what is missing is *configuration the office enters*, which is
+     * true of every master-data-driven feature and is not what this flag means.
      *
      * **`*.matters.view_all` is deliberately not here**, for the same reason
      * `projects.view_all` is not: it is *superseded*, not deferred. See below.
@@ -150,7 +157,5 @@ class PermissionController extends Controller
     private const DEFERRED = [
         'security.settings.view',
         'security.settings.manage',
-        'notary.matters.change_stage',
-        'ppat.matters.change_stage',
     ];
 }

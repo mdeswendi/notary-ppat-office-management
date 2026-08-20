@@ -43,18 +43,23 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateMatter
 {
-    public function __construct(private readonly AllocateMatterReference $allocator) {}
+    public function __construct(
+        private readonly AllocateMatterReference $allocator,
+        private readonly InstantiateMatterWorkflow $workflow,
+    ) {}
 
     /**
+     * @param  string|null  $serviceTypeId  already resolved and authorized by the caller
      * @param  array<string, mixed>  $attributes  ordinary fields only
      */
     public function handle(
         User $actor,
         Project $project,
         MatterDomain $domain,
+        ?string $serviceTypeId,
         array $attributes,
     ): Matter {
-        return DB::transaction(function () use ($actor, $project, $domain, $attributes): Matter {
+        return DB::transaction(function () use ($actor, $project, $domain, $serviceTypeId, $attributes): Matter {
             $matter = new Matter;
 
             // None of these is fillable, by design. Assigning them explicitly is
@@ -69,8 +74,34 @@ class CreateMatter
             $matter->created_by = $actor->getKey();
             $matter->updated_by = $actor->getKey();
 
+            // **An explicit parameter rather than a fillable attribute, and set
+            // here rather than afterwards** *(corrected at M4.7)*. It is not
+            // fillable — classification is not an ordinary field — so M4.4
+            // assigned it in the controller *after* this action returned, which
+            // was a second write outside this transaction and left the Matter
+            // briefly unclassified.
+            //
+            // M4.7 made that a defect rather than an untidiness: workflow
+            // instantiation reads `service_type_id` to prefer a template
+            // configured for that service, and running before the value was set
+            // meant the preference could never fire in production, while passing
+            // in a directly-constructed test.
+            $matter->service_type_id = $serviceTypeId;
+
             $matter->fill($attributes);
             $matter->save();
+
+            // **Called explicitly rather than through a model observer** (M4.7).
+            // The repository registers none, and one here would make creating a
+            // Matter silently do two things — including inside every factory
+            // call in the suite. It also has to join *this* transaction: a
+            // workflow that committed while its Matter rolled back would be an
+            // orphan the `UNIQUE (matter_id)` key then blocks forever.
+            //
+            // Returns null when the office has configured no template, which on
+            // a fresh deployment is every time: D-104 seeds no workflow content,
+            // so the Matter is created without one rather than refused (D-112).
+            $this->workflow->handle($actor, $matter);
 
             return $matter;
         });

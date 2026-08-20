@@ -604,8 +604,11 @@ shipped only `(id, office_id)`, and a composite foreign key needs a unique index
 columns it references. `service_type_id` remains nullable, and a composite key with a NULL
 component is satisfied, so an unclassified Matter stays valid.
 
-**`current_stage_id` is absent from the delivered table**, arriving at M4.7 with the real
-stage-instance foreign key rather than as a nullable placeholder (D-095's rule).
+**`current_stage_id` is absent from the delivered table, and stays absent** *(resolved at M4.7,
+D-112)*. M4.2 deferred it to "M4.7 with the real stage-instance foreign key"; M4.7 built the stage
+instances and then declined the column, because the `ACTIVE` instance *is* the current stage and a
+denormalized pointer would be a second source of truth that can disagree with it. Recorded as a
+decision rather than an outstanding deferral.
 
 **`matter_number` arrived at M4.3 and became `NOT NULL` at M4.4.** It was absent at M4.2 for the
 same reason, added nullable at M4.3 alongside its allocator (D-108), and tightened by a forward
@@ -930,6 +933,44 @@ changed_by
 reason
 changed_at
 ```
+
+### Built at M4.7 *(D-112)*
+
+All three tables above, as their field lists specify. **No permission was registered — the count
+stays at 177**; `*.matters.change_stage` was already canonical and M4.7 gives it routes.
+
+```text
+matter_workflows          UNIQUE (matter_id)      one run per Matter
+  matter_id            -> matters             RESTRICT
+  workflow_template_id -> workflow_templates  RESTRICT
+matter_stage_instances
+  matter_workflow_id   -> matter_workflows    CASCADE
+  workflow_stage_id    -> workflow_stages     RESTRICT   <- protects the snapshot
+  UNIQUE (matter_workflow_id, sequence_no) / (matter_workflow_id, stage_code)
+  CHECK status IN (PENDING, ACTIVE, COMPLETED, SKIPPED, BLOCKED)
+matter_stage_history      append-only: changed_at only, no updated_at, no deleted_at
+```
+
+**`workflow_stage_id` is `RESTRICT`, and it is the load-bearing constraint.** M4.6's stages cascade
+from their template, so `CASCADE` here would chain: deleting a template would delete its stages,
+which would delete the instances of every Matter that ran it. The snapshot columns exist so an
+instance survives its stage definition, and this is what stops the chain reaching them.
+
+**`stage_name_snapshot_id` is not a foreign key.** The `_id` is the locale code for Bahasa
+Indonesia, as in `name_id` / `name_en`; the column holds a displayable stage name. Every other
+`*_id` column in this domain holds a ULID, so the name genuinely invites a wrong join.
+
+**`matters.current_stage_id` is deliberately not built** *(D-112)*, despite section 9's field list
+and the M4.2/M4.3 deferrals naming it. The `ACTIVE` stage instance *is* the current stage; a pointer
+would be a second source of truth that can disagree with it.
+
+**Only three stage statuses are reachable.** `PENDING`, `ACTIVE` and `COMPLETED`: a move marks the
+stage left `COMPLETED` and leaves stages jumped over `PENDING`, because skipping is a decision
+somebody makes rather than one inferred from a navigation. `SKIPPED` and `BLOCKED` are vocabulary
+nothing sets.
+
+**`assigned_user_id`, `approved_at` and `approved_by` are recorded but never written**: M4.7 ships
+no stage assignment and no approval act. A stage assignee confers no Matter reach (D-100).
 
 ---
 
