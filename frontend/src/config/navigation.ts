@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   Contact,
+  FileText,
   FolderKanban,
   KeyRound,
   Landmark,
@@ -29,9 +30,13 @@ import type { CurrentUser, DataScope } from "@/types/auth";
  *
  * Both must hold. Since bootstrap gives `SUPER_ADMIN` every canonical
  * permission (D-057), permission alone would light up navigation for every
- * future module — Billing, Documents, Tasks — and send an administrator to
- * routes that do not exist. Registering a permission is not shipping a feature
- * (D-064).
+ * future module — Billing, Tasks — and send an administrator to routes that do
+ * not exist. Registering a permission is not shipping a feature (D-064).
+ *
+ * **Documents were exactly that case for five milestones.** The nine
+ * `documents.*` codes have been canonical since the catalogue was transcribed;
+ * the entry appears at M5.2, when the routes landed — not at M5.1, which shipped
+ * the schema, private storage and the Policy and no surface at all.
  *
  * **The Notary and PPAT groups carry only Matters** *(M4.4)*. Deeds, Minuta,
  * Warkah, registers and protocols belong to M6 and M7 and are absent rather than
@@ -166,6 +171,21 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         requiredPermission: "ppat.matters.view",
       },
     ],
+  },
+  {
+    key: "documents",
+    translationKey: "documents",
+    href: "/documents",
+    icon: FileText,
+    // Added at M5.2, when the routes landed — not at M5.1 when the schema,
+    // storage and Policy did (D-064). The nine `documents.*` codes have been
+    // canonical since the catalogue was transcribed and this entry stayed absent
+    // for every one of those milestones.
+    implemented: true,
+    // A single top-level entry rather than a group, because there is one surface:
+    // `documents.*` has no Notary/PPAT split, so there is nothing for children to
+    // separate.
+    requiredPermission: "documents.view",
   },
   {
     key: "parties",

@@ -26,11 +26,13 @@ class DocumentFactory extends Factory
      * factory unusable rather than neutral. Tests that care *which* user filed it
      * state so through {@see createdBy()}.
      *
-     * **`document_number` defaults to null**, which is a complete Document rather
-     * than a draft: no creation path allocates one until the milestone that builds
-     * upload, and the column is nullable for exactly that reason. Tests that need
-     * a reference call {@see numbered()}, which uses the real allocator rather
-     * than a made-up string.
+     * **`document_number` is allocated through the real allocator** rather than
+     * faked, because the column became `NOT NULL` at M5.2 (D-117) and a made-up
+     * value would let a test pass against a reference the product could never
+     * produce — and would quietly become a second numbering path beside the one
+     * M5.1 built. The closure runs after `office_id` resolves, so the allocation
+     * lands in the right namespace. This changed at M5.2: while the column was
+     * nullable the default was null, and {@see numbered()} was how a test opted in.
      *
      * **`is_sensitive` defaults to false and is never inferred** from
      * `document_type_code` (D-115). A factory that guessed would make every
@@ -51,7 +53,14 @@ class DocumentFactory extends Factory
     {
         return [
             'office_id' => Office::factory(),
-            'document_number' => null,
+
+            // Nullable in the closure's own return type on purpose: a test that
+            // deliberately passes a null Office must reach the database and be
+            // refused there, not die in the factory with a TypeError.
+            'document_number' => fn (array $attributes): ?string => ($attributes['office_id'] ?? null) === null
+                ? null
+                : app(AllocateDocumentReference::class)->forOffice((string) $attributes['office_id']),
+
             'document_type_code' => null,
             'title' => 'Dokumen Uji '.fake()->unique()->numberBetween(1, 999999),
             'status' => DocumentStatus::DRAFT,
@@ -137,13 +146,11 @@ class DocumentFactory extends Factory
     }
 
     /**
-     * Stamp a real internal reference.
+     * Allocate the reference in a **particular year**.
      *
-     * Allocated through {@see AllocateDocumentReference} rather than faked,
-     * because a made-up value would let a test pass against a reference the
-     * product could never produce — and would quietly become a second numbering
-     * path beside the one this milestone built. The closure runs after
-     * `office_id` resolves, so the allocation lands in the right namespace.
+     * The definition already allocates one for the current year, so this exists
+     * only for tests that need to place a document in a specific Office-year
+     * namespace — reference formatting, year rollover, and per-Office uniqueness.
      */
     public function numbered(?int $year = null): static
     {

@@ -1,10 +1,14 @@
 # M5 — Document & Task Architecture
 
-**Status:** `LOCKED — M5.0, amended at M5.1`
+**Status:** `LOCKED — M5.0, amended at M5.1 and M5.2`
 
 Amendments are marked in place and never silently overwrite what the lock said. M5.1 (D-116) closed
 the two questions section 14 assigned to it — `is_current` and `document_number` nullability — and
 corrected the decomposition in section 13, which had put the junction tables one milestone too late.
+
+**M5.2 (D-117) supersedes one of this lock's own rulings.** Section 10.2 said M5 would encode *no
+transition matrix*; M5.2 encodes one, by decision rather than by drift, and section 10.2 records both
+the original position and why it was reversed. It also moved the document frontend forward from M5.5.
 
 Sibling of `12_M2_PARTY_ARCHITECTURE.md`, `13_M3_PROJECT_ARCHITECTURE.md` and
 `14_M4_MATTER_ARCHITECTURE.md`. Where those locked the Party, Project and Matter aggregates, this
@@ -329,6 +333,32 @@ the interface must make the choice visible rather than quiet.
 them is a milestone question, and any status the product cannot set must be recorded as unreachable
 rather than quietly implied — the D-109 precedent.
 
+> **Superseded at M5.2** *(D-117)*. The ruling above is kept verbatim rather than rewritten, because
+> what it got right still holds: the *legal* question of what a deed or a Warkah may become stays
+> uninvented, and M6 and M7 remain untouched by anything here.
+>
+> What it got wrong is that the guards M5.2 requires cannot be expressed without a matrix. Three
+> rules are now encoded on `DocumentStatus`:
+>
+> ```text
+> upload   ->  RECEIVED
+> verify   RECEIVED, UNDER_REVIEW   ->  VERIFIED
+> archive  VERIFIED, FINAL          ->  ARCHIVED
+> delete   DRAFT, RECEIVED          ->  (soft deleted)
+> ```
+>
+> They are **operational, not legal**: an office may not verify the same document twice, may not
+> archive what was never verified, and may not delete what somebody has already verified. That last
+> one is the point — `02_MENU_AND_PERMISSIONS.md` section 13 requires `documents.delete` be *"heavily
+> restricted"*, and "only before verification" is the restriction.
+>
+> **Upload creates `RECEIVED`, not `DRAFT`.** M5.1 created `DRAFT`; had that continued, verification
+> would have been permanently unreachable, since nothing moves a Document out of `DRAFT`. An endpoint
+> that answers 422 to every document that exists is worse than no endpoint.
+>
+> `DRAFT`, `UNDER_REVIEW`, `FINAL` and `VOID` are **unreachable in M5.2 and recorded as such** — the
+> D-109 precedent this section already invoked, now applied to four statuses instead of none.
+
 **`document_number` is an internal office identifier and never a legal number.** `DOC-{YYYY}-{NNNNNN}`,
 allocated atomically per Office and calendar year, following D-103 and D-108 exactly. It is not a
 deed number, not a repertorium entry, and carries no legal weight.
@@ -442,10 +472,10 @@ endpoint authorizes again, and the file is streamed only after it does.
 ```text
 M5.0   Document / Task architecture lock       <- this document
 M5.1   Document schema + private storage foundation   (includes the three junction tables)
-M5.2   Document management surface
-M5.3   Document relation surfaces (party / project / matter)
+M5.2   Document management surface + document frontend + Project/Matter sections
+M5.3   Document relation surfaces (attach / detach on their own endpoints)
 M5.4   Task schema + management
-M5.5   Frontend: documents, tasks, and M4 integration
+M5.5   Frontend: tasks
 M5.6   M5 quality gate
 ```
 
@@ -462,9 +492,20 @@ before it exists; whether it becomes M5.2a, a prerequisite milestone, or part of
 grouping is a scoped decision that belongs to whoever takes it, not to this list.
 
 **M5.1 is schema, storage, allocator and Policy — not CRUD UI**, following M2.1, M3.1, M4.1 and
-M4.2 exactly. **M5.5 is where the Matter and Project detail pages gain their sections**, following
-the M4.5 and M4.7 precedent of a section rather than a tab — the repository has no `Tabs` primitive,
-and adding one is a design decision rather than a side effect.
+M4.2 exactly.
+
+**Corrected again at M5.2** *(D-117)*. The document frontend was listed for M5.5; it ships with the
+endpoints instead, because a nine-endpoint surface with no way to exercise it is a milestone nobody
+can accept. M5.5 keeps the Task frontend, which is the part that genuinely depends on M5.4.
+
+**The Matter and Project detail pages gain their document sections at M5.2**, and they are
+**sections, not tabs** — the M4.5 and M4.7 precedent on those same two pages, and the ruling this
+list has always carried: the repository has no `Tabs` primitive, and adding one is a design decision
+affecting pages M4 already shipped rather than a side effect of a document milestone.
+
+**M5.3 keeps the attach and detach surfaces**, which is where the authorization work actually is.
+M5.2 writes junction rows only as part of an upload, where the target is re-resolved through its own
+domain's visibility first.
 
 **No milestone in M5 seeds content.** No document types, no task templates, no requirement
 catalogues.
@@ -477,7 +518,7 @@ catalogues.
 |---|---|---|
 | Where audit lives, and what it records | **OPEN, and section 8 rules that no sensitive-download surface ships before it is answered.** Batch 7 per the ERD | **No** — M5.1 writes no download surface |
 | Document type catalogue | **DOMAIN VALIDATION REQUIRED.** `document_type_code` stays opaque and nullable; the ERD's examples are prose | **No** |
-| Whether a sensitive document's *title* is safe to show in a list | **OPEN.** M4.5 settled that the row appears as a stub; what the stub may carry for a sensitive document is M5.2's | **No** |
+| Whether a sensitive document's *title* is safe to show in a list | **DEFERRED at M5.2, not answered** (D-117). Rather than render a stub whose contents nobody has decided, the list **excludes** sensitive documents an actor cannot reach — a query condition, so the pagination total stays honest. The milestone that wants a stub still has to decide what it may carry | Closed for M5.2 |
 | `is_current` uniqueness — partial index, application invariant, or a pointer on `documents` | **RESOLVED at M5.1** (D-116). `is_current` is gone; `documents.current_version_id` carries a **composite** foreign key `(id, current_version_id) -> document_versions (document_id, id)`, so a pointer at another document's version is unrepresentable | Closed |
 | `document_number` required or nullable at first | **RESOLVED at M5.1** (D-116): nullable, because no creation path allocates one yet. The milestone that builds upload stamps it inside the creating transaction and tightens the column | Closed |
 | `tasks` has `assigned_by` but no `created_by`, while Data Scope `OWN` needs an owner | **OPEN.** M5.4 must resolve it explicitly rather than adding a column on instinct | **No** |

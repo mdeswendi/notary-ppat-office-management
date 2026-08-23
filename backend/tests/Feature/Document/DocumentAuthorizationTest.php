@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Policies\DocumentPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use ReflectionClass;
 use ReflectionMethod;
 use Spatie\Permission\Models\Permission;
@@ -296,6 +297,12 @@ it('does not let the sensitive code stand in for the ordinary one', function ():
 it('separates sensitive viewing from sensitive downloading', function (): void {
     // Two codes, two answers. Somebody may legitimately be allowed to know a KTP
     // scan exists and not to read it.
+    //
+    // **Narrowed at M5.2.** M5.1 asserted that granting
+    // `documents.sensitive.download` made the Policy answer true. It no longer
+    // does — see the D-115 gate below — so what survives here is the half that is
+    // still true and was always the point: the two codes are independent, and
+    // holding the view one does not reach a download.
     [$actor, $office] = documentActor([
         'documents.view', 'documents.download', 'documents.sensitive.view',
     ]);
@@ -305,9 +312,35 @@ it('separates sensitive viewing from sensitive downloading', function (): void {
     expect(documentPolicy()->view($actor, $sensitive))->toBeTrue()
         ->and(documentPolicy()->download($actor, $sensitive))->toBeFalse();
 
+    // The capability itself still resolves independently, which is what keeps the
+    // gate a gate rather than a redefinition of the permission.
     grantPermissionScope($actor, 'documents.sensitive.download', DataScope::OFFICE);
 
-    expect(documentPolicy()->download($actor->fresh(), $sensitive))->toBeTrue();
+    expect(resolveAccess($actor->fresh(), 'documents.sensitive.download')->granted)->toBeTrue();
+});
+
+it('refuses every sensitive download until an audit store exists', function (): void {
+    // D-115: the capability to read a KTP scan and the record of who read it
+    // belong in the same milestone. `audit_logs` does not exist, so the gate is
+    // closed — and it is closed for an actor holding **every** relevant code, not
+    // just for one who is short a permission.
+    [$actor, $office] = documentActor([
+        'documents.view', 'documents.sensitive.view',
+        'documents.download', 'documents.sensitive.download',
+    ]);
+
+    $ordinary = Document::factory()->inOffice($office)->create();
+    $sensitive = Document::factory()->inOffice($office)->sensitive()->create();
+
+    expect(documentPolicy()->download($actor, $ordinary))->toBeTrue()
+        ->and(documentPolicy()->download($actor, $sensitive))->toBeFalse()
+        // Metadata is unaffected. Refusing the file is not refusing to admit the
+        // document exists.
+        ->and(documentPolicy()->view($actor, $sensitive))->toBeTrue();
+
+    expect(Schema::hasTable('audit_logs'))->toBeFalse(
+        'When audit_logs lands, the gate in DocumentPolicy::download comes out and this test changes with it.'
+    );
 });
 
 it('gates every write ability on a sensitive document too', function (string $ability, string $capability): void {

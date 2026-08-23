@@ -9,6 +9,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import {
   MatterDomainBadge,
   MatterPriorityBadge,
@@ -194,6 +195,20 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           <MatterPartiesSection domain={domain} matterId={matter.id} />
         </section>
       ) : null}
+
+      {/* Documents (M5.2, D-117). **A section, not a tab**, following the two
+          above and the M5 lock's own ruling: the repository has no `Tabs`
+          primitive, and adding one is a design decision affecting pages M4
+          already shipped rather than a side effect of a document milestone.
+
+          It answers to `documents.view`, which is a separate question from
+          reaching this Matter — so it is deliberately not folded into the Matter
+          resource, where it would have made `*.matters.view` a way to read what
+          has been filed. The section renders its own honest failure for a reader
+          who holds one and not the other. */}
+      <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+        <DocumentRelationSection filter={{ matter_id: matter.id }} uploadHref="/documents/upload" />
+      </section>
 
       {matter.can_assign ? (
         <section className="border-border flex flex-col gap-3 rounded-lg border p-4">

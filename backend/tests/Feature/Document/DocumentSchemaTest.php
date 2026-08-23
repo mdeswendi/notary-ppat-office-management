@@ -95,18 +95,18 @@ it('keeps a document valid before its first file lands', function (): void {
         ->and($document->versions()->count())->toBe(0);
 });
 
-it('leaves document_number nullable until a creation path allocates one', function (): void {
-    // Exactly as `project_number` was until M3.3 and `matter_number` until M4.4:
-    // no creation path allocates one yet, so NOT NULL would make a Document
-    // unwritable for a whole milestone. The milestone that builds upload stamps
-    // it inside the creating transaction and tightens the column.
+it('requires an allocated document number', function (): void {
+    // **Narrowed at M5.2, not deleted.** M5.1 asserted the column was nullable and
+    // said why: no creation path allocated one, so NOT NULL would have made a
+    // Document unwritable for a whole milestone. M5.2 ships upload, every path
+    // stamps a reference inside the creating transaction, and migration 35
+    // tightened the column — the M3.3 and M4.4 precedent a third time.
     $document = Document::factory()->create();
 
-    expect($document->fresh()->document_number)->toBeNull();
+    expect($document->fresh()->document_number)->toMatch('/^DOC-\d{4}-\d{6,}$/');
 
-    $numbered = Document::factory()->numbered()->create();
-
-    expect($numbered->fresh()->document_number)->toMatch('/^DOC-\d{4}-\d{6,}$/');
+    expect(fn () => Document::factory()->create(['document_number' => null]))
+        ->toThrow(QueryException::class);
 });
 
 it('leaves document_type_code opaque rather than constraining it', function (): void {
@@ -498,17 +498,28 @@ it('refuses to delete an attached record or its document', function (): void {
 |--------------------------------------------------------------------------
 */
 
-it('reserves deleted_at without giving Document a soft-delete lifecycle', function (): void {
-    // The M4.2 position (D-102): the column exists because the ERD carries it and
-    // because `documents.delete` is canonical and "must be heavily restricted",
-    // but no global scope filters any query, so "invisible because deleted"
-    // cannot be confused with "invisible because out of scope".
+it('gives Document a soft-delete lifecycle at M5.2', function (): void {
+    // **Reversed at M5.2, and the reversal is the point.** M5.1 asserted the trait
+    // was absent and said why: `deleted_at` was reserved capability with no
+    // lifecycle, so a global scope would have made "invisible because deleted"
+    // indistinguishable from "invisible because out of scope" (D-102). M5.2 ships
+    // DELETE, so the lifecycle exists and the trait is what makes a removed
+    // document disappear from every query rather than requiring each call site to
+    // remember.
     expect(Schema::hasColumn('documents', 'deleted_at'))->toBeTrue()
-        ->and(in_array(
-            SoftDeletes::class,
-            class_uses_recursive(Document::class),
-            true
-        ))->toBeFalse();
+        ->and(in_array(SoftDeletes::class, class_uses_recursive(Document::class), true))->toBeTrue();
+
+    $document = Document::factory()->create();
+    $version = DocumentVersion::factory()->forDocument($document)->create();
+
+    $document->delete();
+
+    expect(Document::query()->whereKey($document->getKey())->exists())->toBeFalse()
+        ->and(Document::withTrashed()->whereKey($document->getKey())->exists())->toBeTrue()
+        // Every version survives, and so does the file it points at. A soft
+        // delete that erased bytes would be a hard delete wearing a soft one's
+        // name (CLAUDE.md sections 19 and 30).
+        ->and(DB::table('document_versions')->where('id', $version->getKey())->exists())->toBeTrue();
 });
 
 it('treats archiving as a state rather than a deletion', function (): void {
@@ -551,14 +562,43 @@ it('adds no gating column to the workflow tables', function (): void {
         ->and(Schema::hasColumn('documents', 'workflow_stage_id'))->toBeFalse();
 });
 
-it('exposes no document route', function (): void {
-    // Backend foundation only, following M2.1, M3.1, M4.1, M4.2 and M4.6.
+it('exposes exactly the nine document routes and nothing more', function (): void {
+    // **Narrowed at M5.2, not deleted.** M5.1 asserted there was no document route
+    // at all, which was right for a foundation milestone. M5.2 gives it a surface,
+    // so the assertion that expired is replaced by the one this test was always
+    // really about: exactly these routes exist, and nothing has quietly grown a
+    // tenth.
+    $routes = collect(Route::getRoutes())
+        ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
+        ->filter(fn (string $route): bool => str_contains($route, 'documents'))
+        ->sort()
+        ->values()
+        ->all();
+
+    expect($routes)->toBe([
+        'DELETE api/v1/documents/{document}',
+        'GET api/v1/documents',
+        'GET api/v1/documents/options',
+        'GET api/v1/documents/{document}',
+        'GET api/v1/documents/{document}/download',
+        'PATCH api/v1/documents/{document}',
+        'POST api/v1/documents',
+        'POST api/v1/documents/{document}/archive',
+        'POST api/v1/documents/{document}/verify',
+    ]);
+});
+
+it('opens no route into the private disk', function (): void {
+    // D-114, restated where a download surface now exists. M5.0 removed the two
+    // `storage/{path}` routes; a milestone that ships downloads is exactly when
+    // somebody would be tempted to put one back.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => $route->uri())
-        ->filter(fn (string $uri): bool => str_contains($uri, 'document'))
+        ->filter(fn (string $uri): bool => str_starts_with($uri, 'storage/'))
         ->values();
 
-    expect($routes)->toBeEmpty();
+    expect($routes)->toBeEmpty()
+        ->and(config('filesystems.disks.local.serve'))->toBeFalse();
 });
 
 it('registers no new permission', function (): void {

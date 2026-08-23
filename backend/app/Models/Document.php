@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use RuntimeException;
 
 /**
@@ -29,15 +31,23 @@ use RuntimeException;
  * kinds are sensitive — a judgement that varies by office, and one no canonical
  * document makes.
  *
- * **No `SoftDeletes`, though `deleted_at` exists.** The column is reserved
- * capability the ERD carries and `documents.delete` is canonical and *"must be
- * heavily restricted"*; M5.1 builds no deletion path, so no global scope filters
- * any query and "invisible because deleted" cannot be confused with "invisible
- * because out of scope" — the M4.2 position (D-102).
+ * **`SoftDeletes` was added at M5.2** (D-117). M5.1 deliberately withheld the
+ * trait while `deleted_at` sat unused, so that "invisible because deleted" could
+ * not be confused with "invisible because out of scope" — the M4.2 position
+ * (D-102). M5.2 ships `DELETE /api/v1/documents/{document}`, so the lifecycle now
+ * exists and the trait is what makes a deleted Document actually disappear from
+ * every query rather than requiring each call site to remember.
+ *
+ * **Deletion stops at verification.** `02_MENU_AND_PERMISSIONS.md` section 13
+ * requires `documents.delete` be *"heavily restricted"*, and the restriction is a
+ * status rule rather than a permission one: only `DRAFT` and `RECEIVED` are
+ * deletable, so nothing anybody has verified can be removed. See
+ * {@see DocumentStatus::isDeletable()}.
  *
  * **Archiving is a state, not a deletion**, and `CLAUDE.md` section 30 prefers it
- * for legal records. `archived_at` / `archived_by` are written by the milestone
- * that owns archiving; nothing here reaches them.
+ * for legal records. `archived_at` / `archived_by` are set by archiving and an
+ * archived Document stays fully readable — somebody must be able to read what the
+ * office put away (`CLAUDE.md` section 63).
  */
 #[Fillable([
     'document_type_code',
@@ -53,6 +63,7 @@ class Document extends Model
     use HasFactory;
 
     use HasUlids;
+    use SoftDeletes;
 
     protected static function booted(): void
     {
@@ -124,6 +135,53 @@ class Document extends Model
     public function versions(): HasMany
     {
         return $this->hasMany(DocumentVersion::class)->orderByDesc('version_number');
+    }
+
+    /**
+     * Who last corrected the metadata (M5.2).
+     */
+    public function editor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function archiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    /**
+     * What this Document is attached to (M5.2).
+     *
+     * Three separate relations rather than one polymorphic `documentable`, because
+     * `03_DATABASE_ERD.md` section 14 argues explicitly against a generic
+     * relationship where referential integrity matters — and a legal document is
+     * exactly where it matters. Each junction additionally carries the `office_id`
+     * constraint carrier that makes same-Office structural, which a polymorphic
+     * table could not express at all.
+     *
+     * **`attached_at` and `attached_by` are the only pivot columns read.**
+     * `office_id` is a constraint carrier, never information: it is written from
+     * the Document and checked against both endpoints by the composite keys, and
+     * exposing it as pivot data would invite somebody to treat it as a third
+     * opinion about which Office owns what.
+     */
+    public function parties(): BelongsToMany
+    {
+        return $this->belongsToMany(Party::class, 'party_documents')
+            ->withPivot(['attached_at', 'attached_by']);
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_documents')
+            ->withPivot(['attached_at', 'attached_by']);
+    }
+
+    public function matters(): BelongsToMany
+    {
+        return $this->belongsToMany(Matter::class, 'matter_documents')
+            ->withPivot(['attached_at', 'attached_by']);
     }
 
     protected function casts(): array

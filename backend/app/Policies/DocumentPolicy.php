@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Document\DocumentVisibility;
+use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Models\User;
 
@@ -112,11 +113,32 @@ class DocumentPolicy
      *
      * Separate from `view`, which reaches metadata. Somebody may legitimately be
      * allowed to know a document exists and not to read it.
+     *
+     * **Every sensitive download is refused, whatever the actor holds** (M5.2).
+     * D-115 rules that no sensitive-download surface ships before an audit store
+     * exists, because the capability to read a KTP scan and the record of who read
+     * it belong in the same milestone. `audit_logs` does not exist, so the gate is
+     * closed.
+     *
+     * The capability checks above it are kept rather than short-circuited, and
+     * that is deliberate: they are what the answer *will* be, and when audit lands
+     * the milestone that builds it deletes the gate rather than reconstructing the
+     * authorization. Until then an actor holding `documents.sensitive.download`
+     * holds a capability that authorizes nothing — recorded here and in
+     * {@see DocumentResource} rather than left to be
+     * discovered.
      */
     public function download(User $actor, Document $document): bool
     {
-        return $this->reaches($actor, 'documents.download', $document)
-            && $this->passesSensitivity($actor, $document, 'documents.sensitive.download');
+        if (! $this->reaches($actor, 'documents.download', $document)) {
+            return false;
+        }
+
+        if (! $this->passesSensitivity($actor, $document, 'documents.sensitive.download')) {
+            return false;
+        }
+
+        return ! $document->is_sensitive;
     }
 
     /**

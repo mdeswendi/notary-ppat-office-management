@@ -4128,6 +4128,105 @@ clothing (D-105, D-110).
 
 ---
 
+### D-117 — M5 encodes a status matrix after all, upload creates RECEIVED, and every sensitive download is refused until audit exists
+
+M5.2 builds the Document HTTP surface — nine endpoints — plus the document frontend and the sections
+that put documents on the Project and Matter detail pages. **No permission is registered; the count
+stays at 177.** One migration, 34 → 35.
+
+**The M5.0 lock's "no transition matrix" ruling is superseded, deliberately.** Section 10.2 said M5
+would authorize *who* may verify or archive and never encode *which* status may follow which. Three
+rules are now encoded on `DocumentStatus`:
+
+```text
+upload   ->  RECEIVED
+verify   RECEIVED, UNDER_REVIEW   ->  VERIFIED
+archive  VERIFIED, FINAL          ->  ARCHIVED
+delete   DRAFT, RECEIVED          ->  (soft deleted)
+```
+
+They are **operational, not legal**. Nothing here says what a deed, a Minuta or a Warkah may become —
+those are M6 and M7 and stay untouched. What they say is that an office may not verify twice, may not
+archive what was never verified, and may not delete what somebody has verified.
+`02_MENU_AND_PERMISSIONS.md` section 13 requires `documents.delete` be *"heavily restricted"*, and
+"only before verification" is the restriction — expressed as a status rule rather than by inventing a
+permission.
+
+**Upload creates `RECEIVED`, not `DRAFT`, and that correction is load-bearing.** M5.1 created `DRAFT`.
+Verify requires `RECEIVED` or `UNDER_REVIEW`, and nothing moves a Document out of `DRAFT` — so had
+upload kept creating it, the verify endpoint would have answered 422 to every document that exists.
+`DRAFT`, `UNDER_REVIEW`, `FINAL` and `VOID` are unreachable in M5.2 and **recorded as such** rather
+than quietly implied (the D-109 precedent).
+
+**Verification writes no `verified_at` or `verified_by`.** `03_DATABASE_ERD.md` section 13 gives
+`documents` neither column; the pair belongs to `matter_requirements` and `warkah`, which are
+different tables with their own milestones. Adding them would extend the canonical field list on this
+milestone's own authority. Who verified and when is what the audit store records (D-115), and writing
+it in two places would guarantee the two eventually disagree — so the status is the fact and
+`updated_by` names the last hand on the record.
+
+**`is_sensitive` is settled once the document is.** Changing it after verification would silently
+redefine which capability a download answers to, so it is refused with 422 on `VERIFIED`, `FINAL` and
+`ARCHIVED`. **`ARCHIVED` is included although the requirement named only the first two** — not an
+extension of the rule but the same rule applied consistently, since `ARCHIVED` is reachable only
+*through* those two and leaving it out would let archiving unlock a field verification had locked. A
+`PATCH` that resends the *current* value is accepted, because refusing it would make the whole form
+unusable on a verified document.
+
+**Every sensitive download is refused, whatever the actor holds.** D-115 rules that no
+sensitive-download surface ships before an audit store exists. The gate lives in
+`DocumentPolicy::download` — after the capability checks, not instead of them — so when audit lands
+the milestone that builds it deletes three lines rather than reconstructing the authorization. Until
+then `documents.sensitive.download` is a capability that authorizes nothing, recorded here, in the
+Policy, and in `can_download`, which reports the endpoint's real answer so the interface never offers
+a button that would 403.
+
+**Sensitive documents an actor cannot reach are excluded from the list, not stubbed.** The M5 lock
+records "what a stub for an unreachable sensitive document may carry" as genuinely open; rendering
+one would have answered that question by accident. The exclusion is a query condition, so the
+pagination total stays honest.
+
+**`document_number` became `NOT NULL` in its own forward migration**, never an edit to M5.1's — the
+M3.3 and M4.4 precedent (D-097, D-109) a third time. The persistent development database was
+inspected first and holds no `documents` table at all, so nothing was backfilled. The rollback was
+verified to leave `UNIQUE (id, office_id)` intact, which matters more here than it did for Matter:
+dropping that support key would silently take three composite foreign keys with it.
+
+**`SoftDeletes` was added to `Document`, reversing M5.1.** M5.1 withheld the trait while `deleted_at`
+sat unused, so "invisible because deleted" could not be confused with "invisible because out of
+scope" (D-102). M5.2 ships `DELETE`, so the lifecycle exists. **The file and every version survive a
+soft delete** — a delete that erased bytes would be a hard delete wearing a soft one's name — and
+there is **no restore endpoint**, because reading `documents.delete` as *"may also undelete"* would
+make one capability do two jobs (D-091).
+
+**An upload's attachment targets are re-resolved through their own domain's visibility.**
+`documents.upload` is authority to file a document, never authority to discover which records exist.
+For a Matter the permission namespace is read from the Matter's own `domain` column — **the one place
+in the repository that happens**, and it is not the D-101 hazard: that rule exists so a *caller*
+cannot choose which permission is checked, and here the caller supplies only an id while the
+namespace comes from a stored row they cannot influence. The effect is the stricter of the two
+checks, not either.
+
+**The document frontend ships here rather than at M5.5**, and the lock's decomposition is amended in
+place. Nine endpoints with no way to exercise them is not a milestone anybody can accept. The Matter
+and Project detail pages gain **sections, not tabs** — the M4.5 and M4.7 precedent on those same
+pages, and the lock's own ruling, since the repository has no `Tabs` primitive and adding one is a
+design decision affecting shipped pages. **No new frontend dependency**: drag-and-drop uses native
+HTML5 events on a real `<input type="file">`, so the keyboard and assistive paths are the browser's
+rather than a library's.
+
+**`multipart/form-data` carries strings, and `is_sensitive` is sent as `"1"` / `"0"`.** `"false"`
+would arrive as a non-empty string and pass Laravel's `boolean` rule as **true** — silently marking
+every document sensitive. Written down because it is invisible until it is a leak.
+
+**File type is validated with `mimetypes`, not `mimes`** — the file's actual detected content type
+rather than its extension, so a renamed executable fails. The M5.2 HTTP smoke caught the difference:
+`UploadedFile::fake()` reports a type derived from the filename, so the test suite passed with a text
+file named `.pdf` while a real upload of the same file was correctly refused. The smoke fixture is a
+real PDF now.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

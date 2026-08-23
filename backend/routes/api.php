@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
@@ -373,6 +374,49 @@ Route::prefix('v1')->group(function (): void {
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('update');
                 });
         }
+
+        /*
+         * Document Management (M5.2, D-117).
+         *
+         * **One surface, not two.** Unlike Matter there is no `/notary/documents`
+         * and no `/ppat/documents`: `documents.*` is a single canonical namespace
+         * with no domain split, so there is nothing for a route prefix to select.
+         * D-101 governs Matter because *that* catalogue is split; it has no
+         * bearing here.
+         *
+         * **`options` is declared before `{document}`**, or the literal segment
+         * would bind as a document id and answer 404 — and `whereUlid` alone would
+         * not save it, since the failure would be a silent miss rather than an
+         * error. Every id parameter is `whereUlid` constrained so a malformed id
+         * never reaches a query.
+         *
+         * Six separate acts, six separate capabilities, and none implies another:
+         * `documents.upload`, `download`, `update`, `verify`, `archive`, `delete`.
+         * The D-091 discipline.
+         *
+         * **`download` streams from a surface that authorized the actor first**
+         * (D-114). There is no signed URL, no temporary URL, and no route into the
+         * private disk — M5.0 removed the two that existed.
+         */
+        Route::get('documents/options', [DocumentController::class, 'options'])
+            ->name('api.v1.documents.options');
+
+        Route::get('documents', [DocumentController::class, 'index'])->name('api.v1.documents.index');
+        Route::post('documents', [DocumentController::class, 'store'])->name('api.v1.documents.store');
+
+        Route::get('documents/{document}', [DocumentController::class, 'show'])
+            ->whereUlid('document')->name('api.v1.documents.show');
+        Route::patch('documents/{document}', [DocumentController::class, 'update'])
+            ->whereUlid('document')->name('api.v1.documents.update');
+        Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
+            ->whereUlid('document')->name('api.v1.documents.destroy');
+
+        Route::get('documents/{document}/download', [DocumentController::class, 'download'])
+            ->whereUlid('document')->name('api.v1.documents.download');
+        Route::post('documents/{document}/verify', [DocumentController::class, 'verify'])
+            ->whereUlid('document')->name('api.v1.documents.verify');
+        Route::post('documents/{document}/archive', [DocumentController::class, 'archive'])
+            ->whereUlid('document')->name('api.v1.documents.archive');
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');

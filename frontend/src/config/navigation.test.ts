@@ -178,6 +178,28 @@ describe("visibleNavigation — the M4 domain groups", () => {
   });
 });
 
+describe("visibleNavigation — the M5 Documents entry", () => {
+  it("shows Documents only to an account holding documents.view", () => {
+    // The nine `documents.*` codes have been canonical since the catalogue was
+    // transcribed, and the entry stayed absent through five milestones because
+    // registering a permission is not shipping a feature (D-064). It appears at
+    // M5.2, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["documents.view"])))).toContain("documents");
+    expect(keysOf(visibleNavigation(user(["documents.upload"])))).not.toContain("documents");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("documents");
+  });
+
+  it("carries no children, because there is one document surface", () => {
+    // Unlike Notary and PPAT, `documents.*` has no domain split — so there is
+    // nothing for children to separate, and a group with one child would be a
+    // level of nesting that means nothing.
+    const entry = navigationItems.find((item) => item.key === "documents");
+
+    expect(entry?.href).toBe("/documents");
+    expect(entry?.children).toBeUndefined();
+  });
+});
+
 describe("navigation configuration", () => {
   it("gives every entry a stable key and a translation key", () => {
     // Keys are never translated and hrefs are locale-relative; a hardcoded

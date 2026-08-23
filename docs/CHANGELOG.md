@@ -5,6 +5,145 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M5.2 Document management
+
+Branch `feat/m5-documents-tasks`, from `6f495f8`. **Nine endpoints, four pages, one migration
+(34 → 35).** Backend **2202 passed + 8 skipped**, frontend **76 passed** (was 62). **No permission is
+registered; the count stays at 177.** One new decision, **D-117**.
+
+The first M5 milestone with routes and a frontend.
+
+### Five corrections to the brief, found before any code was written
+
+| The brief said | Actually |
+|---|---|
+| `DocumentStorageService`, `DocumentNumberService` | `DocumentStorage` and `AllocateDocumentReference` — those class names do not exist |
+| `DocumentPolicy` has five methods | It has **nine**. Nothing to add |
+| `current_version_id` is an FK to `document_versions.id` | A **composite** FK `(id, current_version_id) → document_versions (document_id, id)` |
+| Options authorizes `documents.create` | **There is no `documents.create`.** Upload answers to `documents.upload` |
+| Verify sets `verified_at` / `verified_by` | `documents` has **neither column** — the ERD gives them to `matter_requirements` and `warkah` |
+
+Three conflicts were raised and settled before implementation rather than resolved silently: the
+missing columns, the status matrix, and the frontend milestone boundary.
+
+### The lock's own "no transition matrix" ruling is superseded
+
+M5.0 §10.2 said M5 would authorize *who* may verify or archive and never encode *which* status may
+follow which. M5.2 encodes one, by decision:
+
+```text
+upload   ->  RECEIVED
+verify   RECEIVED, UNDER_REVIEW   ->  VERIFIED
+archive  VERIFIED, FINAL          ->  ARCHIVED
+delete   DRAFT, RECEIVED          ->  (soft deleted)
+```
+
+**Operational, not legal.** Nothing here says what a deed, a Minuta or a Warkah may become — M6 and
+M7 are untouched. What it says is that an office may not verify twice, may not archive what was never
+verified, and may not delete what somebody has verified. `02_MENU_AND_PERMISSIONS.md` §13 requires
+`documents.delete` be *"heavily restricted"*; "only before verification" is the restriction, expressed
+as a status rule rather than by inventing a permission.
+
+**Upload creates `RECEIVED`, not `DRAFT`, and that correction is load-bearing.** Verify requires
+`RECEIVED` or `UNDER_REVIEW`, and nothing moves a document out of `DRAFT` — so as originally
+specified, verify would have answered 422 to every document that exists. `DRAFT`, `UNDER_REVIEW`,
+`FINAL` and `VOID` are unreachable in M5.2 and recorded as such (the D-109 precedent).
+
+### Verification records a status and nothing else
+
+`03_DATABASE_ERD.md` §13 gives `documents` no `verified_at` or `verified_by`; the pair belongs to
+`matter_requirements` and `warkah`. Adding them would extend the canonical field list on this
+milestone's authority. Who verified and when is what the audit store records (D-115), and writing it
+in two places would guarantee the two eventually disagree.
+
+### Every sensitive download is refused, whatever the actor holds
+
+D-115 rules that no sensitive-download surface ships before an audit store exists. The gate sits in
+`DocumentPolicy::download` **after** the capability checks rather than instead of them, so the
+milestone that builds audit deletes three lines rather than reconstructing the authorization.
+
+`documents.sensitive.download` is therefore a capability that currently authorizes nothing — recorded
+in the Policy, in `can_download`, and on the screen, which says why the button is missing instead of
+leaving somebody to guess. The smoke proves it against an actor holding **every** relevant code.
+
+Sensitive documents an actor cannot reach are **excluded from the list, not stubbed**: what a stub
+may carry is a question the M5 lock leaves open, and rendering one would have answered it by
+accident.
+
+### Soft delete arrives, and leaves the file alone
+
+M5.1 withheld `SoftDeletes` while `deleted_at` sat unused, so "invisible because deleted" could not be
+confused with "invisible because out of scope" (D-102). M5.2 ships `DELETE`, so the lifecycle exists.
+
+**The bytes, the checksum and every version row survive** — a delete that erased files would be a hard
+delete wearing a soft one's name (`CLAUDE.md` §19, §30). There is **no restore endpoint**: reading
+`documents.delete` as *"may also undelete"* would make one capability do two jobs.
+
+### Two things that are invisible until they are a defect
+
+**`is_sensitive` is sent as `"1"` / `"0"` over multipart.** A multipart body carries strings, and
+`"false"` would arrive as a non-empty string and pass Laravel's `boolean` rule as **true** — silently
+marking every document sensitive.
+
+**File type is validated with `mimetypes`, not `mimes`** — the file's detected content type rather
+than its extension. The HTTP smoke caught what the test suite could not: `UploadedFile::fake()`
+reports a type derived from the filename, so a text file named `.pdf` passed in Pest and was correctly
+refused by a real upload. The smoke fixture is a real PDF now.
+
+### The frontend ships here, as sections rather than tabs
+
+The lock listed the document frontend for M5.5; nine endpoints with no way to exercise them is not a
+milestone anybody can accept, so it ships with them and §13 is amended in place. M5.5 keeps the Task
+frontend, which genuinely depends on M5.4.
+
+Four pages — list, upload, detail, edit — plus **sections** on the Project and Matter detail pages,
+following the M4.5 and M4.7 precedent on those same pages. Not tabs: the repository has no `Tabs`
+primitive, and adding one is a design decision affecting shipped pages rather than a side effect.
+
+**No new frontend dependency.** Drag-and-drop is native HTML5 events on a real
+`<input type="file">`, so the keyboard and assistive paths belong to the browser rather than a
+library. `react-dropzone` was not added.
+
+### Verified over HTTP, on a disposable database
+
+`m52_probe`, created and dropped. **The serving process proved its own database** before any
+functional request — `current_database() = m52_probe`, 35 migrations, 177 permissions — because
+`artisan serve` drops a shell `DB_DATABASE` override for its `php -S` child (O-034). Real Sanctum
+cookie session, CSRF cookie, XSRF header, no Bearer anywhere.
+
+**47 of 47 checks passed**: upload with three attachments and an allocated `DOC-2026-000001`; the
+file on the private disk under `documents/{office}/2026/08/` with a matching SHA-256; a download whose
+bytes are byte-identical to the upload; `attachment` and `no-store` headers; verify, archive, and the
+422s for verifying twice, archiving the unverified, deleting the verified, changing sensitivity after
+verification, and patching a replacement file; a 403 for a sensitive download; 403s for a
+metadata-only reader on upload, options, download, verify and delete; 401s for a guest; and a 404 for
+`/storage/documents/…`, which has no route.
+
+Rolling back migration 35 alone returned `document_number` to nullable with all 15 junction and
+office foreign keys and both unique constraints intact; re-migrating restored `NOT NULL` against real
+rows.
+
+**The persistent development database was not touched — still 22 migrations, zero document tables.**
+
+### One flaky M4 test, found and fixed rather than re-run until green
+
+`MatterManagementTest`'s identity guard failed once during this milestone and passed on every other
+run. The cause is real and had nothing to do with M5.2: it scanned the **raw JSON payload**, which
+carries four lowercased ULIDs — and a ULID is 26 characters of Crockford base32, so it can legitimately
+contain the letters `deed` or `npwp`. Measured at roughly **one ULID in 200,000**, which made the test
+fail about once in fifty thousand runs.
+
+Only two of its five needles could ever collide: Crockford base32 excludes `i`, `l`, `o` and `u`, and
+has no underscore, so `nik`, `tax_id` and `warkah` were never at risk. That is why it went unnoticed
+from M4.4 until now.
+
+Identifiers are redacted before the search. The claim is unchanged and is the one worth keeping — no
+Party identity, deed, or Warkah field or value appears in a Matter payload — and a real `nik` or
+`warkah` leak is still caught, which was verified rather than assumed. An opaque identifier was never
+evidence either way.
+
+---
+
 ## 2026-08-23 — M5.1 Document schema and private storage foundation
 
 Branch `feat/m5-documents-tasks`, from `0890fec`. **Five migrations, 29 → 34.** Backend

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { ProjectAssignmentSection } from "@/features/projects/project-assignment-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
 import { ProjectPartiesSection } from "@/features/projects/project-parties-section";
@@ -162,6 +163,18 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
 
         <ProjectPartiesSection projectId={project.id} />
+      </section>
+
+      {/* Documents (M5.2, D-117). A section, not a tab — the same pattern this
+          page already uses for participation, and the M5 lock's own ruling.
+          It answers to `documents.view` and its own endpoint, so a reader who can
+          open the Project and not its documents sees the section fail honestly
+          rather than see a fabricated empty one. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <DocumentRelationSection
+          filter={{ project_id: project.id }}
+          uploadHref="/documents/upload"
+        />
       </section>
     </div>
   );
