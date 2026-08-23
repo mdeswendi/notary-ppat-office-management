@@ -259,16 +259,20 @@ canonical, so the master-data and workflow milestones add nothing either.
 mechanism** (D-090). No `view_all` code may be used as backend cross-office authorization
 authority, and no second reach mechanism may exist beside `EffectiveAccessResolver`.
 
-### The one expected addition, and it is not at M4.0
+### The one addition, and it was not at M4.0
 
-Matter participation has **no canonical permission**, exactly as Project participation had none
-before M3.4 registered two (D-098). **M4.5 is expected to add four:**
+Matter participation had **no canonical permission**, exactly as Project participation had none
+before M3.4 registered two (D-098). **M4.5 added four, exactly as scheduled** *(D-110)*:
 
 ```text
 notary.matters.parties.view     notary.matters.parties.manage
 ppat.matters.parties.view       ppat.matters.parties.manage
 173 -> 177
 ```
+
+**That is the only permission M4 added.** The count has stood at 177 since M4.5; M4.6 and M4.7 each
+registered nothing, and M4.7's `*.matters.change_stage` had been canonical since the catalogue was
+transcribed.
 
 Four rather than two, because the domain split is real: the role matrix in
 `02_MENU_AND_PERMISSIONS.md` section 5 gives Notary Staff full access to Notary Matters and
@@ -503,7 +507,7 @@ page, or navigation entry**, following the M2.1 and M3.1 precedent.
 service_types    Office-owned, one row per service the office offers
                  code + domain + both names required; both descriptions optional
 UNIQUE (office_id, code)    a code identifies one service within its Office
-UNIQUE (id, office_id)      the support key M4.2's composite FK will reference
+UNIQUE (id, office_id)      the support key M4.2's composite FK references
 CHECK domain IN (NOTARY, PPAT)
 CHECK default_duration_days IS NULL OR >= 0
 ```
@@ -600,11 +604,39 @@ M4.7   Matter workflow instances + stage transitions
 M4.8   M4 quality gate
 ```
 
+**Every sub-milestone is delivered as of M4.8.** The list below is in milestone order — it was
+appended to out of order as each landed, and M4.8 sorted it (M4.2's entry had come to sit after
+M4.7's, which read as though it were the most recent).
+
 **M4.1 — delivered** *(D-106)*. See section 12. One forward migration (23), no permission (173),
 backend foundation only.
 
+**M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
+`PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
+migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
+
+```text
+matters (project_id, office_id)             -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+UNIQUE (matters.id, office_id)               the support key M4.5 references
+CHECK domain / status / priority
+```
+
+The Service Type key does **two jobs at once**: same Office *and* same domain, so a Notary Matter
+classified with a PPAT service is unrepresentable rather than merely refused. That required adding
+`UNIQUE (id, office_id, domain)` to `service_types` — M4.1 shipped only `(id, office_id)`, and a
+composite foreign key needs a unique index on the exact referenced columns.
+
+**Deferred and not stubbed at M4.2:** `matter_number`, which M4.3 added with its allocator
+(D-095's rule), and `current_stage_id`. **The second deferral was resolved by declining the
+column** *(M4.7, D-112)*: M4.7 built the stage instances and then decided the `ACTIVE` instance
+*is* the current stage, so a pointer would be a second source of truth that could disagree with it.
+Neither ever existed as a nullable placeholder. *(Corrected at M4.8: this paragraph said
+`current_stage_id` was deferred "to M4.7 with the real stage-instance foreign key", which stopped
+being true when M4.7 chose not to build it.)*
+
 **M4.3 — delivered** *(D-108)*. See section 11. One forward migration (25), no permission (173),
-backend foundation only; `matter_number` nullable until M4.4 integrates allocation.
+backend foundation only; `matter_number` nullable until M4.4 integrated allocation.
 
 **M4.4 — delivered** *(D-109)*. See "Delivered at M4.4" below. One forward migration (26), no
 permission (173); the first Matter milestone with an HTTP and frontend surface.
@@ -620,26 +652,6 @@ narrowed to `OFFICE`/`ALL`. Backend foundation only, and **both tables ship empt
 **M4.7 — delivered** *(D-112)*. See "Delivered at M4.7" below. One forward migration (29) creating
 the three running tables, **no permission** (177), and `*.matters.change_stage` given routes and
 un-deferred. Six routes, three per domain, plus a workflow section on the Matter detail page.
-
-**M4.2 — delivered** *(D-107)*. The `matters` root, its two enums, model, visibility, Policy, the
-`PermissionScopeRules` entry for the fourteen actionable codes, and a factory. One forward
-migration (24), **no permission — the count stays at 173**, and **no HTTP or frontend surface**.
-
-```text
-matters (project_id, office_id)             -> projects (id, office_id)
-matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
-UNIQUE (matters.id, office_id)               the support key M4.5 will reference
-CHECK domain / status / priority
-```
-
-The Service Type key does **two jobs at once**: same Office *and* same domain, so a Notary Matter
-classified with a PPAT service is unrepresentable rather than merely refused. That required adding
-`UNIQUE (id, office_id, domain)` to `service_types` — M4.1 shipped only `(id, office_id)`, and a
-composite foreign key needs a unique index on the exact referenced columns.
-
-**Deferred and not stubbed:** `matter_number` to M4.3 with its allocator (D-095's rule), and
-`current_stage_id` to M4.7 with the real stage-instance foreign key. Neither exists as a nullable
-placeholder.
 
 ### Delivered at M4.3 *(D-108)*
 
@@ -775,7 +787,7 @@ the count stays at 177** — and **no HTTP or frontend surface**.
 ```text
 workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
 UNIQUE (office_id, code)                one row per code; `version` is a counter on it
-UNIQUE (id, office_id)                  the support key M4.7 will reference
+UNIQUE (id, office_id)                  the support key M4.7 references
 workflow_stages -> workflow_templates   ON DELETE CASCADE
 UNIQUE (workflow_template_id, code) / (workflow_template_id, sequence_no)
 CHECK version >= 1 / target_days >= 0 / sequence_no >= 1
@@ -856,21 +868,28 @@ of the fixtures and keep `SKIPPED` / `BLOCKED` unset anywhere in the product.
 
 ## 16. Unresolved items
 
-| Question | Status | Blocks M4.1? |
+**Re-asked at M4.8.** The third column read *"Blocks M4.1?"* and the table closed with *"None
+blocks M4.1"* — written at M4.0 when M4.1 was next, and a question about a milestone that finished
+six milestones ago. M4 is now complete through M4.7, so the honest question is whether any of these
+blocks **closing M4**. None does, and none is newly discovered: every row is the same item recorded
+at M4.0, carried forward deliberately.
+
+| Question | Status | Blocks closing M4? |
 |---|---|---|
-| Notary and PPAT workflow content — stages, sequences, approvals, gating | **DOMAIN VALIDATION REQUIRED.** Both workflow documents are placeholders; nothing may be inferred from them | **No** — M4 builds mechanism, not content |
+| Notary and PPAT workflow content — stages, sequences, approvals, gating | **DOMAIN VALIDATION REQUIRED.** Both workflow documents are placeholders; nothing may be inferred from them | **No** — M4 built the mechanism and seeded no content, which is the intended outcome (D-104) |
 | Which service types the office actually handles | **DOMAIN VALIDATION REQUIRED.** The container ships empty and `service_type_id` is nullable | **No** |
-| `represented_by_party_id` semantics | **DOMAIN VALIDATION REQUIRED.** Deferred; not built in M4 | **No** |
-| `sequence_no` semantics | Deferred; four plausible meanings, no canonical answer | **No** |
-| Participant role catalogue and any cardinality rule | **DOMAIN VALIDATION REQUIRED.** ERD codes are labelled examples | **No** |
-| Matter status transition matrix | Not invented. M4 authorizes who may change status, never which changes are legal | **No** |
-| Whether a stage transition carries legal state | **OPEN.** Treated as append-only from the outset, which is the safe direction | **No** |
+| `represented_by_party_id` semantics | **DOMAIN VALIDATION REQUIRED.** Deferred; not built in M4, and the Form Request refuses it rather than ignoring it (D-110) | **No** |
+| `matter_parties.sequence_no` semantics | Deferred; four plausible meanings, no canonical answer. **Distinct from `workflow_stages.sequence_no`**, which M4.6 settled as structural stage order (D-111) — the two columns share a name and not a question | **No** |
+| Participant role catalogue and any cardinality rule | **DOMAIN VALIDATION REQUIRED.** ERD codes are labelled examples; M4.5 invented no uniqueness (D-110) | **No** |
+| Matter status transition matrix | Not invented. M4 authorizes who may change status, never which changes are legal. **Nor a stage transition matrix** — M4.7 checks only that a target stage exists and is open (D-112) | **No** |
+| Whether a stage transition carries legal state | **OPEN.** `matter_stage_history` is append-only and enforced as such from the outset, which is the safe direction (D-112) | **No** |
 | Matter archive / restore | Refused for M4; no canonical permission exists. Needs its own ruling and its own codes | **No** |
 | `notary_matters` / `ppat_matters` extension tables | Deferred to M6 / M7 with their domain content | **No** |
-| Whether stage workers need Matter visibility | A new predicate if ever needed; must not silently widen `ASSIGNED` | **No** |
+| Whether stage workers need Matter visibility | A new predicate if ever needed; must not silently widen `ASSIGNED`. M4.7 built `matter_stage_instances.assigned_user_id` and **left it out of every scope predicate**, with a test holding that (D-100) | **No** |
 | Project or Matter Office transfer | Refused for M4; requires its own architecture decision | **No** |
+| Re-instantiating a workflow on a Matter created before templates existed | **NEW at M4.7.** `matter_workflows` is `UNIQUE (matter_id)` and no re-instantiation path exists, so such a Matter can never acquire one. Needs its own decision (D-112) | **No** — the Matter is fully usable without a workflow |
 
-None blocks M4.1. Each is recorded rather than quietly assumed.
+Each is recorded rather than quietly assumed.
 
 ---
 

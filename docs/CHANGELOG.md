@@ -5,7 +5,105 @@ Records specification changes and milestone results.
 
 ---
 
-## 2026-08-18 — M4.7 Matter workflow instances and stage transitions
+## 2026-08-21 — M4.8 M4 Quality Gate
+
+Branch `feat/m4-matter-workflow`. **No migration, no permission, no schema change, no route.** An
+audit milestone, following M1.10, M2.6 and M3.5. Backend **2005 passed + 8 skipped / 6461
+assertions**, unchanged — the audit found no code defect to fix. **Six documentation defects fixed**,
+all of the D-077 class: a claim that stopped being true.
+
+### What was audited
+
+Git position, migration inventory, the canonical permission count, the persistent development
+database, five documentation files, the `view_all` supersession rule, debug code, and the whole M4
+chain end to end over HTTP.
+
+### Documentation defects found and fixed
+
+**1. Three CHANGELOG dates were wrong.** M4.5 and M4.6 landed 2026-08-20 and M4.7 on 2026-08-21;
+all three were recorded as 2026-08-18. Each entry had been written from the clock at the moment the
+work *started*, and the clock moved during the session. Corrected against `git log` in both
+`CHANGELOG.md` and `DECISIONS.md`, which carried the same headings.
+
+**2. The M4 lock's delivery list was out of order.** Entries were appended as each milestone landed,
+so **M4.2's block had come to sit after M4.7's** and read as though it were the most recent. Sorted
+into milestone order.
+
+**3. `current_stage_id` was described as deferred to a milestone that declined it.** The M4.2 block
+said the column was deferred "to M4.7 with the real stage-instance foreign key". M4.7 built the
+stage instances and then **decided not to build the column** (D-112), because the `ACTIVE` instance
+*is* the current stage. The paragraph now records the deferral and its resolution.
+
+**4. Six "will reference" claims outlived their milestone.** Support keys described as what a future
+milestone *would* use, in `14_M4_MATTER_ARCHITECTURE.md` and `03_DATABASE_ERD.md`, where every
+referencing milestone has since shipped. Also "M4.5 is expected to add four" permissions — it added
+them.
+
+**Decision records were deliberately left alone.** D-105 saying "four permissions are expected at
+M4.5" and D-108 saying "M4.4 will allocate" were true when written, and a dated register's value is
+that it records what was known then. Only the living reference documents were corrected.
+
+**5. `README.md` said "Status: M0 — Foundation."** Four milestones stale, in the most visible file
+in the repository, claiming there were no business modules at all. Rewritten to state what exists
+through M4.8, what does not until M5, and that the workflow engine ships deliberately empty (D-104).
+The milestone list marked M1–M3 complete and M4 delivered-pending-acceptance.
+
+**6. `README.md`'s documentation table omitted the three architecture locks.** `12_`, `13_` and
+`14_` were missing while `CLAUDE.md` §58 lists all fourteen files — the same gap O-003 closed for
+`CLAUDE.md` at M0, left open in the README. Added, with a sentence on what a lock is for.
+
+**7. The M4 unresolved-items table asked the wrong question.** Its third column read *"Blocks
+M4.1?"* and it closed with *"None blocks M4.1"* — written at M4.0 and asking about a milestone
+finished six milestones earlier. Re-asked as *"Blocks closing M4?"*. Three rows gained the outcome
+that has since settled around them: `matter_parties.sequence_no` is now distinguished from
+`workflow_stages.sequence_no`, which M4.6 did settle; the transition-matrix row notes that stage
+transitions have no matrix either; and the stage-visibility row records that M4.7 built
+`assigned_user_id` and kept it out of every scope predicate. **One row was added** — re-instantiating
+a workflow on a Matter created before templates existed, which `UNIQUE (matter_id)` makes
+impossible (D-112).
+
+### Code audit — nothing to fix
+
+- **`view_all` supersession holds.** Five codes registered — `projects`, `notary.matters`,
+  `ppat.matters`, `tasks`, `calendar` — and a source scan finds **no** call resolving any of them as
+  authority. The `app/`-wide forbidden-authority scan covers every file added by M4.5–M4.7.
+- **No debug code.** No `dd`, `dump`, `var_dump`, `print_r` or `ray` in `app/`, `routes/` or
+  `database/`; no `console.*` or `debugger` in `frontend/src`.
+- **No suppressions.** No `@ts-ignore`, `@ts-expect-error` or `eslint-disable` anywhere in the
+  frontend.
+- **Guard tests.** M4.5, M4.6 and M4.7 each narrowed the guards their own work made stale; the audit
+  found none left behind.
+
+### Full-M4 smoke — 57 steps, 57 passed
+
+One disposable database carrying the **whole chain**, which no previous smoke had exercised
+together: Service Type (M4.1) classifying a Matter (M4.2) with an allocated reference (M4.3),
+managed over HTTP (M4.4), carrying participants (M4.5), running a workflow (M4.7) instantiated from
+a template bound to that Service Type (M4.6).
+
+The integration facts that only a combined run can show: a **classified** Matter picks the
+service-bound template (4 stages) while an unclassified one falls back to the generic default
+(2 stages), and an Office with no template configured gets no workflow at all — the ordinary state
+on a fresh deployment. Plus the boundaries: cross-domain and cross-Office Service Types refused,
+per-Office reference namespaces independent, no status/archive/restore route, a Party linkable twice
+under two roles, no identity in any participation payload, stage moves leaving Matter status
+untouched, and completing the Matter closing its workflow run.
+
+Full reversibility re-proven: `migrate:reset` to 1 table, re-migrate to 29.
+
+### Persistent development database — untouched
+
+`migrate:status` shows **22 Ran and 7 Pending**, every pending one an M4 migration. 25 tables, none
+of them `matter*`, `workflow*` or `service_types`. Permissions still 173, because
+`permissions:sync` has never been run against it — expected, and not a structural change.
+
+### Open items
+
+O-010, O-018, O-031, O-032, O-033 and O-034 remain open and untouched, as they have since M3.5.
+
+---
+
+## 2026-08-21 — M4.7 Matter workflow instances and stage transitions
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (29 total) creating `matter_workflows`,
 `matter_stage_instances` and `matter_stage_history`. **No permission** (177):
@@ -129,7 +227,7 @@ handful of files that mention the enum.
 
 ---
 
-## 2026-08-18 — M4.6 Workflow templates and stages
+## 2026-08-20 — M4.6 Workflow templates and stages
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (28 total) creating `workflow_templates`
 and `workflow_stages`. **No permission** (177): both workflow codes were already canonical, and M4.6
@@ -244,7 +342,7 @@ Five other guards narrowed rather than deleted, each in the milestone that made 
 
 ---
 
-## 2026-08-18 — M4.5 Matter ↔ Party participation
+## 2026-08-20 — M4.5 Matter ↔ Party participation
 
 Branch `feat/m4-matter-workflow`. **One forward migration** (27 total) creating `matter_parties`.
 **Four permissions — the count moves 173 → 177**, exactly as D-105 scheduled at M4.0 and in the

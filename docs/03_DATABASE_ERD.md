@@ -526,7 +526,7 @@ PPAT
 - **`UNIQUE (office_id, code)`**, composite and never global: two Offices may both offer the same
   service. `domain` is deliberately outside the namespace, so one code cannot mean two things in
   one Office.
-- **`UNIQUE (id, office_id)`**, the support key M4.2's `matters.service_type_id` will reference
+- **`UNIQUE (id, office_id)`**, the support key M4.2's `matters.service_type_id` references
   through a composite foreign key, making a cross-office Service Type reference unrepresentable.
 - **`is_active` is the only retirement mechanism.** No `deleted_at`, no archive, no restore, and no
   canonical permission that could authorize one. An inactive entry stays readable so records
@@ -593,7 +593,7 @@ ARCHIVED
 ```text
 matters (project_id, office_id)              -> projects (id, office_id)
 matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
-UNIQUE (matters.id, office_id)                the support key M4.5 will reference
+UNIQUE (matters.id, office_id)                the support key M4.5 references
 CHECK domain / status / priority
 ```
 
@@ -851,7 +851,7 @@ validated content.
 ```text
 workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
 UNIQUE (office_id, code)              one row per code
-UNIQUE (id, office_id)                the support key M4.7 will reference
+UNIQUE (id, office_id)                the support key M4.7 references
 workflow_stages -> workflow_templates ON DELETE CASCADE
 UNIQUE (workflow_template_id, code)
 UNIQUE (workflow_template_id, sequence_no)

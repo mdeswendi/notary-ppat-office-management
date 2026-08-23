@@ -3462,7 +3462,7 @@ Query serve one domain's rows under the other's address.
 
 ---
 
-## 2026-08-18 — M4.5 Matter ↔ Party participation
+## 2026-08-20 — M4.5 Matter ↔ Party participation
 
 ### D-110 — Matter participation invents no cardinality, and the Party-visibility rule is written once
 
@@ -3587,7 +3587,7 @@ at 848 per locale, 38 new in a `matterParties` namespace.
 
 ---
 
-## 2026-08-18 — M4.6 Workflow templates and stages
+## 2026-08-20 — M4.6 Workflow templates and stages
 
 ### D-111 — A workflow version is a counter, not a second row, and an approval permission is validated at rest
 
@@ -3717,7 +3717,7 @@ migration they actually mean.
 
 ---
 
-## 2026-08-18 — M4.7 Matter workflow instances and stage transitions
+## 2026-08-21 — M4.7 Matter workflow instances and stage transitions
 
 ### D-112 — Moving on completes the stage you leave, and nothing else is inferred
 
