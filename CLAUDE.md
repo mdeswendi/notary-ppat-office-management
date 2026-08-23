@@ -1478,12 +1478,31 @@ At minimum test:
 * workflow transition rules;
 * legal finalization rules.
 
+Frontend changes should have appropriate automated tests.
+
+Use:
+
+```text
+Vitest + React Testing Library
+```
+
+At minimum test:
+
+* permission and navigation gates;
+* branch behaviour a type cannot express;
+* error mapping, so no raw server text reaches a user;
+* controls that must be absent for an actor who may not use them.
+
+**Frontend tests are presentation only.** The backend is the security boundary
+(section 28); a passing frontend test never means an endpoint is authorized.
+
 Frontend changes should pass:
 
 ```text
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -1506,6 +1525,7 @@ Frontend:
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -1513,6 +1533,11 @@ This list must never be weaker than `.github/workflows/quality.yml`. It was, onc
 `format:check` was missing here while CI enforced it, so work that passed every
 documented command still failed CI. Adding a gate to the workflow means adding it
 here in the same change.
+
+`pnpm test` joined both lists together when O-032 added the runner. **Use `test`,
+never `test:watch`** — the watch mode never exits, so a task using it would appear
+to hang rather than to pass. CI runs `test:ci`, which is the same single run plus
+a coverage report.
 
 Backend:
 

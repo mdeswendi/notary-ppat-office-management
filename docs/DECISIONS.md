@@ -3863,6 +3863,80 @@ keys reach exact parity at 881 per locale, 33 new in a `matterStages` namespace.
 
 ---
 
+## 2026-08-21 — O-032 Frontend test runner
+
+### D-113 — Vitest joins the frontend gate, and what it is allowed to mean
+
+O-032 said adding a runner was "a real decision — which one, whether it joins
+`quality.yml`, and the `CLAUDE.md` §52 rule that the documented command list must never be weaker
+than CI". This is that decision. **No migration, no permission, no backend change**; six test files,
+62 tests, and one relaxed lint rule.
+
+**Vitest with React Testing Library**, because the project already compiles through Vite's ecosystem
+and the whole configuration is one file. The `@/*` alias is read from `tsconfig.json` via
+`resolve.tsconfigPaths` rather than restated, so the test aliases cannot drift from the ones the
+application builds with. *(`vite-tsconfig-paths` was installed for this and removed the same day:
+Vite now does it natively and says so at startup.)*
+
+**It joins CI**, as a `Tests` step between typecheck and build, and `CLAUDE.md` §52 and `README.md`
+gained `pnpm test` in the same change — the rule §52 exists to enforce, written after it was broken
+once. `test` is a **single run**; `test:watch` never exits and would hang any task that used it.
+
+### What these tests are allowed to mean
+
+**Presentation, and nothing more.** The backend is the security boundary (`CLAUDE.md` §28) and
+authorizes again on every request. A green frontend suite never means an endpoint is protected; what
+it means is that the interface asks the same question the backend will, so a control is offered
+exactly when following it would work.
+
+`t()` returns its **message key** rather than translated text. A test asserting the Indonesian
+sentence would fail the moment somebody improved the wording, and would quietly pass if a component
+rendered the right sentence from the wrong key. Asserting `matters.statuses.OPEN` pins the thing
+that is a defect if wrong and leaves translators free. Parity and orphan-key checking stays where it
+already is, in the milestone verification scripts.
+
+### The coverage number is partial by design
+
+`coverage.all` is off, so a module no test imports is **absent** from the report rather than counted
+as zero. The percentage therefore answers "how thoroughly is what we test, tested" and **is not an
+application-coverage figure**; it must never be quoted as one. No threshold is set either, because a
+threshold over a partial denominator fails the build for importing a new file rather than for
+testing less.
+
+### Two environment gaps, both diagnosed rather than worked around
+
+**jsdom does not perform implicit form submission.** A click on a `type="submit"` button never
+reaches the form, so *no form in the application could be submitted from a test* — and the failure
+is silent: the click lands, nothing happens, and the assertion reads like a component defect. Three
+probes narrowed it: `form.requestSubmit` exists and works, `fireEvent.submit` works, and a bare
+`<button type="submit">` in a bare `<form>` fails exactly like the shared `Button` — so it is
+nothing to do with Base UI. The setup adds the missing activation behaviour as a bubbling `click`
+listener that honours `defaultPrevented`. **An earlier attempt polyfilled `requestSubmit` itself and
+was wrong**: jsdom already has it, so the guard never fired and the code was dead.
+
+**`toMatterErrorKey` narrows with `instanceof AxiosError`.** A plain object carrying `isAxiosError`
+falls through to the generic server message, so the first error-mapping tests passed the wrong
+branch and failed. The fixtures now construct real `AxiosError` instances — which is also the
+finding: any future test that shapes an error by hand will silently test nothing.
+
+### One lint rule relaxed, narrowly and in configuration
+
+`@next/next/no-html-link-for-pages` fires on any internal-looking `href`, which is right in a page
+and wrong in two places: the setup mocks the locale-aware `Link` **as** a plain anchor — the entire
+point of the mock — and a `<Button render={<a/>} />` test is checking prop forwarding, not
+navigating. Scoped to `src/**/*.test.{ts,tsx}`, `src/test/**` and `vitest.setup.tsx` in
+`eslint.config.mjs`, rather than scattered as inline disables, so the rule keeps protecting every
+real page (`CLAUDE.md` §52: no suppression without a documented reason).
+
+### What is covered first
+
+The three things O-032 named by name, because they were the stated cost: `visibleNavigation` —
+including the `anyPermissions` branch it said "a four-line test would pin" — `can` / `canWithScope`,
+and the M4 sections M4.5 and M4.7 added. Plus `Button`, whose contract every screen depends on:
+disabled means unclickable, and `type="button"` does not submit.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -3921,7 +3995,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-017 | A localized not-found state does not render for unmatched URLs. Next.js uses the **root** not-found for those; a nested `[locale]/not-found.tsx` only catches `notFound()` thrown inside its own segment, and the proxy guarantees the locale segment is always valid. | Open. Written during M0.6, verified non-functional, and removed rather than left as dead code. Making it work requires a catch-all route under `[locale]`, which is a routing change beyond M0.6's presentational scope. The built-in Next.js 404 remains, as it did after M0.5. `BaseErrorState` is ready to render it when the catch-all is added. |
 | O-033 | Six fields are supported everywhere except the interface. `gender`, `marital_status`, `village`, and `district` on Individual, and `village` and `district` on Company, are accepted and stored by the Form Requests, returned by the API Resources, typed in the frontend, and **translated in both locales** — yet no form collects them and no page displays them. A value written through the API is invisible in the product, and the translated labels make the repository look as though it supports what it does not. | Open, and deliberately not closed by M2.6. Two of the six are the reason: `gender` and `marital_status` carry legal weight in Indonesian notarial practice — spousal consent and capacity questions turn on them — so deciding whether they appear, where, and with what vocabulary is domain specification, not a decision a quality gate may take (CLAUDE.md §62). The other four are ordinary address granularity and could be added mechanically, but splitting the six would leave the Individual address half-complete for no stated reason. Closing this needs one decision covering all six: either they belong in the interface, in which case the forms and detail pages gain them together, or they do not, in which case the labels and the frontend types should go and the API fields should be documented as inbound-only. Recorded at M2.6 rather than guessed at. |
 | O-031 | The Party Directory's **Office filter is built from the Offices present in the current page of results**, not from an endpoint. The two options endpoints that exist answer a different question — `individuals/options` and `companies/options` list the Offices an actor may **create** in, which is neither necessary nor sufficient for reading — so offering those would show destinations that return nothing and hide ones that return rows. | Open, and deliberate rather than overlooked. The derivation is honest: it can never offer an Office the caller's capabilities do not already reach, and selecting one only narrows, because the backend applies `office_id` on top of each capability's own scope predicate. The cost is that the choices reflect the page in view, so an Office whose rows fall on a later page is not offered until the caller reaches it. Closing this needs a **view-scoped** Offices source — and the honest version of it is not one list but two, since `parties.view` and `companies.view` are evaluated independently and may reach different Offices (D-028). That is a small API addition with a real design question inside it, which is why M2.5 did not invent one to fill a filter. Revisit when a second surface needs the same list. |
-| O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | Open. Not new at M2.5, but M2.5 is the first milestone where it costs something specific: `anyPermissions` is a branch whose three cases (`parties.view` only, `companies.view` only, neither) are exactly what a four-line test would pin, and none of them is currently pinned by anything executable. The backend equivalents *are* tested, and the backend is the security boundary, so this is a correctness gap in presentation rather than a hole in authorization. Adding a runner is a real decision — which one, whether it joins `quality.yml`, and the CLAUDE.md §52 rule that the documented command list must never be weaker than CI — and it should not be made incidentally inside a feature milestone. Worth an explicitly scoped task before the navigation tree grows the Notary and PPAT groups. |
+| O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | **Resolved 2026-08-21 by D-113.** Vitest and React Testing Library, added as an explicitly scoped task exactly as this entry asked — not incidentally inside a feature milestone. All three decisions the entry named are recorded: **which one** (Vitest, because the project already compiles through Vite's ecosystem and the alias is read from `tsconfig.json` rather than restated), **whether it joins CI** (yes, a `Tests` step between typecheck and build), and **§52** (`pnpm test` added to `CLAUDE.md` sections 51 and 52 and to `README.md` in the same change, which is the rule §52 exists to enforce). Six files, 62 tests. The three targets this entry named are covered first: `visibleNavigation` including the `anyPermissions` branch it said "a four-line test would pin", `can` / `canWithScope`, and the M4 sections. Two environment gaps were found and diagnosed rather than worked around — jsdom performs no implicit form submission, so *no form could be submitted from a test*, and `toMatterErrorKey` narrows with `instanceof AxiosError`, so hand-shaped error objects silently test the wrong branch. **The gap this closes was presentation, not authorization**, exactly as the entry said: the backend remains the security boundary and a green frontend suite never means an endpoint is protected. The prediction held too — it was worth doing before the navigation tree grew, and by the time it happened the tree had gained the Notary and PPAT groups the entry anticipated. |
 | O-034 | **`php artisan serve` does not pass a shell `DB_DATABASE` override to the `php -S` subprocess it spawns.** Every artisan CLI command honours the override — `migrate`, `tinker` and `permissions:sync` all connected to the disposable database and reported it — so a milestone can migrate and seed the right database and then serve the wrong one. Discovered at M3.5, when the in-process probe answered `notary_ppat_office` instead of the disposable database and the smoke was aborted on its first request. | Open, and recorded as method rather than treated as a one-off. This is the precise mechanism behind the class of near-miss the M3.3 rule exists to prevent, and knowing it turns "prove the serving process's database" from a ritual into a check with a known failure mode behind it. The working approach is to launch the framework's own router directly — `php -S <host:port> -t backend/public vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`, with the working directory set to `backend/public`, since `server.php` resolves `index.php` from the current directory — and to probe it before the first real request regardless. **The rule does not change**: a shell override is not evidence about the serving process, and the probe stays mandatory whichever launcher is used. Closing this needs either an upstream change or a committed, tested smoke launcher; neither belongs in an audit milestone. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
