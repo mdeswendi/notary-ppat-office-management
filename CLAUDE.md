@@ -532,6 +532,7 @@ Matter authority** (D-100) — each is judged by its own capability and its own 
 
 The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
 The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
+The Document and Task architecture lock is `docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md`.
 
 ---
 
@@ -1681,12 +1682,13 @@ docs/
 ├── 12_M2_PARTY_ARCHITECTURE.md
 ├── 13_M3_PROJECT_ARCHITECTURE.md
 ├── 14_M4_MATTER_ARCHITECTURE.md
+├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
 ├── DECISIONS.md
 └── CHANGELOG.md
 ```
 
-`12_`, `13_` and `14_` are milestone architecture locks. Each records what its domain may build,
-what it must not, and which statements are transcribed from canonical sources rather than
+`12_`, `13_`, `14_` and `15_` are milestone architecture locks. Each records what its domain may
+build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
 
 `DECISIONS.md` records canonical decisions that resolve conflicts in the source material.

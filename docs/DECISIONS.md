@@ -3937,6 +3937,96 @@ disabled means unclickable, and `type="button"` does not submit.
 
 ---
 
+## 2026-08-23 — M5.0 Document and Task architecture lock
+
+### D-114 — A legal document is reachable only by streaming it from an authorized surface, never by URL
+
+`config/filesystems.php` shipped the `local` disk — the private one, rooted at
+`storage_path('app/private')` — with **`'serve' => true`**. That registers two routes straight into
+the directory M5 will fill with KTP scans, NPWP records, deeds and Minuta Akta:
+
+```text
+GET  /storage/{path}   storage.local
+PUT  /storage/{path}   storage.local.upload
+```
+
+**It was never open.** `ServeFile` aborts without a valid relative signature when the disk's
+visibility is private, which it is. That is not the problem.
+
+**The problem is that a signed URL is a transferable bearer token that bypasses the authorization
+chain entirely.** No Policy, no `EffectiveAccessResolver`, no Data Scope, and no distinction between
+`documents.download` and `documents.sensitive.download`. Whoever holds the string holds the file —
+forwarded in a chat message, pasted into a ticket, sitting in a browser history. `CLAUDE.md` section
+21 requires sensitive files to be *"authorization protected"* and *"unavailable through predictable
+public URLs"*, and section 54 forbids exposing private document URLs; a URL that authorizes by
+possession fails both, however unguessable it is.
+
+**`serve` is now `false`, changed at M5.0 — before any document exists to reach through it.** Both
+routes are gone; the application's own 127 routes are untouched.
+
+**No document surface may issue a signed URL, a temporary URL, or any other URL resolving to
+storage.** Downloads stream from a controller that has authorized the actor against the Document
+record first. This is D-048's rule one domain across: there is one authorization path, and a second
+one that happens to work is the problem rather than the convenience it looks like.
+
+**M5.0 is otherwise documentation-only**, following M4.0. This one config line is the deliberate
+exception, and it is included because the right moment to close an access path is before anything
+valuable is behind it.
+
+### D-115 — M5 builds three document junctions, defers four, and improvises no audit
+
+**No permission is registered. The count stays at 177.** All seventeen `documents.*` and `tasks.*`
+codes have been canonical since the catalogue was transcribed and unimplemented ever since; M5
+implements them rather than adding to them.
+
+**Three of seven junctions are buildable.** `03_DATABASE_ERD.md` section 14 recommends seven;
+`property_documents`, `notary_deed_documents`, `ppat_deed_documents` and
+`matter_requirement_documents` reference `properties`, `notary_deeds`, `ppat_deeds` and
+`matter_requirements` — **none of which exists**, and a foreign key cannot point at a table that is
+not there. M5 builds `party_documents`, `project_documents` and `matter_documents`, and **stubs none
+of the rest**: not empty, not without their foreign key, and not replaced by a polymorphic column,
+which section 14 explicitly argues against. Every junction key is `RESTRICT`, so removing a Party
+never takes a document with it.
+
+**Audit is required, absent, and not improvised.** `CLAUDE.md` section 21 requires sensitive files be
+*"audited where appropriate"*; `audit_logs` has never been built, D-033 kept it out of M1 on the
+batch-7 ordering, and `audit.view` / `audit.export` are registered and unimplemented. Three rulings:
+**no half-measure ships** — an application log is not append-only in the sense section 31 means, is
+not queryable by resource, and is the stopgap that becomes permanent; **no sensitive-download
+surface lands before audit exists**, because the capability to read a KTP scan and the record of who
+read it belong in the same milestone; and when it is built it follows section 31 exactly and **never
+logs the document's contents nor the identifier it is about** (D-105's leak-surface rule, with more
+force rather than less).
+
+**Workflow gating is deferred, and doubly so.** `matter_requirements.required_before_stage_code`
+gates a stage transition on document completeness. D-104 forbids inferring workflow content, the two
+domains' gating rules differ and neither is authored, **and the table it references —
+`service_document_requirements` — does not exist**. So M5 builds neither table: not empty, not with
+the column present-but-unused, not as a nullable placeholder (D-095).
+
+**Two catalogues stay uninvented.** `document_type_code` is opaque and nullable, following
+`role_code` (D-105, D-111) — `KTP`, `NPWP` and `AKTA` are examples in prose, not a validated list,
+so no enum, no `CHECK`, and no dropdown built from a guess. And **`is_sensitive` is set by whoever
+uploads, never inferred from the type**: deriving it would encode which document kinds are
+sensitive, a judgement that varies by office.
+
+**Sensitive access is a separate capability in both directions.** `documents.sensitive.view` and
+`documents.sensitive.download` are independent codes rather than escalations of the ordinary two,
+neither implies the other, and `documents.update` reaches none of them.
+
+**A Task's `ASSIGNED` widens nothing else.** Being assigned a Task confers no Matter or Project
+reach — the symmetric statement of D-100, which forbade a stage assignee widening Matter `ASSIGNED`.
+`projects.pic_user_id`, `matters.pic_user_id` and `tasks.assigned_to` stay three separate
+predicates.
+
+**Two questions are handed forward as owned rather than left loose.** `is_current` uniqueness on
+`document_versions` — the obvious partial unique index is the shape D-111 already refused, because
+SQLite has no partial indexes and the two engines would disagree about what is representable — and
+`tasks` carrying `assigned_by` but **no `created_by`** while Data Scope `OWN` needs an owner. Both
+are recorded in the lock's unresolved table as belonging to a named milestone.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

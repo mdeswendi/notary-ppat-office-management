@@ -5,6 +5,113 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-23 — M5.0 Document and Task architecture lock
+
+Branch `feat/m5-documents-tasks`, from `main` at `f82dc25`. **No migration, no permission, no
+model, no route.** A documentation lock, following M4.0 — plus **one config line**, because it
+closes an access path and the right moment for that is before anything valuable sits behind it.
+Backend **2005 passed + 8 skipped**, frontend **62 passed**, both unchanged. Two new decisions,
+**D-114** and **D-115**.
+
+### The one line of code: `serve => false`
+
+`config/filesystems.php` shipped the private `local` disk — rooted at `storage/app/private`, the
+directory M5 will fill with KTP scans, NPWP records and Minuta Akta — with `'serve' => true`. That
+registers two routes straight into it:
+
+```text
+GET  /storage/{path}   storage.local
+PUT  /storage/{path}   storage.local.upload
+```
+
+**It was never open**: `ServeFile` aborts without a valid relative signature when the disk is
+private. That is not the problem. The problem is that **a signed URL is a transferable bearer token
+that bypasses the authorization chain entirely** — no Policy, no `EffectiveAccessResolver`, no Data
+Scope, and no distinction between `documents.download` and `documents.sensitive.download`. Whoever
+holds the string holds the file: forwarded in a chat, pasted into a ticket, sitting in a browser
+history.
+
+`CLAUDE.md` §21 requires sensitive files be *"authorization protected"* and *"unavailable through
+predictable public URLs"*; §54 forbids exposing private document URLs. A URL that authorizes by
+possession fails both however unguessable it is.
+
+Both routes are gone. The application's own **127 routes are untouched**, and the lock rules that no
+document surface may ever issue a signed or temporary URL — downloads stream from a controller that
+authorized the actor against the record first.
+
+### Three of seven junctions are buildable
+
+`03_DATABASE_ERD.md` §14 recommends seven document junction tables. Four reference tables that **do
+not exist**: `properties` (batch 8, M7), `notary_deeds` (batch 9, M6), `ppat_deeds` (batch 10, M7)
+and `matter_requirements`. A foreign key cannot point at a table that is not there — the reasoning
+the M4 lock used for "M4.1 precedes M4.2".
+
+M5 builds `party_documents`, `project_documents` and `matter_documents`, and **stubs none of the
+rest**: not empty, not without their key, and not replaced by a polymorphic column — which §14
+explicitly argues against.
+
+### Audit is required, absent, and not improvised
+
+§21 requires sensitive files be *"audited where appropriate"*. `audit_logs` has never been built,
+D-033 kept it out of M1 on the ERD's batch-7 ordering, and `audit.view` / `audit.export` are
+registered and unimplemented.
+
+The lock rules three things rather than filling the gap: **no half-measure ships** — an application
+log is not append-only in the sense §31 means, is not queryable by resource, and is the stopgap that
+becomes permanent; **no sensitive-download surface lands before audit exists**, because the
+capability to read a KTP scan and the record of who read it belong in the same milestone; and when
+built it follows §31 exactly and **never logs the document's contents nor the identifier it is
+about**.
+
+### Workflow gating deferred, and doubly so
+
+`matter_requirements.required_before_stage_code` gates a stage transition on document completeness.
+D-104 forbids inferring workflow content; the Notary and PPAT gating rules differ and neither is
+authored; **and the table it references, `service_document_requirements`, does not exist**. So M5
+builds neither table — not empty, not column-present-but-unused, not a nullable placeholder (D-095).
+
+### Two catalogues left uninvented
+
+`document_type_code` stays **opaque and nullable**, following `role_code` (D-105, D-111): `KTP`,
+`NPWP` and `AKTA` are examples in prose, not a validated list, so no enum, no `CHECK`, and no
+dropdown built from a guess. And **`is_sensitive` is set by whoever uploads, never inferred from the
+type** — deriving it would encode which document kinds are sensitive, a judgement that varies by
+office.
+
+### Two questions handed forward as owned
+
+`is_current` uniqueness on `document_versions`: the obvious partial unique index is **the shape
+D-111 already refused**, because SQLite has no partial indexes and the two engines would disagree
+about what is representable. M5.1 must choose between that, an application invariant with a test, or
+a pointer on `documents` — and say which.
+
+And `tasks` carries `assigned_by` but **no `created_by`**, while Data Scope `OWN` needs an owner.
+M5.4 resolves it explicitly rather than adding a column on instinct.
+
+### Decomposition
+
+```text
+M5.0  architecture lock                      <- this
+M5.1  document schema + private storage
+M5.2  document management surface
+M5.3  document relations (party/project/matter)
+M5.4  task schema + management
+M5.5  frontend + M4 integration
+M5.6  M5 quality gate
+```
+
+Documents precede tasks because `03_DATABASE_ERD.md` §32 says so — batch 6 then batch 7 — not by
+preference. **Audit is deliberately unnumbered**, since §8 of the lock rules that no
+sensitive-download surface ships before it exists.
+
+### Also corrected
+
+`CLAUDE.md` §58 and the README documentation table gained `15_`; the README's status header still
+said M4 was *"selesai di branch dan menunggu penerimaan"* after the merge, and its bootstrap
+paragraph still said **173** permissions rather than 177.
+
+---
+
 ## 2026-08-21 — M4.8 M4 Quality Gate
 
 Branch `feat/m4-matter-workflow`. **No migration, no permission, no schema change, no route.** An
