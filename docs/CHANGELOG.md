@@ -5,6 +5,155 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-23 — M5.1 Document schema and private storage foundation
+
+Branch `feat/m5-documents-tasks`, from `0890fec`. **Five migrations, 29 → 34.** Backend
+**2127 passed + 8 skipped**, frontend **62 passed** and unchanged. **No permission is registered;
+the count stays at 177.** One new decision, **D-116**.
+
+Backend foundation only — no route, controller, request, resource or frontend, following M2.1,
+M3.1, M4.1, M4.2 and M4.6. A test asserts that no route contains the word `document`.
+
+### `is_current` is gone, and a bare pointer would not have been enough
+
+M5.0 handed M5.1 an explicit choice: a partial unique index on a boolean, an application invariant,
+or a pointer on `documents`. **The pointer wins.** A partial index does not exist on the SQLite
+connection the suite runs on, so the two engines would disagree about what is representable — the
+shape D-111 already refused once.
+
+But `current_version_id` alone could have named a version belonging to some **other** document, and
+nothing would have objected. So `document_versions` carries a support key `UNIQUE (document_id, id)`
+— redundant for uniqueness, required for a composite foreign key — and `documents` declares:
+
+```text
+documents (id, current_version_id)  ->  document_versions (document_id, id)
+```
+
+the construction `company_people`, `project_parties`, `matters`, `matter_parties` and
+`workflow_templates` all use for the same-Office invariant, applied here to a same-Document one. A
+cross-document pointer is unrepresentable rather than merely wrong. The key arrives by `ALTER` in its
+own migration because the two tables reference each other; SQLite cannot add one to an existing
+table, so a model guard holds the identical rule where the tests run.
+
+### A claim that was written before it was tested
+
+The composite key first shipped `ON DELETE NO ACTION`, with a docblock arguing that `RESTRICT` would
+break the cascade: `document_versions.document_id` cascades, so hard-deleting a Document removes
+versions that the same Document row still points at, and PostgreSQL checks `RESTRICT` immediately.
+
+**The PostgreSQL probe ran the delete under both declarations. Both succeeded.** The referencing
+`documents` row goes in the same statement, so by the time `RESTRICT` looks for something pointing at
+the version, there is nothing. The two are also identical in the other direction — deleting a version
+while its Document survives is refused either way.
+
+The declaration is now `RESTRICT`, like every other key in the schema; `document_versions.document_id`
+remains the single deliberate CASCADE. This is written down because the asymmetry was asserted as
+verified before it was verified — the D-077 defect class, caught by the check that was promised
+rather than by a later milestone.
+
+### Three corrections against the plan's schema
+
+| Plan | Canonical source | Shipped |
+|---|---|---|
+| `documents` omits `updated_by` | ERD §13 lists it | **included** — `matters` carries the same pair, and `updated_at` alone records that something changed without recording who |
+| `document_versions` gains `created_at` / `updated_at` | ERD §13 lists neither, only `uploaded_at` | **omitted** — a column recording when a version changed is a column inviting one |
+| "14 columns" / "12 columns" | — | **18 and 12** |
+
+The plan also said four migrations; there are five, so the count is 29 → 34 rather than 29 → 33.
+
+### A version is written once, enforced rather than intended
+
+The model refuses `update` outright, timestamps are off, and `storage_path` / `stored_filename` are
+never serialized. `storage_path` may contain neither `public/` nor `uploads/` — checked in the
+storage service, by a PostgreSQL `CHECK`, and by a model guard that holds on both engines.
+`checksum_sha256` must be 64 lowercase hex characters, for the same reason in the same three places.
+
+### Storage issues no URL of any kind
+
+No signed URL, no temporary URL, no path a client could try — asserted by both a reflection check and
+a source scan. A URL that authorizes by possession is a second authorization path beside the Policy
+chain (D-114), and a second one that happens to work is the problem rather than the convenience it
+looks like.
+
+```text
+documents/{office_id}/{YYYY}/{MM}/{ulid}.{ext}
+```
+
+`office_id` leads so a misconfigured backup meets the Office boundary the database enforces. The
+uploader's filename is **never** a path component — it carries traversal sequences, case collisions,
+and for a KTP scan often the subject's own name — and the extension is reduced to lowercase
+alphanumerics so a crafted name cannot smuggle a separator. The SHA-256 is computed from **the bytes
+actually written**, because hashing the source would attest to something other than what is stored.
+
+### `DOC-YYYY-NNNNNN`, two namespace dimensions rather than three
+
+Matter needed a domain because `N-` and `P-` are distinct sequences competing for one value (D-108);
+a Document has no such split, so it takes the shape Project uses. One atomic `INSERT … ON CONFLICT …
+DO UPDATE … RETURNING`, no `MAX+1`, and the allocator opens no transaction of its own so it
+participates in the caller's. `document_number` ships **nullable**, exactly as `project_number` was
+until M3.3 and `matter_number` until M4.4.
+
+### Three scopes reach a Document, and the Matrix was narrowed to match
+
+```text
+OWN       documents.created_by = actor id
+OFFICE    documents.office_id  = actor office
+ALL       cross-office reach
+ASSIGNED  no grant — a Document has no assignee
+TEAM      no grant — no Team entity exists (D-042)
+```
+
+`OWN` is granted here where Party (D-080) and Service Type (D-106) withhold it, and the difference is
+real: those are shared reference records the colleague who typed them in has no claim on, whereas
+`created_by` names the person who filed the document — the argument Project made at D-088.
+
+All nine `documents.*` codes are narrowed to these three in `PermissionScopeRules`. **Withholding
+`ASSIGNED` only in the predicate would have left the dead control visible in the interface**: an
+administrator could grant `documents.view` at `ASSIGNED`, see it saved, and hold a silently powerless
+grant. That is the failure D-080 named, and it is why Party and the office-owned master data both got
+explicit entries.
+
+### Sensitivity is a second capability, not a scope
+
+`is_sensitive` appears **nowhere** in `DocumentVisibility`, and a source scan asserts its absence.
+Folding it into the scope predicate would make one permission answer two questions and would silently
+reinterpret every existing `documents.view` grant.
+
+It is checked in the Policy as a condition **on top of** reach, which is what keeps the two
+independently grantable in both directions (D-115): `documents.view` does not reach a sensitive
+document, and `documents.sensitive.view` cannot stand in for the ordinary code. Sensitivity gates
+every write ability too — correcting, verifying, archiving or deleting a KTP scan all disclose it.
+
+`download` is written and **nothing calls it**: D-115 rules that no sensitive-download surface ships
+before an audit store exists.
+
+### The junctions moved a milestone earlier, and the lock says so
+
+M5.0 put `party_documents`, `project_documents` and `matter_documents` in M5.3; they are built here.
+The reason is structural rather than a change of plan — each carries an `office_id` constraint
+carrier with a composite key into `documents (id, office_id)`, and that support key is created by the
+`documents` migration, so splitting the tables from the key they depend on would have run a milestone
+boundary through one invariant. **M5.3 keeps the surfaces**, which is where the authorization work is.
+
+`15_M5_DOCUMENT_TASK_ARCHITECTURE.md` is amended in place rather than quietly left stale: the status
+line now reads `LOCKED — M5.0, amended at M5.1`, §13 records the move and why, and both questions
+§14 assigned to M5.1 are marked resolved.
+
+### Verified on PostgreSQL, on a disposable database
+
+`m51_probe`, created and dropped for the purpose; the persistent development database was not
+touched and remains at 22 migrations with zero document tables. The serving process proved its own
+database with `SELECT current_database()` before anything was asserted.
+
+Migrated 0 → 34; every `CHECK`, composite key and cascade exercised directly. Refused, as designed:
+a version deleted while its Document survives, a pointer at a foreign version, `public/` and nested
+`uploads/` paths, an uppercase checksum, `version_number = 0`, `file_size = -1`, a status outside the
+enum, `reference_year = -1`, and a cross-office attachment on all three junctions. Rolled back the
+five M5.1 migrations alone → 29, with no leftover constraint or index and the `parties`, `projects`
+and `matters` support keys intact; `migrate:reset` and a full re-migrate from zero both clean.
+
+---
+
 ## 2026-08-23 — M5.0 Document and Task architecture lock
 
 Branch `feat/m5-documents-tasks`, from `main` at `f82dc25`. **No migration, no permission, no

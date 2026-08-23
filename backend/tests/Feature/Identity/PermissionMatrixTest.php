@@ -228,7 +228,43 @@ it('allows only OFFICE and ALL for administering users', function (string $permi
 it('allows the generic non-TEAM set for a permission whose domain is not built yet', function (string $permission): void {
     expect(app(PermissionScopeRules::class)->allowedFor($permission))
         ->toBe([DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL]);
-})->with(['notary.deeds.approve', 'ppat.warkah.verify', 'projects.view', 'documents.upload']);
+    // **Narrowed at M5.1, not deleted.** `documents.upload` sat on this list
+    // while the Document domain was unbuilt; M5.1 decided its predicates (D-116)
+    // and it now has its own case below. `master.legal_terms.manage` replaces it
+    // — a code whose domain genuinely is still undesigned, which is what this
+    // case is for. `projects.view` stays: its four scopes are the same four, but
+    // they are a decision (D-088) rather than a placeholder, and it is here to
+    // prove the two lists agree.
+})->with(['notary.deeds.approve', 'ppat.warkah.verify', 'projects.view', 'master.legal_terms.manage']);
+
+it('allows OWN, OFFICE and ALL for every Document permission', function (string $permission): void {
+    // ASSIGNED is withheld because a Document has no assignee — no `pic_user_id`,
+    // no assignment entity, nothing for the predicate to match (D-116). Offering
+    // it in the Matrix would let an administrator save a silently powerless
+    // grant, which is the dead control D-080 named.
+    //
+    // OWN **is** offered, where Party (D-080) and Service Type (D-106) withhold
+    // it: `created_by` names the person who filed the document, rather than a
+    // colleague who typed in a shared reference record.
+    expect(app(PermissionScopeRules::class)->allowedFor($permission))
+        ->toBe([DataScope::OWN, DataScope::OFFICE, DataScope::ALL]);
+})->with([
+    'documents.view', 'documents.sensitive.view', 'documents.upload',
+    'documents.download', 'documents.sensitive.download', 'documents.update',
+    'documents.verify', 'documents.archive', 'documents.delete',
+]);
+
+it('never allows ASSIGNED for a Document permission', function (): void {
+    $rules = app(PermissionScopeRules::class);
+
+    foreach (PermissionRegistry::all() as $permission) {
+        if (! str_starts_with($permission, 'documents.')) {
+            continue;
+        }
+
+        expect($rules->permits($permission, DataScope::ASSIGNED))->toBeFalse($permission);
+    }
+});
 
 it('never allows TEAM for any canonical permission', function (): void {
     $rules = app(PermissionScopeRules::class);

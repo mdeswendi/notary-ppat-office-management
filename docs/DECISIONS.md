@@ -4027,6 +4027,107 @@ are recorded in the lock's unresolved table as belonging to a named milestone.
 
 ---
 
+### D-116 — A Document points at its current version through a composite key, and sensitivity is a second capability rather than a scope
+
+M5.1 builds the Document schema, private storage, the `DOC-` allocator, the three buildable
+junctions, and the Policy. **Backend foundation only** — no route, controller, request, resource or
+frontend, following M2.1, M3.1, M4.1, M4.2 and M4.6. **No permission is registered; the count stays
+at 177** (D-115).
+
+**Five migrations, 29 → 34.** `documents`, `document_versions`, the composite key added by `ALTER`,
+`document_reference_counters`, and the three junctions in one migration.
+
+**`is_current` is gone, replaced by `documents.current_version_id`** — the choice M5.0 explicitly
+assigned to this milestone. A boolean would need a partial unique index to mean "exactly one";
+partial indexes do not exist on the SQLite connection the suite runs on, so the two engines would
+disagree about what is representable, which is the shape D-111 already refused once.
+
+**A bare pointer would not have proved the version belongs to the document.** It could have named a
+version of some *other* document and nothing would have objected. So `document_versions` carries a
+support key `UNIQUE (document_id, id)` — redundant for uniqueness, required for a composite foreign
+key — and `documents` declares `(id, current_version_id) -> document_versions (document_id, id)`, the
+construction D-080, D-098, D-105, D-107 and D-111 all use, applied to a same-Document invariant
+instead of a same-Office one. The key arrives by `ALTER` in its own migration because the two tables
+reference each other; SQLite cannot add a foreign key to an existing table, so a model guard holds
+the identical rule on the test connection.
+
+**`RESTRICT`, after measuring that `NO ACTION` would behave identically.** `document_versions.
+document_id` cascades, so hard-deleting a Document removes versions the same Document row still
+points at — which looks as though it forces `NO ACTION`. It does not: the referencing `documents`
+row goes in the same statement, so by the time `RESTRICT` looks, nothing points at the version. The
+M5.1 PostgreSQL probe ran the delete under both declarations and both succeeded. The initial
+migration shipped `NO ACTION` with a docblock asserting a difference; the measurement contradicted
+it, and the declaration is now `RESTRICT` like every other key in the schema — the single deliberate
+CASCADE remains `document_versions.document_id`. **This is recorded because the claim was written
+before it was tested**, which is the D-077 defect class.
+
+**A version is written once, enforced rather than intended.** The model refuses `update` outright, and
+the table has **no `created_at` or `updated_at`** — `03_DATABASE_ERD.md` section 13 gives it
+`uploaded_at` alone, transcribed rather than tidied: a column recording when a version changed is a
+column inviting one.
+
+**`documents.updated_by` is present although the M5.1 plan omitted it**, because the ERD lists it and
+`matters` carries the same pair: a metadata correction has an author, and `updated_at` alone records
+that something changed without recording who.
+
+**`document_number` is nullable**, following `project_number` (M3.3) and `matter_number` (M4.4)
+exactly: no creation path allocates one yet, so `NOT NULL` would make a Document unwritable for a
+whole milestone. The allocator ships now; the milestone that builds upload stamps the reference
+inside the creating transaction and tightens the column.
+
+**Two namespace dimensions, not three.** `DOC-YYYY-NNNNNN` counts per Office and calendar year.
+Matter needed a domain because `N-` and `P-` are distinct sequences that would otherwise compete for
+one value (D-108); a Document has no such split. One atomic `INSERT … ON CONFLICT … DO UPDATE …
+RETURNING`, no `MAX+1`, and the class opens no transaction of its own so it participates in the
+caller's. ERD section 27's configurable numbering engine is again declined.
+
+**Storage issues no URL of any kind** — no signed URL, no temporary URL, no path a client could try.
+A URL that authorizes by possession is a second authorization path beside the Policy chain (D-114).
+The path is `documents/{office_id}/{YYYY}/{MM}/{ulid}.{ext}`, the stored name is generated and the
+uploader's name is never a path component, the extension is reduced to lowercase alphanumerics, and
+the SHA-256 is computed from **the bytes actually written** rather than from the upload.
+
+**Three Data Scopes reach a Document: `OWN`, `OFFICE`, `ALL`.** `ASSIGNED` is withheld because a
+Document has no assignee and no assignment entity exists for the predicate to match; `TEAM` because
+no Team entity exists (D-042). `OWN` **is** granted, where Party (D-080) and Service Type (D-106)
+withhold it — those are shared reference records the colleague who typed them in has no claim on,
+whereas `created_by` names the person who filed the document, the argument Project made at D-088.
+
+**The Permission Matrix is narrowed to match.** All nine `documents.*` codes are restricted to
+`OWN, OFFICE, ALL` in `PermissionScopeRules`. Withholding `ASSIGNED` only in the predicate would have
+let an administrator grant `documents.view` at `ASSIGNED`, see it saved, and hold a silently
+powerless grant — the dead control D-080 named.
+
+**Filing is always into the actor's own Office, including for `ALL`.** `ALL` is reach over records
+that already exist, never authority to decide which Office a new one belongs to — the line D-097,
+D-098 and D-107 all drew.
+
+**Sensitivity is not a visibility predicate.** `is_sensitive` appears nowhere in `DocumentVisibility`,
+and a test asserts its absence. It is checked in the Policy as a **second condition on top of reach**,
+which is what keeps `documents.sensitive.view` and `documents.sensitive.download` independently
+grantable in both directions (D-115): the ordinary code does not reach a sensitive document, and the
+sensitive code cannot stand in for the ordinary one. Sensitivity gates every write ability too —
+correcting, verifying, archiving or deleting a KTP scan all disclose it.
+
+**`download` is written and nothing calls it.** D-115 rules that no sensitive-download surface ships
+before an audit store exists. The ability exists so the milestone that builds the surface starts from
+a decision rather than an omission.
+
+**Archived is reachable; `deleted_at` is reserved with no lifecycle.** Somebody must be able to read
+what the office archived (`CLAUDE.md` section 63), and no `SoftDeletes` trait is used, so "invisible
+because deleted" cannot be confused with "invisible because out of scope" — the M4.2 position
+(D-102). No transition matrix exists: M5 authorizes *who* may act, never *which* status follows which.
+
+**The junctions moved from M5.3 into M5.1**, and the M5.0 lock is amended in place to say so. Each
+carries an `office_id` constraint carrier with a composite key into `documents (id, office_id)` — a
+support key the `documents` migration creates — so splitting the tables from the key they depend on
+would have run a milestone boundary through one invariant. **M5.3 keeps the surfaces**, which is where
+the authorization work is. No `UNIQUE (owner_id, document_id)`: no canonical document says a Document
+may be attached to a record only once, and a unique index is a business rule wearing an index's
+clothing (D-105, D-110).
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

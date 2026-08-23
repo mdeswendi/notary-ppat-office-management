@@ -269,17 +269,22 @@ it('introduces no workflow or later-milestone table', function (): void {
     // **Narrowed again at M4.6**, which builds the template tables (D-111), and
     // at M4.7, which builds the running ones (D-112). Each has its own schema
     // test; what is left here is M5 and beyond.
-    foreach (['documents', 'properties', 'tasks'] as $table) {
+    // **Narrowed again at M5.1**, which builds `documents` (D-116) with its own
+    // schema test. `tasks` is M5.4 and beyond; `properties` is M7.
+    foreach (['properties', 'tasks'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
     // The point that survives every narrowing: Project points at none of it —
-    // and now that both the template and the running workflow genuinely exist,
-    // these assertions finally have something real to be false about.
+    // and now that the template, the running workflow and the Document all
+    // genuinely exist, these assertions finally have something real to be false
+    // about. `project_documents` attaches a Document to a Project from a
+    // relationship table; a column here would be the coupling this refuses.
     expect(Schema::hasColumn('projects', 'service_type_id'))->toBeFalse()
         ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse()
         ->and(Schema::hasColumn('projects', 'matter_workflow_id'))->toBeFalse()
-        ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse();
+        ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'document_id'))->toBeFalse();
 });
 
 it('generalizes the counter into no legal numbering framework', function (): void {

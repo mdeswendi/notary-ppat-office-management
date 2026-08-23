@@ -235,6 +235,50 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Document domain, whose predicates M5.1 settled (D-116).
+     *
+     * Three scopes, not four:
+     *
+     *   OWN       documents.created_by = actor id
+     *   OFFICE    documents.office_id  = actor office
+     *   ALL       cross-office reach
+     *
+     * **`ASSIGNED` is withheld, and that is the whole reason this entry exists.**
+     * A Document has no assignee — there is no `pic_user_id`, and no assignment
+     * entity for the predicate to match. Leaving Documents in the permissive
+     * default below would let an administrator grant `documents.view` at
+     * `ASSIGNED`, see it saved, and hold a silently powerless grant: the dead
+     * control D-080 named, and the reason Party and the office-owned master data
+     * both got explicit entries.
+     *
+     * `OWN` **is** offered, where Party (D-080) and Service Type (D-106) withhold
+     * it. Not an inconsistency: those are shared reference records that the
+     * colleague who typed them in has no claim on, whereas `created_by` on a
+     * Document names the person who filed it. Project made the same argument at
+     * D-088.
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **All nine codes take the same list, including the two sensitive ones.**
+     * `documents.sensitive.view` and `documents.sensitive.download` select the
+     * same records by the same predicates; what makes them different is that they
+     * are separate capabilities rather than escalations (D-115), which the Policy
+     * enforces. Giving them a narrower or wider scope set here would encode one
+     * boundary as two.
+     */
+    private const DOCUMENT_DOMAIN = [
+        'documents.view',
+        'documents.sensitive.view',
+        'documents.upload',
+        'documents.download',
+        'documents.sensitive.download',
+        'documents.update',
+        'documents.verify',
+        'documents.archive',
+        'documents.delete',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -267,6 +311,10 @@ class PermissionScopeRules
 
         if (in_array($permission, self::MATTER_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::DOCUMENT_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::OFFICE, DataScope::ALL];
         }
 
         // Everything else, including every permission whose module is not built

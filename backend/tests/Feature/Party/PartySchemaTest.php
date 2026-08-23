@@ -237,12 +237,21 @@ it('gives Party no foreign key into a later milestone', function (): void {
     // **Narrowed again at M4.2**, which builds `matters` (D-107). The assertion
     // that expired is gone; the column check below is the one this test was
     // always really about, and it now covers Matter explicitly.
-    foreach (['documents', 'party_documents', 'properties'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse();
+    //
+    // **Narrowed again at M5.1**, which builds `documents` and `party_documents`
+    // (D-116). Both have their own schema test. `properties` is M7 and stays.
+    foreach (['properties'] as $table) {
+        expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
+    // The point that survives every narrowing, and the one M5.1 makes real:
+    // **Party points at none of it.** `party_documents` is a relationship table —
+    // still not a column on `parties` — so a `document_id` here would be the
+    // start of exactly the coupling this test exists to refuse. Now that
+    // `documents` genuinely exists, that assertion finally has something to be
+    // false about.
     foreach (['project_id', 'matter_id', 'document_id'] as $column) {
-        expect(Schema::hasColumn('parties', $column))->toBeFalse();
+        expect(Schema::hasColumn('parties', $column))->toBeFalse($column);
     }
 });
 

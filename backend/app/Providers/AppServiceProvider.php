@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Company;
+use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\MatterParty;
@@ -10,6 +11,7 @@ use App\Models\ProjectParty;
 use App\Models\ServiceType;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
+use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
@@ -92,6 +94,15 @@ class AppServiceProvider extends ServiceProvider
         // `notary.matters.parties.*` and `ppat.matters.parties.*` (D-101).
         // Callers authorize with `[MatterParty::class, $matter, $domain]`.
         Gate::policy(MatterParty::class, MatterPartyPolicy::class);
+
+        // Document (M5.1). Laravel would discover this pair on its own; it is
+        // listed here so one file still answers "which policy guards what". Two
+        // things about it are worth pointing at: `create` takes an Office id
+        // rather than a model, because filing is always into the actor's own
+        // Office; and `view`, `download` and the rest apply
+        // `documents.sensitive.*` as a **separate** capability on top of reach,
+        // never as an escalation of the ordinary code (D-115).
+        Gate::policy(Document::class, DocumentPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

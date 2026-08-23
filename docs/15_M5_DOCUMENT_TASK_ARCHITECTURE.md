@@ -1,6 +1,10 @@
 # M5 — Document & Task Architecture
 
-**Status:** `LOCKED — M5.0`
+**Status:** `LOCKED — M5.0, amended at M5.1`
+
+Amendments are marked in place and never silently overwrite what the lock said. M5.1 (D-116) closed
+the two questions section 14 assigned to it — `is_current` and `document_number` nullability — and
+corrected the decomposition in section 13, which had put the junction tables one milestone too late.
 
 Sibling of `12_M2_PARTY_ARCHITECTURE.md`, `13_M3_PROJECT_ARCHITECTURE.md` and
 `14_M4_MATTER_ARCHITECTURE.md`. Where those locked the Party, Project and Matter aggregates, this
@@ -173,7 +177,7 @@ if nothing ever rewrites it.
 **`version_number` is unique per document.** Allocation is atomic, following D-103's rule for Matter
 references: no `MAX+1`, no `COUNT+1`, no read-then-write.
 
-### 6.1 The `is_current` question, left to M5.1
+### 6.1 The `is_current` question — resolved at M5.1
 
 Exactly one version should be current. The obvious expression is a partial unique index —
 `UNIQUE (document_id, is_current) WHERE is_current` — and **that is the shape M4.6 already refused
@@ -181,9 +185,35 @@ once** (D-111): partial indexes do not exist on the SQLite connection the test s
 PostgreSQL and SQLite would disagree about what is representable, and a rule the tests cannot see is
 a rule that decays.
 
-M5.0 does not settle it. What M5.0 *does* settle is that the milestone which builds the table must
-choose deliberately between a partial index, an application invariant with a test, or a nullable
+M5.0 did not settle it. What M5.0 settled is that the milestone which builds the table must choose
+deliberately between a partial index, an application invariant with a test, or a nullable
 `current_version_id` on `documents`, and must say which and why.
+
+**M5.1 chose the pointer** (D-116). `is_current` does not exist; `documents.current_version_id` is a
+nullable ULID, and "at most one current version" is structural rather than a rule something has to
+maintain.
+
+**A bare pointer would not have been enough**, and that is the part worth recording: it could have
+named a version belonging to some *other* document, and nothing would have objected. So
+`document_versions` carries a support key `UNIQUE (document_id, id)` — redundant for uniqueness,
+required for a composite foreign key — and `documents` declares
+
+```text
+documents (id, current_version_id)  ->  document_versions (document_id, id)
+```
+
+the construction `company_people` (D-080), `project_parties` (D-098), `matters` (D-107),
+`matter_parties` (D-105) and `workflow_templates` (D-111) all use for the same-Office invariant,
+applied here to a same-Document one. A cross-document pointer is unrepresentable rather than merely
+wrong.
+
+**The key arrives by `ALTER` in its own migration**, because the two tables reference each other and
+neither can declare its key inline. SQLite cannot add a foreign key to an existing table, so that
+migration is PostgreSQL-only and a model guard holds the identical rule on the test connection —
+both are covered by tests.
+
+`current_version_id` is nullable **permanently**, not pending: a Document legitimately exists before
+its first file lands, which is the ordinary state between creating the row and writing the version.
 
 ---
 
@@ -301,9 +331,12 @@ rather than quietly implied — the D-109 precedent.
 
 **`document_number` is an internal office identifier and never a legal number.** `DOC-{YYYY}-{NNNNNN}`,
 allocated atomically per Office and calendar year, following D-103 and D-108 exactly. It is not a
-deed number, not a repertorium entry, and carries no legal weight. Whether it is required or
-nullable is M5.1's to settle, following the `project_number` / `matter_number` precedent of adding
-the column with its allocator and tightening later.
+deed number, not a repertorium entry, and carries no legal weight.
+
+**M5.1 settled it as nullable** (D-116), following the `project_number` / `matter_number` precedent
+exactly: no creation path allocates one yet, so `NOT NULL` would make a Document unwritable for a
+whole milestone. The allocator ships with the column; the milestone that builds upload stamps the
+reference inside the creating transaction and tightens the column then, as M3.3 and M4.4 each did.
 
 ### 10.3 Data Scope
 
@@ -317,6 +350,12 @@ TEAM      no grant — no Team entity exists (D-042)
 
 `ASSIGNED` is withheld for the reason D-080 withheld it from Party: there is no assignment entity
 for the predicate to match. Offering it would let an administrator save a silently powerless grant.
+
+**M5.1 implemented this table verbatim** in `App\Domains\Document\DocumentVisibility` and, so that
+the Permission Matrix cannot offer what the resolver will not honour, narrowed all nine
+`documents.*` codes to `OWN, OFFICE, ALL` in `PermissionScopeRules` (D-116). Withholding `ASSIGNED`
+only in the predicate would have left the dead control this section warns about still visible in the
+interface.
 
 ### 10.4 Sensitive access is a separate capability, in both directions
 
@@ -402,23 +441,30 @@ endpoint authorizes again, and the file is streamed only after it does.
 
 ```text
 M5.0   Document / Task architecture lock       <- this document
-M5.1   Document schema + private storage foundation
+M5.1   Document schema + private storage foundation   (includes the three junction tables)
 M5.2   Document management surface
-M5.3   Document relations (party / project / matter)
+M5.3   Document relation surfaces (party / project / matter)
 M5.4   Task schema + management
 M5.5   Frontend: documents, tasks, and M4 integration
 M5.6   M5 quality gate
 ```
+
+**Corrected at M5.1** *(D-116)*. This list originally put the three junction tables in M5.3, and
+M5.1 built them instead. The reason is structural rather than a change of mind: `party_documents`,
+`project_documents` and `matter_documents` each carry an `office_id` constraint carrier with a
+composite foreign key into `documents (id, office_id)`, and that support key is created by the
+`documents` migration. Splitting the tables from the key they depend on would have left a milestone
+boundary running through one invariant. **M5.3 keeps the surfaces** — attaching, detaching, and the
+sections that show them — which is where the authorization work actually is.
 
 **Audit is deliberately unnumbered.** Section 8 rules that no sensitive-download surface lands
 before it exists; whether it becomes M5.2a, a prerequisite milestone, or part of M5.4's batch-7
 grouping is a scoped decision that belongs to whoever takes it, not to this list.
 
 **M5.1 is schema, storage, allocator and Policy — not CRUD UI**, following M2.1, M3.1, M4.1 and
-M4.2 exactly. **M5.3 needs M5.1**, because a junction cannot reference `documents` before it exists.
-**M5.5 is where the Matter and Project detail pages gain their sections**, following the M4.5 and
-M4.7 precedent of a section rather than a tab — the repository has no `Tabs` primitive, and adding
-one is a design decision rather than a side effect.
+M4.2 exactly. **M5.5 is where the Matter and Project detail pages gain their sections**, following
+the M4.5 and M4.7 precedent of a section rather than a tab — the repository has no `Tabs` primitive,
+and adding one is a design decision rather than a side effect.
 
 **No milestone in M5 seeds content.** No document types, no task templates, no requirement
 catalogues.
@@ -432,8 +478,8 @@ catalogues.
 | Where audit lives, and what it records | **OPEN, and section 8 rules that no sensitive-download surface ships before it is answered.** Batch 7 per the ERD | **No** — M5.1 writes no download surface |
 | Document type catalogue | **DOMAIN VALIDATION REQUIRED.** `document_type_code` stays opaque and nullable; the ERD's examples are prose | **No** |
 | Whether a sensitive document's *title* is safe to show in a list | **OPEN.** M4.5 settled that the row appears as a stub; what the stub may carry for a sensitive document is M5.2's | **No** |
-| `is_current` uniqueness — partial index, application invariant, or a pointer on `documents` | **OPEN.** M5.1 must choose and say why; the partial-index shape is the one D-111 refused | **Yes — M5.1 owns it** |
-| `document_number` required or nullable at first | **OPEN.** Follows the `project_number` / `matter_number` precedent | **Yes — M5.1 owns it** |
+| `is_current` uniqueness — partial index, application invariant, or a pointer on `documents` | **RESOLVED at M5.1** (D-116). `is_current` is gone; `documents.current_version_id` carries a **composite** foreign key `(id, current_version_id) -> document_versions (document_id, id)`, so a pointer at another document's version is unrepresentable | Closed |
+| `document_number` required or nullable at first | **RESOLVED at M5.1** (D-116): nullable, because no creation path allocates one yet. The milestone that builds upload stamps it inside the creating transaction and tightens the column | Closed |
 | `tasks` has `assigned_by` but no `created_by`, while Data Scope `OWN` needs an owner | **OPEN.** M5.4 must resolve it explicitly rather than adding a column on instinct | **No** |
 | Requirement templates and workflow gating | **DOMAIN VALIDATION REQUIRED** and structurally blocked: `service_document_requirements` does not exist (D-104) | **No** |
 | `task_templates` and auto-creating tasks from a stage | Deferred. Workflow content, plus a `default_assignee_role` column that must never become role-name authorization | **No** |
@@ -441,7 +487,8 @@ catalogues.
 | Retention, expiry, and what `expiry_date` obliges | **OPEN.** The column is canonical; whether anything acts on it is undecided, and expiring a legal document is not an engineering decision | **No** |
 | The three blocked junctions | Structurally blocked until M6 / M7 build their tables (section 7) | **No** |
 
-None blocks M5.1 except the two it explicitly owns. Each is recorded rather than quietly assumed.
+Both questions M5.1 owned are now closed above; the rest are recorded rather than quietly assumed
+and belong to later milestones.
 
 ---
 
