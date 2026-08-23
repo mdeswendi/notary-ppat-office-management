@@ -3,10 +3,19 @@
 Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bilingual
 (Indonesia / Inggris) dengan frontend Next.js dan backend Laravel.
 
-> **Status: M0 — Foundation.**
-> Fondasi sudah lengkap: autentikasi sesi, fondasi otorisasi, routing bilingual, dan
-> application shell. **Belum ada modul bisnis** — Party, Project, Matter, Notary, PPAT,
-> Warkah, Billing, dan Reports dikerjakan mulai M1.
+> **Status: M4 — Matter & Workflow Engine, selesai sampai M4.8.**
+> M0 sampai M3 sudah di-merge ke `main`. M4 selesai di branch dan menunggu penerimaan.
+>
+> **Sudah ada:** autentikasi sesi dan otorisasi berbasis Data Scope, manajemen Pengguna dan
+> Peran, Party (Perorangan & Perusahaan), Proyek beserta Pihak Terkait, Jenis Layanan,
+> Pekerjaan (Matter) Notaris dan PPAT beserta para pihaknya, serta mesin alur kerja
+> (template, tahapan, instansiasi, dan riwayat perpindahan tahap).
+>
+> **Belum ada:** Dokumen, Tugas, Akta Notaris, Akta PPAT, Warkah, Properti, Billing, dan
+> Reports — dikerjakan mulai M5.
+>
+> **Mesin alur kerja sengaja dikirim kosong.** Tidak ada template Notaris/PPAT bawaan: isi
+> alur kerja menunggu validasi domain, bukan menunggu pengembangan (D-104).
 
 ## Arsitektur
 
@@ -232,11 +241,24 @@ pnpm install --frozen-lockfile
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test                  # Vitest + React Testing Library, sekali jalan
 pnpm build
 ```
 
 Perintah yang sama dijalankan otomatis oleh CI pada setiap push dan pull request — lihat
-`.github/workflows/quality.yml`.
+`.github/workflows/quality.yml`. Daftar di atas tidak boleh lebih lemah daripada berkas itu
+(`CLAUDE.md` §52).
+
+Skrip test lainnya:
+
+```bash
+pnpm test:watch            # mode watch, untuk pengembangan
+pnpm test:ci               # sekali jalan + laporan coverage (dipakai CI)
+pnpm test:ui               # antarmuka Vitest di browser
+```
+
+**Test frontend adalah lapisan presentasi.** Batas keamanan tetap di backend (`CLAUDE.md` §28):
+test frontend yang hijau tidak pernah berarti sebuah endpoint sudah terotorisasi.
 
 ## Rute dan Bahasa
 
@@ -268,8 +290,16 @@ Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
 | [docs/09_PPAT_WORKFLOW.md](docs/09_PPAT_WORKFLOW.md) | **DRAFT — DOMAIN VALIDATION REQUIRED** |
 | [docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) | Spesifikasi implementasi M0 |
 | [docs/11_LEGAL_REFERENCES.md](docs/11_LEGAL_REFERENCES.md) | Register rujukan hukum |
+| [docs/12_M2_PARTY_ARCHITECTURE.md](docs/12_M2_PARTY_ARCHITECTURE.md) | Architecture lock M2 — Party |
+| [docs/13_M3_PROJECT_ARCHITECTURE.md](docs/13_M3_PROJECT_ARCHITECTURE.md) | Architecture lock M3 — Project |
+| [docs/14_M4_MATTER_ARCHITECTURE.md](docs/14_M4_MATTER_ARCHITECTURE.md) | Architecture lock M4 — Matter & Workflow |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan |
+
+Tiga berkas `12_`, `13_`, dan `14_` adalah **architecture lock** per milestone: masing-masing
+mencatat apa yang boleh dibangun domainnya, apa yang tidak, dan pernyataan mana yang disalin dari
+sumber kanonik alih-alih diputuskan setempat. Baca lock domain yang sedang dikerjakan sebelum
+mengubahnya (`CLAUDE.md` §58).
 
 Dokumen 08 dan 09 **tidak boleh** dipakai untuk mengimplementasi alur kerja hukum sebelum
 divalidasi oleh sumber domain.
@@ -278,10 +308,10 @@ divalidasi oleh sumber domain.
 
 ```text
 M0   Foundation                  selesai
-M1   Identity & Access Management
-M2   Party / Individual / Company
-M3   Project Management
-M4   Matter & Workflow Engine
+M1   Identity & Access Management selesai
+M2   Party / Individual / Company selesai
+M3   Project Management           selesai
+M4   Matter & Workflow Engine     selesai di branch, menunggu penerimaan
 M5   Documents & Tasks
 M6   Notary Module
 M7   PPAT Module

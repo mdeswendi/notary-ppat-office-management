@@ -117,6 +117,14 @@ final class PermissionRegistry
                 'notary.matters.complete',
                 'notary.matters.cancel',
 
+                // Section 10a. Matter <-> Party participation (M4.5, D-105).
+                // Two codes per domain and deliberately no
+                // `*.matters.parties.view_all`: reach is Data Scope `ALL`
+                // against the parent Matter, and a second reach mechanism is
+                // what D-090 refuses.
+                'notary.matters.parties.view',
+                'notary.matters.parties.manage',
+
                 'notary.deeds.view',
                 'notary.deeds.create',
                 'notary.deeds.update',
@@ -148,6 +156,15 @@ final class PermissionRegistry
                 'ppat.matters.change_stage',
                 'ppat.matters.complete',
                 'ppat.matters.cancel',
+
+                // Section 11a. Matter <-> Party participation (M4.5, D-105).
+                // Four codes in total rather than two shared across domains:
+                // the section 5 role matrix gives Notary Staff full access to
+                // Notary Matters and view-only on PPAT, and the reverse for
+                // PPAT Staff, so one pair spanning both would hand each of them
+                // the other's participation.
+                'ppat.matters.parties.view',
+                'ppat.matters.parties.manage',
 
                 'ppat.deeds.view',
                 'ppat.deeds.create',

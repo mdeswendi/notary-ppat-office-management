@@ -353,13 +353,31 @@ it('records who linked the Party and survives that person', function (): void {
 */
 
 it('introduces no Matter or later-milestone persistence', function (): void {
-    foreach ([
-        'matters', 'matter_parties', 'service_types',
-        'workflow_templates', 'workflow_instances', 'workflow_stages',
-        'documents', 'properties', 'warkah', 'deeds', 'tasks',
-    ] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse();
+    // **Narrowed at M4.1, not deleted.** `service_types` was on this list while
+    // master data was unbuilt; M4.1 owns it now (D-106) and its own schema test
+    // asserts its shape. Everything else is M4.2 and beyond and stays exactly as
+    // it was — and the point this test was always making holds: participation
+    // gains no foreign key into any later milestone.
+    // **Narrowed again at M4.2**, which builds `matters` (D-107), and at M4.5,
+    // which builds `matter_parties` (D-105). Both have their own schema tests;
+    // everything left here is M4.6 and beyond.
+    // **Narrowed again at M4.6**, which builds the two template tables (D-111),
+    // and at M4.7, which builds the three running ones (D-112). Everything left
+    // here is M5 and beyond.
+    foreach (['documents', 'properties', 'warkah', 'deeds', 'tasks'] as $table) {
+        expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The point this test was always making, and the one M4.5 makes sharper:
+    // Project participation gains no foreign key into Matter participation. The
+    // two tables are independent — not inherited, not copied, not synchronized
+    // (D-105) — and a column here pointing at one is how that would start.
+    expect(Schema::hasColumn('project_parties', 'matter_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'matter_party_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'service_type_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'workflow_stage_id'))->toBeFalse()
+        ->and(Schema::hasColumn('project_parties', 'matter_workflow_id'))->toBeFalse()
+        ->and(Schema::hasColumn('matter_parties', 'project_party_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected participation routes and nothing more', function (): void {

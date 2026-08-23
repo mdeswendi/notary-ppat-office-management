@@ -522,10 +522,16 @@ Project
 Do not merge Project and Matter into one database entity.
 
 They are also separate **milestones**: M3 implements Project, M4 implements Matter and the
-Workflow Engine (D-087). Project is the M3 aggregate root; Matter is a future child aggregate
-with its own lifecycle, and no Project-to-Matter cardinality is fixed until M4 decides it.
+Workflow Engine (D-087). Project is the M3 aggregate root; Matter is a child aggregate with its
+own lifecycle.
+
+**M4.0 fixed the cardinality** (D-099): `matters.project_id` is required, one Project may hold
+many Matters, and a Project with zero Matters is complete rather than a draft. Matter Office is
+inherited from the parent Project and immutable during M4, and **reaching a Project confers no
+Matter authority** (D-100) — each is judged by its own capability and its own Data Scope.
 
 The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
+The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
 
 ---
 
@@ -1472,12 +1478,31 @@ At minimum test:
 * workflow transition rules;
 * legal finalization rules.
 
+Frontend changes should have appropriate automated tests.
+
+Use:
+
+```text
+Vitest + React Testing Library
+```
+
+At minimum test:
+
+* permission and navigation gates;
+* branch behaviour a type cannot express;
+* error mapping, so no raw server text reaches a user;
+* controls that must be absent for an actor who may not use them.
+
+**Frontend tests are presentation only.** The backend is the security boundary
+(section 28); a passing frontend test never means an endpoint is authorized.
+
 Frontend changes should pass:
 
 ```text
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -1500,6 +1525,7 @@ Frontend:
 pnpm format:check
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -1507,6 +1533,11 @@ This list must never be weaker than `.github/workflows/quality.yml`. It was, onc
 `format:check` was missing here while CI enforced it, so work that passed every
 documented command still failed CI. Adding a gate to the workflow means adding it
 here in the same change.
+
+`pnpm test` joined both lists together when O-032 added the runner. **Use `test`,
+never `test:watch`** — the watch mode never exits, so a task using it would appear
+to hang rather than to pass. CI runs `test:ci`, which is the same single run plus
+a coverage report.
 
 Backend:
 
@@ -1649,11 +1680,12 @@ docs/
 ├── 11_LEGAL_REFERENCES.md
 ├── 12_M2_PARTY_ARCHITECTURE.md
 ├── 13_M3_PROJECT_ARCHITECTURE.md
+├── 14_M4_MATTER_ARCHITECTURE.md
 ├── DECISIONS.md
 └── CHANGELOG.md
 ```
 
-`12_` and `13_` are milestone architecture locks. Each records what its domain may build,
+`12_`, `13_` and `14_` are milestone architecture locks. Each records what its domain may build,
 what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
 

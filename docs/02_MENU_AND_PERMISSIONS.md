@@ -404,6 +404,90 @@ notary.matters.complete
 notary.matters.cancel
 ```
 
+**M4.0 adds no permission — the canonical count stays at 173.** All sixteen Matter codes, Notary
+and PPAT alike, were already canonical. Four rulings govern how they are used
+*(`14_M4_MATTER_ARCHITECTURE.md`)*:
+
+- **The namespace comes from the route** *(D-101)*: `/api/v1/notary/matters` resolves
+  `notary.matters.*`, `/api/v1/ppat/matters` resolves `ppat.matters.*`. Never from a request-body
+  `domain`, and never from row data.
+- **Matter Data Scope** *(D-100)*: `OWN` = `created_by`, `ASSIGNED` = `matter.pic_user_id`,
+  `OFFICE` = `matter.office_id`, `ALL` = cross-office reach, `TEAM` = no grant. **Project reach
+  confers no Matter authority**, and a stage assignee never widens `ASSIGNED`.
+- **`view_all` remains superseded for reach** *(D-090)* and is not backend authority.
+- **No `archive` or `restore` code exists for Matter, and M4 invents none** *(D-102)*. The absence
+  is the registry's. `matters.deleted_at` may exist as reserved schema capability with no API
+  lifecycle reaching it, and `CANCELLED` / `COMPLETED` / `ARCHIVED` are business statuses, never
+  synonyms for soft deletion.
+
+**M4.2 built the Matter foundation and added no permission — the count stays at 173** *(D-107)*.
+Fourteen of the sixteen codes — every one except the two `view_all` — are narrowed in
+`PermissionScopeRules` to the four Project-shaped scopes `OWN`, `ASSIGNED`, `OFFICE`, `ALL`, with
+`TEAM` withheld. `create` needs no special entry: an administrator may grant it at `ASSIGNED`, and
+it simply authorizes nothing, because the predicate is false for a record that has no PIC yet.
+**Both `view_all` codes stay out of those rules and are consulted by no Policy ability.** M4.2 ships
+no route, so navigation is unchanged.
+
+**M4.4 gave those codes routes and added no permission — the count stays at 173** *(D-109)*.
+Eighteen endpoints, nine per domain, under literal `/api/v1/notary/matters` and
+`/api/v1/ppat/matters` prefixes, with the domain carried as a **route default** read back by name
+rather than taken as a controller argument. A Matter of the other domain answers **404**, so the
+paired endpoints cannot be used to prove a record exists across the Notary/PPAT boundary.
+
+**Ten of the sixteen codes were reachable at M4.4:** `view`, `create`, `update`, `assign`,
+`complete` and `cancel`, in both domains.
+
+**M4.7 makes it twelve** *(D-112)*. `notary.matters.change_stage` and `ppat.matters.change_stage`
+gain routes — `matters/{matter}/stages/options` and `matters/{matter}/stages/move` — and **leave the
+deferred list**, which `PermissionController` and its tests both reflect. Keeping the badge once a
+route exists would be the stale kind that trains people to ignore badges (D-077).
+
+Worth stating because it reads like a counter-example: a deployment that has configured no workflow
+template still sees nothing happen when it grants the code, because D-104 seeds no templates and a
+Matter without a workflow has no stage to move. That is **configuration the office enters**, not a
+missing implementation, and it is true of every master-data-driven feature.
+
+The two `view_all` codes remain non-authority.
+
+**No `change_status` code exists for Matter, and M4.4 invents none.** Project has one; Matter has
+`complete` and `cancel` instead. The consequence is stated rather than papered over: `OPEN`,
+`COMPLETED` and `CANCELLED` are the only statuses the product can reach, and **there is no status
+dropdown anywhere in the Matter interface**. `IN_PROGRESS`, `WAITING`, `ON_HOLD` and `ARCHIVED`
+stay filterable vocabulary that nothing can set — **and M4.7 does not change that.** Giving Matter a
+workflow gave it *stages*, which are a separate concept from status (`CLAUDE.md` section 18): moving
+a stage writes no `matters.status`, and a test asserts it.
+
+**Navigation gains two groups** — **Notary → Matters** and **PPAT → Matters** — each gated on its
+own domain code, `notary.matters.view` and `ppat.matters.view`. Never on a shared gate: the two
+capabilities are independent, and the section 5 role matrix deliberately gives Notary Staff and
+PPAT Staff different reach across the pair. Each group carries Matters and nothing else; Deeds,
+Minuta, Warkah, registers and protocols belong to M6 and M7 and are absent rather than rendered
+dark.
+
+**`service-type-options` is authorized by the Matter capability alone** — `viewAny` for the route's
+domain — and no `master.service_types.view` gate was invented for it. A picker is not a resource,
+and an account that may create Matters must be able to see what to create them as.
+
+**M4.5 added the four Matter participation codes, taking the canonical count to 177** *(D-105,
+D-110)* — `notary.matters.parties.view`, `notary.matters.parties.manage`,
+`ppat.matters.parties.view`, `ppat.matters.parties.manage`. Four rather than two because the role
+matrix in section 5 gives Notary Staff full access to Notary Matters and view-only on PPAT Matters,
+and the reverse for PPAT Staff; one pair spanning both domains would hand each of them the other's
+participation. `view` and `manage` are **independent in both directions** — `manage` does not imply
+`view`, which is the direction that matters more, since an actor who may edit the list is not
+thereby authorized to read it — and neither is reached by `…matters.update`. They were registered
+at M4.5 rather than M4.0, in the milestone that gave them routes, following the M3.4 precedent.
+
+Each is scoped by the four Matter predicates `OWN`, `ASSIGNED`, `OFFICE`, `ALL`, judged against the
+**parent Matter**; `TEAM` is withheld as everywhere. There is deliberately no
+`*.matters.parties.view_all` — reach is Data Scope `ALL`, and a second reach mechanism is what
+D-090 refuses.
+
+**Holding `manage` is not authority to discover Parties.** The candidate endpoint additionally
+applies `parties.view` to Individuals and `companies.view` to Companies, each at its own Data
+Scope and each independently, so it can never surface a Party the actor could not already reach in
+the Party directory. No Party permission was widened to populate a picker.
+
 ### Deeds
 
 ```text
@@ -627,6 +711,38 @@ master.legal_terms.view
 master.legal_terms.manage
 ```
 
+**M4.1 built the Service Type foundation and added no permission — the count stays at 173**
+*(D-106)*. `master.services.view` and `master.services.manage` were already canonical, and the two
+are **independent**: `manage` does not imply `view`.
+
+Their Data Scopes are narrowed to exactly **`OFFICE` and `ALL`**. Service Types are Office-owned
+reference data, so `OWN` would have to mean `created_by` — a column the table deliberately does not
+have — `ASSIGNED` has no assignee to match, and `TEAM` has no Team entity (D-042). Offering any of
+the three would let an administrator save a silently powerless grant.
+
+**M4.6 built the workflow-template foundation and added no permission — the count stays at 177**
+*(D-111)*. `master.workflows.view` and `master.workflows.manage` were already canonical, and they
+are **independent in both directions**: neither implies the other, and there is no umbrella code.
+
+Their Data Scopes are narrowed to exactly **`OFFICE` and `ALL`**, for the same reasons restated
+rather than borrowed: a workflow template is Office-owned configuration, so `OWN` would have to mean
+`created_by` — a column `workflow_templates` deliberately does not have, since the colleague who
+typed a process in has no claim on how the office works — `ASSIGNED` has no assignee to match, and
+`TEAM` has no Team entity.
+
+**M4.6 ships no route and no navigation entry.** Master Data stays absent from the sidebar, so both
+codes are registered, scoped, and reachable through no endpoint — the M4.1 position, one module
+across. The tables exist and are **deliberately empty**: no Notary or PPAT stage sequence, no
+default template, and no approval point is seeded or inferred (D-104).
+
+**The other ten `master.*` families keep the permissive default**, because their domains are
+still undesigned; narrowing them now would repeat the mistake that narrowing corrects.
+
+**M4.1 ships no route and no navigation entry.** Master Data stays absent from the sidebar, so no
+sibling `master.*` code sits inside a module the interface presents as working, and the
+deferred-permission list is unchanged. Backend foundation is not a reachable product route
+(D-064).
+
 ---
 
 ## 19. User & Role Permissions
@@ -849,8 +965,10 @@ Companies      companies.view
 Requiring both would hide a page that works. Inventing `parties.directory.view` would be worse:
 a permission for a *page* rather than for the records on it, which would let an administrator
 grant the directory without granting sight of anything in it, or withhold it from somebody who
-can already open every record it lists. **No such permission exists, and the count stays at
-171.**
+can already open every record it lists. **No such permission exists**, and M2.5 added none — the
+count stood at 171 through that milestone. *(It is **173** today: M3.4 added the two Project
+participation codes, D-098. Corrected at M4.0, which found this sentence still asserting the
+older total in the present tense.)*
 
 Implemented in `frontend/src/config/navigation.ts` as an `anyPermissions` list beside the
 existing `requiredPermission`. Where both fields are set, both must hold, so adding
@@ -935,6 +1053,12 @@ Calendar
 Master Data
 Settings
 ```
+
+**As implemented through M4.4**, the sidebar carries Dashboard, Projects, Notary → Matters,
+PPAT → Matters, and Clients & Parties → Directory / Individuals / Companies, plus Settings. The
+two domain groups appear with **Matters only**: the Deeds, Drafts, Land & Property and Warkah
+children above are the M6 and M7 destinations, and an entry renders when its route exists, not
+when its permission is registered (D-064).
 
 Later milestones may activate:
 

@@ -234,7 +234,10 @@ it('gives Party no foreign key into a later milestone', function (): void {
     // and its users; it does not reach back into the Party aggregate, and Party
     // does not point forward at work that references it. `project_parties`, when
     // M3.4 builds it, is a relationship table — still not a column on `parties`.
-    foreach (['matters', 'documents', 'party_documents', 'properties'] as $table) {
+    // **Narrowed again at M4.2**, which builds `matters` (D-107). The assertion
+    // that expired is gone; the column check below is the one this test was
+    // always really about, and it now covers Matter explicitly.
+    foreach (['documents', 'party_documents', 'properties'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse();
     }
 

@@ -45,7 +45,7 @@ class AddProjectParty
         if ($party->office_id !== $project->office_id) {
             throw new RuntimeException(
                 'A Project participation cannot bridge Offices (D-098). '
-                .'The candidate must be resolved through ProjectParticipantVisibility.'
+                .'The candidate must be resolved through ParticipantVisibility.'
             );
         }
 

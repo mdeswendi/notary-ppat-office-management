@@ -234,9 +234,16 @@ it('copies no Party sensitive identity into the project table', function (): voi
 */
 
 it('introduces no Matter persistence', function (): void {
-    // D-087: Matter is M4. Project does not point at it either — Matter will
-    // reference Project, not the reverse.
-    foreach (['matters', 'matter_parties', 'notary_matters', 'ppat_matters'] as $table) {
+    // D-087: Matter is M4. Project does not point at it either — Matter
+    // references Project, not the reverse.
+    //
+    // **Narrowed at M4.2, not deleted.** `matters` was on this list while Matter
+    // was unbuilt; M4.2 owns it now (D-107) and its own schema test asserts its
+    // shape. **Narrowed again at M4.5**, which builds `matter_parties` (D-105).
+    // The extension tables remain M6/M7 (D-102). What this test was always
+    // really about is unchanged and still asserted below — **Project gains no
+    // column pointing at any of it.**
+    foreach (['notary_matters', 'ppat_matters'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
@@ -250,15 +257,29 @@ it('introduces no workflow or later-milestone table', function (): void {
     // schema test asserts its shape. Everything else is M4 and beyond and stays
     // exactly as it was.
     //
+    // **Narrowed again at M4.1**, which builds `service_types` (D-106). The
+    // Service Type catalogue was on this list while master data was unbuilt; it
+    // has its own schema test now. What this test was always really about is
+    // unchanged and still asserted below: **Project gains no foreign key into
+    // any of it.**
+    //
     // `project_reference_counters` is deliberately absent from this list — M3.2
     // added it, and it is Project allocator infrastructure rather than a
     // later-milestone surface.
-    foreach ([
-        'service_types', 'workflow_templates', 'workflow_stages',
-        'matter_workflows', 'matter_stage_instances', 'documents', 'properties', 'tasks',
-    ] as $table) {
+    // **Narrowed again at M4.6**, which builds the template tables (D-111), and
+    // at M4.7, which builds the running ones (D-112). Each has its own schema
+    // test; what is left here is M5 and beyond.
+    foreach (['documents', 'properties', 'tasks'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The point that survives every narrowing: Project points at none of it —
+    // and now that both the template and the running workflow genuinely exist,
+    // these assertions finally have something real to be false about.
+    expect(Schema::hasColumn('projects', 'service_type_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'matter_workflow_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse();
 });
 
 it('generalizes the counter into no legal numbering framework', function (): void {
@@ -266,12 +287,23 @@ it('generalizes the counter into no legal numbering framework', function (): voi
     // `legal_number_sequences` or `deed_sequences` table would pull deed,
     // repertorium, and register numbering — none of which has a validated
     // domain rule — into a milestone that owns none of them.
+    //
+    // **Narrowed at M4.3, not deleted.** `matter_reference_counters` was on this
+    // list as a stand-in for "the Project counter got generalized". M4.3 creates
+    // it as a **separate, dedicated** table (D-108), which is what M3.2 said
+    // should happen rather than what it warned against — so the table's existence
+    // is now checked for the opposite reason, below.
     foreach ([
         'legal_number_sequences', 'number_sequences', 'sequences', 'deed_sequences',
-        'matter_sequences', 'matter_reference_counters', 'reference_counters',
+        'matter_sequences', 'reference_counters',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The Project counter stayed Project-shaped: it gained no domain dimension
+    // and no Matter column when Matter got its own allocator.
+    expect(Schema::hasColumn('project_reference_counters', 'domain'))->toBeFalse()
+        ->and(Schema::hasColumn('project_reference_counters', 'matter_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected Project routes and nothing more', function (): void {

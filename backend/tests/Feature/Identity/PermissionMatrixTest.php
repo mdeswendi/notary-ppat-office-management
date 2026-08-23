@@ -126,8 +126,12 @@ it('marks a registered but unimplemented permission as deferred', function (): v
     // a reachable route, and a router-backed test in the Party suite holds each
     // claim to it (D-077).
     //
-    // What remains is the flag's original case: `security.settings.*` neighbours
-    // live capabilities and has no surface of its own.
+    // **`*.matters.change_stage` joined at M4.4 and left at M4.7**, which is the
+    // flag doing its job in both directions. M4.4 shipped the Matter surface, so
+    // both domains looked implemented, and they were for everything except stage
+    // movement — which had no workflow to move (D-104). M4.7 gives both codes a
+    // route, so keeping the badge would be the stale kind that trains people to
+    // ignore badges (D-077, D-112).
     $expected = [
         'security.settings.view',
         'security.settings.manage',
@@ -167,11 +171,23 @@ it('no longer defers a permission whose flow has since been built', function ():
 it('defers only permissions that genuinely have no endpoint', function (): void {
     // The list is checked against the router rather than trusted: a deferred
     // code with a live route would understate what an administrator is granting.
+    // Narrowed at M4.7: the stage entries left this list because they left the
+    // deferred list. A route now exists for both, which is exactly why the badge
+    // was removed — checking for its absence here would assert the opposite of
+    // what the milestone did.
     $deferred = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri())
         ->filter(fn (string $uri): bool => str_contains($uri, 'security/settings'));
 
     expect($deferred)->toBeEmpty();
+
+    // And the converse for the codes that just left it: a deferred badge is
+    // removed only when a route genuinely exists, so check that it does.
+    $stageRoutes = collect(app('router')->getRoutes()->getRoutes())
+        ->map(fn ($route): string => $route->uri())
+        ->filter(fn (string $uri): bool => str_contains($uri, 'matters/{matter}/stages'));
+
+    expect($stageRoutes)->not->toBeEmpty();
 
     // And the converse: every implemented security capability is NOT deferred.
     $response = $this->actingAs(matrixAdministrator())->getJson('/api/v1/permissions')->assertOk();

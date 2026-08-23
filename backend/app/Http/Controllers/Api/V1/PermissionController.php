@@ -122,6 +122,25 @@ class PermissionController extends Controller
      * the namespace looks implemented and no global security-settings surface
      * exists.
      *
+     * **`*.matters.change_stage` joined at M4.4 and left at M4.7**, and both
+     * moves are the flag working rather than the list churning. M4.4 shipped the
+     * Matter surface, so both domains looked implemented — and they were, for
+     * everything except stage movement, which had no workflow to move (D-104).
+     * M4.7 gives both codes a route: `matters/{matter}/stages/options` and
+     * `matters/{matter}/stages/move`, authorized through `MatterPolicy::changeStage`.
+     * Keeping the badge now would be the stale kind that trains people to ignore
+     * badges.
+     *
+     * Worth stating because it looks like a counter-example: **a deployment with
+     * no configured workflow template still gets nothing when it grants the
+     * code**, since D-104 seeds no templates and a Matter without a workflow has
+     * no stage to move. That is not deferral. The capability is built and
+     * reachable; what is missing is *configuration the office enters*, which is
+     * true of every master-data-driven feature and is not what this flag means.
+     *
+     * **`*.matters.view_all` is deliberately not here**, for the same reason
+     * `projects.view_all` is not: it is *superseded*, not deferred. See below.
+     *
      * **`projects.view_all` is deliberately not here, and M3.3 is what makes
      * that worth stating.** Once Projects reached the navigation, the code
      * matched this list's shape exactly: registered, routeless, and sitting

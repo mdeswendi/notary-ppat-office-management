@@ -48,12 +48,24 @@ it('marks every relationship permission as implemented', function (string $code)
     'companies.shareholders.view', 'companies.shareholders.update',
 ]);
 
-it('leaves only the security settings codes deferred', function (): void {
-    // The Party domain is fully implemented as of M2.4, so what remains is the
-    // flag's original case: `security.settings.*` neighbours live capabilities
-    // and has no surface of its own.
-    expect(relationshipMatrixEntries()->where('deferred', true)->keys()->sort()->values()->all())
-        ->toBe(['security.settings.manage', 'security.settings.view']);
+it('leaves no Party-domain code deferred', function (): void {
+    // The Party domain is fully implemented as of M2.4, and that is the claim
+    // this file owns.
+    //
+    // Narrowed at M4.4. It previously pinned the *global* deferred set to
+    // `security.settings.*`, which was true when the Party domain was the newest
+    // module and stopped being true the moment another module registered a code
+    // ahead of its surface — `notary.matters.change_stage` and
+    // `ppat.matters.change_stage` now do exactly that (D-109). A Party test
+    // failing because a Matter permission was deferred is the assertion
+    // overreaching its subject, not a defect it caught. The global set stays
+    // pinned once, in `PermissionMatrixTest`.
+    $deferred = relationshipMatrixEntries()->where('deferred', true)->keys();
+
+    expect($deferred->filter(
+        fn (string $code): bool => str_starts_with($code, 'parties.')
+            || str_starts_with($code, 'companies.')
+    )->values()->all())->toBe([]);
 });
 
 it('checks the relationship claim against the router, not the list', function (): void {
@@ -106,8 +118,11 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
+    // **Narrowed at M4.4**, which ships the Matter surface at its own domain
+    // roots (D-109). The boundary this guard protects is unchanged: none of these
+    // hangs off a Company relationship address.
     foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
-        'matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+        'companies/{company}/matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 

@@ -11,6 +11,12 @@
 # No PostgreSQL or Redis service is declared. The Pest suite runs against
 # in-memory SQLite with array cache and session drivers, configured in
 # backend/phpunit.xml, so it is deliberately independent of Docker.
+#
+# Both jobs now run tests. The frontend gained a runner with O-032 (Vitest and
+# React Testing Library); adding the step here obliged updating CLAUDE.md
+# section 52 and README.md in the same change, because that section requires the
+# documented command list never to be weaker than this file — a rule written
+# after it was broken once.
 
 name: Quality
 
@@ -60,6 +66,11 @@ jobs:
       - name: Typecheck
         # Generates Next.js route types first; a clean checkout has no .next.
         run: pnpm typecheck
+
+      - name: Tests
+        # Vitest, added with O-032. `test:ci` is a single run with coverage —
+        # never the watch mode, which would hang the job forever.
+        run: pnpm test:ci
 
       - name: Build
         run: pnpm build

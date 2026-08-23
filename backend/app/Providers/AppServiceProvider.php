@@ -4,13 +4,19 @@ namespace App\Providers;
 
 use App\Models\Company;
 use App\Models\Individual;
+use App\Models\Matter;
+use App\Models\MatterParty;
 use App\Models\ProjectParty;
+use App\Models\ServiceType;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\IndividualPolicy;
+use App\Policies\MatterPartyPolicy;
+use App\Policies\MatterPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
+use App\Policies\ServiceTypePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -64,6 +70,28 @@ class AppServiceProvider extends ServiceProvider
         // authority is judged against the Project's Data Scope (D-098). Callers
         // authorize with `[ProjectParty::class, $project]`.
         Gate::policy(ProjectParty::class, ProjectPartyPolicy::class);
+
+        // The Service Type catalogue (M4.1). Laravel would discover this pair on
+        // its own; it is listed here so one file still answers "which policy
+        // guards what" for every model in the application.
+        Gate::policy(ServiceType::class, ServiceTypePolicy::class);
+
+        // Matter (M4.2). Registered explicitly because its abilities are unusual
+        // enough to be worth pointing at: every one takes an explicit
+        // `MatterDomain` supplied by the caller's route context, which is what
+        // selects the permission namespace (D-101). `create` additionally takes
+        // the parent Project. Callers authorize with `[$matter, $domain]`, or
+        // `[Matter::class, $domain, $project]` for creation.
+        Gate::policy(Matter::class, MatterPolicy::class);
+
+        // Matter participation (M4.5). Two unusual things at once, which is why
+        // this is spelled out: the abilities take the parent **Matter**, not a
+        // MatterParty row, because participation authority is judged against the
+        // Matter's Data Scope (D-105); and they additionally take an explicit
+        // `MatterDomain` from the caller's route, which selects between
+        // `notary.matters.parties.*` and `ppat.matters.parties.*` (D-101).
+        // Callers authorize with `[MatterParty::class, $matter, $domain]`.
+        Gate::policy(MatterParty::class, MatterPartyPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

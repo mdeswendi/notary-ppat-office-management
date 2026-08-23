@@ -516,6 +516,37 @@ NOTARY
 PPAT
 ```
 
+**Built at M4.1** *(D-106)*, Office-owned as this field list says, with these dispositions:
+
+- **`code`, `domain` and `office_id` are immutable after creation.** Other records classify
+  themselves by them, so rewriting one silently redefines what they mean. `code` is a stable
+  classification handle — **never an internal reference and never legal numbering** (D-103) — and
+  is stored exactly as submitted, with no case normalization, because no canonical document
+  defines one.
+- **`UNIQUE (office_id, code)`**, composite and never global: two Offices may both offer the same
+  service. `domain` is deliberately outside the namespace, so one code cannot mean two things in
+  one Office.
+- **`UNIQUE (id, office_id)`**, the support key M4.2's `matters.service_type_id` references
+  through a composite foreign key, making a cross-office Service Type reference unrepresentable.
+- **`is_active` is the only retirement mechanism.** No `deleted_at`, no archive, no restore, and no
+  canonical permission that could authorize one. An inactive entry stays readable so records
+  already referencing it keep their classification.
+- **`default_duration_days` is informational planning metadata only** — not an SLA, not a workflow
+  deadline, not a legal timing rule. Non-negativity is enforced by a CHECK, because
+  `unsignedInteger` maps to plain `integer` on PostgreSQL and does not constrain the sign.
+- **`sort_order` is presentation ordering only**, carrying no legal or process meaning.
+- **`created_by` / `updated_by` are absent**, as this field list has them: reference data is not
+  owned by whoever typed it, which is also why `OWN` is withheld from its Data Scopes.
+- **`legal_term` and `preserve_legal_term` are withheld** *(M4.1)*. They appear here and are
+  defined nowhere else in the repository, and the separate `legal_terms` table in section 26 has
+  its own `preserve_original_term` concept — at least three readings are plausible. Withheld until
+  the semantics are validated, exactly as `project_number` was until its construction was settled
+  (D-095).
+
+**The table ships empty and stays empty.** No validated Notary or PPAT service catalogue exists —
+it is the first open question in both workflow drafts — so nothing seeds one, and test fixtures use
+deliberately non-domain values (D-102).
+
 ---
 
 ## 9. Matters
@@ -557,6 +588,79 @@ CANCELLED
 ARCHIVED
 ```
 
+**Built at M4.2** *(D-107)*, with two structural invariants and two deferrals:
+
+```text
+matters (project_id, office_id)              -> projects (id, office_id)
+matters (service_type_id, office_id, domain) -> service_types (id, office_id, domain)
+UNIQUE (matters.id, office_id)                the support key M4.5 references
+CHECK domain / status / priority
+```
+
+The Service Type key carries **three** columns because it enforces two rules at once — same Office
+*and* same domain — so a Notary Matter classified with a PPAT service is unrepresentable. That
+required adding `UNIQUE (id, office_id, domain)` to `service_types` in the same migration: M4.1
+shipped only `(id, office_id)`, and a composite foreign key needs a unique index on exactly the
+columns it references. `service_type_id` remains nullable, and a composite key with a NULL
+component is satisfied, so an unclassified Matter stays valid.
+
+**`current_stage_id` is absent from the delivered table, and stays absent** *(resolved at M4.7,
+D-112)*. M4.2 deferred it to "M4.7 with the real stage-instance foreign key"; M4.7 built the stage
+instances and then declined the column, because the `ACTIVE` instance *is* the current stage and a
+denormalized pointer would be a second source of truth that can disagree with it. Recorded as a
+decision rather than an outstanding deferral.
+
+**`matter_number` arrived at M4.3 and became `NOT NULL` at M4.4.** It was absent at M4.2 for the
+same reason, added nullable at M4.3 alongside its allocator (D-108), and tightened by a forward
+migration once M4.4 gave Matter a creation path that stamps it inside the creating transaction
+(D-109) — the sequence `project_number` followed from M3.1 to M3.3.
+
+**`deleted_at` exists as reserved schema capability with no lifecycle reaching it**, and the model
+uses no `SoftDeletes`, so no global scope filters any query.
+
+**M4 dispositions** *(M4.0 — see `14_M4_MATTER_ARCHITECTURE.md`)*:
+
+- **`project_id` is required** (D-099). A Matter always names one Project; a Project may hold many
+  Matters or none. Office is **required, inherited from the parent Project, and immutable during
+  M4**, enforced structurally by `(project_id, office_id) -> projects (id, office_id)` against the
+  support key `projects` has carried since M3.4.
+- **`matters` gains `UNIQUE (id, office_id)`**, the support key `matter_parties` needs (D-105).
+- **`service_type_id` is nullable in M4** (D-102). M4 owns the service-type container but seeds no
+  catalogue, and requiring the column would make Matter uncreatable for as long as the catalogue is
+  empty.
+- **`matter_number` is an operational identifier, never a legal deed number** (D-103):
+  `N-YYYY-NNNNNN` for Notary and `P-YYYY-NNNNNN` for PPAT, allocated per **Office + calendar year +
+  domain** by a dedicated atomic allocator. No `MAX+1`. Immutable once assigned; gaps carry no
+  meaning.
+- **`deleted_at` is reserved schema capability with no API lifecycle in M4** (D-102). No Matter
+  archive or restore endpoint exists, and the canonical registry defines no `archive` or `restore`
+  code for Matter — unlike Project, which has both. `CANCELLED`, `COMPLETED` and `ARCHIVED` are
+  **business statuses and never synonyms for soft deletion.**
+- **No transition matrix is defined.** M4 authorizes *who* may change, complete or cancel a Matter,
+  never *which* status may follow which.
+
+### matter_reference_counters *(added M4.3)*
+
+```text
+office_id
+reference_year
+domain
+last_value
+created_at
+updated_at
+```
+
+`PRIMARY KEY (office_id, reference_year, domain)` — the same natural composite key as
+`project_reference_counters`, with **domain added as a third namespace dimension** because
+`N-2026-000001` and `P-2026-000001` are distinct references and a shared counter would make them
+compete for one value (D-108). A **dedicated** table: the M3.2 allocator is reused as a pattern,
+never as a table, and the generic numbering engine sketched in section 27 is deliberately not
+used. `office_id` cascades on delete, as a counter row is infrastructure rather than work.
+
+`reference_year >= 0` and `last_value >= 0` carry explicit `CHECK` constraints, because Laravel's
+`unsignedSmallInteger` and `unsignedInteger` are MySQL concepts that PostgreSQL silently maps to
+signed columns.
+
 ### matter_parties
 
 ```text
@@ -595,9 +699,79 @@ AUTHORIZED_PERSON
 
 Role codes are stored on the relationship, never permanently on the Party record.
 
+**These are examples, not a catalogue** *(M4.0, D-105)*, exactly as the `project_parties` codes
+are. M4 invents no legal participant role list, no mandatory role, and no cardinality rule; each
+needs domain authority. `role_code` stays `nullable` and **opaque** — no enum, no `Rule::in`, no
+`CHECK` — because constraining it would turn the examples above into the catalogue this section
+says they are not.
+
+**One column beyond the list, and it is a constraint carrier rather than data** *(M4.0, D-105)*:
+
+```text
+office_id
+```
+
+Two composite foreign keys reference `matters (id, office_id)` and `parties (id, office_id)`
+through the **same** column, so both endpoints must agree with it and therefore with each other. A
+cross-office Matter participation becomes *unrepresentable*, including for an actor holding `ALL`.
+`matters` carries the matching `UNIQUE (id, office_id)` support key; `parties` has carried its
+equivalent since M2.1. This is the same recorded departure `project_parties` made at M3.4 (D-098),
+and it is written here so a reader finding the field list without it does not assume an oversight.
+
+**Two listed fields are deliberately deferred and are not built in M4** *(D-105)*:
+
+| Field | Status |
+|---|---|
+| `represented_by_party_id` | **DOMAIN VALIDATION REQUIRED.** A Party acting through another Party is representation, proxy, or legal capacity. Which it means, when it is permitted, and what it implies for a deed have no canonical answer here, and guessing would invent an Indonesian notarial rule (`CLAUDE.md` section 62). |
+| `sequence_no` | **Semantics unvalidated.** Display order, signing order, legal priority and appearance order are four different things and the name distinguishes none of them. A wrong guess stays invisible until a deed is drafted from it. |
+
+**Participation is current working state, not a historical ledger** — no effective periods, no
+`deleted_at`, no versioning. `company_people` carries periods because a deed executed in March
+depends on who was a director in March (D-083); nothing yet depends on a Matter's participant list
+as it stood last week.
+
+### Built at M4.5 *(D-110)*
+
+The table exists as described above, with the `office_id` carrier and both composite foreign keys.
+**This migration added no support key**: `parties_id_office_id_unique` has existed since M2.1 and
+`matters_id_office_id_unique` since M4.2, which added it for exactly this purpose. Four permissions
+were registered, moving the canonical count **173 → 177**.
+
+Delivered columns, and the two departures from the field list above:
+
+```text
+id  matter_id  party_id  office_id  role_code  notes
+created_by  created_at  updated_at
+```
+
+- **`is_primary` is absent**, even though `project_parties` has one, because this section's field
+  list does not name it. The two participation tables are transcribed from their own lists rather
+  than made to match each other.
+- **`sequence_no` and `represented_by_party_id` are absent and are actively refused** by the Form
+  Requests, not silently dropped. Accepting and ignoring them would teach a caller that the fields
+  work; a 422 says plainly that the concepts are not built.
+
+**No `UNIQUE (matter_id, party_id)` and no cardinality rule of any kind.** Such an index would
+assert that one Party holds at most one role in a Matter, and the same person may legitimately be a
+seller in their own right and another party's authorized representative — a domain question with no
+canonical answer here. Indexes are `matter_id`, `party_id` and `office_id`, all plain; all four
+foreign keys are `ON DELETE RESTRICT`.
+
+**Removal is a hard delete of the relationship row.** The Matter is untouched and the Party is
+untouched — neither archived nor altered. There is no history to restore from, and the interface
+says so before asking for confirmation.
+
 ---
 
 ## 10. Notary and PPAT Extensions
+
+**Neither table is built in M4** *(M4.0, D-102)*. M4 builds one root — `matters`, with its
+canonical `domain` discriminator — and persists **no** field standing in for these: not
+`deed_category`, `requires_minuta`, `requires_register_entry`, `land_office_region`,
+`tax_processing_required`, or `registration_required`. Every one of them is domain-semantic and
+unvalidated, and `01_ARCHITECTURE.md` section 28 places **M6 — Notary** and **M7 — PPAT** after the
+Matter milestone. This follows D-095: a column added on speculation is one somebody fills in
+wrongly.
 
 ### notary_matters
 
@@ -661,6 +835,51 @@ created_at
 updated_at
 ```
 
+### Built at M4.6 *(D-111)*
+
+Both tables above, exactly as their field lists specify and with no column added beyond them. **No
+permission was registered — the count stays at 177** — and `master.workflows.view` / `.manage` were
+narrowed to `OFFICE` and `ALL`, the Service Type treatment (D-106) applied to Office-owned
+configuration. Backend foundation only: no route, controller, request, resource, seeder, or
+frontend.
+
+**Both tables ship empty and stay empty** (D-104). No Notary or PPAT stage sequence, no default
+template, no approval point, no required-before-stage rule, and no legal completion condition is
+seeded or inferred. The factories deliberately use `UJI_` codes so no fixture can be mistaken for
+validated content.
+
+```text
+workflow_templates (service_type_id, office_id) -> service_types (id, office_id)
+UNIQUE (office_id, code)              one row per code
+UNIQUE (id, office_id)                the support key M4.7 references
+workflow_stages -> workflow_templates ON DELETE CASCADE
+UNIQUE (workflow_template_id, code)
+UNIQUE (workflow_template_id, sequence_no)
+CHECK version >= 1 / target_days >= 0 / sequence_no >= 1
+```
+
+**`version` is a counter on one row, not a second row.** Editing a template raises it in place, and
+what preserves the previous iteration is the M4.7 snapshot — `stage_code` plus both snapshot names
+on every stage instance — not a surviving row. That is why `matter_workflows` below carries both
+`workflow_template_id` and `workflow_version`: the id says which template, the number says which
+iteration.
+
+**`service_type_id` is nullable and the nullability is the feature**: an unbound template is the
+office's generic process, and requiring a binding would make workflow configuration impossible for
+as long as the service catalogue is empty. The composite key is satisfied when the column is NULL.
+
+**`is_default` carries no cardinality rule** — several templates may be default at once, following
+`project_parties.is_primary` (D-092). M4.7 must choose deterministically and say how, rather than
+assuming the database handed it exactly one.
+
+**The CASCADE is the only one here, and it constrains M4.7:**
+`matter_stage_instances.workflow_stage_id` must be `RESTRICT` or nullable, or deleting a template
+would reach through it and damage the history of Matters that ran it.
+
+**`approval_permission` must name a canonical permission code or be null**, refused on save
+otherwise. Storing a code authorizes nothing: whatever reads it still goes through a Policy and
+`EffectiveAccessResolver` with the actor's Data Scope (D-048, D-111).
+
 ### matter_workflows
 
 ```text
@@ -714,6 +933,44 @@ changed_by
 reason
 changed_at
 ```
+
+### Built at M4.7 *(D-112)*
+
+All three tables above, as their field lists specify. **No permission was registered — the count
+stays at 177**; `*.matters.change_stage` was already canonical and M4.7 gives it routes.
+
+```text
+matter_workflows          UNIQUE (matter_id)      one run per Matter
+  matter_id            -> matters             RESTRICT
+  workflow_template_id -> workflow_templates  RESTRICT
+matter_stage_instances
+  matter_workflow_id   -> matter_workflows    CASCADE
+  workflow_stage_id    -> workflow_stages     RESTRICT   <- protects the snapshot
+  UNIQUE (matter_workflow_id, sequence_no) / (matter_workflow_id, stage_code)
+  CHECK status IN (PENDING, ACTIVE, COMPLETED, SKIPPED, BLOCKED)
+matter_stage_history      append-only: changed_at only, no updated_at, no deleted_at
+```
+
+**`workflow_stage_id` is `RESTRICT`, and it is the load-bearing constraint.** M4.6's stages cascade
+from their template, so `CASCADE` here would chain: deleting a template would delete its stages,
+which would delete the instances of every Matter that ran it. The snapshot columns exist so an
+instance survives its stage definition, and this is what stops the chain reaching them.
+
+**`stage_name_snapshot_id` is not a foreign key.** The `_id` is the locale code for Bahasa
+Indonesia, as in `name_id` / `name_en`; the column holds a displayable stage name. Every other
+`*_id` column in this domain holds a ULID, so the name genuinely invites a wrong join.
+
+**`matters.current_stage_id` is deliberately not built** *(D-112)*, despite section 9's field list
+and the M4.2/M4.3 deferrals naming it. The `ACTIVE` stage instance *is* the current stage; a pointer
+would be a second source of truth that can disagree with it.
+
+**Only three stage statuses are reachable.** `PENDING`, `ACTIVE` and `COMPLETED`: a move marks the
+stage left `COMPLETED` and leaves stages jumped over `PENDING`, because skipping is a decision
+somebody makes rather than one inferred from a navigation. `SKIPPED` and `BLOCKED` are vocabulary
+nothing sets.
+
+**`assigned_user_id`, `approved_at` and `approved_by` are recorded but never written**: M4.7 ships
+no stage assignment and no approval act. A stage assignee confers no Matter reach (D-100).
 
 ---
 

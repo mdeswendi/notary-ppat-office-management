@@ -384,17 +384,36 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // a Project, because Project Office is immutable during M3 (D-089).
     $uris = collect(app('router')->getRoutes()->getRoutes())->map(fn ($route): string => $route->uri());
 
+    // **Narrowed again at M4.4**, which ships the Matter product surface (D-109).
+    // `matters` leaves this list; everything else stays, including the two that
+    // were never about a milestone boundary — no Office endpoint and no transfer
+    // endpoint on a Project.
+    //
+    // The point that survives is the one this guard was always making: **no
+    // Matter surface hangs off a Project address.** A Matter is reached at
+    // `/notary/matters` or `/ppat/matters`, never `/projects/{id}/matters`,
+    // because the domain root is what selects the permission namespace (D-101).
+    // **Narrowed again at M4.7**: `workflow` and `stages` left this list because
+    // a Matter's running workflow now has routes (D-112). They never belonged to
+    // Project — the point below is unchanged and is what the entries were really
+    // guarding: **no Matter or workflow surface hangs off a Project address.**
     foreach ([
-        'projects/{project}/participants',
-        'matters', 'workflow', 'stages', 'deeds', 'warkah', 'properties',
+        'projects/{project}/participants', 'projects/{project}/matters',
+        'projects/{project}/workflow', 'projects/{project}/stages',
+        'deeds', 'warkah', 'properties',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
     }
 
-    foreach (['matters', 'matter_parties'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
+    // **The table half is narrowed at M4.2**, which builds `matters` (D-107),
+    // and again at M4.5, which builds `matter_parties` (D-105). Both exist now
+    // and their own schema tests assert their shape. What this file still owns
+    // is the claim the route list above makes: **Project exposes no surface
+    // reaching into either**, and neither table points back at a Project.
+    expect(Schema::hasTable('matter_parties'))->toBeTrue()
+        ->and(Schema::hasColumn('matter_parties', 'project_id'))->toBeFalse()
+        ->and(Schema::hasColumn('projects', 'matter_id'))->toBeFalse();
 });
 
 it('adds no permission to the canonical registry', function (): void {

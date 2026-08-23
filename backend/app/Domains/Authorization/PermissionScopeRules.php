@@ -134,6 +134,107 @@ class PermissionScopeRules
     ];
 
     /**
+     * Office-owned master data: the Service Type catalogue, whose predicates M4.1
+     * settled, and the workflow templates M4.6 added.
+     *
+     * `OFFICE` and `ALL` only — the Party answer (D-080), not the Project one
+     * (D-088), because the reasoning that separated them applies here too. A
+     * Service Type is a **shared reference record**: `OWN` would have to mean
+     * `created_by`, and the table deliberately has no such column, since the
+     * colleague who typed an entry in has no claim on the service the office
+     * offers. `ASSIGNED` has no assignment entity — nobody is the PIC of a
+     * catalogue entry. `TEAM` has no Team entity at all (D-042).
+     *
+     * Withholding them matters because the Permission Matrix offers exactly this
+     * list. Leaving `master.services.*` in the permissive default below would let
+     * an administrator grant it at `OWN`, see it saved, and get a silently
+     * powerless grant — the dead control D-080 named.
+     *
+     * **Two `master.*` families are narrowed, not one** *(M4.6)*. Workflow
+     * templates joined at M4.6 for exactly the same reasons, restated because
+     * they have to hold independently rather than by analogy: a template is a
+     * **shared configuration record** owned by an Office. `OWN` would have to mean
+     * `created_by`, and `workflow_templates` deliberately has no such column,
+     * since the colleague who typed a process in has no claim on how the office
+     * works. `ASSIGNED` has no assignment entity — nobody is the PIC of a
+     * template. `TEAM` has no Team entity at all (D-042).
+     *
+     * `view` and `manage` stay independent in both directions here as everywhere:
+     * neither implies the other, and there is no umbrella code.
+     *
+     * **The other ten `master.*` codes keep the permissive default**, because
+     * their domains are still undesigned and narrowing them would repeat the
+     * mistake this entry corrects, one module across.
+     */
+    private const MASTER_OFFICE_OWNED = [
+        'master.services.view',
+        'master.services.manage',
+
+        // M4.6, D-111. The tables these govern exist as of M4.6; no route does,
+        // so the narrowing is what an administrator sees in the Permission
+        // Matrix rather than something an endpoint consults yet.
+        'master.workflows.view',
+        'master.workflows.manage',
+    ];
+
+    /**
+     * The Matter domain, whose predicates M4.2 settled (D-100).
+     *
+     * All four assignable scopes mean something here, exactly as they do for
+     * Project:
+     *
+     *   OWN       matters.created_by  = actor id
+     *   ASSIGNED  matters.pic_user_id = actor id
+     *   OFFICE    matters.office_id   = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **Eighteen codes as of M4.5, not twenty.** `notary.matters.view_all` and
+     * `ppat.matters.view_all` are deliberately absent: they are superseded by
+     * Data Scope `ALL` for reach and are not part of the Matter authorization
+     * surface (D-090). No Policy ability consults either. Listing them here would
+     * assert they are live capabilities with meaningful scopes, which is precisely
+     * what supersession denies — the same treatment `projects.view_all` receives.
+     *
+     * **`create` needs no special entry, and that is worth stating** because it
+     * looks as though it might. An administrator may legitimately grant
+     * `notary.matters.create` at `ASSIGNED`; the grant simply authorizes nothing
+     * on its own, because the `ASSIGNED` predicate is false for a record that has
+     * no PIC yet (D-097, D-107). That exclusion belongs to the predicate, not to
+     * the assignable-scope list — encoding it here would confuse *what may be
+     * granted* with *what a grant can match*.
+     */
+    private const MATTER_DOMAIN = [
+        'notary.matters.view',
+        'notary.matters.create',
+        'notary.matters.update',
+        'notary.matters.assign',
+        'notary.matters.change_stage',
+        'notary.matters.complete',
+        'notary.matters.cancel',
+
+        // Participation is evaluated against the **parent Matter** by the same
+        // four predicates (M4.5, D-105), so it belongs in this list rather than
+        // in the Party one. The Party a row points at is reached through Party
+        // visibility separately; that is a different question with a different
+        // answer, and mixing the two here would encode one boundary as two.
+        'notary.matters.parties.view',
+        'notary.matters.parties.manage',
+
+        'ppat.matters.view',
+        'ppat.matters.create',
+        'ppat.matters.update',
+        'ppat.matters.assign',
+        'ppat.matters.change_stage',
+        'ppat.matters.complete',
+        'ppat.matters.cancel',
+
+        'ppat.matters.parties.view',
+        'ppat.matters.parties.manage',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -157,6 +258,14 @@ class PermissionScopeRules
         }
 
         if (in_array($permission, self::PROJECT_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::MASTER_OFFICE_OWNED, true)) {
+            return [DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::MATTER_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 

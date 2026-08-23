@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Matter\Enums\MatterDomain;
 use App\Http\Controllers\Api\V1\ArchivedProjectController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
@@ -8,6 +9,11 @@ use App\Http\Controllers\Api\V1\CompanyShareholderController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
+use App\Http\Controllers\Api\V1\MatterAssignmentController;
+use App\Http\Controllers\Api\V1\MatterController;
+use App\Http\Controllers\Api\V1\MatterLifecycleController;
+use App\Http\Controllers\Api\V1\MatterPartyController;
+use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
@@ -252,6 +258,121 @@ Route::prefix('v1')->group(function (): void {
             ->whereUlid('project')->whereUlid('projectParty')->name('api.v1.projects.parties.update');
         Route::delete('projects/{project}/parties/{projectParty}', [ProjectPartyController::class, 'destroy'])
             ->whereUlid('project')->whereUlid('projectParty')->name('api.v1.projects.parties.destroy');
+
+        /*
+         * Matters (M4.4, D-109) — one controller set, two domain roots.
+         *
+         * `/notary/matters` and `/ppat/matters` are separate address spaces, and
+         * the segment is not decoration: **the route decides the permission
+         * namespace** (D-101), so `notary.matters.*` authorizes one root and
+         * `ppat.matters.*` the other. The domain is never read from a request
+         * body and never inferred from the record being addressed. It reaches the
+         * controller as a route default, which is what makes it route context
+         * rather than caller input.
+         *
+         * A Matter of the other domain answers **404**, not 403: the lookup is
+         * constrained by domain, so a Notary address handed a PPAT id behaves as
+         * though nothing is there. A 403 would confirm the record exists in a
+         * domain the caller never named — the D-098 nested-binding convention
+         * applied to a domain root.
+         *
+         * Assignment, completion, and cancellation get their own paths because
+         * they are their own capabilities: `*.matters.assign` writes
+         * `pic_user_id`, `*.matters.complete` and `*.matters.cancel` write
+         * `status`, and generic `PATCH` reaches none of them (D-091,
+         * `06_API_CONVENTIONS.md` section 22).
+         *
+         * **There is no `DELETE` and no stage route.** M4 ships no Matter archive
+         * or restore lifecycle — `deleted_at` is reserved schema capability with
+         * no code path (D-102) — and `*.matters.change_stage` has no workflow to
+         * move until M4.7 (D-104), so it stays unreachable and is badged deferred
+         * rather than given a route that pretends.
+         *
+         * `service-type-options` is registered **before** the `{matter}` binding;
+         * reversed, the literal path would be read as a Matter id and answer 404.
+         *
+         * **Participation (M4.5, D-105)** is nested under the Matter because that
+         * is what owns it: participation authority is the parent Matter's Data
+         * Scope, and there is deliberately no top-level `/matter-parties`
+         * collection to reach a row without naming the Matter it belongs to.
+         * `*.matters.parties.view` reads the list, `*.matters.parties.manage`
+         * writes it, neither implies the other, and `*.matters.update` reaches
+         * neither. `party-options` is the candidate source, authorized by
+         * `manage` **and** additionally applying Party-domain visibility per
+         * subtype, so managing participation never becomes a way to discover
+         * Parties. `DELETE` here genuinely deletes — the relationship row only,
+         * never the Matter and never the Party.
+         */
+        foreach ([
+            'notary' => MatterDomain::NOTARY,
+            'ppat' => MatterDomain::PPAT,
+        ] as $segment => $matterDomain) {
+            // `defaults()` is a per-route method rather than a group one, so the
+            // domain is stamped on each route explicitly. Verbose, and the
+            // verbosity is the safe kind: every route says which capability
+            // namespace it authorizes through.
+            $domainValue = $matterDomain->value;
+
+            Route::prefix($segment)
+                ->name("api.v1.{$segment}.matters.")
+                ->group(function () use ($domainValue): void {
+                    Route::get('matters/service-type-options', [MatterController::class, 'serviceTypeOptions'])
+                        ->defaults('domain', $domainValue)->name('service-type-options');
+
+                    Route::get('matters/{matter}/assignment/options', [MatterAssignmentController::class, 'options'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('assignment.options');
+                    Route::patch('matters/{matter}/assignment', [MatterAssignmentController::class, 'update'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('assignment.update');
+
+                    Route::post('matters/{matter}/complete', [MatterLifecycleController::class, 'complete'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('complete');
+                    Route::post('matters/{matter}/cancel', [MatterLifecycleController::class, 'cancel'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('cancel');
+
+                    /*
+                     * The running workflow (M4.7, D-112). Reading answers to the
+                     * Matter's own `view` capability — a stage is part of what a
+                     * Matter is, not a separate resource with its own audience —
+                     * while `options` and `move` answer to
+                     * `*.matters.change_stage`, canonical since the catalogue was
+                     * transcribed and badged deferred until this milestone gave
+                     * it a route.
+                     *
+                     * There is **no transition matrix** (D-104): `move` checks
+                     * that the target stage belongs to this Matter's workflow and
+                     * is open, never which stage may follow which.
+                     */
+                    Route::get('matters/{matter}/stages', [MatterStageController::class, 'index'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.index');
+                    Route::get('matters/{matter}/stages/options', [MatterStageController::class, 'options'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.options');
+                    Route::post('matters/{matter}/stages/move', [MatterStageController::class, 'move'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('stages.move');
+
+                    Route::get('matters/{matter}/party-options', [MatterPartyController::class, 'options'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.options');
+
+                    Route::get('matters/{matter}/parties', [MatterPartyController::class, 'index'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.index');
+                    Route::post('matters/{matter}/parties', [MatterPartyController::class, 'store'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('parties.store');
+                    Route::patch('matters/{matter}/parties/{matterParty}', [MatterPartyController::class, 'update'])
+                        ->whereUlid('matter')->whereUlid('matterParty')
+                        ->defaults('domain', $domainValue)->name('parties.update');
+                    Route::delete('matters/{matter}/parties/{matterParty}', [MatterPartyController::class, 'destroy'])
+                        ->whereUlid('matter')->whereUlid('matterParty')
+                        ->defaults('domain', $domainValue)->name('parties.destroy');
+
+                    Route::get('matters', [MatterController::class, 'index'])
+                        ->defaults('domain', $domainValue)->name('index');
+                    Route::post('matters', [MatterController::class, 'store'])
+                        ->defaults('domain', $domainValue)->name('store');
+                    Route::get('matters/{matter}', [MatterController::class, 'show'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('show');
+                    Route::patch('matters/{matter}', [MatterController::class, 'update'])
+                        ->whereUlid('matter')->defaults('domain', $domainValue)->name('update');
+                });
+        }
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');
