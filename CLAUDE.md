@@ -533,6 +533,7 @@ Matter authority** (D-100) — each is judged by its own capability and its own 
 The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
 The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
 The Document and Task architecture lock is `docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md`.
+The Notary architecture lock is `docs/16_M6_NOTARY_ARCHITECTURE.md`.
 
 ---
 
@@ -1690,14 +1691,22 @@ docs/
 ├── 13_M3_PROJECT_ARCHITECTURE.md
 ├── 14_M4_MATTER_ARCHITECTURE.md
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
+├── 16_M6_NOTARY_ARCHITECTURE.md
 ├── DECISIONS.md
 ├── CHANGELOG.md
 └── HANDOFF.md
 ```
 
-`12_`, `13_`, `14_` and `15_` are milestone architecture locks. Each records what its domain may
+`12_` through `16_` are milestone architecture locks. Each records what its domain may
 build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
+
+`16_M6_NOTARY_ARCHITECTURE.md` is unlike the other four in one respect worth knowing before you
+open it: **M6 is the first milestone whose specification is deliberately empty.** Five of the seven
+open questions in `08_NOTARY_WORKFLOW.md` section 6 are business rules a Notary deed surface would
+ordinarily encode — deed numbering, Repertorium procedure, Minuta archiving, post-finalization
+correction, and who approves. The lock's sections 5 and 8.4 record which values are therefore
+**stored vocabulary with no code path**, which is not the same as absent.
 
 `HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
 be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a

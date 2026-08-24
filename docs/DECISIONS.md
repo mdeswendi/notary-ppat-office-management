@@ -4423,6 +4423,111 @@ development database was not touched and remains at 22 migrations. Frontend: 100
 
 ---
 
+### D-120 — M6 builds the Notary records and refuses the Notary rules, because five of them are open domain questions
+
+The M6 architecture lock, `16_M6_NOTARY_ARCHITECTURE.md`. **No code, no migration, no permission —
+the count stays at 177.** It is the fifth `.0` lock and the first whose subject is a specification
+that is deliberately empty.
+
+**Five of the seven open questions in `08_NOTARY_WORKFLOW.md` section 6 are business rules a deed
+surface would ordinarily encode.** The milestone brief specified an answer to every one of them:
+
+| Open question | What was proposed |
+|---|---|
+| Deed numbering rules, and who assigns the number | `{deed_type_code}/{register_number}/{year}` plus a per-year allocator |
+| Repertorium entry procedure and period | Finalize auto-creates a register entry |
+| What triggers Minuta archiving, and what releases it | `DRAFT → ARCHIVED → RELEASED` with endpoints |
+| Correction mechanisms after finalization | A `LOCKED` state, `VOID` from any status, `SUPERSEDED` |
+| Which stages require Principal approval | *"default hanya PRINCIPAL dan SUPER_ADMIN"* |
+
+`CLAUDE.md` section 62 names four of these five explicitly as things not to invent, and prescribes
+**STOP / DOCUMENT THE GAP / ASK FOR DOMAIN SPECIFICATION**. The lock does that, and the milestone
+proceeds with everything that does not depend on the answers.
+
+**The approval row is blocked twice over**, which is worth separating out because only one half is a
+domain question. Even with a validated domain source in hand, *"default hanya PRINCIPAL dan
+SUPER_ADMIN"* is a **role-name authorization** — the mechanism D-032, D-041 and D-048 forbid outright.
+Who may approve is decided by holding `notary.deeds.approve` at a reaching Data Scope. When the domain
+source answers, the answer becomes **role configuration**, never a role-name check in code.
+
+**"Blocked" does not mean the column is absent.** Where `03_DATABASE_ERD.md` names a field, M6 creates
+it — a schema matching the ERD is transcription, not a legal claim. It means **no code path reaches
+it.** `VOID`, `SUPERSEDED` and `locked_at` become stored vocabulary the CHECK constraint admits and
+the API never produces, which is the D-109 pattern for Matter's unreachable statuses and the D-102
+pattern for `matters.deleted_at`.
+
+**The catalogue's silence corroborates the workflow document's.** Verified against the live registry:
+`notary.deeds.lock`, `notary.deeds.void`, `notary.deeds.delete`, `notary.register.delete`,
+`notary.minuta.delete` and all four `notary.protocol.*` codes are **absent**. Three of those are
+exactly the post-finalization correction mechanisms section 6 asks about. Two independent canonical
+sources declining to describe the same act is evidence, not coincidence — so **M6 builds no act that
+has no canonical code**, and adds none.
+
+**`notary.deeds.number` exists and nothing had noticed.** The catalogue anticipated that assigning a
+deed number is its own capability, separate from `finalize`. That is what makes numbering expressible
+without a numbering *rule*: `deed_number` is stored, unique per Office where present, nullable
+following `document_number` (M5.1) and `matter_number` (M4.2), supplied by the office, validated
+against **no format**, and set on its own endpoint. Folding it into `finalize` would assert that
+numbering happens at finalization — half of the open question. D-103 already ruled that
+`N-YYYY-NNNNNN` is *"an operational identifier, never a legal deed number"*, so the M4 allocator is
+not reused here.
+
+**The lifecycle ladder is built, and it is not a guess.** `CLAUDE.md` section 29 states
+`DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` verbatim as the legal-record lifecycle, and
+section 64 states its consequence. M6 reaches the first four; `LOCKED` needs an actor and a rule
+nobody has written. Encoding a stated constitutional lifecycle is a different act from inferring one
+from a draft workflow document.
+
+**Three of the brief's structures are not canonical, and one is not even the right shape.**
+
+- **`notary_protocols` + `notary_protocol_items` do not exist.** The canonical table is
+  **`protocol_records`** (ERD section 22): *one* table with a `NOTARY | PPAT` domain discriminator, the
+  same construction as `matters`, carrying **no junction to deeds at all** — no `sequence_no`, no
+  composite `(protocol_id, notary_deed_id)`, no `protocol_number`, no period dates, no `closed_at`,
+  and no status vocabulary. Section 32 puts registers and protocol in **batch 11**, later even than
+  PPAT deeds. M6 is batch 9. Not built.
+- **Registers are batch 11 too**, and the Repertorium procedure is open question two. Not built.
+- **`notary_deeds` gets no `deleted_at` and no soft delete.** The ERD omits the column, section 33
+  prefers states over destructive deletion for finalized legal records, `CLAUDE.md` section 30 forbids
+  user-facing hard delete of finalized Deeds, and no `notary.deeds.delete` capability exists. Four
+  sources agree.
+- **`locked_by` is not added**, unlike M5.4's `created_by`. There the Data Scope `OWN` predicate
+  structurally required an owner and no column could serve; here nothing requires it, and adding an
+  actor column would assert that somebody performs a locking act — which is the correction-mechanism
+  question.
+
+**A Deed's reach is its Matter's reach.** A deed carries no `pic_user_id`, `assigned_to` or
+`created_by`, so `OWN` and `ASSIGNED` resolve through the parent Matter. **Reaching a Matter still
+confers no Deed authority and reaching a Deed confers no Matter authority** — D-100 restated one level
+down. The Matter supplies the predicate, never the grant.
+
+**One Minuta per Deed**, by unique index. The ERD states no cardinality; this is an engineering
+decision and the conservative one, because the term itself carries it — a Minuta Akta is the original
+record of *one* deed. The mirror image of D-116's ruling on document relations, where leaving the
+schema open was conservative precisely because no rule existed in either direction; here the term
+supplies one.
+
+**`office_id` is added to `notary_matters` and `notary_minuta`**, both absent from the canonical field
+lists, because each needs a carrier for its composite foreign keys. Recorded rather than made
+quietly, the D-119 discipline. *(`task_comments` correctly has none: it reaches its Office through its
+task in one join and needs no composite key of its own.)*
+
+**`requires_register_entry` is stored and triggers nothing.** The brief asked that finalizing a deed
+create a register entry when the flag is true. There is no register table in M6 to create one in, and
+the trigger is the Repertorium question. Persisting a flag is not the same act as branching on it.
+
+**D-118's blocked junction becomes unblocked and stays unbuilt.** `notary_deed_documents` was blocked
+because `notary_deeds` did not exist — structural, not a scoping preference. M6.1 removes the
+obstacle; the surface belongs to whoever wants it, and the deed's three document pointers cover what
+M6 needs.
+
+**Decomposition: M6.0 lock, M6.1 schema and Policy, M6.2 deed surface and frontend, M6.3 Minuta
+metadata.** There is no M6.4 — registers and protocol are outside M6 rather than deferred within it,
+and numbering them would imply they are one domain answer away when they are two batches and a
+catalogue decision away.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -4483,6 +4588,8 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-031 | The Party Directory's **Office filter is built from the Offices present in the current page of results**, not from an endpoint. The two options endpoints that exist answer a different question — `individuals/options` and `companies/options` list the Offices an actor may **create** in, which is neither necessary nor sufficient for reading — so offering those would show destinations that return nothing and hide ones that return rows. | Open, and deliberate rather than overlooked. The derivation is honest: it can never offer an Office the caller's capabilities do not already reach, and selecting one only narrows, because the backend applies `office_id` on top of each capability's own scope predicate. The cost is that the choices reflect the page in view, so an Office whose rows fall on a later page is not offered until the caller reaches it. Closing this needs a **view-scoped** Offices source — and the honest version of it is not one list but two, since `parties.view` and `companies.view` are evaluated independently and may reach different Offices (D-028). That is a small API addition with a real design question inside it, which is why M2.5 did not invent one to fill a filter. Revisit when a second surface needs the same list. |
 | O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | **Resolved 2026-08-21 by D-113.** Vitest and React Testing Library, added as an explicitly scoped task exactly as this entry asked — not incidentally inside a feature milestone. All three decisions the entry named are recorded: **which one** (Vitest, because the project already compiles through Vite's ecosystem and the alias is read from `tsconfig.json` rather than restated), **whether it joins CI** (yes, a `Tests` step between typecheck and build), and **§52** (`pnpm test` added to `CLAUDE.md` sections 51 and 52 and to `README.md` in the same change, which is the rule §52 exists to enforce). Six files, 62 tests. The three targets this entry named are covered first: `visibleNavigation` including the `anyPermissions` branch it said "a four-line test would pin", `can` / `canWithScope`, and the M4 sections. Two environment gaps were found and diagnosed rather than worked around — jsdom performs no implicit form submission, so *no form could be submitted from a test*, and `toMatterErrorKey` narrows with `instanceof AxiosError`, so hand-shaped error objects silently test the wrong branch. **The gap this closes was presentation, not authorization**, exactly as the entry said: the backend remains the security boundary and a green frontend suite never means an endpoint is protected. The prediction held too — it was worth doing before the navigation tree grew, and by the time it happened the tree had gained the Notary and PPAT groups the entry anticipated. |
 | O-034 | **`php artisan serve` does not pass a shell `DB_DATABASE` override to the `php -S` subprocess it spawns.** Every artisan CLI command honours the override — `migrate`, `tinker` and `permissions:sync` all connected to the disposable database and reported it — so a milestone can migrate and seed the right database and then serve the wrong one. Discovered at M3.5, when the in-process probe answered `notary_ppat_office` instead of the disposable database and the smoke was aborted on its first request. | Open, and recorded as method rather than treated as a one-off. This is the precise mechanism behind the class of near-miss the M3.3 rule exists to prevent, and knowing it turns "prove the serving process's database" from a ritual into a check with a known failure mode behind it. The working approach is to launch the framework's own router directly — `php -S <host:port> -t backend/public vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`, with the working directory set to `backend/public`, since `server.php` resolves `index.php` from the current directory — and to probe it before the first real request regardless. **The rule does not change**: a shell override is not evidence about the serving process, and the probe stays mandatory whichever launcher is used. Closing this needs either an upstream change or a committed, tested smoke launcher; neither belongs in an audit milestone. |
+| O-035 | **Five of the seven open questions in `08_NOTARY_WORKFLOW.md` §6 are business rules the Notary deed surface would ordinarily encode**, and M6 refuses all five: deed numbering rules and who assigns the number; the Repertorium entry procedure and period; what triggers Minuta Akta archiving and what releases it; which correction mechanisms are permitted after finalization; and which capability satisfies deed approval per service type. | Open, and recorded as the M6 scope boundary rather than as a defect (D-120). Each is named by `CLAUDE.md` §62 or §29, and the permission catalogue independently omits a code for every act that would implement one — `notary.deeds.lock`, `.void`, `.delete` and `notary.register.delete` are all absent, which is two canonical sources declining to describe the same acts. M6 stores the vocabulary the ERD names (`VOID`, `SUPERSEDED`, `locked_at`, `release_status`) with **no code path reaching it**, the D-109 pattern. Closing this needs a qualified domain source completing `08_NOTARY_WORKFLOW.md` §5, after which the answers become configuration and permission-catalogue decisions — not schema changes, which is the test D-104 set for whether the engine was built correctly. |
+| O-036 | **Notary Protocol has a menu destination, an ERD table, and no permission codes.** `02_MENU_AND_PERMISSIONS.md` line 1066 lists it under "Later milestones may activate"; `03_DATABASE_ERD.md` §22 defines `protocol_records` — one table with a `NOTARY \| PPAT` domain discriminator, **no junction to deeds**, and no status vocabulary; the registry has no `notary.protocol.*` code at all. §32 places it in batch 11, later than PPAT deeds. | Open, and outside M6 by the canonical ordering (D-120). The M6 brief proposed `notary_protocols` + `notary_protocol_items` with a deed many-to-many and an `OPEN / CLOSED / ARCHIVED` lifecycle; none of that is canonical, and building it would mean creating two non-canonical tables and four non-canonical permission codes for a lifecycle no document describes. Closing this needs **both** a domain source describing what a protocol period is and how it closes, **and** a decision about whether the canonical catalogue gains protocol codes — the first catalogue extension the project would have made since M1.2. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

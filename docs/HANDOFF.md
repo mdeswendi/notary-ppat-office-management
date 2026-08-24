@@ -206,8 +206,9 @@ docs/
 ├── 12_M2_PARTY_ARCHITECTURE.md    ┐
 ├── 13_M3_PROJECT_ARCHITECTURE.md  │ milestone architecture locks — read the one
 ├── 14_M4_MATTER_ARCHITECTURE.md   │ for the domain you are changing
-├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md ┘
-├── DECISIONS.md                   ← D-001…D-119 + the Open Items register
+├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md │
+├── 16_M6_NOTARY_ARCHITECTURE.md   ┘ ← and read §5 of this one first
+├── DECISIONS.md                   ← D-001…D-120 + the Open Items register
 ├── CHANGELOG.md                   ← what each milestone did
 └── HANDOFF.md                     ← this file
 ```
@@ -281,6 +282,8 @@ Twelve of thirty-four. Each is recorded in `DECISIONS.md` with its full reasonin
 | O-031 | Party Directory's Office filter is derived from the page | Needs a view-scoped Offices endpoint |
 | O-033 | Six Party fields are stored, typed and translated but never rendered | Two carry legal weight — domain specification, not a quality-gate call |
 | O-034 | `artisan serve` drops `DB_DATABASE` for its subprocess | Needs upstream change or a committed smoke launcher |
+| O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
+| O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
 
 **The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of
 M1 on the ERD's batch ordering; `audit.view` and `audit.export` are registered and unimplemented.
@@ -308,7 +311,7 @@ decision for whoever takes it. It is the one thing M5 named and did not build, a
 ### After M5
 
 ```text
-M6  Notary module   — Notarial Deeds, Drafts, Minuta Akta, Legalisasi, Waarmerking, Repertorium
+M6  Notary module   — Notarial Deeds, Minuta Akta   ← M6.0 lock accepted; see below
 M7  PPAT module     — PPAT Deeds, Property, Warkah, taxes, registers, reports
 M8  Dashboard, Billing & Reports
 ```
@@ -317,6 +320,27 @@ Both M6 and M7 are **blocked on domain validation**, not on engineering. The two
 are drafts, and four of the seven recommended document junctions
 (`property_documents`, `notary_deed_documents`, `ppat_deed_documents`, `matter_requirement_documents`)
 reference tables those milestones create.
+
+**M6.0 (D-120) established what that blockage actually costs, and it is less than it sounds.** Five
+of the seven questions in `08_NOTARY_WORKFLOW.md` §6 are rules a deed surface would ordinarily
+encode; M6 stores the vocabulary the ERD names for each and **reaches none of it** — the D-109
+pattern. What remains buildable is the deed record itself, its lifecycle ladder (which `CLAUDE.md`
+§29 states outright, so it is not inferred from the draft), its document pointers, its Minuta
+metadata, and the whole authorization surface.
+
+```text
+M6.1  notary_matters + notary_deeds schema + Policy   (no routes)
+M6.2  Deed management surface + deed frontend
+M6.3  notary_minuta — metadata only
+```
+
+**Registers and protocol are outside M6, not deferred within it.** `03_DATABASE_ERD.md` §32 puts them
+in batch 11, later even than PPAT deeds, and the canonical protocol table is `protocol_records` — one
+table with a domain discriminator and no deed junction, not the Notary-specific pair a reader might
+expect (O-036).
+
+M6.1 also removes the obstacle D-118 recorded for `notary_deed_documents`: it was blocked because
+`notary_deeds` did not exist.
 
 ### Before the next milestone starts
 

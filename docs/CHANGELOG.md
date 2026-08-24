@@ -5,6 +5,79 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M6.0 Notary architecture lock
+
+Branch `feat/m6-notary`, from `6d0c2e9`. **No code, no migration, no permission — the count stays at
+177.** One new decision, **D-120**, and two new open items, **O-035** and **O-036**.
+
+`docs/16_M6_NOTARY_ARCHITECTURE.md` is the fifth `.0` lock and the first whose subject is a
+specification that is deliberately empty.
+
+### Five of the seven open domain questions are rules a deed surface would encode
+
+`08_NOTARY_WORKFLOW.md` §6 lists seven questions requiring domain validation. The M6 brief specified
+an answer to five of them — deed numbering format and allocator, auto-created Repertorium entries,
+a Minuta archive lifecycle, post-finalization correction through lock/void/supersede, and approval
+restricted to named roles. `CLAUDE.md` §62 names four of those five explicitly as things not to
+invent and prescribes **STOP / DOCUMENT THE GAP / ASK FOR DOMAIN SPECIFICATION**.
+
+The approval question is blocked twice: even with a validated domain source, *"default hanya
+PRINCIPAL dan SUPER_ADMIN"* is a **role-name authorization**, which D-032, D-041 and D-048 forbid as
+a mechanism regardless of the domain answer.
+
+### The permission catalogue independently declines the same acts
+
+Verified against the live registry — `notary.deeds.lock`, `notary.deeds.void`,
+`notary.deeds.delete`, `notary.register.delete`, `notary.minuta.delete` and all four
+`notary.protocol.*` codes are **ABSENT**. Three of those are exactly the correction mechanisms §6
+asks about. Two canonical sources declining to describe the same act is evidence rather than
+coincidence, so **M6 builds no act that has no canonical code.**
+
+`notary.deeds.number` **does** exist, and nothing in the repository had noticed. The catalogue
+anticipated that assigning a deed number is its own capability, separate from `finalize` — which is
+what lets M6 store a number without inventing a numbering rule.
+
+### Blocked does not mean absent
+
+Where the ERD names a field, M6 creates it — a schema matching the ERD is transcription, not a legal
+claim. `VOID`, `SUPERSEDED`, `locked_at` and `release_status` become **stored vocabulary with no code
+path**: the D-109 pattern for Matter's unreachable statuses, and the D-102 pattern for
+`matters.deleted_at`.
+
+The lifecycle that *is* built — `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED` — is not a guess:
+`CLAUDE.md` §29 states it verbatim as the legal-record lifecycle and §64 states its consequence.
+
+### Three of the brief's structures are not canonical
+
+* **`notary_protocols` + `notary_protocol_items` do not exist.** The canonical table is
+  **`protocol_records`** (ERD §22) — one table with a `NOTARY | PPAT` discriminator, **no junction to
+  deeds**, no status vocabulary. §32 places it in batch 11, later than PPAT deeds. M6 is batch 9.
+* **Registers are batch 11 too**, and the Repertorium procedure is open question two.
+* **`notary_deeds` gets no `deleted_at` and no soft delete** — the ERD omits it, §33 prefers states
+  over deletion for finalized legal records, `CLAUDE.md` §30 forbids user-facing hard delete of
+  finalized Deeds, and no `notary.deeds.delete` capability exists.
+
+### Decomposition
+
+```text
+M6.0  Notary architecture lock                       <- this
+M6.1  notary_matters + notary_deeds schema + Policy    (no routes, like M5.1)
+M6.2  Deed management surface + deed frontend
+M6.3  notary_minuta — metadata and document link, no archive/release lifecycle
+```
+
+There is no M6.4: registers and protocol are outside M6, not deferred within it.
+
+### Also recorded
+
+A Deed's reach is its Matter's reach — no `pic_user_id` of its own, so `OWN` and `ASSIGNED` resolve
+through the parent, and D-100 holds in both directions. One Minuta per Deed, by unique index, because
+the term carries the cardinality. `office_id` added to `notary_matters` and `notary_minuta` as
+composite-key carriers, recorded rather than made quietly. D-118's `notary_deed_documents` blocker is
+removed by M6.1 and the junction stays unbuilt.
+
+---
+
 ## 2026-08-24 — M5.4 Task schema, management and frontend
 
 Branch `feat/m5-documents-tasks`, from `74b7bd3`. **Three migrations (35 → 38), twelve routes, and no
