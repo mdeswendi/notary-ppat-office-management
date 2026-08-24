@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\TaskCommentController;
+use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRoleController;
@@ -446,6 +448,55 @@ Route::prefix('v1')->group(function (): void {
             ->whereUlid('document')->name('api.v1.documents.verify');
         Route::post('documents/{document}/archive', [DocumentController::class, 'archive'])
             ->whereUlid('document')->name('api.v1.documents.archive');
+
+        /*
+         * Tasks (M5.4, D-119).
+         *
+         * **One surface, not two.** `tasks.*` is a single canonical namespace with
+         * no Notary/PPAT split, so there is nothing for a route prefix to select.
+         *
+         * **Seven acts, seven capabilities, and none implies another** —
+         * `tasks.create`, `update`, `assign`, `complete`, `reopen`, `delete`, and
+         * `view` for reading and commenting. `tasks.reopen` is its own code rather
+         * than part of completion, which is what the registry says and what an
+         * office would want: closing work and un-closing it are different trusts.
+         *
+         * `cancel` and `destroy` share `tasks.delete`: cancelling is what makes
+         * deletion available, since nothing still live may be removed. There is no
+         * `tasks.cancel` in the catalogue and this milestone invents none.
+         *
+         * **`options` is declared before `{task}`**, or the literal segment would
+         * bind as a task id and answer 404.
+         *
+         * There is deliberately **no `POST /tasks/{task}/status`**: the three live
+         * statuses are ordinary editing and belong to `PATCH`, while the two
+         * settled ones answer to their own capabilities above.
+         */
+        Route::get('tasks/options', [TaskController::class, 'options'])->name('api.v1.tasks.options');
+
+        Route::get('tasks', [TaskController::class, 'index'])->name('api.v1.tasks.index');
+        Route::post('tasks', [TaskController::class, 'store'])->name('api.v1.tasks.store');
+
+        Route::get('tasks/{task}', [TaskController::class, 'show'])
+            ->whereUlid('task')->name('api.v1.tasks.show');
+        Route::patch('tasks/{task}', [TaskController::class, 'update'])
+            ->whereUlid('task')->name('api.v1.tasks.update');
+        Route::delete('tasks/{task}', [TaskController::class, 'destroy'])
+            ->whereUlid('task')->name('api.v1.tasks.destroy');
+
+        Route::patch('tasks/{task}/assignment', [TaskController::class, 'assign'])
+            ->whereUlid('task')->name('api.v1.tasks.assign');
+        Route::post('tasks/{task}/complete', [TaskController::class, 'complete'])
+            ->whereUlid('task')->name('api.v1.tasks.complete');
+        Route::post('tasks/{task}/reopen', [TaskController::class, 'reopen'])
+            ->whereUlid('task')->name('api.v1.tasks.reopen');
+        Route::post('tasks/{task}/cancel', [TaskController::class, 'cancel'])
+            ->whereUlid('task')->name('api.v1.tasks.cancel');
+
+        Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])
+            ->whereUlid('task')->name('api.v1.tasks.comments.index');
+        Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])
+            ->whereUlid('task')->name('api.v1.tasks.comments.store');
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');

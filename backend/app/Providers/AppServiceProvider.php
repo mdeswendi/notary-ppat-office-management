@@ -9,6 +9,7 @@ use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\ProjectParty;
 use App\Models\ServiceType;
+use App\Models\Task;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\DocumentPolicy;
@@ -19,6 +20,7 @@ use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
+use App\Policies\TaskPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -103,6 +105,14 @@ class AppServiceProvider extends ServiceProvider
         // `documents.sensitive.*` as a **separate** capability on top of reach,
         // never as an escalation of the ordinary code (D-115).
         Gate::policy(Document::class, DocumentPolicy::class);
+
+        // Task (M5.4). Listed here with the rest so one file answers "which policy
+        // guards what". Two things about it are worth pointing at: `create` takes
+        // an Office id rather than a model, because work is raised in the actor's
+        // own Office; and `OWN` and `ASSIGNED` are **separate predicates** —
+        // `created_by` and `assigned_to` — which union when an actor holds both
+        // rather than one containing the other (D-119).
+        Gate::policy(Task::class, TaskPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

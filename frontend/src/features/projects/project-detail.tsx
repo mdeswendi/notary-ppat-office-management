@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { ProjectAssignmentSection } from "@/features/projects/project-assignment-section";
+import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
 import { ProjectPartiesSection } from "@/features/projects/project-parties-section";
 import { toProjectErrorKey } from "@/features/projects/project-errors";
@@ -175,6 +176,17 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           filter={{ project_id: project.id }}
           uploadHref="/documents/upload"
           attachTo={{ entity_type: "project", entity_id: project.id }}
+        />
+      </section>
+
+      {/* Tasks (M5.4, D-119). A section, not a tab — the pattern this page already
+          uses for participation and documents. It answers to `tasks.view` and its
+          own endpoint, so a reader who can open the Project and not its tasks sees
+          the section fail honestly rather than see a fabricated empty one. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <EntityTaskSection
+          filter={{ project_id: project.id }}
+          createHref={`/tasks/new?project_id=${project.id}`}
         />
       </section>
     </div>

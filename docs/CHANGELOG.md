@@ -5,6 +5,110 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M5.4 Task schema, management and frontend
+
+Branch `feat/m5-documents-tasks`, from `74b7bd3`. **Three migrations (35 → 38), twelve routes, and no
+permission — the count stays at 177.** Backend **2360 passed + 8 skipped** (84 of them for Task),
+frontend **100 passed** (was 82). One new decision, **D-119**.
+
+### The plan asked for six new permissions. The registry already had eight
+
+`tasks.view`, `view_all`, `create`, `update`, `assign`, `complete`, `reopen` and `delete` have been
+canonical since the catalogue was transcribed at M1. `PermissionRegistry.php` is **untouched** by this
+milestone, so the brief's "total becomes 183" would have been an invented catalogue extension.
+
+Two things follow that the plan had wrong:
+
+* **`tasks.reopen` is its own capability.** The plan folded reopening into completing; an office may
+  reasonably let more people close work than un-close it.
+* **`tasks.view_all` is consulted nowhere**, superseded by Data Scope `ALL` for reach (D-090) — as
+  `projects.view_all` and both `*.matters.view_all` codes already are.
+
+Where the catalogue is silent nothing was invented. `cancel` and `destroy` share **`tasks.delete`**,
+because cancelling is what makes deletion available. Commenting answers to **`tasks.view`**, not
+`tasks.update` — requiring the edit capability would mean only those who can change the work may
+discuss it.
+
+### `created_by` is added, closing the question M5.0 left for this milestone
+
+`03_DATABASE_ERD.md` section 15 carries `assigned_by` and no `created_by`; the M5 lock §11.1 recorded
+that as a question M5.4 must meet as a decision. `assigned_by` cannot be the owner — it moves on every
+reassignment, so ownership would drift between people without anybody deciding it, and an unassigned
+task would have no owner at all.
+
+### `OWN` and `ASSIGNED` stay two predicates
+
+The plan proposed `OWN` = *"created_by OR assigned_to"*, and `ASSIGNED` = the same thing "for
+consistency". That makes `OWN` a superset of `ASSIGNED`, so `ASSIGNED` could express nothing `OWN` did
+not — **a ranking between scopes, which D-028 forbids.** Kept apart they answer *"work I raised"* and
+*"work I was given"*, and an actor holding both reaches the union, which is what the plan actually
+wanted.
+
+### `MEDIUM` would have failed at the database, and the CHECK caught it
+
+Priority is `ProjectPriority` — `LOW NORMAL HIGH URGENT`, already shared by Project and Matter (D-095).
+The plan wrote `MEDIUM`. The PostgreSQL probe inserted it and `tasks_priority_check` **refused the
+row**, so the constraint earned its place by catching the one thing it was written to catch.
+
+### Schema
+
+| | |
+|---|---|
+| `2026_08_25_090000` | `UNIQUE (id, office_id)` on `users` — the support key the four user columns need |
+| `2026_08_25_090001` | `tasks`: 17 columns, 9 foreign keys, 3 PostgreSQL CHECKs |
+| `2026_08_25_090002` | `task_comments` |
+
+Every user a Task names — `assigned_to`, `assigned_by`, `created_by`, `completed_by` — is a composite
+foreign key through the Task's own `office_id`, as are `project_id` and `matter_id`. **`RESTRICT`
+everywhere and `SET NULL` nowhere**: nulling a composite key nulls `office_id` too, which is
+`NOT NULL`, so `nullOnDelete()` would fail at runtime — and refusing to delete a Project that still has
+tasks is the right answer anyway.
+
+`workflow_stage_instance_id` is **omitted**. Unlike the blocked document junctions it could have been
+written — `matter_stage_instances` exists since M4.7 — but `task_templates` is what would fill it, and
+D-104 keeps that unbuilt. A nullable pointer no code can set is the placeholder D-095 refused.
+
+`task_comments` carries **no `office_id`**, following the ERD: its Office is its task's, one join away.
+Comments are **write-once** — no edit, no delete, a model guard that refuses an update. `task_id`
+cascades; `user_id` restricts.
+
+### A transition matrix, superseding the lock's §11.3
+
+By decision, as D-117 did for §10.2, and with less tension: a Task status is **operational, not
+legal**. Only `COMPLETED` and `CANCELLED` may be deleted, so nothing in flight disappears without
+somebody saying what happened to it. Completion is reversible; cancellation is not.
+
+### Frontend, shipped with the endpoints
+
+M5.5 held the Task frontend; it lands here for the reason M5.2 gave for documents — a twelve-route
+surface nobody can exercise is a milestone nobody can accept. Five pages, eight components, a dashboard
+widget, Project and Matter task sections, and 76 translation keys per locale with verified parity.
+`is_overdue` is **server-computed and rendered, never recomputed** in the browser. The `can_*` flags
+fold status eligibility into capability, so a control the endpoint would 422 is simply absent — and
+they stay presentation only (D-113).
+
+### Nothing is audited, again deliberately
+
+The brief asked for a simple log or an `Activity` model. D-115 forbids exactly that and D-118 refused
+the same request. `created_by`, `assigned_by`, `completed_by` and the comment thread record who and
+when on the rows themselves. A test asserts no such store was improvised.
+
+### A test-runner limit raised, not a test skipped
+
+The suite exhausted memory around 2,360 tests. `php -d memory_limit=1G` had no effect because
+`artisan test` spawns Pest as a subprocess — the same shape as O-034, where a shell override never
+reached the process that mattered. Fixed where the subprocess reads it, in `backend/phpunit.xml`.
+
+### Verification
+
+PostgreSQL probe on a disposable database at 38 migrations: all nine foreign keys present, cross-office
+assignee / creator / project refused, `MEDIUM` refused, completion pair enforced, `RESTRICT` proven on
+Project, Matter and User deletion, comments surviving a soft delete, and no `task_templates`,
+`audit_logs` or `notifications` created. Probe dropped afterwards; **the persistent development
+database was not touched and remains at 22 migrations.**
+
+---
+
 ## 2026-08-24 — CI fix: M5.3 formatting
 
 **Quality #53 failed on `077365b`.** One cause, one line, and it was a reporting

@@ -434,10 +434,19 @@ transcription question M5.4 must resolve explicitly rather than by adding a colu
 Data Scope `OWN` predicate needs an owner, and if `assigned_by` is not it, something must be. It is
 recorded here so the milestone meets it as a decision rather than a surprise.
 
+**Resolved at M5.4** *(D-119)*: **`created_by` is added**, and the extension to the canonical list is
+recorded rather than quietly made. `assigned_by` cannot be the owner — it records who last handed the
+work over, so ownership would move between people without anybody deciding it, and a task nobody has
+assigned yet would have no owner at all.
+
+**`workflow_stage_instance_id` is omitted at M5.4**, and unlike the blocked document junctions of
+section 7 it *could* have been written: `matter_stage_instances` has existed since M4.7. It is left
+out because **nothing would set it** — see 11.3.
+
 ### 11.2 Data Scope
 
 ```text
-OWN       the creator — pending 11.1
+OWN       tasks.created_by  = actor id     <- resolved at M5.4 (D-119)
 ASSIGNED  tasks.assigned_to = actor id
 OFFICE    tasks.office_id   = actor office
 ALL       cross-office reach
@@ -449,6 +458,13 @@ no Matter reach and no Project reach — the symmetric statement of D-100, which
 assignee widening Matter `ASSIGNED`. The three assignment concepts stay separate: `projects.pic_user_id`,
 `matters.pic_user_id`, `tasks.assigned_to`.
 
+**`OWN` and `ASSIGNED` are two predicates and neither contains the other** *(M5.4, D-119)*. The M5.4
+plan proposed defining `OWN` as *"created_by OR assigned_to"* and `ASSIGNED` as the same thing "for
+consistency"; that would have made `OWN` a superset of `ASSIGNED`, leaving `ASSIGNED` unable to express
+anything `OWN` did not already — a ranking between scopes, which D-028 forbids. Kept apart they answer
+two questions an administrator may want to grant separately, *"work I raised"* and *"work I was
+given"*, and an actor holding both reaches the union.
+
 ### 11.3 What M5 does not decide
 
 **`task_templates` is not built.** `03_DATABASE_ERD.md` section 15 lists it with
@@ -457,8 +473,31 @@ workflow stage. That is workflow content: which stage produces which task, for w
 D-104 applies unchanged, and the table additionally carries `default_assignee_role`, which would be
 role-name authorization if anything ever read it as such (D-032, D-041).
 
-**No transition matrix for tasks either.** M5 authorizes who may complete or reopen; it does not
-encode which status may follow which.
+This is also why `workflow_stage_instance_id` is omitted from `tasks` at M5.4: `task_templates` is
+what would fill it, so the column would be a nullable pointer no code can set — the placeholder D-095
+refused.
+
+~~**No transition matrix for tasks either.** M5 authorizes who may complete or reopen; it does not
+encode which status may follow which.~~
+
+**Superseded at M5.4** *(D-119)*, by decision rather than drift — as D-117 did for section 10.2, and
+with less tension: a Task status is **operational, not legal**. Nothing about it says what a deed or a
+Warkah may become. The matrix `TaskStatus` encodes:
+
+```text
+create    ->  OPEN
+progress  OPEN, WAITING              ->  IN_PROGRESS
+wait      OPEN, IN_PROGRESS          ->  WAITING
+complete  OPEN, IN_PROGRESS, WAITING ->  COMPLETED
+reopen    COMPLETED                  ->  IN_PROGRESS
+cancel    anything not yet finished  ->  CANCELLED
+delete    COMPLETED, CANCELLED       ->  (soft deleted)
+```
+
+**Deletion is the rule the others exist to support**: nothing in flight disappears without somebody
+saying what happened to it. **Completion is reversible and cancellation is not** — un-cancelling would
+undo a statement that the work will not happen, so a mistaken cancellation is corrected by raising a
+new task, which leaves a record of both.
 
 ---
 
@@ -484,8 +523,8 @@ M5.0   Document / Task architecture lock       <- this document
 M5.1   Document schema + private storage foundation   (includes the three junction tables)
 M5.2   Document management surface + document frontend + Project/Matter sections
 M5.3   Document relation surfaces (attach / detach) + Party document sections   <- done
-M5.4   Task schema + management
-M5.5   Frontend: tasks
+M5.4   Task schema + management + task frontend   <- done
+M5.5   (absorbed into M5.4)
 M5.6   M5 quality gate
 ```
 
@@ -517,6 +556,12 @@ affecting pages M4 already shipped rather than a side effect of a document miles
 M5.2 writes junction rows only as part of an upload, where the target is re-resolved through its own
 domain's visibility first.
 
+**Corrected a third time at M5.4** *(D-119)*. M5.5 held the Task frontend on the reasoning that it
+"genuinely depends on M5.4". It ships with M5.4 instead, for the reason M5.2 gave when it absorbed the
+document frontend: a twelve-route surface with no way to exercise it is a milestone nobody can accept.
+The dependency claim was true and the conclusion did not follow from it. **M5.5 is not renumbered** —
+the identifier stays retired so nothing above it shifts.
+
 **No milestone in M5 seeds content.** No document types, no task templates, no requirement
 catalogues.
 
@@ -531,7 +576,7 @@ catalogues.
 | Whether a sensitive document's *title* is safe to show in a list | **DEFERRED at M5.2, not answered** (D-117). Rather than render a stub whose contents nobody has decided, the list **excludes** sensitive documents an actor cannot reach — a query condition, so the pagination total stays honest. The milestone that wants a stub still has to decide what it may carry | Closed for M5.2 |
 | `is_current` uniqueness — partial index, application invariant, or a pointer on `documents` | **RESOLVED at M5.1** (D-116). `is_current` is gone; `documents.current_version_id` carries a **composite** foreign key `(id, current_version_id) -> document_versions (document_id, id)`, so a pointer at another document's version is unrepresentable | Closed |
 | `document_number` required or nullable at first | **RESOLVED at M5.1** (D-116): nullable, because no creation path allocates one yet. The milestone that builds upload stamps it inside the creating transaction and tightens the column | Closed |
-| `tasks` has `assigned_by` but no `created_by`, while Data Scope `OWN` needs an owner | **OPEN.** M5.4 must resolve it explicitly rather than adding a column on instinct | **No** |
+| `tasks` has `assigned_by` but no `created_by`, while Data Scope `OWN` needs an owner | **RESOLVED at M5.4** (D-119). `created_by` is added and the extension to the canonical field list is recorded. `assigned_by` cannot be the owner: it moves on every reassignment, and an unassigned task would have no owner at all. `OWN` is `created_by`, `ASSIGNED` is `assigned_to`, and the two stay separate predicates that union when both are held | Closed |
 | Requirement templates and workflow gating | **DOMAIN VALIDATION REQUIRED** and structurally blocked: `service_document_requirements` does not exist (D-104) | **No** |
 | `task_templates` and auto-creating tasks from a stage | Deferred. Workflow content, plus a `default_assignee_role` column that must never become role-name authorization | **No** |
 | Document preview and thumbnailing | Not in scope. Rendering a legal document is a second delivery path and needs its own security argument | **No** |

@@ -34,15 +34,15 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0, M1, M2, M3, M4 (merged) · M5.0–M5.2 (on the branch) |
-| Migrations | **35** |
+| Milestones complete | M0, M1, M2, M3, M4 (merged) · M5.0–M5.4 (on the branch) |
+| Migrations | **38** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 24 |
-| API routes | **129** under `/api/v1` (136 total) |
-| Backend tests | **2202 passing, 8 skipped** across 76 files (Pest) |
-| Frontend tests | **76 passing** across 8 files (Vitest + RTL) |
-| Frontend pages | 36 |
-| Decisions recorded | **D-001 … D-117** |
+| Models | 26 |
+| API routes | **144** under `/api/v1` (151 total) |
+| Backend tests | **2360 passing, 8 skipped** across 80 files (Pest) |
+| Frontend tests | **100 passing** across 11 files (Vitest + RTL) |
+| Frontend pages | 41 |
+| Decisions recorded | **D-001 … D-119** |
 | Open items | 12 still open (§7) |
 
 **The persistent development database stands at 22 migrations and is deliberately behind.** It has
@@ -52,8 +52,8 @@ never been migrated past M1. Every schema verification since has run on a dispos
 
 ```text
 companies 19   notary 17   ppat 17   projects 15   individuals 14
-users 13       security 12  documents 9  roles 7   profile 2
-parties 1      permissions 1  health 1   me 1
+users 13       tasks 12     security 12  documents 12  roles 7
+profile 2      parties 1    permissions 1  health 1   me 1
 ```
 
 ---
@@ -75,6 +75,8 @@ the single most load-bearing process choice in the project.
 | **M5.0** | Document / Task architecture lock; turned the private disk's `serve` flag off | `0890fec` |
 | **M5.1** | Document schema, private storage, `DOC-` allocator, three junctions, Policy — no routes | `6f495f8` |
 | **M5.2** | Nine document endpoints, four pages, Project/Matter document sections | `3dec054` |
+| **M5.3** | Document relation surfaces (attach / detach), Party document sections | `077365b` |
+| **M5.4** | Task schema, twelve endpoints, five pages, Project/Matter task sections | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -205,7 +207,7 @@ docs/
 ├── 13_M3_PROJECT_ARCHITECTURE.md  │ milestone architecture locks — read the one
 ├── 14_M4_MATTER_ARCHITECTURE.md   │ for the domain you are changing
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md ┘
-├── DECISIONS.md                   ← D-001…D-117 + the Open Items register
+├── DECISIONS.md                   ← D-001…D-119 + the Open Items register
 ├── CHANGELOG.md                   ← what each milestone did
 └── HANDOFF.md                     ← this file
 ```
@@ -292,20 +294,16 @@ D-115 rules that **no sensitive-download surface ships before it exists**, which
 ### Remaining in M5
 
 ```text
-M5.3  Document relation surfaces (attach / detach on their own endpoints)
-M5.4  Task schema + management
-M5.5  Frontend: tasks
+M5.5  (absorbed into M5.4 — the identifier stays retired)
 M5.6  M5 quality gate
 ```
 
-The junction **tables** shipped at M5.1 and upload writes rows into them; M5.3 owns the attach and
-detach endpoints, which is where the authorization work actually is. Audit is deliberately unnumbered
-— whether it becomes M5.2a, a prerequisite, or part of M5.4's batch is a scoped decision for whoever
-takes it.
+Audit is deliberately unnumbered — whether it becomes M5.2a or a prerequisite milestone is a scoped
+decision for whoever takes it. It is the one thing M5 named and did not build, and D-115 keeps
+`documents.sensitive.download` authorizing nothing until it exists.
 
-**M5.4 has one question waiting for it:** `tasks` carries `assigned_by` but **no `created_by`**, while
-Data Scope `OWN` needs an owner. It must be resolved explicitly rather than by adding a column on
-instinct.
+**The question M5.0 left for M5.4 is answered** (D-119): `created_by` was added, `OWN` is the creator,
+`ASSIGNED` is the assignee, and the two are separate predicates that union when both are held.
 
 ### After M5
 

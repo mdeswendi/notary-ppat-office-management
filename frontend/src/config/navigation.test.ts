@@ -200,6 +200,43 @@ describe("visibleNavigation — the M5 Documents entry", () => {
   });
 });
 
+describe("visibleNavigation — the M5 Tasks group", () => {
+  it("gates all three views on the one capability that reads tasks", () => {
+    // "Mine" and "Completed" are filters over the same list, not separate
+    // capabilities: inventing `tasks.view_mine` would let an administrator grant
+    // a page without granting sight of anything on it.
+    const visible = keysOf(visibleNavigation(user(["tasks.view"])));
+
+    expect(visible).toContain("tasks");
+    expect(visible).toContain("tasks.my");
+    expect(visible).toContain("tasks.all");
+    expect(visible).toContain("tasks.completed");
+  });
+
+  it("hides the whole group from an account that may create but not read", () => {
+    // Every child requires `tasks.view`, so the parent collapses with them —
+    // a group whose every destination is refused advertises nothing.
+    const visible = keysOf(visibleNavigation(user(["tasks.create", "tasks.assign"])));
+
+    expect(visible).not.toContain("tasks");
+    expect(visible).not.toContain("tasks.my");
+  });
+
+  it("does not gate the group on a scope, because Task reach is a union", () => {
+    // Unlike Roles, a Task destination demands no particular scope: `OWN`,
+    // `ASSIGNED`, `OFFICE` and `ALL` are separate predicates that union when
+    // several are held (D-028), and each of them can reach some Task. A
+    // `requiredScope` here would hide a working page from an assignee.
+    const own = keysOf(visibleNavigation(user(["tasks.view"], { "tasks.view": ["OWN"] })));
+    const assigned = keysOf(
+      visibleNavigation(user(["tasks.view"], { "tasks.view": ["ASSIGNED"] })),
+    );
+
+    expect(own).toContain("tasks.my");
+    expect(assigned).toContain("tasks.my");
+  });
+});
+
 describe("navigation configuration", () => {
   it("gives every entry a stable key and a translation key", () => {
     // Keys are never translated and hrefs are locale-relative; a hardcoded

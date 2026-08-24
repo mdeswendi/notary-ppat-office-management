@@ -540,17 +540,25 @@ it('treats archiving as a state rather than a deletion', function (): void {
 |--------------------------------------------------------------------------
 */
 
-it('builds no task, requirement or template table', function (): void {
-    // M5.1 is the Document schema and nothing else. Tasks are M5.4;
+it('builds no requirement or template table', function (): void {
+    // M5.1 is the Document schema and nothing else.
     // `service_document_requirements` and `matter_requirements` are deferred to
     // M6/M7 with the legal content that would justify them; `task_templates` is
-    // deferred outright.
+    // deferred outright (D-104).
+    //
+    // **Narrowed at M5.4**, which builds `tasks` and `task_comments` (D-119).
+    // Both have their own schema test; `task_templates` stays on this list
+    // because it is the one the workflow ruling keeps unbuilt.
     foreach ([
-        'tasks', 'task_templates', 'matter_requirements',
+        'task_templates', 'matter_requirements',
         'service_document_requirements', 'document_templates',
     ] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
+
+    // The point that survives the narrowing: a Document points at no Task.
+    // `tasks` reaches Project and Matter, never the other way round.
+    expect(Schema::hasColumn('documents', 'task_id'))->toBeFalse();
 });
 
 it('adds no gating column to the workflow tables', function (): void {

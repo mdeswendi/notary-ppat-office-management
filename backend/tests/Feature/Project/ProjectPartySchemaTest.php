@@ -365,8 +365,9 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     // and at M4.7, which builds the three running ones (D-112). Everything left
     // here is M5 and beyond.
     // **Narrowed again at M5.1**, which builds `documents` (D-116) with its own
-    // schema test. `tasks` is M5.4; `warkah`, `deeds` and `properties` are M6/M7.
-    foreach (['properties', 'warkah', 'deeds', 'tasks'] as $table) {
+    // schema test, and at M5.4, which builds `tasks` (D-119) with its own.
+    // `warkah`, `deeds` and `properties` are M6/M7 and stay.
+    foreach (['properties', 'warkah', 'deeds'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
@@ -382,7 +383,10 @@ it('introduces no Matter or later-milestone persistence', function (): void {
         ->and(Schema::hasColumn('matter_parties', 'project_party_id'))->toBeFalse()
         // M5.1: a Document reaches a Project through `project_documents`, never
         // through a participation row. A participant is not a filing cabinet.
-        ->and(Schema::hasColumn('project_parties', 'document_id'))->toBeFalse();
+        ->and(Schema::hasColumn('project_parties', 'document_id'))->toBeFalse()
+        // M5.4: nor a work queue. A Task names a Project directly; a participant
+        // is not how work finds its way to somebody.
+        ->and(Schema::hasColumn('project_parties', 'task_id'))->toBeFalse();
 });
 
 it('exposes exactly the expected participation routes and nothing more', function (): void {

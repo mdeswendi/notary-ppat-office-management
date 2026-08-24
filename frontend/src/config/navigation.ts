@@ -9,6 +9,7 @@ import {
   KeyRound,
   Landmark,
   LayoutDashboard,
+  ListChecks,
   Scale,
   Settings,
   UserRound,
@@ -169,6 +170,43 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         icon: Briefcase,
         implemented: true,
         requiredPermission: "ppat.matters.view",
+      },
+    ],
+  },
+  {
+    key: "tasks",
+    translationKey: "tasks",
+    icon: ListChecks,
+    // Added at M5.4, when the routes landed. The eight `tasks.*` codes have been
+    // canonical since the catalogue was transcribed and this entry stayed absent
+    // for every milestone since (D-064).
+    implemented: true,
+    children: [
+      {
+        key: "tasks.my",
+        translationKey: "tasksMy",
+        href: "/tasks/my",
+        icon: ListChecks,
+        implemented: true,
+        // The same capability as the list below: "mine" is a filter, not a
+        // separate permission.
+        requiredPermission: "tasks.view",
+      },
+      {
+        key: "tasks.all",
+        translationKey: "tasksAll",
+        href: "/tasks",
+        icon: ListChecks,
+        implemented: true,
+        requiredPermission: "tasks.view",
+      },
+      {
+        key: "tasks.completed",
+        translationKey: "tasksCompleted",
+        href: "/tasks/completed",
+        icon: ListChecks,
+        implemented: true,
+        requiredPermission: "tasks.view",
       },
     ],
   },

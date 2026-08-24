@@ -270,8 +270,10 @@ it('introduces no workflow or later-milestone table', function (): void {
     // at M4.7, which builds the running ones (D-112). Each has its own schema
     // test; what is left here is M5 and beyond.
     // **Narrowed again at M5.1**, which builds `documents` (D-116) with its own
-    // schema test. `tasks` is M5.4 and beyond; `properties` is M7.
-    foreach (['properties', 'tasks'] as $table) {
+    // schema test, and at M5.4, which builds `tasks` (D-119) with its own.
+    // `properties` is M7 and stays — the last entry on a list that started with
+    // eight.
+    foreach (['properties'] as $table) {
         expect(Schema::hasTable($table))->toBeFalse($table);
     }
 
@@ -284,7 +286,10 @@ it('introduces no workflow or later-milestone table', function (): void {
         ->and(Schema::hasColumn('projects', 'workflow_template_id'))->toBeFalse()
         ->and(Schema::hasColumn('projects', 'matter_workflow_id'))->toBeFalse()
         ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse()
-        ->and(Schema::hasColumn('projects', 'document_id'))->toBeFalse();
+        ->and(Schema::hasColumn('projects', 'document_id'))->toBeFalse()
+        // M5.4: a Task names its Project, never the reverse. A `task_id` here
+        // would mean a Project has one task, which is not what a work queue is.
+        ->and(Schema::hasColumn('projects', 'task_id'))->toBeFalse();
 });
 
 it('generalizes the counter into no legal numbering framework', function (): void {

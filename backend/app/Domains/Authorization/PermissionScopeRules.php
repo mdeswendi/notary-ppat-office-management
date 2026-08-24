@@ -279,6 +279,47 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Task domain, whose predicates M5.4 settled (D-119).
+     *
+     * All four assignable scopes mean something here — the first domain since
+     * Matter where that is true, and for a different reason:
+     *
+     *   OWN       tasks.created_by  = actor id
+     *   ASSIGNED  tasks.assigned_to = actor id
+     *   OFFICE    tasks.office_id   = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **`OWN` and `ASSIGNED` are deliberately both offered and deliberately
+     * distinct.** The M5.4 plan proposed defining `OWN` as *"created_by OR
+     * assigned_to"*, which would have made `ASSIGNED` unable to express anything
+     * `OWN` did not already — a ranking between scopes, which D-028 forbids. Kept
+     * apart they answer two questions an administrator may want to grant
+     * separately: *"work I raised"* and *"work I was given"*. An actor holding both
+     * reaches the union.
+     *
+     * This is also why Task needs an explicit entry rather than the permissive
+     * default below: the default offers the same four, but offers them as
+     * *"nobody has decided yet"*. Now somebody has.
+     *
+     * **`tasks.view_all` is deliberately absent from this list**, exactly as
+     * `projects.view_all` and the two `*.matters.view_all` codes are. It is
+     * superseded by Data Scope `ALL` for reach (D-090) and no Policy ability
+     * consults it; listing it here would assert it is a live capability with
+     * meaningful scopes, which is what supersession denies.
+     */
+    private const TASK_DOMAIN = [
+        'tasks.view',
+        'tasks.create',
+        'tasks.update',
+        'tasks.assign',
+        'tasks.complete',
+        'tasks.reopen',
+        'tasks.delete',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -315,6 +356,10 @@ class PermissionScopeRules
 
         if (in_array($permission, self::DOCUMENT_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::TASK_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 
         // Everything else, including every permission whose module is not built

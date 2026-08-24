@@ -18,6 +18,25 @@
         </include>
     </source>
     <php>
+        <!--
+            The suite runs in one process and boots a fresh application per test,
+            so framework memory accumulates across the run. It crossed PHP's
+            default 128M CLI limit at M5.4, around 2360 tests — not from a leak in
+            any one test, but from the size of the suite.
+
+            Set here rather than on the command line because `php artisan test`
+            spawns Pest as a subprocess, which does not inherit `-d memory_limit`
+            — the same shape as O-034, where `artisan serve` dropped a shell
+            override for its own child. Setting it in this file is what the test
+            process actually reads, on a workstation and on CI alike, so the run
+            no longer depends on whichever ini the machine happens to carry.
+
+            `-1` rather than a number: a ceiling chosen today is a ceiling
+            somebody re-raises in six months, and a test run is not where memory
+            discipline is enforced.
+        -->
+        <ini name="memory_limit" value="-1"/>
+
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>

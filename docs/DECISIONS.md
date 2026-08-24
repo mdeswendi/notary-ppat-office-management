@@ -4302,6 +4302,127 @@ reopen. State that should start fresh belongs in a component that starts fresh.
 
 ---
 
+### D-119 — A Task is owned by whoever raised it, `OWN` and `ASSIGNED` stay two predicates, and the eight task codes were already canonical
+
+M5.4 builds the Task domain the M5 lock scheduled: schema, management endpoints, and — as M5.2 did for
+Document — **the frontend with them**, because a twelve-route surface nobody can exercise is a milestone
+nobody can accept. **Three migrations (35 → 38), and no permission: the count stays at 177.**
+
+**The plan asked for six new codes and a total of 183. Both numbers were wrong, and the registry is
+what settled it.** `tasks.view`, `view_all`, `create`, `update`, `assign`, `complete`, `reopen` and
+`delete` — **eight** codes — have been canonical since the catalogue was transcribed at M1, and
+`PermissionRegistry.php` is untouched by this milestone. Registering a permission has never been the
+same act as shipping a feature (D-064), and the reverse holds too: shipping one is not licence to
+extend a catalogue that already names it.
+
+Two consequences follow that the plan would have got wrong. **`tasks.reopen` is its own capability**,
+not part of completing — the plan folded them together, and an office may perfectly reasonably let
+more people close work than un-close it. And **`tasks.view_all` is consulted nowhere**, superseded by
+Data Scope `ALL` for reach exactly as `projects.view_all` and the two `*.matters.view_all` codes are
+(D-090); a second reach mechanism is the thing that must not exist.
+
+Where the catalogue is silent, nothing was invented. **`cancel` and `destroy` share `tasks.delete`**,
+because cancelling is what makes deletion available — nothing still live may be removed, so calling
+work off is the step that precedes it, and there is no `tasks.cancel` to reach for. **Commenting
+answers to `tasks.view`**, not `tasks.update`: a person who may read the task may say something about
+it, and requiring the edit capability would mean only those who can change the work may discuss it.
+There is no `tasks.comment` and this milestone adds none.
+
+**`created_by` is added, which is the question M5.0 handed this milestone.** `03_DATABASE_ERD.md`
+section 15 carries `assigned_by` and no `created_by`, and the lock's section 11.1 recorded that as a
+transcription question M5.4 must meet as a decision rather than a surprise. `assigned_by` cannot be the
+owner: it records who last handed the work over, so ownership would move between people without anybody
+deciding it, and a task nobody has assigned yet would have no owner at all. The column is added and
+the extension to the canonical list is recorded here rather than quietly made.
+
+**`OWN` and `ASSIGNED` are separate predicates and neither contains the other.** The plan proposed
+defining `OWN` as *"created_by OR assigned_to"* and `ASSIGNED` as *"the same, for consistency"*. That
+would have made `OWN` a superset of `ASSIGNED`, leaving `ASSIGNED` unable to express anything `OWN` did
+not already — **a ranking between scopes, which is precisely what D-028 forbids.** Kept apart they
+answer two questions an administrator may want to grant separately, *"work I raised"* and *"work I was
+given"*, and an actor holding both reaches the union. That union is the behaviour the plan actually
+wanted, arrived at through the mechanism the model already has instead of by collapsing two predicates
+into one. `PermissionScopeRules` gains an explicit `TASK_DOMAIN` entry offering all four assignable
+scopes — the same four the permissive default offers, but now offered as a decision rather than as
+*"nobody has decided yet"*. `TEAM` is withheld as everywhere (D-042).
+
+**A Task's `ASSIGNED` widens nothing else.** Being given a Task confers no Matter reach and no Project
+reach — the symmetric statement of D-100. `projects.pic_user_id`, `matters.pic_user_id` and
+`tasks.assigned_to` remain three separate predicates.
+
+**Priority is `ProjectPriority`, and the plan's vocabulary would have failed at the database.** The
+ERD gives Task `LOW NORMAL HIGH URGENT`, which is exactly what Project and Matter already share
+(D-095); a third identical enum would be three places for one vocabulary to drift. The plan wrote
+`MEDIUM`. The PostgreSQL probe inserted it and the `tasks_priority_check` **refused the row** — so the
+CHECK earned its place by catching the one thing it was written to catch, rather than being a
+constraint nobody ever tested.
+
+**`workflow_stage_instance_id` is omitted, and unlike the blocked document junctions it could have been
+written.** `matter_stage_instances` has existed since M4.7. It is left out because **nothing would set
+it**: `task_templates` is what connects a stage to the tasks it raises, and D-104 with the lock's
+section 11.3 keep that unbuilt — which stage produces which task, for whom, and by when is workflow
+content nobody has authored. A nullable pointer no code can fill is the placeholder D-095 refused.
+
+**Office ownership is structural on all four user columns.** `assigned_to`, `assigned_by`,
+`created_by` and `completed_by` each carry a composite foreign key through the Task's own `office_id`,
+the construction `company_people` (D-080), `project_parties` (D-098), `matters` (D-107) and the document
+junctions (D-116) all use. That needed a **`UNIQUE (id, office_id)` support key on `users`**, added by
+its own forward migration — the first time a support key has been added to a table this repository did
+not create. `projects` and `matters` are constrained the same way, so a Task cannot name a Project in
+one Office and a Matter in another.
+
+**`RESTRICT` everywhere and `SET NULL` nowhere, for a reason worth stating.** Nulling a composite key
+nulls *both* its columns, `office_id` included, and `office_id` is `NOT NULL` — so the obvious
+`nullOnDelete()` on `(project_id, office_id)` is not merely stylistically wrong, it would fail at
+runtime. Refusing to delete a Project that still has tasks is also the right answer: work does not
+become ownerless because the engagement it belonged to was removed.
+
+**A completed Task carries both facts or neither**, enforced by `tasks_completion_pair_check`. Half a
+completion is a row nobody can explain, and the pair is what reopening clears together.
+
+**M5 encodes a task transition matrix, superseding the lock's section 11.3** — by decision, as D-117
+did for section 10.2, and with less tension: a Task status is **operational, not legal**. Nothing about
+it says what a deed or a Warkah may become. Deletion is the rule the rest exist to support: only
+`COMPLETED` and `CANCELLED` may be removed, so nothing in flight disappears without somebody saying
+what happened to it. **Completion is reversible and cancellation is not** — reopening work finished too
+early is an ordinary correction, while cancelling states the work will not happen, and somebody who
+cancelled by mistake raises a new task, which leaves a record of both. `PATCH` may set only the three
+live statuses, so `tasks.update` never becomes a silent superset of `tasks.complete` (the D-091
+discipline).
+
+**`task_comments` carries no `office_id`, following the ERD.** Its Office is its task's, one join away,
+and a second copy is a second thing that can disagree. Comments are **write-once**: no edit endpoint, no
+delete, and a model guard that refuses an update outright, because a remark records what somebody said
+at the time. A correction is another comment. `task_id` cascades — a comment cannot outlive the task it
+is about — while `user_id` restricts, so an author cannot be erased from what they wrote.
+
+**Nothing is audited, and that is not an oversight.** The milestone brief asked for a simple log or an
+`Activity` model; D-115 forbids exactly that, and D-118 refused the same request four weeks of work
+ago. `created_by`, `assigned_by`, `completed_by` and the comment thread record who and when on the rows
+themselves; the event record waits for the store built to hold it. A test asserts no such store was
+improvised.
+
+**`is_overdue` is computed by the server and rendered by the browser, never recomputed there.** A client
+comparing `due_at` to its own clock disagrees with the backend for anybody whose machine is off, and two
+people looking at the same task would see different answers.
+
+**The `can_*` flags fold status eligibility into capability**, so a control the endpoint would answer
+422 to is simply absent — `can_reopen` false on live work, `can_delete` false on anything in flight.
+They remain presentation only (D-113): every endpoint authorizes again.
+
+**A test-runner limit was raised, not a test skipped.** The suite exhausted memory at roughly 2,360
+tests. `php -d memory_limit=1G` had no effect because `artisan test` spawns Pest as a subprocess —
+the same shape as O-034, where a shell override never reached the process that mattered. Fixed where the
+subprocess reads it, in `backend/phpunit.xml`.
+
+**Verification.** 2,360 backend tests pass with 8 skipped, 84 of them for Task; Pint clean. A
+disposable PostgreSQL probe at 38 migrations confirmed all nine foreign keys, refused a cross-office
+assignee, creator and project, refused `MEDIUM`, enforced the completion pair, refused deletion of a
+Project, Matter and User with live tasks, and kept comments through a soft delete. The persistent
+development database was not touched and remains at 22 migrations. Frontend: 100 tests across 11 files.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
