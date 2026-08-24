@@ -43,7 +43,7 @@ boundary. Every frontend permission check is presentation.
 | Frontend tests | **121 passing** across 13 files (Vitest + RTL) |
 | Frontend pages | 44 |
 | Decisions recorded | **D-001 … D-120** |
-| Open items | 14 still open (§7) |
+| Open items | 16 still open (§7) |
 
 **The persistent development database stands at 22 migrations and is deliberately behind.** It has
 never been migrated past M1. Every schema verification since has run on a disposable database. See §6.
@@ -80,7 +80,7 @@ the single most load-bearing process choice in the project.
 | **M6.0** | Notary architecture lock — and what the empty specification actually costs | `bec5dd5` |
 | **M6.1** | `notary_matters` + `notary_deeds` schema, Policy, Data Scope — no routes | `33dfe32` |
 | **M6.2** | Nine deed endpoints, three pages, Matter deeds section | `8c638d4` |
-| **M6.3** | `notary_minuta` metadata, three nested endpoints, deed-page section | on branch |
+| **M6.3** | `notary_minuta` metadata, three nested endpoints, deed-page section | `9bef689` |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -288,6 +288,8 @@ Twelve of thirty-four. Each is recorded in `DECISIONS.md` with its full reasonin
 | O-034 | `artisan serve` drops `DB_DATABASE` for its subprocess | Needs upstream change or a committed smoke launcher |
 | O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
 | O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
+| O-037 | The Project detail page shows no Notary Deeds | Grandchildren, and the list filters by matter not project |
+| O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
 
 **The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of
 M1 on the ERD's batch ordering; `audit.view` and `audit.export` are registered and unimplemented.
