@@ -41,12 +41,23 @@ export function DeedsList({
   emptyTitleKey = "deedsEmptyTitle",
   emptyDescriptionKey = "deedsEmptyDescription",
   showCreate = true,
+  matterOptions,
 }: {
   /** Applied on every request and not offered as a control. */
-  fixedFilter?: Pick<NotaryDeedListQuery, "matter_id" | "status">;
+  fixedFilter?: Pick<NotaryDeedListQuery, "matter_id" | "project_id" | "status">;
   emptyTitleKey?: string;
   emptyDescriptionKey?: string;
   showCreate?: boolean;
+  /**
+   * Matters to offer as a filter, and the signal that rows span more than one.
+   *
+   * Passed only by the Project view (O-037), where deeds come from several Matters
+   * at once: it adds a Matter column and a Matter dropdown. The deeds page and the
+   * Matter section both leave it undefined — on the Matter page every row has the
+   * same parent, so a column repeating it and a dropdown that cannot change
+   * anything would both be noise.
+   */
+  matterOptions?: { id: string; matter_number: string; title: string }[];
 }) {
   const t = useTranslations("notary");
   const tActions = useTranslations("actions");
@@ -55,6 +66,9 @@ export function DeedsList({
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<NotaryDeedStatus | "">("");
+  const [matter, setMatter] = useState("");
+
+  const showsMatter = matterOptions !== undefined;
 
   // Debounced so typing does not fire a request per keystroke.
   useEffect(() => {
@@ -66,9 +80,19 @@ export function DeedsList({
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  // The chosen Matter narrows within the fixed filter and never past it: a fixed
+  // `matter_id` wins, so a section pinned to one Matter cannot be widened.
+  const request: NotaryDeedListQuery = {
+    page,
+    search,
+    status,
+    ...(matter === "" ? {} : { matter_id: matter }),
+    ...fixedFilter,
+  };
+
   const query = useQuery({
-    queryKey: notaryDeedKeys.list({ page, search, status, ...fixedFilter }),
-    queryFn: () => getNotaryDeeds({ page, search, status, ...fixedFilter }),
+    queryKey: notaryDeedKeys.list(request),
+    queryFn: () => getNotaryDeeds(request),
     placeholderData: keepPreviousData,
   });
 
@@ -110,6 +134,28 @@ export function DeedsList({
               {REACHABLE_DEED_STATUSES.map((code) => (
                 <option key={code} value={code}>
                   {t(`deedStatuses.${code}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {showsMatter ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="deed-matter-filter">{t("matterLabel")}</Label>
+            <select
+              id="deed-matter-filter"
+              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
+              value={matter}
+              onChange={(event) => {
+                setMatter(event.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">{t("allMatters")}</option>
+              {matterOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.matter_number} — {option.title}
                 </option>
               ))}
             </select>
@@ -165,6 +211,11 @@ export function DeedsList({
                 <th scope="col" className="px-4 py-3 font-medium">
                   {t("status")}
                 </th>
+                {showsMatter ? (
+                  <th scope="col" className="hidden px-4 py-3 font-medium lg:table-cell">
+                    {t("matterLabel")}
+                  </th>
+                ) : null}
                 <th scope="col" className="hidden px-4 py-3 font-medium lg:table-cell">
                   {t("deedType")}
                 </th>
@@ -191,6 +242,20 @@ export function DeedsList({
                   <td className="px-4 py-3">
                     <NotaryDeedStatusBadge status={deed.status} />
                   </td>
+                  {showsMatter ? (
+                    <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">
+                      {deed.matter ? (
+                        <Link
+                          href={`/notary/matters/${deed.matter.id}`}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {deed.matter.matter_number}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  ) : null}
                   <td className="hidden px-4 py-3 lg:table-cell">
                     <NotaryDeedTypeBadge code={deed.deed_type_code} />
                   </td>

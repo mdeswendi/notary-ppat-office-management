@@ -630,3 +630,163 @@ it('registers no ppat deed route', function (): void {
 
     $this->actingAs($actor)->getJson('/api/v1/ppat/deeds')->assertNotFound();
 });
+
+/*
+|--------------------------------------------------------------------------
+| The Project filter (O-037)
+|--------------------------------------------------------------------------
+*/
+
+it('filters deeds by the project their matter belongs to', function (): void {
+    // A deed has no `project_id`; the filter correlates through `matter_id`. This is
+    // what the Project detail page asks, and it is a filter rather than a nested
+    // route for the reason D-118 gave: one question, one surface.
+    [$actor, $office] = deedApiActor(['notary.deeds.view']);
+
+    $project = Project::factory()->for($office)->create();
+    $other = Project::factory()->for($office)->create();
+
+    $matterA = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+    $matterB = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+    $elsewhere = Matter::factory()->for($other)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+
+    // Two deeds across two Matters of one Project, one under a different Project.
+    NotaryDeed::factory()->forMatter($matterA)->create();
+    NotaryDeed::factory()->forMatter($matterB)->create();
+    NotaryDeed::factory()->forMatter($elsewhere)->create();
+
+    $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$project->getKey()}")
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('meta.total', 2);
+});
+
+it('combines the project filter with the matter and status filters', function (): void {
+    [$actor, $office] = deedApiActor(['notary.deeds.view']);
+
+    $project = Project::factory()->for($office)->create();
+
+    $matterA = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+    $matterB = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+
+    NotaryDeed::factory()->forMatter($matterA)->approved()->create();
+    NotaryDeed::factory()->forMatter($matterA)->create();
+    NotaryDeed::factory()->forMatter($matterB)->create();
+
+    $project = $project->getKey();
+
+    $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$project}&matter_id={$matterA->getKey()}")
+        ->assertOk()->assertJsonPath('meta.total', 2);
+
+    $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$project}&status=APPROVED")
+        ->assertOk()->assertJsonPath('meta.total', 1);
+});
+
+it('never widens what the actor may see', function (): void {
+    // The point of it being a filter: it narrows within visibility and can never
+    // reach past it. An actor whose scope excludes a deed sees nothing more by
+    // naming its Project — which is also why the filter needs no `projects.view`
+    // check of its own.
+    [$actor, $office] = deedApiActor(['notary.deeds.view'], DataScope::OWN);
+
+    $colleague = User::factory()->for($office)->create();
+
+    $project = Project::factory()->for($office)->create();
+
+    $mine = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+        'created_by' => $actor->getKey(),
+    ]);
+    $theirs = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+        'created_by' => $colleague->getKey(),
+    ]);
+
+    $reachable = NotaryDeed::factory()->forMatter($mine)->create();
+    NotaryDeed::factory()->forMatter($theirs)->create();
+
+    $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$project->getKey()}")
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $reachable->getKey());
+});
+
+it('returns nothing for a project in another office', function (): void {
+    [$actor, $office] = deedApiActor(['notary.deeds.view']);
+
+    NotaryDeed::factory()->forMatter(notaryMatterIn($office))->create();
+
+    $farProject = Project::factory()->for(Office::factory()->create())->create();
+
+    $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$farProject->getKey()}")
+        ->assertOk()->assertJsonPath('meta.total', 0);
+});
+
+it('shows no PPAT matter deeds, because there are none to show', function (): void {
+    // `notary_deeds` rows are only ever created against NOTARY Matters — the Policy
+    // refuses a PPAT parent — so a Project holding both domains yields only its
+    // Notary output here. PPAT deeds are a different table in M7.
+    [$actor, $office] = deedApiActor(['notary.deeds.view']);
+
+    $project = Project::factory()->for($office)->create();
+
+    $notary = Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::NOTARY,
+    ]);
+    Matter::factory()->for($project)->create([
+        'office_id' => $office->getKey(),
+        'domain' => MatterDomain::PPAT,
+    ]);
+
+    NotaryDeed::factory()->forMatter($notary)->create();
+
+    $response = $this->actingAs($actor)->getJson("/api/v1/notary/deeds?project_id={$project->getKey()}")
+        ->assertOk()->assertJsonPath('meta.total', 1);
+
+    expect($response->json('data.0.matter.domain'))->toBe('NOTARY');
+});
+
+it('ignores a blank or nonexistent project id rather than erroring', function (): void {
+    [$actor, $office] = deedApiActor(['notary.deeds.view']);
+
+    NotaryDeed::factory()->forMatter(notaryMatterIn($office))->create();
+
+    // Blank is no filter at all — a stale bookmark shows the unfiltered list.
+    $this->actingAs($actor)->getJson('/api/v1/notary/deeds?project_id=')
+        ->assertOk()->assertJsonPath('meta.total', 1);
+
+    // A project that does not exist matches nothing, and is not a 422.
+    $this->actingAs($actor)->getJson('/api/v1/notary/deeds?project_id=01ARZ3NDEKTSV4RRFFQ69G5FAV')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+});
+
+it('exposes no nested project deeds route', function (): void {
+    // D-118: one question, one surface. `GET /projects/{project}/notary-deeds` would
+    // be a second address for what `?project_id=` already answers, and the first
+    // divergence between them would be a bug (O-037).
+    $uris = collect(app('router')->getRoutes()->getRoutes())
+        ->map(fn ($route): string => $route->uri())
+        ->filter(fn (string $uri): bool => str_contains($uri, 'projects/{project}'));
+
+    foreach ($uris as $uri) {
+        expect($uri)->not->toContain('deeds');
+    }
+});
