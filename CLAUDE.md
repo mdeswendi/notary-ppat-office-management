@@ -1684,12 +1684,18 @@ docs/
 ├── 14_M4_MATTER_ARCHITECTURE.md
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
 ├── DECISIONS.md
-└── CHANGELOG.md
+├── CHANGELOG.md
+└── HANDOFF.md
 ```
 
 `12_`, `13_`, `14_` and `15_` are milestone architecture locks. Each records what its domain may
 build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
+
+`HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
+be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a
+source** — where it disagrees with this file or with `DECISIONS.md`, they win, and it is the file that
+needs correcting.
 
 `DECISIONS.md` records canonical decisions that resolve conflicts in the source material.
 When older material conflicts with `DECISIONS.md`, the newer explicit decision takes
