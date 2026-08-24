@@ -331,9 +331,28 @@ it('exposes no route that writes a reference', function (): void {
     $uris = collect(app('router')->getRoutes()->getRoutes())
         ->map(fn ($route): string => $route->uri());
 
-    foreach (['number', 'reference', 'sequence', 'counter'] as $segment) {
+    // **Narrowed at M6.2, and the reason is the distinction this whole file
+    // exists to protect.** M6.2 ships `notary/deeds/{deed}/number`, which writes a
+    // **legal deed number** — and D-103 is explicit that an internal reference and
+    // a legal deed number are *different concepts*: `PRJ-2026-000001` is
+    // "ordinary office identification and nothing more … not a deed number, a
+    // repertorium number, a minuta or Warkah number".
+    //
+    // So the guard fired correctly, on a route that is correct. A deed number is
+    // caller-supplied precisely because it is **not** system-allocated: the office
+    // decides its format and when it is assigned, and `CLAUDE.md` section 62
+    // forbids inventing either (D-120). A Project reference is the opposite in
+    // every respect, and that is what stays asserted below.
+    //
+    // `number` is therefore scoped to Project's own addresses; the other three
+    // stay forbidden everywhere, because no surface anywhere should expose a
+    // sequence or a counter.
+    foreach (['reference', 'sequence', 'counter'] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);
     }
+
+    expect($uris->filter(fn (string $uri): bool => str_contains($uri, 'projects') && str_contains($uri, 'number')))
+        ->toBeEmpty('projects … number');
 
     // And the write shapes refuse it outright rather than ignoring it.
     foreach ([

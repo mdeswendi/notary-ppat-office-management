@@ -30,10 +30,30 @@ return [
 
     'disks' => [
 
+        /*
+         * The private disk, and the one M5 will store legal documents on.
+         *
+         * `serve` is **false**, changed from the scaffold default at M5.0
+         * (D-114). Left true, Laravel registers `GET /storage/{path}` and
+         * `PUT /storage/{path}` straight into this directory. The GET requires a
+         * signed URL, so it was never open — but a signed URL is a **transferable
+         * bearer token that bypasses the authorization chain entirely**: no
+         * Policy, no `EffectiveAccessResolver`, no Data Scope, and no distinction
+         * between `documents.download` and `documents.sensitive.download`.
+         *
+         * For KTP, NPWP, Minuta Akta and Warkah that is exactly what CLAUDE.md
+         * section 21 forbids — "authorization protected" and "unavailable through
+         * predictable public URLs" — and section 54's "never expose private
+         * document URLs".
+         *
+         * Turned off **before** any document exists to reach through it. A legal
+         * document is only ever readable by streaming it from a controller that
+         * has authorized the actor against the record first.
+         */
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

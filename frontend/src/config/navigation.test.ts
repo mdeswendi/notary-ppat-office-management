@@ -163,18 +163,138 @@ describe("visibleNavigation — the M4 domain groups", () => {
     expect(ppat).not.toContain("notary.matters");
   });
 
-  it("carries Matters and nothing else in either domain group", () => {
-    // Deeds, Minuta, Warkah and registers belong to M6 and M7 and are absent
-    // rather than shown dark: a group whose every child is unreachable is a
+  it("carries Matters and nothing else in the PPAT group", () => {
+    // **Narrowed at M6.2, not deleted.** This asserted that *both* domain groups
+    // carried exactly one child, which was right until M6.2 gave Notary its Deeds
+    // entry.
+    //
+    // What survives is the claim the test was really making, and it still holds for
+    // PPAT: Warkah, properties, taxes and registers belong to M7 and are absent
+    // rather than shown dark, because a group whose every child is unreachable is a
     // promise the product does not keep.
     const both = visibleNavigation(user(["notary.matters.view", "ppat.matters.view"]));
-    const groups = both.filter((item) => item.key === "notary" || item.key === "ppat");
+    const ppat = both.find((item) => item.key === "ppat");
 
-    expect(groups).toHaveLength(2);
+    expect(ppat?.children).toHaveLength(1);
+  });
+});
 
-    for (const group of groups) {
-      expect(group.children).toHaveLength(1);
-    }
+describe("visibleNavigation — the M6 Notary Deeds entry", () => {
+  it("shows Deeds only to an account holding notary.deeds.view", () => {
+    // The seven `notary.deeds.*` codes have been canonical since the catalogue was
+    // transcribed at M1.2, and the entry stayed absent through six milestones —
+    // including M6.1, which built the schema and the Policy. Registering a
+    // permission is not shipping a feature (D-064); the entry appears at M6.2, when
+    // the routes landed.
+    expect(keysOf(visibleNavigation(user(["notary.deeds.view"])))).toContain("notary.deeds");
+    expect(keysOf(visibleNavigation(user(["notary.deeds.create"])))).not.toContain("notary.deeds");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("notary.deeds");
+  });
+
+  it("gates Deeds and Matters on their own codes, in both directions", () => {
+    // Reaching a Matter confers no Deed authority and reaching a Deed confers no
+    // Matter authority (D-100, restated one level down at D-120). An account may
+    // legitimately hold either alone, and either alone opens the group.
+    const matters = keysOf(visibleNavigation(user(["notary.matters.view"])));
+    const deeds = keysOf(visibleNavigation(user(["notary.deeds.view"])));
+
+    expect(matters).toContain("notary.matters");
+    expect(matters).not.toContain("notary.deeds");
+
+    expect(deeds).toContain("notary.deeds");
+    expect(deeds).not.toContain("notary.matters");
+
+    expect(matters).toContain("notary");
+    expect(deeds).toContain("notary");
+  });
+
+  it("offers no PPAT counterpart", () => {
+    // `notary.deeds.*` is a Notary-only namespace. PPAT deeds are a different table
+    // in a different milestone, and the catalogue has no `ppat.deeds.view` for an
+    // entry to be gated on.
+    const visible = visibleNavigation(user(["notary.deeds.view", "ppat.matters.view"]));
+    const ppat = visible.find((item) => item.key === "ppat");
+
+    expect(keysOf(ppat?.children ?? [])).not.toContain("ppat.deeds");
+  });
+
+  it("offers no Minuta, register or protocol destination", () => {
+    // Minuta is M6.3. Registers and protocol are outside M6 entirely — batch 11 per
+    // the ERD, and the catalogue has no `notary.protocol.*` code at all (O-036).
+    // An entry for any of them would be a promise the product does not keep.
+    const everything = keysOf(
+      visibleNavigation(
+        user([
+          "notary.deeds.view",
+          "notary.matters.view",
+          "notary.minuta.view",
+          "notary.register.view",
+        ]),
+      ),
+    );
+
+    expect(everything).not.toContain("notary.minuta");
+    expect(everything).not.toContain("notary.register");
+    expect(everything).not.toContain("notary.protocol");
+  });
+});
+
+describe("visibleNavigation — the M5 Documents entry", () => {
+  it("shows Documents only to an account holding documents.view", () => {
+    // The nine `documents.*` codes have been canonical since the catalogue was
+    // transcribed, and the entry stayed absent through five milestones because
+    // registering a permission is not shipping a feature (D-064). It appears at
+    // M5.2, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["documents.view"])))).toContain("documents");
+    expect(keysOf(visibleNavigation(user(["documents.upload"])))).not.toContain("documents");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("documents");
+  });
+
+  it("carries no children, because there is one document surface", () => {
+    // Unlike Notary and PPAT, `documents.*` has no domain split — so there is
+    // nothing for children to separate, and a group with one child would be a
+    // level of nesting that means nothing.
+    const entry = navigationItems.find((item) => item.key === "documents");
+
+    expect(entry?.href).toBe("/documents");
+    expect(entry?.children).toBeUndefined();
+  });
+});
+
+describe("visibleNavigation — the M5 Tasks group", () => {
+  it("gates all three views on the one capability that reads tasks", () => {
+    // "Mine" and "Completed" are filters over the same list, not separate
+    // capabilities: inventing `tasks.view_mine` would let an administrator grant
+    // a page without granting sight of anything on it.
+    const visible = keysOf(visibleNavigation(user(["tasks.view"])));
+
+    expect(visible).toContain("tasks");
+    expect(visible).toContain("tasks.my");
+    expect(visible).toContain("tasks.all");
+    expect(visible).toContain("tasks.completed");
+  });
+
+  it("hides the whole group from an account that may create but not read", () => {
+    // Every child requires `tasks.view`, so the parent collapses with them —
+    // a group whose every destination is refused advertises nothing.
+    const visible = keysOf(visibleNavigation(user(["tasks.create", "tasks.assign"])));
+
+    expect(visible).not.toContain("tasks");
+    expect(visible).not.toContain("tasks.my");
+  });
+
+  it("does not gate the group on a scope, because Task reach is a union", () => {
+    // Unlike Roles, a Task destination demands no particular scope: `OWN`,
+    // `ASSIGNED`, `OFFICE` and `ALL` are separate predicates that union when
+    // several are held (D-028), and each of them can reach some Task. A
+    // `requiredScope` here would hide a working page from an assignee.
+    const own = keysOf(visibleNavigation(user(["tasks.view"], { "tasks.view": ["OWN"] })));
+    const assigned = keysOf(
+      visibleNavigation(user(["tasks.view"], { "tasks.view": ["ASSIGNED"] })),
+    );
+
+    expect(own).toContain("tasks.my");
+    expect(assigned).toContain("tasks.my");
   });
 });
 

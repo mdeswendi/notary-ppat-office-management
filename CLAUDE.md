@@ -532,6 +532,8 @@ Matter authority** (D-100) — each is judged by its own capability and its own 
 
 The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
 The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
+The Document and Task architecture lock is `docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md`.
+The Notary architecture lock is `docs/16_M6_NOTARY_ARCHITECTURE.md`.
 
 ---
 
@@ -1534,6 +1536,13 @@ This list must never be weaker than `.github/workflows/quality.yml`. It was, onc
 documented command still failed CI. Adding a gate to the workflow means adding it
 here in the same change.
 
+**Run the gate after the last edit, and report only what that run said.** M5.3
+failed CI on `format:check` for a single reflowed line: the gate was run, then two
+test files were edited to fix a failing assertion, and the gate was never re-run —
+so the milestone report carried a result that had stopped being true. A green run
+is evidence about the tree that produced it and about nothing later. If you touch
+a file after the gate, the gate has not been run.
+
 `pnpm test` joined both lists together when O-032 added the runner. **Use `test`,
 never `test:watch`** — the watch mode never exits, so a task using it would appear
 to hang rather than to pass. CI runs `test:ci`, which is the same single run plus
@@ -1681,13 +1690,28 @@ docs/
 ├── 12_M2_PARTY_ARCHITECTURE.md
 ├── 13_M3_PROJECT_ARCHITECTURE.md
 ├── 14_M4_MATTER_ARCHITECTURE.md
+├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
+├── 16_M6_NOTARY_ARCHITECTURE.md
 ├── DECISIONS.md
-└── CHANGELOG.md
+├── CHANGELOG.md
+└── HANDOFF.md
 ```
 
-`12_`, `13_` and `14_` are milestone architecture locks. Each records what its domain may build,
-what it must not, and which statements are transcribed from canonical sources rather than
+`12_` through `16_` are milestone architecture locks. Each records what its domain may
+build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
+
+`16_M6_NOTARY_ARCHITECTURE.md` is unlike the other four in one respect worth knowing before you
+open it: **M6 is the first milestone whose specification is deliberately empty.** Five of the seven
+open questions in `08_NOTARY_WORKFLOW.md` section 6 are business rules a Notary deed surface would
+ordinarily encode — deed numbering, Repertorium procedure, Minuta archiving, post-finalization
+correction, and who approves. The lock's sections 5 and 8.4 record which values are therefore
+**stored vocabulary with no code path**, which is not the same as absent.
+
+`HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
+be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a
+source** — where it disagrees with this file or with `DECISIONS.md`, they win, and it is the file that
+needs correcting.
 
 `DECISIONS.md` records canonical decisions that resolve conflicts in the source material.
 When older material conflicts with `DECISIONS.md`, the newer explicit decision takes

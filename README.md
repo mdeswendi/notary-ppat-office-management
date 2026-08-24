@@ -3,8 +3,8 @@
 Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bilingual
 (Indonesia / Inggris) dengan frontend Next.js dan backend Laravel.
 
-> **Status: M4 — Matter & Workflow Engine, selesai sampai M4.8.**
-> M0 sampai M3 sudah di-merge ke `main`. M4 selesai di branch dan menunggu penerimaan.
+> **Status: M5 — Documents & Tasks, baru dimulai (M5.0 architecture lock).**
+> M0 sampai M4 sudah di-merge ke `main`.
 >
 > **Sudah ada:** autentikasi sesi dan otorisasi berbasis Data Scope, manajemen Pengguna dan
 > Peran, Party (Perorangan & Perusahaan), Proyek beserta Pihak Terkait, Jenis Layanan,
@@ -12,7 +12,7 @@ Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bi
 > (template, tahapan, instansiasi, dan riwayat perpindahan tahap).
 >
 > **Belum ada:** Dokumen, Tugas, Akta Notaris, Akta PPAT, Warkah, Properti, Billing, dan
-> Reports — dikerjakan mulai M5.
+> Reports. M5 mengerjakan Dokumen dan Tugas; sisanya mulai M6.
 >
 > **Mesin alur kerja sengaja dikirim kosong.** Tidak ada template Notaris/PPAT bawaan: isi
 > alur kerja menunggu validasi domain, bukan menunggu pengembangan (D-104).
@@ -179,7 +179,7 @@ Belum ada pengguna bawaan dan **tidak ada seeder akun**. Siapkan deployment baru
 php artisan app:bootstrap
 ```
 
-Perintah itu membuat satu Organization, satu Office, sembilan role bawaan, seluruh 173
+Perintah itu membuat satu Organization, satu Office, sembilan role bawaan, seluruh 177
 permission kanonik, dan administrator pertama. Perintah berjalan interaktif dan menanyakan
 kata sandi tanpa menampilkannya — kata sandi tidak pernah diterima sebagai argumen baris
 perintah (D-060).
@@ -293,10 +293,11 @@ Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
 | [docs/12_M2_PARTY_ARCHITECTURE.md](docs/12_M2_PARTY_ARCHITECTURE.md) | Architecture lock M2 — Party |
 | [docs/13_M3_PROJECT_ARCHITECTURE.md](docs/13_M3_PROJECT_ARCHITECTURE.md) | Architecture lock M3 — Project |
 | [docs/14_M4_MATTER_ARCHITECTURE.md](docs/14_M4_MATTER_ARCHITECTURE.md) | Architecture lock M4 — Matter & Workflow |
+| [docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md](docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md) | Architecture lock M5 — Document & Task |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan |
 
-Tiga berkas `12_`, `13_`, dan `14_` adalah **architecture lock** per milestone: masing-masing
+Empat berkas `12_`, `13_`, `14_`, dan `15_` adalah **architecture lock** per milestone: masing-masing
 mencatat apa yang boleh dibangun domainnya, apa yang tidak, dan pernyataan mana yang disalin dari
 sumber kanonik alih-alih diputuskan setempat. Baca lock domain yang sedang dikerjakan sebelum
 mengubahnya (`CLAUDE.md` §58).
@@ -311,8 +312,8 @@ M0   Foundation                  selesai
 M1   Identity & Access Management selesai
 M2   Party / Individual / Company selesai
 M3   Project Management           selesai
-M4   Matter & Workflow Engine     selesai di branch, menunggu penerimaan
-M5   Documents & Tasks
+M4   Matter & Workflow Engine     selesai, sudah di-merge ke main
+M5   Documents & Tasks           sedang berjalan (M5.0 architecture lock)
 M6   Notary Module
 M7   PPAT Module
 M8   Dashboard, Billing & Reports

@@ -397,10 +397,16 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // a Matter's running workflow now has routes (D-112). They never belonged to
     // Project — the point below is unchanged and is what the entries were really
     // guarding: **no Matter or workflow surface hangs off a Project address.**
+    //
+    // **Narrowed again at M6.2**, which ships the Notarial Deed surface at
+    // `/notary/deeds` (D-120). The bare `deeds` segment leaves the list and the
+    // Project-rooted direction takes its place — a deed is reached at its own
+    // Notary root, never at `/projects/{id}/deeds`, for exactly the reason a
+    // Matter is not.
     foreach ([
         'projects/{project}/participants', 'projects/{project}/matters',
         'projects/{project}/workflow', 'projects/{project}/stages',
-        'deeds', 'warkah', 'properties',
+        'projects/{project}/deeds', 'warkah', 'properties',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);

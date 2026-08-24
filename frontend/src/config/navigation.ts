@@ -4,11 +4,14 @@ import {
   Briefcase,
   Building2,
   Contact,
+  FileText,
   FolderKanban,
   KeyRound,
   Landmark,
   LayoutDashboard,
+  ListChecks,
   Scale,
+  ScrollText,
   Settings,
   UserRound,
   Users,
@@ -29,9 +32,13 @@ import type { CurrentUser, DataScope } from "@/types/auth";
  *
  * Both must hold. Since bootstrap gives `SUPER_ADMIN` every canonical
  * permission (D-057), permission alone would light up navigation for every
- * future module — Billing, Documents, Tasks — and send an administrator to
- * routes that do not exist. Registering a permission is not shipping a feature
- * (D-064).
+ * future module — Billing, Tasks — and send an administrator to routes that do
+ * not exist. Registering a permission is not shipping a feature (D-064).
+ *
+ * **Documents were exactly that case for five milestones.** The nine
+ * `documents.*` codes have been canonical since the catalogue was transcribed;
+ * the entry appears at M5.2, when the routes landed — not at M5.1, which shipped
+ * the schema, private storage and the Policy and no surface at all.
  *
  * **The Notary and PPAT groups carry only Matters** *(M4.4)*. Deeds, Minuta,
  * Warkah, registers and protocols belong to M6 and M7 and are absent rather than
@@ -149,6 +156,21 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // is gated on its own code rather than on a shared one (D-101).
         requiredPermission: "notary.matters.view",
       },
+      {
+        key: "notary.deeds",
+        translationKey: "notaryDeeds",
+        href: "/notary/deeds",
+        icon: ScrollText,
+        // Added at M6.2, when the routes landed — not at M6.1 when the schema and
+        // Policy did (D-064). The seven `notary.deeds.*` codes have been canonical
+        // since the catalogue was transcribed at M1.2 and this entry stayed absent
+        // for every milestone since.
+        implemented: true,
+        // Its own capability, separate from the Matter one: reaching a Matter
+        // confers no Deed authority (D-100, restated at D-120), so an account may
+        // hold one and not the other in either direction.
+        requiredPermission: "notary.deeds.view",
+      },
     ],
   },
   {
@@ -166,6 +188,58 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         requiredPermission: "ppat.matters.view",
       },
     ],
+  },
+  {
+    key: "tasks",
+    translationKey: "tasks",
+    icon: ListChecks,
+    // Added at M5.4, when the routes landed. The eight `tasks.*` codes have been
+    // canonical since the catalogue was transcribed and this entry stayed absent
+    // for every milestone since (D-064).
+    implemented: true,
+    children: [
+      {
+        key: "tasks.my",
+        translationKey: "tasksMy",
+        href: "/tasks/my",
+        icon: ListChecks,
+        implemented: true,
+        // The same capability as the list below: "mine" is a filter, not a
+        // separate permission.
+        requiredPermission: "tasks.view",
+      },
+      {
+        key: "tasks.all",
+        translationKey: "tasksAll",
+        href: "/tasks",
+        icon: ListChecks,
+        implemented: true,
+        requiredPermission: "tasks.view",
+      },
+      {
+        key: "tasks.completed",
+        translationKey: "tasksCompleted",
+        href: "/tasks/completed",
+        icon: ListChecks,
+        implemented: true,
+        requiredPermission: "tasks.view",
+      },
+    ],
+  },
+  {
+    key: "documents",
+    translationKey: "documents",
+    href: "/documents",
+    icon: FileText,
+    // Added at M5.2, when the routes landed — not at M5.1 when the schema,
+    // storage and Policy did (D-064). The nine `documents.*` codes have been
+    // canonical since the catalogue was transcribed and this entry stayed absent
+    // for every one of those milestones.
+    implemented: true,
+    // A single top-level entry rather than a group, because there is one surface:
+    // `documents.*` has no Notary/PPAT split, so there is nothing for children to
+    // separate.
+    requiredPermission: "documents.view",
   },
   {
     key: "parties",

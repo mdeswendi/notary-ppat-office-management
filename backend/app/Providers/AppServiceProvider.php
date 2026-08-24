@@ -3,20 +3,26 @@
 namespace App\Providers;
 
 use App\Models\Company;
+use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\MatterParty;
+use App\Models\NotaryDeed;
 use App\Models\ProjectParty;
 use App\Models\ServiceType;
+use App\Models\Task;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
+use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
+use App\Policies\NotaryDeedPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
+use App\Policies\TaskPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -92,6 +98,32 @@ class AppServiceProvider extends ServiceProvider
         // `notary.matters.parties.*` and `ppat.matters.parties.*` (D-101).
         // Callers authorize with `[MatterParty::class, $matter, $domain]`.
         Gate::policy(MatterParty::class, MatterPartyPolicy::class);
+
+        // Document (M5.1). Laravel would discover this pair on its own; it is
+        // listed here so one file still answers "which policy guards what". Two
+        // things about it are worth pointing at: `create` takes an Office id
+        // rather than a model, because filing is always into the actor's own
+        // Office; and `view`, `download` and the rest apply
+        // `documents.sensitive.*` as a **separate** capability on top of reach,
+        // never as an escalation of the ordinary code (D-115).
+        Gate::policy(Document::class, DocumentPolicy::class);
+
+        // Task (M5.4). Listed here with the rest so one file answers "which policy
+        // guards what". Two things about it are worth pointing at: `create` takes
+        // an Office id rather than a model, because work is raised in the actor's
+        // own Office; and `OWN` and `ASSIGNED` are **separate predicates** —
+        // `created_by` and `assigned_to` — which union when an actor holds both
+        // rather than one containing the other (D-119).
+        Gate::policy(Task::class, TaskPolicy::class);
+
+        // Notarial Deed (M6.1, D-120). Two things about it are worth pointing at.
+        // `OWN` and `ASSIGNED` resolve through the **parent Matter**, because a deed
+        // carries no owner column of its own — the Matter supplies the predicate and
+        // never the grant, so `notary.matters.view` still reaches no deed. And there
+        // is deliberately **no `delete`, `lock` or `void` ability**: the catalogue
+        // defines no code for any of them, and the correction mechanisms that would
+        // need them are open domain questions.
+        Gate::policy(NotaryDeed::class, NotaryDeedPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

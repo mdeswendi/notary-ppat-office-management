@@ -3937,6 +3937,597 @@ disabled means unclickable, and `type="button"` does not submit.
 
 ---
 
+## 2026-08-23 — M5.0 Document and Task architecture lock
+
+### D-114 — A legal document is reachable only by streaming it from an authorized surface, never by URL
+
+`config/filesystems.php` shipped the `local` disk — the private one, rooted at
+`storage_path('app/private')` — with **`'serve' => true`**. That registers two routes straight into
+the directory M5 will fill with KTP scans, NPWP records, deeds and Minuta Akta:
+
+```text
+GET  /storage/{path}   storage.local
+PUT  /storage/{path}   storage.local.upload
+```
+
+**It was never open.** `ServeFile` aborts without a valid relative signature when the disk's
+visibility is private, which it is. That is not the problem.
+
+**The problem is that a signed URL is a transferable bearer token that bypasses the authorization
+chain entirely.** No Policy, no `EffectiveAccessResolver`, no Data Scope, and no distinction between
+`documents.download` and `documents.sensitive.download`. Whoever holds the string holds the file —
+forwarded in a chat message, pasted into a ticket, sitting in a browser history. `CLAUDE.md` section
+21 requires sensitive files to be *"authorization protected"* and *"unavailable through predictable
+public URLs"*, and section 54 forbids exposing private document URLs; a URL that authorizes by
+possession fails both, however unguessable it is.
+
+**`serve` is now `false`, changed at M5.0 — before any document exists to reach through it.** Both
+routes are gone; the application's own 127 routes are untouched.
+
+**No document surface may issue a signed URL, a temporary URL, or any other URL resolving to
+storage.** Downloads stream from a controller that has authorized the actor against the Document
+record first. This is D-048's rule one domain across: there is one authorization path, and a second
+one that happens to work is the problem rather than the convenience it looks like.
+
+**M5.0 is otherwise documentation-only**, following M4.0. This one config line is the deliberate
+exception, and it is included because the right moment to close an access path is before anything
+valuable is behind it.
+
+### D-115 — M5 builds three document junctions, defers four, and improvises no audit
+
+**No permission is registered. The count stays at 177.** All seventeen `documents.*` and `tasks.*`
+codes have been canonical since the catalogue was transcribed and unimplemented ever since; M5
+implements them rather than adding to them.
+
+**Three of seven junctions are buildable.** `03_DATABASE_ERD.md` section 14 recommends seven;
+`property_documents`, `notary_deed_documents`, `ppat_deed_documents` and
+`matter_requirement_documents` reference `properties`, `notary_deeds`, `ppat_deeds` and
+`matter_requirements` — **none of which exists**, and a foreign key cannot point at a table that is
+not there. M5 builds `party_documents`, `project_documents` and `matter_documents`, and **stubs none
+of the rest**: not empty, not without their foreign key, and not replaced by a polymorphic column,
+which section 14 explicitly argues against. Every junction key is `RESTRICT`, so removing a Party
+never takes a document with it.
+
+**Audit is required, absent, and not improvised.** `CLAUDE.md` section 21 requires sensitive files be
+*"audited where appropriate"*; `audit_logs` has never been built, D-033 kept it out of M1 on the
+batch-7 ordering, and `audit.view` / `audit.export` are registered and unimplemented. Three rulings:
+**no half-measure ships** — an application log is not append-only in the sense section 31 means, is
+not queryable by resource, and is the stopgap that becomes permanent; **no sensitive-download
+surface lands before audit exists**, because the capability to read a KTP scan and the record of who
+read it belong in the same milestone; and when it is built it follows section 31 exactly and **never
+logs the document's contents nor the identifier it is about** (D-105's leak-surface rule, with more
+force rather than less).
+
+**Workflow gating is deferred, and doubly so.** `matter_requirements.required_before_stage_code`
+gates a stage transition on document completeness. D-104 forbids inferring workflow content, the two
+domains' gating rules differ and neither is authored, **and the table it references —
+`service_document_requirements` — does not exist**. So M5 builds neither table: not empty, not with
+the column present-but-unused, not as a nullable placeholder (D-095).
+
+**Two catalogues stay uninvented.** `document_type_code` is opaque and nullable, following
+`role_code` (D-105, D-111) — `KTP`, `NPWP` and `AKTA` are examples in prose, not a validated list,
+so no enum, no `CHECK`, and no dropdown built from a guess. And **`is_sensitive` is set by whoever
+uploads, never inferred from the type**: deriving it would encode which document kinds are
+sensitive, a judgement that varies by office.
+
+**Sensitive access is a separate capability in both directions.** `documents.sensitive.view` and
+`documents.sensitive.download` are independent codes rather than escalations of the ordinary two,
+neither implies the other, and `documents.update` reaches none of them.
+
+**A Task's `ASSIGNED` widens nothing else.** Being assigned a Task confers no Matter or Project
+reach — the symmetric statement of D-100, which forbade a stage assignee widening Matter `ASSIGNED`.
+`projects.pic_user_id`, `matters.pic_user_id` and `tasks.assigned_to` stay three separate
+predicates.
+
+**Two questions are handed forward as owned rather than left loose.** `is_current` uniqueness on
+`document_versions` — the obvious partial unique index is the shape D-111 already refused, because
+SQLite has no partial indexes and the two engines would disagree about what is representable — and
+`tasks` carrying `assigned_by` but **no `created_by`** while Data Scope `OWN` needs an owner. Both
+are recorded in the lock's unresolved table as belonging to a named milestone.
+
+---
+
+### D-116 — A Document points at its current version through a composite key, and sensitivity is a second capability rather than a scope
+
+M5.1 builds the Document schema, private storage, the `DOC-` allocator, the three buildable
+junctions, and the Policy. **Backend foundation only** — no route, controller, request, resource or
+frontend, following M2.1, M3.1, M4.1, M4.2 and M4.6. **No permission is registered; the count stays
+at 177** (D-115).
+
+**Five migrations, 29 → 34.** `documents`, `document_versions`, the composite key added by `ALTER`,
+`document_reference_counters`, and the three junctions in one migration.
+
+**`is_current` is gone, replaced by `documents.current_version_id`** — the choice M5.0 explicitly
+assigned to this milestone. A boolean would need a partial unique index to mean "exactly one";
+partial indexes do not exist on the SQLite connection the suite runs on, so the two engines would
+disagree about what is representable, which is the shape D-111 already refused once.
+
+**A bare pointer would not have proved the version belongs to the document.** It could have named a
+version of some *other* document and nothing would have objected. So `document_versions` carries a
+support key `UNIQUE (document_id, id)` — redundant for uniqueness, required for a composite foreign
+key — and `documents` declares `(id, current_version_id) -> document_versions (document_id, id)`, the
+construction D-080, D-098, D-105, D-107 and D-111 all use, applied to a same-Document invariant
+instead of a same-Office one. The key arrives by `ALTER` in its own migration because the two tables
+reference each other; SQLite cannot add a foreign key to an existing table, so a model guard holds
+the identical rule on the test connection.
+
+**`RESTRICT`, after measuring that `NO ACTION` would behave identically.** `document_versions.
+document_id` cascades, so hard-deleting a Document removes versions the same Document row still
+points at — which looks as though it forces `NO ACTION`. It does not: the referencing `documents`
+row goes in the same statement, so by the time `RESTRICT` looks, nothing points at the version. The
+M5.1 PostgreSQL probe ran the delete under both declarations and both succeeded. The initial
+migration shipped `NO ACTION` with a docblock asserting a difference; the measurement contradicted
+it, and the declaration is now `RESTRICT` like every other key in the schema — the single deliberate
+CASCADE remains `document_versions.document_id`. **This is recorded because the claim was written
+before it was tested**, which is the D-077 defect class.
+
+**A version is written once, enforced rather than intended.** The model refuses `update` outright, and
+the table has **no `created_at` or `updated_at`** — `03_DATABASE_ERD.md` section 13 gives it
+`uploaded_at` alone, transcribed rather than tidied: a column recording when a version changed is a
+column inviting one.
+
+**`documents.updated_by` is present although the M5.1 plan omitted it**, because the ERD lists it and
+`matters` carries the same pair: a metadata correction has an author, and `updated_at` alone records
+that something changed without recording who.
+
+**`document_number` is nullable**, following `project_number` (M3.3) and `matter_number` (M4.4)
+exactly: no creation path allocates one yet, so `NOT NULL` would make a Document unwritable for a
+whole milestone. The allocator ships now; the milestone that builds upload stamps the reference
+inside the creating transaction and tightens the column.
+
+**Two namespace dimensions, not three.** `DOC-YYYY-NNNNNN` counts per Office and calendar year.
+Matter needed a domain because `N-` and `P-` are distinct sequences that would otherwise compete for
+one value (D-108); a Document has no such split. One atomic `INSERT … ON CONFLICT … DO UPDATE …
+RETURNING`, no `MAX+1`, and the class opens no transaction of its own so it participates in the
+caller's. ERD section 27's configurable numbering engine is again declined.
+
+**Storage issues no URL of any kind** — no signed URL, no temporary URL, no path a client could try.
+A URL that authorizes by possession is a second authorization path beside the Policy chain (D-114).
+The path is `documents/{office_id}/{YYYY}/{MM}/{ulid}.{ext}`, the stored name is generated and the
+uploader's name is never a path component, the extension is reduced to lowercase alphanumerics, and
+the SHA-256 is computed from **the bytes actually written** rather than from the upload.
+
+**Three Data Scopes reach a Document: `OWN`, `OFFICE`, `ALL`.** `ASSIGNED` is withheld because a
+Document has no assignee and no assignment entity exists for the predicate to match; `TEAM` because
+no Team entity exists (D-042). `OWN` **is** granted, where Party (D-080) and Service Type (D-106)
+withhold it — those are shared reference records the colleague who typed them in has no claim on,
+whereas `created_by` names the person who filed the document, the argument Project made at D-088.
+
+**The Permission Matrix is narrowed to match.** All nine `documents.*` codes are restricted to
+`OWN, OFFICE, ALL` in `PermissionScopeRules`. Withholding `ASSIGNED` only in the predicate would have
+let an administrator grant `documents.view` at `ASSIGNED`, see it saved, and hold a silently
+powerless grant — the dead control D-080 named.
+
+**Filing is always into the actor's own Office, including for `ALL`.** `ALL` is reach over records
+that already exist, never authority to decide which Office a new one belongs to — the line D-097,
+D-098 and D-107 all drew.
+
+**Sensitivity is not a visibility predicate.** `is_sensitive` appears nowhere in `DocumentVisibility`,
+and a test asserts its absence. It is checked in the Policy as a **second condition on top of reach**,
+which is what keeps `documents.sensitive.view` and `documents.sensitive.download` independently
+grantable in both directions (D-115): the ordinary code does not reach a sensitive document, and the
+sensitive code cannot stand in for the ordinary one. Sensitivity gates every write ability too —
+correcting, verifying, archiving or deleting a KTP scan all disclose it.
+
+**`download` is written and nothing calls it.** D-115 rules that no sensitive-download surface ships
+before an audit store exists. The ability exists so the milestone that builds the surface starts from
+a decision rather than an omission.
+
+**Archived is reachable; `deleted_at` is reserved with no lifecycle.** Somebody must be able to read
+what the office archived (`CLAUDE.md` section 63), and no `SoftDeletes` trait is used, so "invisible
+because deleted" cannot be confused with "invisible because out of scope" — the M4.2 position
+(D-102). No transition matrix exists: M5 authorizes *who* may act, never *which* status follows which.
+
+**The junctions moved from M5.3 into M5.1**, and the M5.0 lock is amended in place to say so. Each
+carries an `office_id` constraint carrier with a composite key into `documents (id, office_id)` — a
+support key the `documents` migration creates — so splitting the tables from the key they depend on
+would have run a milestone boundary through one invariant. **M5.3 keeps the surfaces**, which is where
+the authorization work is. No `UNIQUE (owner_id, document_id)`: no canonical document says a Document
+may be attached to a record only once, and a unique index is a business rule wearing an index's
+clothing (D-105, D-110).
+
+---
+
+### D-117 — M5 encodes a status matrix after all, upload creates RECEIVED, and every sensitive download is refused until audit exists
+
+M5.2 builds the Document HTTP surface — nine endpoints — plus the document frontend and the sections
+that put documents on the Project and Matter detail pages. **No permission is registered; the count
+stays at 177.** One migration, 34 → 35.
+
+**The M5.0 lock's "no transition matrix" ruling is superseded, deliberately.** Section 10.2 said M5
+would authorize *who* may verify or archive and never encode *which* status may follow which. Three
+rules are now encoded on `DocumentStatus`:
+
+```text
+upload   ->  RECEIVED
+verify   RECEIVED, UNDER_REVIEW   ->  VERIFIED
+archive  VERIFIED, FINAL          ->  ARCHIVED
+delete   DRAFT, RECEIVED          ->  (soft deleted)
+```
+
+They are **operational, not legal**. Nothing here says what a deed, a Minuta or a Warkah may become —
+those are M6 and M7 and stay untouched. What they say is that an office may not verify twice, may not
+archive what was never verified, and may not delete what somebody has verified.
+`02_MENU_AND_PERMISSIONS.md` section 13 requires `documents.delete` be *"heavily restricted"*, and
+"only before verification" is the restriction — expressed as a status rule rather than by inventing a
+permission.
+
+**Upload creates `RECEIVED`, not `DRAFT`, and that correction is load-bearing.** M5.1 created `DRAFT`.
+Verify requires `RECEIVED` or `UNDER_REVIEW`, and nothing moves a Document out of `DRAFT` — so had
+upload kept creating it, the verify endpoint would have answered 422 to every document that exists.
+`DRAFT`, `UNDER_REVIEW`, `FINAL` and `VOID` are unreachable in M5.2 and **recorded as such** rather
+than quietly implied (the D-109 precedent).
+
+**Verification writes no `verified_at` or `verified_by`.** `03_DATABASE_ERD.md` section 13 gives
+`documents` neither column; the pair belongs to `matter_requirements` and `warkah`, which are
+different tables with their own milestones. Adding them would extend the canonical field list on this
+milestone's own authority. Who verified and when is what the audit store records (D-115), and writing
+it in two places would guarantee the two eventually disagree — so the status is the fact and
+`updated_by` names the last hand on the record.
+
+**`is_sensitive` is settled once the document is.** Changing it after verification would silently
+redefine which capability a download answers to, so it is refused with 422 on `VERIFIED`, `FINAL` and
+`ARCHIVED`. **`ARCHIVED` is included although the requirement named only the first two** — not an
+extension of the rule but the same rule applied consistently, since `ARCHIVED` is reachable only
+*through* those two and leaving it out would let archiving unlock a field verification had locked. A
+`PATCH` that resends the *current* value is accepted, because refusing it would make the whole form
+unusable on a verified document.
+
+**Every sensitive download is refused, whatever the actor holds.** D-115 rules that no
+sensitive-download surface ships before an audit store exists. The gate lives in
+`DocumentPolicy::download` — after the capability checks, not instead of them — so when audit lands
+the milestone that builds it deletes three lines rather than reconstructing the authorization. Until
+then `documents.sensitive.download` is a capability that authorizes nothing, recorded here, in the
+Policy, and in `can_download`, which reports the endpoint's real answer so the interface never offers
+a button that would 403.
+
+**Sensitive documents an actor cannot reach are excluded from the list, not stubbed.** The M5 lock
+records "what a stub for an unreachable sensitive document may carry" as genuinely open; rendering
+one would have answered that question by accident. The exclusion is a query condition, so the
+pagination total stays honest.
+
+**`document_number` became `NOT NULL` in its own forward migration**, never an edit to M5.1's — the
+M3.3 and M4.4 precedent (D-097, D-109) a third time. The persistent development database was
+inspected first and holds no `documents` table at all, so nothing was backfilled. The rollback was
+verified to leave `UNIQUE (id, office_id)` intact, which matters more here than it did for Matter:
+dropping that support key would silently take three composite foreign keys with it.
+
+**`SoftDeletes` was added to `Document`, reversing M5.1.** M5.1 withheld the trait while `deleted_at`
+sat unused, so "invisible because deleted" could not be confused with "invisible because out of
+scope" (D-102). M5.2 ships `DELETE`, so the lifecycle exists. **The file and every version survive a
+soft delete** — a delete that erased bytes would be a hard delete wearing a soft one's name — and
+there is **no restore endpoint**, because reading `documents.delete` as *"may also undelete"* would
+make one capability do two jobs (D-091).
+
+**An upload's attachment targets are re-resolved through their own domain's visibility.**
+`documents.upload` is authority to file a document, never authority to discover which records exist.
+For a Matter the permission namespace is read from the Matter's own `domain` column — **the one place
+in the repository that happens**, and it is not the D-101 hazard: that rule exists so a *caller*
+cannot choose which permission is checked, and here the caller supplies only an id while the
+namespace comes from a stored row they cannot influence. The effect is the stricter of the two
+checks, not either.
+
+**The document frontend ships here rather than at M5.5**, and the lock's decomposition is amended in
+place. Nine endpoints with no way to exercise them is not a milestone anybody can accept. The Matter
+and Project detail pages gain **sections, not tabs** — the M4.5 and M4.7 precedent on those same
+pages, and the lock's own ruling, since the repository has no `Tabs` primitive and adding one is a
+design decision affecting shipped pages. **No new frontend dependency**: drag-and-drop uses native
+HTML5 events on a real `<input type="file">`, so the keyboard and assistive paths are the browser's
+rather than a library's.
+
+**`multipart/form-data` carries strings, and `is_sensitive` is sent as `"1"` / `"0"`.** `"false"`
+would arrive as a non-empty string and pass Laravel's `boolean` rule as **true** — silently marking
+every document sensitive. Written down because it is invisible until it is a leak.
+
+**File type is validated with `mimetypes`, not `mimes`** — the file's actual detected content type
+rather than its extension, so a renamed executable fails. The M5.2 HTTP smoke caught the difference:
+`UploadedFile::fake()` reports a type derived from the filename, so the test suite passed with a text
+file named `.pdf` while a real upload of the same file was correctly refused. The smoke fixture is a
+real PDF now.
+
+---
+
+### D-118 — Attaching is a correction to a document's filing, three of seven targets exist, and duplicates are a surface rule
+
+M5.3 builds the document relation surfaces the M5 lock scheduled: attach, detach, and read, on their
+own endpoints. Three routes, **no migration**, and **no permission — the count stays at 177.**
+
+**Three of seven relation types, and the other four are blocked rather than deferred.**
+`03_DATABASE_ERD.md` section 14 recommends seven junction tables. `property_documents`,
+`notary_deed_documents`, `ppat_deed_documents` and `matter_requirement_documents` reference
+`properties` (batch 8, M7), `notary_deeds` (batch 9, M6), `ppat_deeds` (batch 10, M7) and
+`matter_requirements` — **none of which exists.** Verified rather than assumed: 31 `Schema::create`
+calls across all 35 migrations, and not one of them is these. A composite foreign key cannot point at
+a table that is not there, so those migrations would fail; this is not a scoping preference. D-115
+already ruled they are stubbed none — not empty, not without their key, not a polymorphic column.
+
+They are **named in `DocumentRelationType` as blocked** rather than omitted, so adding one later is
+adding a case and a migration rather than redesigning the enum. Requests naming them get a field
+error on `entity_type`, which is what a caller should get for a type the product does not have.
+
+**Attaching answers to `documents.update`, and no code was added to the catalogue.** Attaching is a
+correction to a document's own filing rather than a new act, so `documents.attach` was not
+registered — the discipline that keeps the canonical catalogue something milestones implement rather
+than extend.
+
+**Attaching asks two questions and both must answer yes.** The Document side answers to
+`documents.update`; the record on the other end answers to **its own domain's view capability**,
+resolved through that domain's visibility class. `documents.update` is authority over a document's
+filing; it is never authority to discover which records exist. An unreachable target, one in another
+Office, one that is soft-deleted, and one that does not exist all produce the same 422.
+
+**The Matter namespace is read from the row's own `domain` column** — the second place in the
+repository that does so, after `DocumentController::matterReachable()` at M5.2 (D-117). The reasoning
+is unchanged and is worth restating because it looks like the D-101 hazard and is not: D-101 exists so
+a **caller** cannot choose which permission is checked, and here the caller supplies an id while the
+namespace comes from a row they cannot influence. The result is the **stricter** of the two checks.
+The alternative — `entity_type: notary_matter | ppat_matter` — would have put the namespace in the
+request body, which is precisely what D-101 forbids.
+
+**Duplicates are refused at the surface and permitted by the schema, deliberately.** The junctions
+carry no `UNIQUE (owner_id, document_id)`: M5.1 declined to invent a cardinality rule no canonical
+document states, because *"a unique index is a business rule wearing an index's clothing"* (D-116,
+following D-105 and D-110). D-110 also said what to do if an office decides duplicates are wrong —
+*"a rule to state and validate"* — so the attach surface states and validates it, inside the
+transaction with `lockForUpdate` so two concurrent attaches cannot both pass. The schema stays open,
+so an office that later needs a second attachment is not blocked by a migration. **Detach removes
+every matching row**, not the first, because a pair could exist from a direct write.
+
+**Nothing is audited, and that is not an oversight.** The milestone brief asked for a simple log or
+an `Activity` model; D-115 forbids exactly that — *"an application log is not append-only in the sense
+section 31 means, is not queryable by resource, and is the stopgap that becomes permanent."*
+`attached_by` and `attached_at` record who and when on the row itself; the event record waits for the
+store built to hold it. A test asserts no such store was improvised.
+
+**No `GET /{entity}/{id}/documents`.** That question is already answered by
+`GET /documents?project_id=…`, shipped at M5.2 inside the visibility-scoped query. A second address
+for one question is two surfaces that must be kept in step, and the first divergence between them
+would be a bug.
+
+**`DELETE` carries a body.** The pair being removed is two identifiers, and neither belongs in the
+path — `/documents/{id}/relations/{type}/{entityId}` would put a namespace-selecting value into an
+address — nor in a query string, which would put record identifiers into logs and browser history.
+
+**The frontend replaced M5.2's read-only block.** `RelatedRecords` rendered `document.related` from
+the detail payload and could show attachments and nothing more; `DocumentRelationList` asks its own
+endpoint and carries both acts, gated on `can_update`. The Party surfaces gained document sections
+too — **sections, not tabs**, as at M5.2. `individual.id` and `company.id` are the **Party** ULID (M2
+exposes one public identifier per aggregate, D-078), which is what `party_documents.party_id`
+references.
+
+**Two dialogs hold their state in a child that unmounts.** Resetting search and selection from an
+effect keyed on `open` is state written during commit — the `react-hooks/set-state-in-effect` rule,
+which this repository treats as an error — and would also show the previous selection for a frame on
+reopen. State that should start fresh belongs in a component that starts fresh.
+
+---
+
+### D-119 — A Task is owned by whoever raised it, `OWN` and `ASSIGNED` stay two predicates, and the eight task codes were already canonical
+
+M5.4 builds the Task domain the M5 lock scheduled: schema, management endpoints, and — as M5.2 did for
+Document — **the frontend with them**, because a twelve-route surface nobody can exercise is a milestone
+nobody can accept. **Three migrations (35 → 38), and no permission: the count stays at 177.**
+
+**The plan asked for six new codes and a total of 183. Both numbers were wrong, and the registry is
+what settled it.** `tasks.view`, `view_all`, `create`, `update`, `assign`, `complete`, `reopen` and
+`delete` — **eight** codes — have been canonical since the catalogue was transcribed at M1, and
+`PermissionRegistry.php` is untouched by this milestone. Registering a permission has never been the
+same act as shipping a feature (D-064), and the reverse holds too: shipping one is not licence to
+extend a catalogue that already names it.
+
+Two consequences follow that the plan would have got wrong. **`tasks.reopen` is its own capability**,
+not part of completing — the plan folded them together, and an office may perfectly reasonably let
+more people close work than un-close it. And **`tasks.view_all` is consulted nowhere**, superseded by
+Data Scope `ALL` for reach exactly as `projects.view_all` and the two `*.matters.view_all` codes are
+(D-090); a second reach mechanism is the thing that must not exist.
+
+Where the catalogue is silent, nothing was invented. **`cancel` and `destroy` share `tasks.delete`**,
+because cancelling is what makes deletion available — nothing still live may be removed, so calling
+work off is the step that precedes it, and there is no `tasks.cancel` to reach for. **Commenting
+answers to `tasks.view`**, not `tasks.update`: a person who may read the task may say something about
+it, and requiring the edit capability would mean only those who can change the work may discuss it.
+There is no `tasks.comment` and this milestone adds none.
+
+**`created_by` is added, which is the question M5.0 handed this milestone.** `03_DATABASE_ERD.md`
+section 15 carries `assigned_by` and no `created_by`, and the lock's section 11.1 recorded that as a
+transcription question M5.4 must meet as a decision rather than a surprise. `assigned_by` cannot be the
+owner: it records who last handed the work over, so ownership would move between people without anybody
+deciding it, and a task nobody has assigned yet would have no owner at all. The column is added and
+the extension to the canonical list is recorded here rather than quietly made.
+
+**`OWN` and `ASSIGNED` are separate predicates and neither contains the other.** The plan proposed
+defining `OWN` as *"created_by OR assigned_to"* and `ASSIGNED` as *"the same, for consistency"*. That
+would have made `OWN` a superset of `ASSIGNED`, leaving `ASSIGNED` unable to express anything `OWN` did
+not already — **a ranking between scopes, which is precisely what D-028 forbids.** Kept apart they
+answer two questions an administrator may want to grant separately, *"work I raised"* and *"work I was
+given"*, and an actor holding both reaches the union. That union is the behaviour the plan actually
+wanted, arrived at through the mechanism the model already has instead of by collapsing two predicates
+into one. `PermissionScopeRules` gains an explicit `TASK_DOMAIN` entry offering all four assignable
+scopes — the same four the permissive default offers, but now offered as a decision rather than as
+*"nobody has decided yet"*. `TEAM` is withheld as everywhere (D-042).
+
+**A Task's `ASSIGNED` widens nothing else.** Being given a Task confers no Matter reach and no Project
+reach — the symmetric statement of D-100. `projects.pic_user_id`, `matters.pic_user_id` and
+`tasks.assigned_to` remain three separate predicates.
+
+**Priority is `ProjectPriority`, and the plan's vocabulary would have failed at the database.** The
+ERD gives Task `LOW NORMAL HIGH URGENT`, which is exactly what Project and Matter already share
+(D-095); a third identical enum would be three places for one vocabulary to drift. The plan wrote
+`MEDIUM`. The PostgreSQL probe inserted it and the `tasks_priority_check` **refused the row** — so the
+CHECK earned its place by catching the one thing it was written to catch, rather than being a
+constraint nobody ever tested.
+
+**`workflow_stage_instance_id` is omitted, and unlike the blocked document junctions it could have been
+written.** `matter_stage_instances` has existed since M4.7. It is left out because **nothing would set
+it**: `task_templates` is what connects a stage to the tasks it raises, and D-104 with the lock's
+section 11.3 keep that unbuilt — which stage produces which task, for whom, and by when is workflow
+content nobody has authored. A nullable pointer no code can fill is the placeholder D-095 refused.
+
+**Office ownership is structural on all four user columns.** `assigned_to`, `assigned_by`,
+`created_by` and `completed_by` each carry a composite foreign key through the Task's own `office_id`,
+the construction `company_people` (D-080), `project_parties` (D-098), `matters` (D-107) and the document
+junctions (D-116) all use. That needed a **`UNIQUE (id, office_id)` support key on `users`**, added by
+its own forward migration — the first time a support key has been added to a table this repository did
+not create. `projects` and `matters` are constrained the same way, so a Task cannot name a Project in
+one Office and a Matter in another.
+
+**`RESTRICT` everywhere and `SET NULL` nowhere, for a reason worth stating.** Nulling a composite key
+nulls *both* its columns, `office_id` included, and `office_id` is `NOT NULL` — so the obvious
+`nullOnDelete()` on `(project_id, office_id)` is not merely stylistically wrong, it would fail at
+runtime. Refusing to delete a Project that still has tasks is also the right answer: work does not
+become ownerless because the engagement it belonged to was removed.
+
+**A completed Task carries both facts or neither**, enforced by `tasks_completion_pair_check`. Half a
+completion is a row nobody can explain, and the pair is what reopening clears together.
+
+**M5 encodes a task transition matrix, superseding the lock's section 11.3** — by decision, as D-117
+did for section 10.2, and with less tension: a Task status is **operational, not legal**. Nothing about
+it says what a deed or a Warkah may become. Deletion is the rule the rest exist to support: only
+`COMPLETED` and `CANCELLED` may be removed, so nothing in flight disappears without somebody saying
+what happened to it. **Completion is reversible and cancellation is not** — reopening work finished too
+early is an ordinary correction, while cancelling states the work will not happen, and somebody who
+cancelled by mistake raises a new task, which leaves a record of both. `PATCH` may set only the three
+live statuses, so `tasks.update` never becomes a silent superset of `tasks.complete` (the D-091
+discipline).
+
+**`task_comments` carries no `office_id`, following the ERD.** Its Office is its task's, one join away,
+and a second copy is a second thing that can disagree. Comments are **write-once**: no edit endpoint, no
+delete, and a model guard that refuses an update outright, because a remark records what somebody said
+at the time. A correction is another comment. `task_id` cascades — a comment cannot outlive the task it
+is about — while `user_id` restricts, so an author cannot be erased from what they wrote.
+
+**Nothing is audited, and that is not an oversight.** The milestone brief asked for a simple log or an
+`Activity` model; D-115 forbids exactly that, and D-118 refused the same request four weeks of work
+ago. `created_by`, `assigned_by`, `completed_by` and the comment thread record who and when on the rows
+themselves; the event record waits for the store built to hold it. A test asserts no such store was
+improvised.
+
+**`is_overdue` is computed by the server and rendered by the browser, never recomputed there.** A client
+comparing `due_at` to its own clock disagrees with the backend for anybody whose machine is off, and two
+people looking at the same task would see different answers.
+
+**The `can_*` flags fold status eligibility into capability**, so a control the endpoint would answer
+422 to is simply absent — `can_reopen` false on live work, `can_delete` false on anything in flight.
+They remain presentation only (D-113): every endpoint authorizes again.
+
+**A test-runner limit was raised, not a test skipped.** The suite exhausted memory at roughly 2,360
+tests. `php -d memory_limit=1G` had no effect because `artisan test` spawns Pest as a subprocess —
+the same shape as O-034, where a shell override never reached the process that mattered. Fixed where the
+subprocess reads it, in `backend/phpunit.xml`.
+
+**Verification.** 2,360 backend tests pass with 8 skipped, 84 of them for Task; Pint clean. A
+disposable PostgreSQL probe at 38 migrations confirmed all nine foreign keys, refused a cross-office
+assignee, creator and project, refused `MEDIUM`, enforced the completion pair, refused deletion of a
+Project, Matter and User with live tasks, and kept comments through a soft delete. The persistent
+development database was not touched and remains at 22 migrations. Frontend: 100 tests across 11 files.
+
+---
+
+### D-120 — M6 builds the Notary records and refuses the Notary rules, because five of them are open domain questions
+
+The M6 architecture lock, `16_M6_NOTARY_ARCHITECTURE.md`. **No code, no migration, no permission —
+the count stays at 177.** It is the fifth `.0` lock and the first whose subject is a specification
+that is deliberately empty.
+
+**Five of the seven open questions in `08_NOTARY_WORKFLOW.md` section 6 are business rules a deed
+surface would ordinarily encode.** The milestone brief specified an answer to every one of them:
+
+| Open question | What was proposed |
+|---|---|
+| Deed numbering rules, and who assigns the number | `{deed_type_code}/{register_number}/{year}` plus a per-year allocator |
+| Repertorium entry procedure and period | Finalize auto-creates a register entry |
+| What triggers Minuta archiving, and what releases it | `DRAFT → ARCHIVED → RELEASED` with endpoints |
+| Correction mechanisms after finalization | A `LOCKED` state, `VOID` from any status, `SUPERSEDED` |
+| Which stages require Principal approval | *"default hanya PRINCIPAL dan SUPER_ADMIN"* |
+
+`CLAUDE.md` section 62 names four of these five explicitly as things not to invent, and prescribes
+**STOP / DOCUMENT THE GAP / ASK FOR DOMAIN SPECIFICATION**. The lock does that, and the milestone
+proceeds with everything that does not depend on the answers.
+
+**The approval row is blocked twice over**, which is worth separating out because only one half is a
+domain question. Even with a validated domain source in hand, *"default hanya PRINCIPAL dan
+SUPER_ADMIN"* is a **role-name authorization** — the mechanism D-032, D-041 and D-048 forbid outright.
+Who may approve is decided by holding `notary.deeds.approve` at a reaching Data Scope. When the domain
+source answers, the answer becomes **role configuration**, never a role-name check in code.
+
+**"Blocked" does not mean the column is absent.** Where `03_DATABASE_ERD.md` names a field, M6 creates
+it — a schema matching the ERD is transcription, not a legal claim. It means **no code path reaches
+it.** `VOID`, `SUPERSEDED` and `locked_at` become stored vocabulary the CHECK constraint admits and
+the API never produces, which is the D-109 pattern for Matter's unreachable statuses and the D-102
+pattern for `matters.deleted_at`.
+
+**The catalogue's silence corroborates the workflow document's.** Verified against the live registry:
+`notary.deeds.lock`, `notary.deeds.void`, `notary.deeds.delete`, `notary.register.delete`,
+`notary.minuta.delete` and all four `notary.protocol.*` codes are **absent**. Three of those are
+exactly the post-finalization correction mechanisms section 6 asks about. Two independent canonical
+sources declining to describe the same act is evidence, not coincidence — so **M6 builds no act that
+has no canonical code**, and adds none.
+
+**`notary.deeds.number` exists and nothing had noticed.** The catalogue anticipated that assigning a
+deed number is its own capability, separate from `finalize`. That is what makes numbering expressible
+without a numbering *rule*: `deed_number` is stored, unique per Office where present, nullable
+following `document_number` (M5.1) and `matter_number` (M4.2), supplied by the office, validated
+against **no format**, and set on its own endpoint. Folding it into `finalize` would assert that
+numbering happens at finalization — half of the open question. D-103 already ruled that
+`N-YYYY-NNNNNN` is *"an operational identifier, never a legal deed number"*, so the M4 allocator is
+not reused here.
+
+**The lifecycle ladder is built, and it is not a guess.** `CLAUDE.md` section 29 states
+`DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` verbatim as the legal-record lifecycle, and
+section 64 states its consequence. M6 reaches the first four; `LOCKED` needs an actor and a rule
+nobody has written. Encoding a stated constitutional lifecycle is a different act from inferring one
+from a draft workflow document.
+
+**Three of the brief's structures are not canonical, and one is not even the right shape.**
+
+- **`notary_protocols` + `notary_protocol_items` do not exist.** The canonical table is
+  **`protocol_records`** (ERD section 22): *one* table with a `NOTARY | PPAT` domain discriminator, the
+  same construction as `matters`, carrying **no junction to deeds at all** — no `sequence_no`, no
+  composite `(protocol_id, notary_deed_id)`, no `protocol_number`, no period dates, no `closed_at`,
+  and no status vocabulary. Section 32 puts registers and protocol in **batch 11**, later even than
+  PPAT deeds. M6 is batch 9. Not built.
+- **Registers are batch 11 too**, and the Repertorium procedure is open question two. Not built.
+- **`notary_deeds` gets no `deleted_at` and no soft delete.** The ERD omits the column, section 33
+  prefers states over destructive deletion for finalized legal records, `CLAUDE.md` section 30 forbids
+  user-facing hard delete of finalized Deeds, and no `notary.deeds.delete` capability exists. Four
+  sources agree.
+- **`locked_by` is not added**, unlike M5.4's `created_by`. There the Data Scope `OWN` predicate
+  structurally required an owner and no column could serve; here nothing requires it, and adding an
+  actor column would assert that somebody performs a locking act — which is the correction-mechanism
+  question.
+
+**A Deed's reach is its Matter's reach.** A deed carries no `pic_user_id`, `assigned_to` or
+`created_by`, so `OWN` and `ASSIGNED` resolve through the parent Matter. **Reaching a Matter still
+confers no Deed authority and reaching a Deed confers no Matter authority** — D-100 restated one level
+down. The Matter supplies the predicate, never the grant.
+
+**One Minuta per Deed**, by unique index. The ERD states no cardinality; this is an engineering
+decision and the conservative one, because the term itself carries it — a Minuta Akta is the original
+record of *one* deed. The mirror image of D-116's ruling on document relations, where leaving the
+schema open was conservative precisely because no rule existed in either direction; here the term
+supplies one.
+
+**`office_id` is added to `notary_matters` and `notary_minuta`**, both absent from the canonical field
+lists, because each needs a carrier for its composite foreign keys. Recorded rather than made
+quietly, the D-119 discipline. *(`task_comments` correctly has none: it reaches its Office through its
+task in one join and needs no composite key of its own.)*
+
+**`requires_register_entry` is stored and triggers nothing.** The brief asked that finalizing a deed
+create a register entry when the flag is true. There is no register table in M6 to create one in, and
+the trigger is the Repertorium question. Persisting a flag is not the same act as branching on it.
+
+**D-118's blocked junction becomes unblocked and stays unbuilt.** `notary_deed_documents` was blocked
+because `notary_deeds` did not exist — structural, not a scoping preference. M6.1 removes the
+obstacle; the surface belongs to whoever wants it, and the deed's three document pointers cover what
+M6 needs.
+
+**Decomposition: M6.0 lock, M6.1 schema and Policy, M6.2 deed surface and frontend, M6.3 Minuta
+metadata.** There is no M6.4 — registers and protocol are outside M6 rather than deferred within it,
+and numbering them would imply they are one domain answer away when they are two batches and a
+catalogue decision away.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -3997,6 +4588,10 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-031 | The Party Directory's **Office filter is built from the Offices present in the current page of results**, not from an endpoint. The two options endpoints that exist answer a different question — `individuals/options` and `companies/options` list the Offices an actor may **create** in, which is neither necessary nor sufficient for reading — so offering those would show destinations that return nothing and hide ones that return rows. | Open, and deliberate rather than overlooked. The derivation is honest: it can never offer an Office the caller's capabilities do not already reach, and selecting one only narrows, because the backend applies `office_id` on top of each capability's own scope predicate. The cost is that the choices reflect the page in view, so an Office whose rows fall on a later page is not offered until the caller reaches it. Closing this needs a **view-scoped** Offices source — and the honest version of it is not one list but two, since `parties.view` and `companies.view` are evaluated independently and may reach different Offices (D-028). That is a small API addition with a real design question inside it, which is why M2.5 did not invent one to fill a filter. Revisit when a second surface needs the same list. |
 | O-032 | The frontend has **no test runner**. Its quality gate is `format:check`, `lint`, `typecheck`, and `build`, so pure frontend logic — `visibleNavigation`, `can`/`canWithScope`, the duplicate-advisory gate — is verified by typecheck, deterministic source scans, and runtime behaviour through the API, never by an executed unit test. | **Resolved 2026-08-21 by D-113.** Vitest and React Testing Library, added as an explicitly scoped task exactly as this entry asked — not incidentally inside a feature milestone. All three decisions the entry named are recorded: **which one** (Vitest, because the project already compiles through Vite's ecosystem and the alias is read from `tsconfig.json` rather than restated), **whether it joins CI** (yes, a `Tests` step between typecheck and build), and **§52** (`pnpm test` added to `CLAUDE.md` sections 51 and 52 and to `README.md` in the same change, which is the rule §52 exists to enforce). Six files, 62 tests. The three targets this entry named are covered first: `visibleNavigation` including the `anyPermissions` branch it said "a four-line test would pin", `can` / `canWithScope`, and the M4 sections. Two environment gaps were found and diagnosed rather than worked around — jsdom performs no implicit form submission, so *no form could be submitted from a test*, and `toMatterErrorKey` narrows with `instanceof AxiosError`, so hand-shaped error objects silently test the wrong branch. **The gap this closes was presentation, not authorization**, exactly as the entry said: the backend remains the security boundary and a green frontend suite never means an endpoint is protected. The prediction held too — it was worth doing before the navigation tree grew, and by the time it happened the tree had gained the Notary and PPAT groups the entry anticipated. |
 | O-034 | **`php artisan serve` does not pass a shell `DB_DATABASE` override to the `php -S` subprocess it spawns.** Every artisan CLI command honours the override — `migrate`, `tinker` and `permissions:sync` all connected to the disposable database and reported it — so a milestone can migrate and seed the right database and then serve the wrong one. Discovered at M3.5, when the in-process probe answered `notary_ppat_office` instead of the disposable database and the smoke was aborted on its first request. | Open, and recorded as method rather than treated as a one-off. This is the precise mechanism behind the class of near-miss the M3.3 rule exists to prevent, and knowing it turns "prove the serving process's database" from a ritual into a check with a known failure mode behind it. The working approach is to launch the framework's own router directly — `php -S <host:port> -t backend/public vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`, with the working directory set to `backend/public`, since `server.php` resolves `index.php` from the current directory — and to probe it before the first real request regardless. **The rule does not change**: a shell override is not evidence about the serving process, and the probe stays mandatory whichever launcher is used. Closing this needs either an upstream change or a committed, tested smoke launcher; neither belongs in an audit milestone. |
+| O-035 | **Five of the seven open questions in `08_NOTARY_WORKFLOW.md` §6 are business rules the Notary deed surface would ordinarily encode**, and M6 refuses all five: deed numbering rules and who assigns the number; the Repertorium entry procedure and period; what triggers Minuta Akta archiving and what releases it; which correction mechanisms are permitted after finalization; and which capability satisfies deed approval per service type. | Open, and recorded as the M6 scope boundary rather than as a defect (D-120). Each is named by `CLAUDE.md` §62 or §29, and the permission catalogue independently omits a code for every act that would implement one — `notary.deeds.lock`, `.void`, `.delete` and `notary.register.delete` are all absent, which is two canonical sources declining to describe the same acts. M6 stores the vocabulary the ERD names (`VOID`, `SUPERSEDED`, `locked_at`, `release_status`) with **no code path reaching it**, the D-109 pattern. Closing this needs a qualified domain source completing `08_NOTARY_WORKFLOW.md` §5, after which the answers become configuration and permission-catalogue decisions — not schema changes, which is the test D-104 set for whether the engine was built correctly. |
+| O-036 | **Notary Protocol has a menu destination, an ERD table, and no permission codes.** `02_MENU_AND_PERMISSIONS.md` line 1066 lists it under "Later milestones may activate"; `03_DATABASE_ERD.md` §22 defines `protocol_records` — one table with a `NOTARY \| PPAT` domain discriminator, **no junction to deeds**, and no status vocabulary; the registry has no `notary.protocol.*` code at all. §32 places it in batch 11, later than PPAT deeds. | Open, and outside M6 by the canonical ordering (D-120). The M6 brief proposed `notary_protocols` + `notary_protocol_items` with a deed many-to-many and an `OPEN / CLOSED / ARCHIVED` lifecycle; none of that is canonical, and building it would mean creating two non-canonical tables and four non-canonical permission codes for a lifecycle no document describes. Closing this needs **both** a domain source describing what a protocol period is and how it closes, **and** a decision about whether the canonical catalogue gains protocol codes — the first catalogue extension the project would have made since M1.2. |
+| O-037 | **The Project detail page shows no Notary Deeds.** The M6.2 brief asked for them — *"ProjectDetail — tampilkan Notary Deeds di overview atau tab terpisah"* — and M6.2 built the Matter-level section only. Found by the M6 validation sweep, not by a test, because no test asserted a section that was never written. | Open, and genuinely a question rather than a straightforward miss. A Project holds Matters and Matters hold Deeds, so a Project-level deed list renders **grandchildren** — which no other surface in the product does, and which the Matter page already answers one level down. It would also need its own endpoint shape: `GET /notary/deeds` filters by `matter_id`, not by `project_id`, so either the filter grows a column it does not have or the page fans out per Matter. Worth building if an office wants "all legal output of this engagement" at a glance; worth dropping from the brief if the Matter page is where people actually look. Either way it is small — one section component and one filter — and it does not block the milestone, because nothing depends on it and no other surface promises it. |
+| O-038 | **The Notary Deed list offers filters but no caller-controlled sorting.** Order is fixed at `created_at DESC, id`. The M6 validation checklist asked for sorting; the M6.2 brief did not, and no other list surface in the product accepts a sort parameter either — `TaskListQuery` declares `sort_by` and `sort_direction`, and they are the only ones. | Open, and deliberately not fixed inside a validation task. The gap is consistent rather than isolated: Project, Matter, Document and Deed lists all sort by recency and none is configurable, so adding it to Deeds alone would make one surface behave unlike its four siblings. If sorting is wanted it is a **cross-cutting decision** about list surfaces generally — which columns are sortable, whether the API or the table owns the default, and whether `deed_number` may be a sort key given it is unique only per Office (D-103). Not a defect in M6; a product decision nobody has taken. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

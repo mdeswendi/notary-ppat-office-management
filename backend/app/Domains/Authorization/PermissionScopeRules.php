@@ -3,6 +3,7 @@
 namespace App\Domains\Authorization;
 
 use App\Domains\Authorization\Enums\DataScope;
+use App\Domains\Notary\NotaryDeedVisibility;
 
 /**
  * Which Data Scopes may be assigned to which permission.
@@ -235,6 +236,145 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Document domain, whose predicates M5.1 settled (D-116).
+     *
+     * Three scopes, not four:
+     *
+     *   OWN       documents.created_by = actor id
+     *   OFFICE    documents.office_id  = actor office
+     *   ALL       cross-office reach
+     *
+     * **`ASSIGNED` is withheld, and that is the whole reason this entry exists.**
+     * A Document has no assignee — there is no `pic_user_id`, and no assignment
+     * entity for the predicate to match. Leaving Documents in the permissive
+     * default below would let an administrator grant `documents.view` at
+     * `ASSIGNED`, see it saved, and hold a silently powerless grant: the dead
+     * control D-080 named, and the reason Party and the office-owned master data
+     * both got explicit entries.
+     *
+     * `OWN` **is** offered, where Party (D-080) and Service Type (D-106) withhold
+     * it. Not an inconsistency: those are shared reference records that the
+     * colleague who typed them in has no claim on, whereas `created_by` on a
+     * Document names the person who filed it. Project made the same argument at
+     * D-088.
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **All nine codes take the same list, including the two sensitive ones.**
+     * `documents.sensitive.view` and `documents.sensitive.download` select the
+     * same records by the same predicates; what makes them different is that they
+     * are separate capabilities rather than escalations (D-115), which the Policy
+     * enforces. Giving them a narrower or wider scope set here would encode one
+     * boundary as two.
+     */
+    private const DOCUMENT_DOMAIN = [
+        'documents.view',
+        'documents.sensitive.view',
+        'documents.upload',
+        'documents.download',
+        'documents.sensitive.download',
+        'documents.update',
+        'documents.verify',
+        'documents.archive',
+        'documents.delete',
+    ];
+
+    /**
+     * The Task domain, whose predicates M5.4 settled (D-119).
+     *
+     * All four assignable scopes mean something here — the first domain since
+     * Matter where that is true, and for a different reason:
+     *
+     *   OWN       tasks.created_by  = actor id
+     *   ASSIGNED  tasks.assigned_to = actor id
+     *   OFFICE    tasks.office_id   = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **`OWN` and `ASSIGNED` are deliberately both offered and deliberately
+     * distinct.** The M5.4 plan proposed defining `OWN` as *"created_by OR
+     * assigned_to"*, which would have made `ASSIGNED` unable to express anything
+     * `OWN` did not already — a ranking between scopes, which D-028 forbids. Kept
+     * apart they answer two questions an administrator may want to grant
+     * separately: *"work I raised"* and *"work I was given"*. An actor holding both
+     * reaches the union.
+     *
+     * This is also why Task needs an explicit entry rather than the permissive
+     * default below: the default offers the same four, but offers them as
+     * *"nobody has decided yet"*. Now somebody has.
+     *
+     * **`tasks.view_all` is deliberately absent from this list**, exactly as
+     * `projects.view_all` and the two `*.matters.view_all` codes are. It is
+     * superseded by Data Scope `ALL` for reach (D-090) and no Policy ability
+     * consults it; listing it here would assert it is a live capability with
+     * meaningful scopes, which is what supersession denies.
+     */
+    private const TASK_DOMAIN = [
+        'tasks.view',
+        'tasks.create',
+        'tasks.update',
+        'tasks.assign',
+        'tasks.complete',
+        'tasks.reopen',
+        'tasks.delete',
+    ];
+
+    /**
+     * The Notary Deed domain, whose predicates M6.1 settled (D-120).
+     *
+     * All four assignable scopes mean something, and **two of them resolve through
+     * the parent Matter** rather than against a column of the deed's own:
+     *
+     *   OWN       the parent Matter's created_by  = actor id
+     *   ASSIGNED  the parent Matter's pic_user_id = actor id
+     *   OFFICE    notary_deeds.office_id          = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **This is not parent reach becoming child reach.** D-100 forbids that, and
+     * `MatterVisibility` carries the warning: an actor holding `projects.view` must
+     * not thereby see Matters. Nothing of that kind happens here, because the
+     * Matter supplies the **predicate** and never the **grant** — holding
+     * `notary.matters.view` at any scope reaches no deed at all. See
+     * {@see NotaryDeedVisibility} for the full argument.
+     *
+     * **`notary.deeds.lock`, `.void` and `.delete` are absent from this list
+     * because they are absent from the catalogue.** They are the post-finalization
+     * correction mechanisms `08_NOTARY_WORKFLOW.md` section 6 asks about and
+     * `CLAUDE.md` section 29 requires documented rules for. M6 invents neither the
+     * codes nor the rules (D-120).
+     */
+    private const NOTARY_DEED_DOMAIN = [
+        'notary.deeds.view',
+        'notary.deeds.create',
+        'notary.deeds.update',
+        'notary.deeds.review',
+        'notary.deeds.approve',
+        'notary.deeds.finalize',
+        'notary.deeds.number',
+
+        // Minuta Akta (M6.3). **The same list, and the same four scopes**, because a
+        // Minuta selects records by exactly the deed predicates — it has no owner,
+        // no assignee and no Office of its own, and is reached through the deed it
+        // is the original record of. Giving it a narrower or wider scope set would
+        // encode one boundary as two.
+        //
+        // `archive` and `release` are included even though nothing implements them:
+        // they select the same records by the same predicates, and their scope
+        // metadata should be right before somebody builds the act — a grant saved
+        // with no usable scope is the dead control D-080 named. What keeps them
+        // unreachable is the absence of a Policy ability and a route, not a missing
+        // entry here.
+        'notary.minuta.view',
+        'notary.minuta.create',
+        'notary.minuta.update',
+        'notary.minuta.archive',
+        'notary.minuta.release',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -266,6 +406,18 @@ class PermissionScopeRules
         }
 
         if (in_array($permission, self::MATTER_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::DOCUMENT_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::TASK_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::NOTARY_DEED_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 

@@ -9,6 +9,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import {
   MatterDomainBadge,
   MatterPriorityBadge,
@@ -18,6 +19,8 @@ import { matterBasePath } from "@/features/matters/matter-domain";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
 import { MatterWorkflowSection } from "@/features/matters/matter-workflow-section";
+import { MatterDeedsSection } from "@/features/notary/matter-deeds-section";
+import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { Link } from "@/i18n/navigation";
 import {
   assignMatterPic,
@@ -192,6 +195,48 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           <p className="text-muted-foreground text-xs">{tParties("sectionDescription")}</p>
 
           <MatterPartiesSection domain={domain} matterId={matter.id} />
+        </section>
+      ) : null}
+
+      {/* Documents (M5.2, D-117). **A section, not a tab**, following the two
+          above and the M5 lock's own ruling: the repository has no `Tabs`
+          primitive, and adding one is a design decision affecting pages M4
+          already shipped rather than a side effect of a document milestone.
+
+          It answers to `documents.view`, which is a separate question from
+          reaching this Matter — so it is deliberately not folded into the Matter
+          resource, where it would have made `*.matters.view` a way to read what
+          has been filed. The section renders its own honest failure for a reader
+          who holds one and not the other. */}
+      <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+        <DocumentRelationSection
+          filter={{ matter_id: matter.id }}
+          uploadHref="/documents/upload"
+          attachTo={{ entity_type: "matter", entity_id: matter.id }}
+        />
+      </section>
+
+      {/* Tasks (M5.4, D-119). A section, not a tab, like the three above it.
+          Answers to `tasks.view` on its own endpoint — being able to open the
+          Matter is a different question from being able to see who is doing what
+          on it. */}
+      <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+        <EntityTaskSection
+          filter={{ matter_id: matter.id }}
+          createHref={`/tasks/new?matter_id=${matter.id}`}
+        />
+      </section>
+
+      {/* Notarial Deeds (M6.2, D-120). **Only on a NOTARY Matter** — a PPAT Matter
+          has no notarial deeds, and an empty section headed "Deeds" on a PPAT page
+          would suggest the office had failed to draw one up.
+
+          Like the four above, it asks its own endpoint: deeds answer to
+          `notary.deeds.view` with their own Data Scope, and reaching a Matter
+          confers no Deed authority. */}
+      {domain === "NOTARY" ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <MatterDeedsSection matterId={matter.id} />
         </section>
       ) : null}
 

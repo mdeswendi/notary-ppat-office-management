@@ -451,10 +451,25 @@ it('carries no party, workflow, or legal identity in the payload', function (): 
     $payload = $this->actingAs($actor)
         ->getJson("/api/v1/notary/matters/{$matter->getKey()}")->assertOk()->json('data');
 
-    $raw = json_encode($payload);
+    // **Identifiers are redacted before the search** *(fixed at M5.2)*. This
+    // scanned the raw JSON, which includes four lowercased ULIDs — and a ULID is
+    // 26 characters of Crockford base32, so it can legitimately *contain* the
+    // letters `deed` or `npwp`. Measured: roughly one ULID in 200,000 does, which
+    // made this test fail about once in fifty thousand runs for a reason that had
+    // nothing to do with what it was checking. It failed exactly that way during
+    // the M5.2 run.
+    //
+    // (`nik`, `tax_id` and `warkah` were never at risk: Crockford base32 excludes
+    // `i`, `l`, `o` and `u`, and there is no underscore. Only two of the five
+    // needles could ever collide, which is why this went unnoticed for so long.)
+    //
+    // The claim is unchanged and is the one worth keeping: **no Party identity,
+    // deed, or Warkah field or value appears in a Matter payload.** An opaque
+    // identifier was never evidence for or against it.
+    $raw = strtolower((string) preg_replace('/"[0-9a-z]{26}"/', '"[ulid]"', (string) json_encode($payload)));
 
     foreach (['nik', 'npwp', 'tax_id', 'deed', 'warkah'] as $absent) {
-        expect(str_contains(strtolower((string) $raw), $absent))->toBeFalse($absent);
+        expect(str_contains($raw, $absent))->toBeFalse($absent);
     }
 
     // **Narrowed at M4.5**, which added `can_view_parties` and

@@ -121,8 +121,18 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     // **Narrowed at M4.4**, which ships the Matter surface at its own domain
     // roots (D-109). The boundary this guard protects is unchanged: none of these
     // hangs off a Company relationship address.
+    //
+    // **Narrowed again at M5.2**, which ships the Document surface at its own
+    // root (D-117). `documents` is no longer forbidden outright; the
+    // Company-rooted direction still is, which is the boundary this guard has
+    // always been about.
+    //
+    // **Narrowed a fourth time at M6.2**, which ships the Notarial Deed surface at
+    // `/notary/deeds` (D-120). Same treatment as `documents`: the bare segment
+    // goes, the Company-rooted direction stays forbidden.
     foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
-        'companies/{company}/matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+        'companies/{company}/matters', 'companies/{company}/documents',
+        'companies/{company}/deeds', 'properties', 'warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 

@@ -131,7 +131,22 @@ it('introduces no surface beyond the milestone that owns it', function (): void 
     // **Narrowed at M4.4**, which ships the Matter surface at its own domain
     // roots (D-109). What this guard was always about survives: no Matter, deed,
     // document, property, or Warkah surface hangs off a **Company** address.
-    foreach (['companies/{company}/matters', 'deeds', 'documents', 'properties', 'warkah'] as $segment) {
+    //
+    // **Narrowed again at M5.2**, which ships the Document surface at its own
+    // root (D-117). `documents` is no longer forbidden outright; what is
+    // forbidden is the Company-rooted direction, which is the boundary this guard
+    // has always been about — a document surface hanging off a Company address
+    // would put document work behind Party permissions.
+    //
+    // **Narrowed a fourth time at M6.2**, which ships the Notarial Deed surface at
+    // `/notary/deeds` (D-120). Same treatment as `documents` and for the same
+    // reason: the bare segment is no longer forbidden, the Company-rooted
+    // direction still is. A deed surface reachable from a Company address would
+    // put legal-record work behind `companies.*`.
+    foreach ([
+        'companies/{company}/matters', 'companies/{company}/documents',
+        'companies/{company}/deeds', 'properties', 'warkah',
+    ] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 });

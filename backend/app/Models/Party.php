@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use RuntimeException;
@@ -119,6 +120,27 @@ class Party extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * Documents attached to this Party (M5.3, D-118).
+     *
+     * **A relationship, not ownership.** The junction carries an `office_id`
+     * constraint carrier written from the Document, and composite foreign keys
+     * make the same-Office agreement structural rather than validated (D-116).
+     *
+     * `attached_at` and `attached_by` are the only pivot columns read. `office_id`
+     * is a constraint carrier, never information: exposing it as pivot data would
+     * invite somebody to treat it as a third opinion about which Office owns what.
+     *
+     * **Reading this relation is not authorization.** Which of these rows a caller
+     * may see answers to `documents.view` and its Data Scope, which the Document
+     * surface applies — reaching a Party confers no document access.
+     */
+    public function documents(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'party_documents')
+            ->withPivot(['attached_at', 'attached_by']);
+    }
+
     protected function casts(): array
     {
         return [

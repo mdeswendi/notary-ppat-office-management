@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\DocumentController;
+use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
@@ -15,6 +17,8 @@ use App\Http\Controllers\Api\V1\MatterLifecycleController;
 use App\Http\Controllers\Api\V1\MatterPartyController;
 use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\NotaryDeedController;
+use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
@@ -27,6 +31,8 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
 use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\TaskCommentController;
+use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TwoFactorController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRoleController;
@@ -373,6 +379,201 @@ Route::prefix('v1')->group(function (): void {
                         ->whereUlid('matter')->defaults('domain', $domainValue)->name('update');
                 });
         }
+
+        /*
+         * Document Management (M5.2, D-117).
+         *
+         * **One surface, not two.** Unlike Matter there is no `/notary/documents`
+         * and no `/ppat/documents`: `documents.*` is a single canonical namespace
+         * with no domain split, so there is nothing for a route prefix to select.
+         * D-101 governs Matter because *that* catalogue is split; it has no
+         * bearing here.
+         *
+         * **`options` is declared before `{document}`**, or the literal segment
+         * would bind as a document id and answer 404 — and `whereUlid` alone would
+         * not save it, since the failure would be a silent miss rather than an
+         * error. Every id parameter is `whereUlid` constrained so a malformed id
+         * never reaches a query.
+         *
+         * Six separate acts, six separate capabilities, and none implies another:
+         * `documents.upload`, `download`, `update`, `verify`, `archive`, `delete`.
+         * The D-091 discipline.
+         *
+         * **`download` streams from a surface that authorized the actor first**
+         * (D-114). There is no signed URL, no temporary URL, and no route into the
+         * private disk — M5.0 removed the two that existed.
+         */
+        Route::get('documents/options', [DocumentController::class, 'options'])
+            ->name('api.v1.documents.options');
+
+        Route::get('documents', [DocumentController::class, 'index'])->name('api.v1.documents.index');
+        Route::post('documents', [DocumentController::class, 'store'])->name('api.v1.documents.store');
+
+        Route::get('documents/{document}', [DocumentController::class, 'show'])
+            ->whereUlid('document')->name('api.v1.documents.show');
+        Route::patch('documents/{document}', [DocumentController::class, 'update'])
+            ->whereUlid('document')->name('api.v1.documents.update');
+        Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
+            ->whereUlid('document')->name('api.v1.documents.destroy');
+
+        /*
+         * Document relations (M5.3, D-118).
+         *
+         * Attaching answers to two capabilities at once: `documents.update` on the
+         * Document, and the target record's own view capability resolved through
+         * its domain's visibility class. `documents.update` is authority over a
+         * document's filing; it is never authority to discover which records
+         * exist.
+         *
+         * **No new permission is registered.** Attaching is a correction to a
+         * document's own filing rather than a new act, so the canonical catalogue
+         * is unchanged at 177.
+         *
+         * **Three of seven types.** `property`, `notary_deed` and `ppat_deed`
+         * are recommended by the ERD and their tables do not exist (D-115), so
+         * they are refused by the enum with a field error rather than stubbed.
+         *
+         * There is deliberately **no `GET /{entity}/{id}/documents`** — that
+         * question is already answered by `GET /documents?project_id=…`, and a
+         * second address for one question is two surfaces to keep in step.
+         */
+        Route::get('documents/{document}/relations', [DocumentRelationController::class, 'index'])
+            ->whereUlid('document')->name('api.v1.documents.relations.index');
+        Route::post('documents/{document}/relations', [DocumentRelationController::class, 'store'])
+            ->whereUlid('document')->name('api.v1.documents.relations.store');
+        Route::delete('documents/{document}/relations', [DocumentRelationController::class, 'destroy'])
+            ->whereUlid('document')->name('api.v1.documents.relations.destroy');
+
+        Route::get('documents/{document}/download', [DocumentController::class, 'download'])
+            ->whereUlid('document')->name('api.v1.documents.download');
+        Route::post('documents/{document}/verify', [DocumentController::class, 'verify'])
+            ->whereUlid('document')->name('api.v1.documents.verify');
+        Route::post('documents/{document}/archive', [DocumentController::class, 'archive'])
+            ->whereUlid('document')->name('api.v1.documents.archive');
+
+        /*
+         * Tasks (M5.4, D-119).
+         *
+         * **One surface, not two.** `tasks.*` is a single canonical namespace with
+         * no Notary/PPAT split, so there is nothing for a route prefix to select.
+         *
+         * **Seven acts, seven capabilities, and none implies another** —
+         * `tasks.create`, `update`, `assign`, `complete`, `reopen`, `delete`, and
+         * `view` for reading and commenting. `tasks.reopen` is its own code rather
+         * than part of completion, which is what the registry says and what an
+         * office would want: closing work and un-closing it are different trusts.
+         *
+         * `cancel` and `destroy` share `tasks.delete`: cancelling is what makes
+         * deletion available, since nothing still live may be removed. There is no
+         * `tasks.cancel` in the catalogue and this milestone invents none.
+         *
+         * **`options` is declared before `{task}`**, or the literal segment would
+         * bind as a task id and answer 404.
+         *
+         * There is deliberately **no `POST /tasks/{task}/status`**: the three live
+         * statuses are ordinary editing and belong to `PATCH`, while the two
+         * settled ones answer to their own capabilities above.
+         */
+        Route::get('tasks/options', [TaskController::class, 'options'])->name('api.v1.tasks.options');
+
+        Route::get('tasks', [TaskController::class, 'index'])->name('api.v1.tasks.index');
+        Route::post('tasks', [TaskController::class, 'store'])->name('api.v1.tasks.store');
+
+        Route::get('tasks/{task}', [TaskController::class, 'show'])
+            ->whereUlid('task')->name('api.v1.tasks.show');
+        Route::patch('tasks/{task}', [TaskController::class, 'update'])
+            ->whereUlid('task')->name('api.v1.tasks.update');
+        Route::delete('tasks/{task}', [TaskController::class, 'destroy'])
+            ->whereUlid('task')->name('api.v1.tasks.destroy');
+
+        Route::patch('tasks/{task}/assignment', [TaskController::class, 'assign'])
+            ->whereUlid('task')->name('api.v1.tasks.assign');
+        Route::post('tasks/{task}/complete', [TaskController::class, 'complete'])
+            ->whereUlid('task')->name('api.v1.tasks.complete');
+        Route::post('tasks/{task}/reopen', [TaskController::class, 'reopen'])
+            ->whereUlid('task')->name('api.v1.tasks.reopen');
+        Route::post('tasks/{task}/cancel', [TaskController::class, 'cancel'])
+            ->whereUlid('task')->name('api.v1.tasks.cancel');
+
+        Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index'])
+            ->whereUlid('task')->name('api.v1.tasks.comments.index');
+        Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])
+            ->whereUlid('task')->name('api.v1.tasks.comments.store');
+
+        /*
+         * Notarial Deeds (M6.2, D-120).
+         *
+         * **One root, not two.** `notary.deeds.*` is a Notary-only namespace — PPAT
+         * deeds are a different table in a different milestone — so unlike Matter
+         * there is no `foreach` over two domains here. The `notary` prefix is still
+         * what selects the permission namespace (D-101); there is simply one case.
+         *
+         * **Seven acts, seven capabilities, none implying another** —
+         * `notary.deeds.view`, `create`, `update`, `review`, `approve`, `finalize`
+         * and `number`. An office that separates preparing a deed from approving it
+         * is expressing something about who may bind it legally, so `update` reaching
+         * `review`, or `finalize` reaching `number`, would collapse a distinction the
+         * catalogue drew deliberately.
+         *
+         * **`deeds/{deed}/number` is its own route**, not folded into `finalize`.
+         * `notary.deeds.number` has been canonical since M1.2 and nothing had used
+         * it. Numbering at finalization would assert *when* a deed is numbered, which
+         * is half of `08_NOTARY_WORKFLOW.md` section 6's first open question.
+         *
+         * **`options` is declared before `{deed}`**, or the literal segment would
+         * bind as a deed id and answer 404.
+         *
+         * **There is deliberately no `DELETE` and no `void` route.** `notary_deeds`
+         * has no `deleted_at`, the catalogue has no `notary.deeds.delete`,
+         * `notary.deeds.void` or `notary.deeds.lock`, and the correction mechanisms
+         * that would need them are an open domain question (D-120). A route that
+         * pretended otherwise would be a control nobody can authorize.
+         */
+        Route::prefix('notary')->name('api.v1.notary.deeds.')->group(function (): void {
+            Route::get('deeds/options', [NotaryDeedController::class, 'options'])->name('options');
+
+            Route::get('deeds', [NotaryDeedController::class, 'index'])->name('index');
+            Route::post('deeds', [NotaryDeedController::class, 'store'])->name('store');
+
+            Route::get('deeds/{deed}', [NotaryDeedController::class, 'show'])
+                ->whereUlid('deed')->name('show');
+            Route::patch('deeds/{deed}', [NotaryDeedController::class, 'update'])
+                ->whereUlid('deed')->name('update');
+
+            Route::patch('deeds/{deed}/review', [NotaryDeedController::class, 'review'])
+                ->whereUlid('deed')->name('review');
+            Route::patch('deeds/{deed}/approve', [NotaryDeedController::class, 'approve'])
+                ->whereUlid('deed')->name('approve');
+            Route::patch('deeds/{deed}/finalize', [NotaryDeedController::class, 'finalize'])
+                ->whereUlid('deed')->name('finalize');
+            Route::patch('deeds/{deed}/number', [NotaryDeedController::class, 'recordNumber'])
+                ->whereUlid('deed')->name('number');
+
+            /*
+             * Minuta Akta (M6.3, D-120).
+             *
+             * **Nested, with no top-level `/notary/minuta` root**, following the M4.5
+             * participation convention (D-105): there is deliberately no address that
+             * reaches a Minuta without naming the deed it belongs to, because a
+             * Minuta has no independent existence — one per deed, reached exactly as
+             * its deed is.
+             *
+             * Singular and honest: `GET` answers **one record or 404**, never a
+             * collection.
+             *
+             * **No `DELETE`, no `archive`, no `release`.** The catalogue has no
+             * `notary.minuta.delete` at all; `archive` and `release` exist and stay
+             * unimplemented because the trigger for both is open question four in
+             * `08_NOTARY_WORKFLOW.md` section 6. Correcting a filing replaces
+             * `document_id` through `PATCH`.
+             */
+            Route::get('deeds/{deed}/minuta', [NotaryMinutaController::class, 'show'])
+                ->whereUlid('deed')->name('minuta.show');
+            Route::post('deeds/{deed}/minuta', [NotaryMinutaController::class, 'store'])
+                ->whereUlid('deed')->name('minuta.store');
+            Route::patch('deeds/{deed}/minuta', [NotaryMinutaController::class, 'update'])
+                ->whereUlid('deed')->name('minuta.update');
+        });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');

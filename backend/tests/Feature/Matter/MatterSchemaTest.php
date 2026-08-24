@@ -75,11 +75,18 @@ it('uses notes rather than a description column', function (): void {
         ->and(Schema::hasColumn('matters', 'description'))->toBeFalse();
 });
 
-it('builds no notary or ppat extension table', function (): void {
-    // D-102: those belong to M6 and M7 with their domain content, and no column
-    // stands in for one.
-    expect(Schema::hasTable('notary_matters'))->toBeFalse()
-        ->and(Schema::hasTable('ppat_matters'))->toBeFalse();
+it('builds no ppat extension table and no column standing in for one', function (): void {
+    // **Narrowed at M6.1, not deleted.** This asserted that *neither* extension
+    // table existed, which was right for M4 and stopped being right when M6.1 built
+    // `notary_matters` — the milestone D-102 assigned it to. `ppat_matters` still
+    // belongs to M7.
+    //
+    // What survives is the claim the guard was always really making, and it is the
+    // stronger half: **no column on `matters` stands in for an extension.** That
+    // holds for all six, including the three M6.1 now persists elsewhere — D-095's
+    // rule that a column added on speculation is one somebody fills in wrongly, and
+    // the reason M4 refused to add them to the root table.
+    expect(Schema::hasTable('ppat_matters'))->toBeFalse();
 
     foreach ([
         'deed_category', 'requires_minuta', 'requires_register_entry',

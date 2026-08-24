@@ -12,6 +12,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use RuntimeException;
 
 /**
@@ -177,6 +180,56 @@ class Matter extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * Documents attached to this Matter (M5.3, D-118).
+     *
+     * **A relationship, not ownership.** The junction carries an `office_id`
+     * constraint carrier written from the Document, and composite foreign keys
+     * make the same-Office agreement structural rather than validated (D-116).
+     *
+     * `attached_at` and `attached_by` are the only pivot columns read. `office_id`
+     * is a constraint carrier, never information.
+     *
+     * **Reading this relation is not authorization**, and it matters more here
+     * than anywhere: which of these rows a caller may see answers to
+     * `documents.view` and its Data Scope, not to `notary.matters.view`. Folding
+     * documents into the Matter payload would have made a Matter capability a way
+     * to read what has been filed — which is why the document section on the
+     * Matter page asks its own endpoint instead.
+     */
+    public function documents(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'matter_documents')
+            ->withPivot(['attached_at', 'attached_by']);
+    }
+
+    /**
+     * The Notary-specific classification of this Matter (M6.1, D-120).
+     *
+     * **Present only on `NOTARY` Matters, and optional even there** — a Matter with
+     * no extension row is classified as nothing in particular, which is the correct
+     * state while `deed_category` has no catalogue. Nothing branches on
+     * `requires_minuta` or `requires_register_entry`; see `NotaryMatter`.
+     */
+    public function notaryExtension(): HasOne
+    {
+        return $this->hasOne(NotaryMatter::class, 'matter_id');
+    }
+
+    /**
+     * The Notarial Deeds produced by this Matter (M6.1, D-120).
+     *
+     * **Reading this relation is not authorization.** Which of these a caller may
+     * see answers to `notary.deeds.view` and its own Data Scope, never to
+     * `notary.matters.view` — reaching a Matter confers no Deed authority, the
+     * symmetric statement of D-100. The deed section on the Matter page asks its own
+     * endpoint, exactly as the document section does.
+     */
+    public function notaryDeeds(): HasMany
+    {
+        return $this->hasMany(NotaryDeed::class);
+    }
+
     protected function casts(): array
     {
         return [
