@@ -4227,6 +4227,81 @@ real PDF now.
 
 ---
 
+### D-118 — Attaching is a correction to a document's filing, three of seven targets exist, and duplicates are a surface rule
+
+M5.3 builds the document relation surfaces the M5 lock scheduled: attach, detach, and read, on their
+own endpoints. Three routes, **no migration**, and **no permission — the count stays at 177.**
+
+**Three of seven relation types, and the other four are blocked rather than deferred.**
+`03_DATABASE_ERD.md` section 14 recommends seven junction tables. `property_documents`,
+`notary_deed_documents`, `ppat_deed_documents` and `matter_requirement_documents` reference
+`properties` (batch 8, M7), `notary_deeds` (batch 9, M6), `ppat_deeds` (batch 10, M7) and
+`matter_requirements` — **none of which exists.** Verified rather than assumed: 31 `Schema::create`
+calls across all 35 migrations, and not one of them is these. A composite foreign key cannot point at
+a table that is not there, so those migrations would fail; this is not a scoping preference. D-115
+already ruled they are stubbed none — not empty, not without their key, not a polymorphic column.
+
+They are **named in `DocumentRelationType` as blocked** rather than omitted, so adding one later is
+adding a case and a migration rather than redesigning the enum. Requests naming them get a field
+error on `entity_type`, which is what a caller should get for a type the product does not have.
+
+**Attaching answers to `documents.update`, and no code was added to the catalogue.** Attaching is a
+correction to a document's own filing rather than a new act, so `documents.attach` was not
+registered — the discipline that keeps the canonical catalogue something milestones implement rather
+than extend.
+
+**Attaching asks two questions and both must answer yes.** The Document side answers to
+`documents.update`; the record on the other end answers to **its own domain's view capability**,
+resolved through that domain's visibility class. `documents.update` is authority over a document's
+filing; it is never authority to discover which records exist. An unreachable target, one in another
+Office, one that is soft-deleted, and one that does not exist all produce the same 422.
+
+**The Matter namespace is read from the row's own `domain` column** — the second place in the
+repository that does so, after `DocumentController::matterReachable()` at M5.2 (D-117). The reasoning
+is unchanged and is worth restating because it looks like the D-101 hazard and is not: D-101 exists so
+a **caller** cannot choose which permission is checked, and here the caller supplies an id while the
+namespace comes from a row they cannot influence. The result is the **stricter** of the two checks.
+The alternative — `entity_type: notary_matter | ppat_matter` — would have put the namespace in the
+request body, which is precisely what D-101 forbids.
+
+**Duplicates are refused at the surface and permitted by the schema, deliberately.** The junctions
+carry no `UNIQUE (owner_id, document_id)`: M5.1 declined to invent a cardinality rule no canonical
+document states, because *"a unique index is a business rule wearing an index's clothing"* (D-116,
+following D-105 and D-110). D-110 also said what to do if an office decides duplicates are wrong —
+*"a rule to state and validate"* — so the attach surface states and validates it, inside the
+transaction with `lockForUpdate` so two concurrent attaches cannot both pass. The schema stays open,
+so an office that later needs a second attachment is not blocked by a migration. **Detach removes
+every matching row**, not the first, because a pair could exist from a direct write.
+
+**Nothing is audited, and that is not an oversight.** The milestone brief asked for a simple log or
+an `Activity` model; D-115 forbids exactly that — *"an application log is not append-only in the sense
+section 31 means, is not queryable by resource, and is the stopgap that becomes permanent."*
+`attached_by` and `attached_at` record who and when on the row itself; the event record waits for the
+store built to hold it. A test asserts no such store was improvised.
+
+**No `GET /{entity}/{id}/documents`.** That question is already answered by
+`GET /documents?project_id=…`, shipped at M5.2 inside the visibility-scoped query. A second address
+for one question is two surfaces that must be kept in step, and the first divergence between them
+would be a bug.
+
+**`DELETE` carries a body.** The pair being removed is two identifiers, and neither belongs in the
+path — `/documents/{id}/relations/{type}/{entityId}` would put a namespace-selecting value into an
+address — nor in a query string, which would put record identifiers into logs and browser history.
+
+**The frontend replaced M5.2's read-only block.** `RelatedRecords` rendered `document.related` from
+the detail payload and could show attachments and nothing more; `DocumentRelationList` asks its own
+endpoint and carries both acts, gated on `can_update`. The Party surfaces gained document sections
+too — **sections, not tabs**, as at M5.2. `individual.id` and `company.id` are the **Party** ULID (M2
+exposes one public identifier per aggregate, D-078), which is what `party_documents.party_id`
+references.
+
+**Two dialogs hold their state in a child that unmounts.** Resetting search and selection from an
+effect keyed on `open` is state written during commit — the `react-hooks/set-state-in-effect` rule,
+which this repository treats as an error — and would also show the previous selection for a frame on
+reopen. State that should start fresh belongs in a component that starts fresh.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

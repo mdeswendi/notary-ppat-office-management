@@ -174,6 +174,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         <DocumentRelationSection
           filter={{ project_id: project.id }}
           uploadHref="/documents/upload"
+          attachTo={{ entity_type: "project", entity_id: project.id }}
         />
       </section>
     </div>

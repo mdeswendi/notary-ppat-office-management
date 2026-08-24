@@ -207,7 +207,11 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           has been filed. The section renders its own honest failure for a reader
           who holds one and not the other. */}
       <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
-        <DocumentRelationSection filter={{ matter_id: matter.id }} uploadHref="/documents/upload" />
+        <DocumentRelationSection
+          filter={{ matter_id: matter.id }}
+          uploadHref="/documents/upload"
+          attachTo={{ entity_type: "matter", entity_id: matter.id }}
+        />
       </section>
 
       {matter.can_assign ? (

@@ -242,6 +242,16 @@ not created without their foreign key, and not replaced by a polymorphic column.
 explicit on the last point: *"Prefer explicit junction tables over overly generic polymorphic
 relationships where strong referential integrity is important."*
 
+> **Re-confirmed at M5.3** *(D-118)*, because the milestone brief asked for the three blocked
+> junctions to be created. They cannot be: verified against the schema rather than assumed —
+> 31 `Schema::create` calls across all 35 migrations, and none of them is `properties`,
+> `notary_deeds` or `ppat_deeds`. Those migrations would fail on PostgreSQL.
+>
+> The four are **named as blocked** in `App\Domains\Document\Enums\DocumentRelationType` rather than
+> omitted, so adding one later is adding a case and a migration rather than redesigning. A request
+> naming one gets a field error on `entity_type`, and a test asserts each junction table is still
+> absent.
+
 **Every junction foreign key is `RESTRICT`.** Deleting a Party must never take a document with it,
 and a document must never become unreachable because something it was attached to went away.
 
@@ -473,7 +483,7 @@ endpoint authorizes again, and the file is streamed only after it does.
 M5.0   Document / Task architecture lock       <- this document
 M5.1   Document schema + private storage foundation   (includes the three junction tables)
 M5.2   Document management surface + document frontend + Project/Matter sections
-M5.3   Document relation surfaces (attach / detach on their own endpoints)
+M5.3   Document relation surfaces (attach / detach) + Party document sections   <- done
 M5.4   Task schema + management
 M5.5   Frontend: tasks
 M5.6   M5 quality gate

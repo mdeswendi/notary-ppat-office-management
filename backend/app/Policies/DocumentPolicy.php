@@ -163,6 +163,49 @@ class DocumentPolicy
     }
 
     /**
+     * May the actor read what this Document is attached to? (M5.3, D-118)
+     *
+     * Answers to `documents.view`, the same capability that opens the Document —
+     * what it is attached to is part of what the document *is*, not a separate
+     * resource with its own audience.
+     *
+     * **The stubs it returns are labels, never a way in.** A Party, Project or
+     * Matter the caller cannot open still appears, because concealing it would
+     * make the list lie about where a document has been filed; but the stub
+     * carries a name and an id, and opening the record is that surface's own
+     * decision to make.
+     */
+    public function viewRelations(User $actor, Document $document): bool
+    {
+        return $this->view($actor, $document);
+    }
+
+    /**
+     * May the actor attach or detach this Document?
+     *
+     * **`documents.update` on the Document side**, because attaching is a
+     * correction to the document's own filing rather than a new capability.
+     * Registering `documents.attach` would have added a code to a canonical
+     * catalogue this milestone has no authority to change (D-115: the count stays
+     * at 177).
+     *
+     * **This is only half the question.** The record on the other end must also be
+     * reachable under its own domain's view capability — `parties.view`,
+     * `projects.view`, or the Matter's own `notary.`/`ppat.matters.view` — and
+     * that half is decided by the controller through each domain's visibility
+     * class. `documents.update` is authority over a document's filing; it is never
+     * authority to discover which records exist.
+     *
+     * One ability covers both directions on purpose: an actor who may attach may
+     * undo it. Splitting them would let a person file a document against the wrong
+     * Matter and be unable to correct it.
+     */
+    public function attach(User $actor, Document $document): bool
+    {
+        return $this->update($actor, $document);
+    }
+
+    /**
      * Delete a Document.
      *
      * `02_MENU_AND_PERMISSIONS.md` section 13 states that `documents.delete`

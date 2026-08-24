@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
 use App\Http\Controllers\Api\V1\DocumentController;
+use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
@@ -410,6 +411,34 @@ Route::prefix('v1')->group(function (): void {
             ->whereUlid('document')->name('api.v1.documents.update');
         Route::delete('documents/{document}', [DocumentController::class, 'destroy'])
             ->whereUlid('document')->name('api.v1.documents.destroy');
+
+        /*
+         * Document relations (M5.3, D-118).
+         *
+         * Attaching answers to two capabilities at once: `documents.update` on the
+         * Document, and the target record's own view capability resolved through
+         * its domain's visibility class. `documents.update` is authority over a
+         * document's filing; it is never authority to discover which records
+         * exist.
+         *
+         * **No new permission is registered.** Attaching is a correction to a
+         * document's own filing rather than a new act, so the canonical catalogue
+         * is unchanged at 177.
+         *
+         * **Three of seven types.** `property`, `notary_deed` and `ppat_deed`
+         * are recommended by the ERD and their tables do not exist (D-115), so
+         * they are refused by the enum with a field error rather than stubbed.
+         *
+         * There is deliberately **no `GET /{entity}/{id}/documents`** — that
+         * question is already answered by `GET /documents?project_id=…`, and a
+         * second address for one question is two surfaces to keep in step.
+         */
+        Route::get('documents/{document}/relations', [DocumentRelationController::class, 'index'])
+            ->whereUlid('document')->name('api.v1.documents.relations.index');
+        Route::post('documents/{document}/relations', [DocumentRelationController::class, 'store'])
+            ->whereUlid('document')->name('api.v1.documents.relations.store');
+        Route::delete('documents/{document}/relations', [DocumentRelationController::class, 'destroy'])
+            ->whereUlid('document')->name('api.v1.documents.relations.destroy');
 
         Route::get('documents/{document}/download', [DocumentController::class, 'download'])
             ->whereUlid('document')->name('api.v1.documents.download');

@@ -5,6 +5,104 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M5.3 Document relation surfaces
+
+Branch `feat/m5-documents-tasks`, from `bb6ea99`. **Three routes, no migration, no permission — the
+count stays at 177.** Backend **2238 passed + 8 skipped**, frontend **82 passed** (was 76). One new
+decision, **D-118**.
+
+### Three of six requested entity types can exist, and that was checked before anything was written
+
+The brief asked for junction tables and relations across six types: Project, Matter, Party, Property,
+Notary Deed, PPAT Deed. **Three of them have no target.**
+
+`Property`, `NotaryDeed` and `PpatDeed` do not exist as models, and `properties`, `notary_deeds` and
+`ppat_deeds` do not exist as tables — verified by counting every `Schema::create` across all 35
+migrations: 31 tables, none of them these. The ERD puts them in §16, §17 and §18, batches 8/9/10,
+belonging to **M6 and M7**.
+
+So *"buat tiga junction table jika belum ada"* is not a scoping preference that was declined — those
+migrations would **fail**, because a composite foreign key cannot point at a table that is not there.
+D-115 and the M5 lock §7 had already ruled the four blocked junctions are stubbed none: not empty, not
+without their key, not replaced by a polymorphic column.
+
+They are **named as blocked** in `DocumentRelationType` rather than omitted, so adding one later is a
+case and a migration rather than a redesign. A request naming one gets a field error, and tests assert
+each junction table is still absent.
+
+### Five further corrections to the brief, each checked against the repo
+
+| The brief said | Actually |
+|---|---|
+| `app/Domains/Documents/` | `app/Domains/Document/` — singular |
+| `src/components/documents/` | Does not exist; components live in `src/features/documents/` |
+| `[locale]/matters/[id]`, `[locale]/companies/[id]` | `notary/matters/[id]`, `ppat/matters/[id]`, `parties/companies/[id]` — all under `(app)` |
+| `ppat/properties/[id]` | Does not exist (M7) |
+| `document-relation-section` "mungkin placeholder" | Shipped complete at M5.2, already on the Project and Matter pages |
+
+Two more were settled last milestone and stand: **sections, not tabs** (no `Tabs` primitive exists,
+and adding one changes pages M4 already shipped), and `GET /{entity}/{id}/documents` is **already**
+`GET /documents?project_id=…`, so a second address was not added.
+
+### Duplicates are refused at the surface and permitted by the schema
+
+The brief asked for a composite primary key `(entity_id, document_id)`. That would be a cardinality
+rule the junctions deliberately do not carry: M5.1 declined to invent one because *"a unique index is
+a business rule wearing an index's clothing"* (D-116, following D-105 and D-110).
+
+D-110 also said what to do instead if an office decides duplicates are wrong — *"a rule to state and
+validate"* — so that is what shipped. The attach endpoint refuses a second attachment inside the
+transaction with `lockForUpdate`; the schema stays open, so an office that later needs one is not
+blocked by a migration. **Detach removes every matching row**, not the first, because a pair can still
+exist from a direct write. Tests pin both halves.
+
+### Audit was asked for and is still refused
+
+The brief asked for *"audit log … gunakan Activity model jika ada atau buat log sederhana"*. There is
+no `Activity` model, and D-115 forbids exactly this: *"an application log is not append-only in the
+sense §31 means, is not queryable by resource, and is the stopgap that becomes permanent."*
+
+`attached_by` and `attached_at` record who and when on the row itself. A test asserts no audit store
+was improvised — no `audit_logs`, no `activity_log`, no `activities`, no `App\Models\Activity`.
+
+### Attaching asks two questions
+
+`documents.update` on the document side — attaching is a correction to a document's own filing rather
+than a new act, so **no `documents.attach` was registered**. And the record on the other end must be
+reachable under **its own domain's** view capability, resolved through that domain's visibility class:
+`documents.update` is authority over filing, never authority to discover which records exist.
+
+For a Matter the namespace comes from the row's own `domain` column — the second place in the
+repository that does so, after M5.2. It looks like the D-101 hazard and is not: the caller supplies an
+id, the namespace comes from a row they cannot influence, and the resulting check is the **stricter**
+of the two. A test proves a Notary-only actor is refused a PPAT Matter and accepted for a Notary one.
+
+### Verified on PostgreSQL, because SQLite could not have caught it
+
+`m53_probe`, created and dropped; the persistent database stayed at 22 migrations. M5.3 adds no
+migration, so the probe exists for one specific reason: **`lockForUpdate()` is a no-op on SQLite and
+real on PostgreSQL**, and the duplicate guard depends on it.
+
+All three attaches accepted; duplicate refused through the lock path; cross-office attach refused
+through the Action and again on a raw insert with a mismatched carrier; detach cleared both duplicate
+rows; detaching nothing refused; `RESTRICT` refused deleting an attached document and an attached
+party; the blocked junctions and the audit store confirmed absent.
+
+### Three defects found and fixed
+
+**A shell-generated model edit ate its own docblock.** Backticks inside a heredoc were interpreted as
+command substitution, so `$this` and every code span vanished from three models. Reverted with
+`git checkout` and redone with the editor — the generated code was never committed.
+
+**A test failed on its own spelling.** `"data.{$type}s"` builds `partys`, not `parties`. The dataset
+now carries the plural explicitly rather than deriving it.
+
+**A frontend assertion raced the query.** The attach button renders outside the query branches, so
+finding it proved nothing about the list having loaded; the detach assertion is awaited now.
+
+And one guard did its job: `DocumentSchemaTest`'s exact-route list failed the moment three routes were
+added, and was narrowed to twelve rather than loosened to a count.
+
 ## 2026-08-24 — M5.2 Document management
 
 Branch `feat/m5-documents-tasks`, from `6f495f8`. **Nine endpoints, four pages, one migration

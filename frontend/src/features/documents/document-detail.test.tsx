@@ -21,6 +21,25 @@ vi.mock("@/services/documents", () => ({
   downloadDocument: vi.fn(),
 }));
 
+// The detail page delegates its relations block to `DocumentRelationList`, which
+// asks its own endpoint (M5.3). Mocked here so this file keeps testing the detail
+// page rather than the network.
+vi.mock("@/services/document-relations", () => ({
+  documentRelationKeys: {
+    all: (id: string) => ["documents", "detail", id, "relations"],
+    candidates: (type: string, search: string) => [
+      "documents",
+      "relation-candidates",
+      type,
+      search,
+    ],
+  },
+  getDocumentRelations: vi.fn().mockResolvedValue({ parties: [], projects: [], matters: [] }),
+  attachDocument: vi.fn(),
+  detachDocument: vi.fn(),
+  getRelationCandidates: vi.fn().mockResolvedValue([]),
+}));
+
 const services = await import("@/services/documents");
 
 function axiosError(status: number, data: unknown = {}): AxiosError {
@@ -180,35 +199,29 @@ describe("DocumentDetail", () => {
     expect(screen.getByText("documents.sensitive")).toBeInTheDocument();
   });
 
-  it("links each related record to the surface that authorizes it", async () => {
-    vi.mocked(services.getDocument).mockResolvedValue(
-      document({
-        related: {
-          parties: [{ id: "01PARTY", party_type: "COMPANY", display_name: "PT Uji" }],
-          projects: [],
-          matters: [
-            {
-              id: "01MATTER",
-              matter_number: "P-2026-000001",
-              title: "Pekerjaan Uji",
-              domain: "PPAT",
-            },
-          ],
-        },
-      }),
-    );
+  /**
+   * **Moved at M5.3, not deleted.** This file used to assert that the detail
+   * page's own `RelatedRecords` block linked each stub to the surface that owns
+   * it. That block is gone: M5.3 replaced it with `DocumentRelationList`, which
+   * asks its own endpoint and carries attach and detach.
+   *
+   * The assertion still exists and is stronger — it now covers all four routing
+   * branches instead of two — in `document-relation-list.test.tsx`. What belongs
+   * here is what this page still decides: that it hands the list the right
+   * document and the right capability flag.
+   */
+  it("delegates relations to the list, gated on can_update", async () => {
+    vi.mocked(services.getDocument).mockResolvedValue(document({ can_update: false }));
 
     renderDetail();
 
-    // A stub links out; it never embeds a record this page did not authorize.
-    expect(await screen.findByRole("link", { name: "documents.partyLabel" })).toHaveAttribute(
-      "href",
-      "/parties/companies/01PARTY",
-    );
+    await screen.findByText("Sertipikat Uji");
 
-    expect(screen.getByRole("link", { name: "documents.matterLabel" })).toHaveAttribute(
-      "href",
-      "/ppat/matters/01MATTER",
-    );
+    // The list renders; the attach control does not, because `can_update` is
+    // false. Attaching answers to `documents.update` (D-118).
+    expect(await screen.findByText("documents.relations.noRelations")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "documents.relations.attach" }),
+    ).not.toBeInTheDocument();
   });
 });

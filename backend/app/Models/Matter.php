@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use RuntimeException;
 
 /**
@@ -177,6 +178,29 @@ class Matter extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * Documents attached to this Matter (M5.3, D-118).
+     *
+     * **A relationship, not ownership.** The junction carries an `office_id`
+     * constraint carrier written from the Document, and composite foreign keys
+     * make the same-Office agreement structural rather than validated (D-116).
+     *
+     * `attached_at` and `attached_by` are the only pivot columns read. `office_id`
+     * is a constraint carrier, never information.
+     *
+     * **Reading this relation is not authorization**, and it matters more here
+     * than anywhere: which of these rows a caller may see answers to
+     * `documents.view` and its Data Scope, not to `notary.matters.view`. Folding
+     * documents into the Matter payload would have made a Matter capability a way
+     * to read what has been filed — which is why the document section on the
+     * Matter page asks its own endpoint instead.
+     */
+    public function documents(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'matter_documents')
+            ->withPivot(['attached_at', 'attached_by']);
+    }
+
     protected function casts(): array
     {
         return [

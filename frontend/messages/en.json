@@ -476,6 +476,37 @@
       "tooManyAttempts": "Too many attempts. Try again shortly.",
       "network": "The connection dropped. Check your network.",
       "server": "Something went wrong. Please try again."
+    },
+    "relations": {
+      "title": "Attached to",
+      "attach": "Attach",
+      "attachTitle": "Attach Document",
+      "attachDescription": "Choose a record to attach this document to. Only records in your office can be selected.",
+      "detach": "Detach",
+      "entityType": "Record type",
+      "selectEntity": "Choose a record",
+      "searchPlaceholder": "Search by name or number",
+      "noCandidates": "No matching records.",
+      "noRelations": "This document is not attached to any record yet.",
+      "attachSuccess": "Document attached.",
+      "detachSuccess": "Document detached.",
+      "types": {
+        "party": "Party",
+        "project": "Project",
+        "matter": "Matter"
+      }
+    },
+    "entityDocuments": {
+      "title": "Documents",
+      "attachDocument": "Attach Document",
+      "attachTitle": "Attach an Existing Document",
+      "attachDescription": "Choose a document this office already holds to attach to this record.",
+      "noDocuments": "No documents attached yet."
+    },
+    "picker": {
+      "searchPlaceholder": "Search by document title or number",
+      "selectDocument": "Attach",
+      "noDocuments": "No matching documents."
     }
   },
   "parties": {

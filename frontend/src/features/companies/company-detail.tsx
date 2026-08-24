@@ -20,6 +20,7 @@ import { useCurrentUser } from "@/features/auth/use-current-user";
 import { CompanyIdentitySection } from "@/features/companies/company-identity-section";
 import { CompanyManagementSection } from "@/features/companies/company-management-section";
 import { CompanyShareholdersSection } from "@/features/companies/company-shareholders-section";
+import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
 import { Link, useRouter } from "@/i18n/navigation";
 import { can } from "@/lib/permissions/can";
@@ -166,6 +167,20 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
           />
         </section>
       ) : null}
+
+      {/* Documents (M5.3, D-118). A section, not a tab — the pattern this page
+          already uses for management and shareholders.
+
+          **`company.id` is the Party ULID**, not the Company row's key: M2
+          exposes one public identifier for the aggregate (D-078), and
+          `party_documents.party_id` references `parties.id`. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <DocumentRelationSection
+          filter={{ party_id: company.id }}
+          uploadHref="/documents/upload"
+          attachTo={{ entity_type: "party", entity_id: company.id }}
+        />
+      </section>
     </div>
   );
 }

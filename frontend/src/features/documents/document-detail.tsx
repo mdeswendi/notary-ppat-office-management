@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentSensitiveBadge, DocumentStatusBadge } from "@/features/documents/document-badges";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
+import { DocumentRelationList } from "@/features/documents/document-relation-list";
 import { DocumentVersionList } from "@/features/documents/document-version-list";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
@@ -20,9 +21,6 @@ import {
   getDocument,
   verifyDocument,
 } from "@/services/documents";
-// Aliased because `Document` is a DOM global: an unaliased import shadows it in
-// this file, and this component legitimately uses both.
-import type { Document as OfficeDocument } from "@/types/document";
 
 /**
  * One Document, and the acts its capabilities allow.
@@ -255,94 +253,13 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
         isDownloading={download.isPending}
       />
 
-      <RelatedRecords document={document} />
+      {/* **Replaced the read-only list at M5.3.** M5.2 rendered `document.related`
+          from the detail payload, which could show attachments and nothing more.
+          The relation list asks its own endpoint and carries attach and detach,
+          gated on `can_update` — the flag the backend computes from the real
+          Policy, since attaching answers to `documents.update` (D-118). */}
+      <DocumentRelationList documentId={document.id} canAttach={document.can_update} />
     </div>
-  );
-}
-
-/**
- * What the document is attached to.
- *
- * Stubs and links, never embedded records: opening a Project is the Project
- * surface's job, and it authorizes for itself. A caller who cannot reach one of
- * these follows the link and gets the honest answer there.
- */
-function RelatedRecords({ document }: { document: OfficeDocument }) {
-  const t = useTranslations("documents");
-
-  const parties = document.related.parties ?? [];
-  const projects = document.related.projects ?? [];
-  const matters = document.related.matters ?? [];
-
-  if (parties.length === 0 && projects.length === 0 && matters.length === 0) {
-    return (
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{t("relatedTitle")}</h2>
-        <p className="text-muted-foreground text-sm">{t("noRelated")}</p>
-      </section>
-    );
-  }
-
-  return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t("relatedTitle")}</h2>
-
-      <ul className="border-border divide-border divide-y rounded-lg border text-sm">
-        {parties.map((party) => (
-          <li key={party.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <span>{party.display_name}</span>
-            <Link
-              href={
-                party.party_type === "INDIVIDUAL"
-                  ? `/parties/individuals/${party.id}`
-                  : `/parties/companies/${party.id}`
-              }
-              className="text-muted-foreground text-xs underline-offset-4 hover:underline"
-            >
-              {t("partyLabel")}
-            </Link>
-          </li>
-        ))}
-
-        {projects.map((project) => (
-          <li key={project.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <span>
-              <span className="text-muted-foreground font-mono text-xs">
-                {project.project_number}
-              </span>{" "}
-              {project.title}
-            </span>
-            <Link
-              href={`/projects/${project.id}`}
-              className="text-muted-foreground text-xs underline-offset-4 hover:underline"
-            >
-              {t("projectLabel")}
-            </Link>
-          </li>
-        ))}
-
-        {matters.map((matter) => (
-          <li key={matter.id} className="flex items-center justify-between gap-3 px-4 py-3">
-            <span>
-              <span className="text-muted-foreground font-mono text-xs">
-                {matter.matter_number}
-              </span>{" "}
-              {matter.title}
-            </span>
-            <Link
-              href={
-                matter.domain === "NOTARY"
-                  ? `/notary/matters/${matter.id}`
-                  : `/ppat/matters/${matter.id}`
-              }
-              className="text-muted-foreground text-xs underline-offset-4 hover:underline"
-            >
-              {t("matterLabel")}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 

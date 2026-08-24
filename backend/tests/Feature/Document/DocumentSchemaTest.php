@@ -562,12 +562,16 @@ it('adds no gating column to the workflow tables', function (): void {
         ->and(Schema::hasColumn('documents', 'workflow_stage_id'))->toBeFalse();
 });
 
-it('exposes exactly the nine document routes and nothing more', function (): void {
-    // **Narrowed at M5.2, not deleted.** M5.1 asserted there was no document route
-    // at all, which was right for a foundation milestone. M5.2 gives it a surface,
-    // so the assertion that expired is replaced by the one this test was always
-    // really about: exactly these routes exist, and nothing has quietly grown a
-    // tenth.
+it('exposes exactly the twelve document routes and nothing more', function (): void {
+    // **Narrowed at M5.2, and again at M5.3.** M5.1 asserted there was no document
+    // route at all, which was right for a foundation milestone. M5.2 gave it nine;
+    // M5.3 adds the three relation routes (D-118). The assertion this test was
+    // always really about is unchanged: exactly these exist, and nothing has
+    // quietly grown a thirteenth.
+    //
+    // The list is spelled out rather than counted, which is why this failed the
+    // moment M5.3 added routes — a count would have needed the same edit and told
+    // the reader less.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
         ->filter(fn (string $route): bool => str_contains($route, 'documents'))
@@ -577,13 +581,16 @@ it('exposes exactly the nine document routes and nothing more', function (): voi
 
     expect($routes)->toBe([
         'DELETE api/v1/documents/{document}',
+        'DELETE api/v1/documents/{document}/relations',
         'GET api/v1/documents',
         'GET api/v1/documents/options',
         'GET api/v1/documents/{document}',
         'GET api/v1/documents/{document}/download',
+        'GET api/v1/documents/{document}/relations',
         'PATCH api/v1/documents/{document}',
         'POST api/v1/documents',
         'POST api/v1/documents/{document}/archive',
+        'POST api/v1/documents/{document}/relations',
         'POST api/v1/documents/{document}/verify',
     ]);
 });

@@ -476,6 +476,37 @@
       "tooManyAttempts": "Terlalu banyak percobaan. Coba lagi sebentar lagi.",
       "network": "Sambungan terputus. Periksa jaringan Anda.",
       "server": "Terjadi kesalahan. Silakan coba lagi."
+    },
+    "relations": {
+      "title": "Terkait dengan",
+      "attach": "Hubungkan",
+      "attachTitle": "Hubungkan Dokumen",
+      "attachDescription": "Pilih catatan yang akan dihubungkan dengan dokumen ini. Hanya catatan di Kantor Anda yang dapat dipilih.",
+      "detach": "Lepaskan",
+      "entityType": "Jenis catatan",
+      "selectEntity": "Pilih catatan",
+      "searchPlaceholder": "Cari nama atau nomor",
+      "noCandidates": "Tidak ada catatan yang cocok.",
+      "noRelations": "Dokumen ini belum terhubung dengan catatan mana pun.",
+      "attachSuccess": "Dokumen berhasil dihubungkan.",
+      "detachSuccess": "Hubungan dokumen dilepaskan.",
+      "types": {
+        "party": "Pihak",
+        "project": "Proyek",
+        "matter": "Pekerjaan"
+      }
+    },
+    "entityDocuments": {
+      "title": "Dokumen",
+      "attachDocument": "Hubungkan Dokumen",
+      "attachTitle": "Hubungkan Dokumen yang Ada",
+      "attachDescription": "Pilih dokumen yang sudah tersimpan di kantor ini untuk dihubungkan dengan catatan ini.",
+      "noDocuments": "Belum ada dokumen yang terhubung."
+    },
+    "picker": {
+      "searchPlaceholder": "Cari judul atau nomor Dokumen",
+      "selectDocument": "Hubungkan",
+      "noDocuments": "Tidak ada dokumen yang cocok."
     }
   },
   "parties": {

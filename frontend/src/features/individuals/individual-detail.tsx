@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { IdentitySection } from "@/features/individuals/identity-section";
 import { IndividualCompaniesSection } from "@/features/individuals/individual-companies-section";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
@@ -158,6 +159,22 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
           />
         </section>
       ) : null}
+
+      {/* Documents (M5.3, D-118). A section, not a tab — the pattern this page
+          and the Project and Matter pages already use.
+
+          **`individual.id` is the Party ULID**, not the Individual row's key:
+          M2 exposes one public identifier for the aggregate (D-078), and
+          `party_documents.party_id` references `parties.id`. Passing the wrong
+          one would fail the foreign key rather than fail quietly, but naming it
+          here saves the next reader the lookup. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <DocumentRelationSection
+          filter={{ party_id: individual.id }}
+          uploadHref="/documents/upload"
+          attachTo={{ entity_type: "party", entity_id: individual.id }}
+        />
+      </section>
     </div>
   );
 }

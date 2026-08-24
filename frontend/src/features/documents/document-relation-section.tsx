@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link2, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
@@ -10,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentSensitiveBadge, DocumentStatusBadge } from "@/features/documents/document-badges";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
+import { EntityDocumentPicker } from "@/features/documents/entity-document-picker";
 import { Link } from "@/i18n/navigation";
 import { documentQueryKeys, getDocuments } from "@/services/documents";
 import type { DocumentListQuery } from "@/types/document";
+import type { DocumentRelationType } from "@/types/document-relation";
 
 /**
  * The documents attached to one Project or Matter.
@@ -36,12 +39,22 @@ import type { DocumentListQuery } from "@/types/document";
 export function DocumentRelationSection({
   filter,
   uploadHref,
+  attachTo,
 }: {
   filter: Pick<DocumentListQuery, "party_id" | "project_id" | "matter_id">;
   uploadHref?: string;
+  /**
+   * The record this section belongs to (M5.3). Supplying it turns on "attach an
+   * existing document", which is the other half of filing: uploading files a new
+   * one, attaching connects a document the office already holds.
+   */
+  attachTo?: { entity_type: DocumentRelationType; entity_id: string };
 }) {
   const t = useTranslations("documents");
   const tActions = useTranslations("actions");
+  const queryClient = useQueryClient();
+
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const query = useQuery({
     queryKey: documentQueryKeys.list({ ...filter, per_page: 50 }),
@@ -55,19 +68,39 @@ export function DocumentRelationSection({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{t("sectionTitle")}</h2>
 
-        {uploadHref ? (
-          <PermissionGuard permission="documents.upload">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              render={<Link href={uploadHref} />}
-            >
-              <Plus aria-hidden="true" className="size-4" />
-              {t("upload")}
-            </Button>
-          </PermissionGuard>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {/* Attaching answers to `documents.update` — a correction to a
+              document's own filing — while uploading answers to
+              `documents.upload`. Two capabilities, two buttons, and the guard on
+              each names its own. */}
+          {attachTo ? (
+            <PermissionGuard permission="documents.update">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => setPickerOpen(true)}
+              >
+                <Link2 aria-hidden="true" className="size-4" />
+                {t("entityDocuments.attachDocument")}
+              </Button>
+            </PermissionGuard>
+          ) : null}
+
+          {uploadHref ? (
+            <PermissionGuard permission="documents.upload">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                render={<Link href={uploadHref} />}
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                {t("upload")}
+              </Button>
+            </PermissionGuard>
+          ) : null}
+        </div>
       </div>
 
       {query.isPending ? (
@@ -113,6 +146,18 @@ export function DocumentRelationSection({
           ))}
         </ul>
       )}
+
+      {attachTo ? (
+        <EntityDocumentPicker
+          entityType={attachTo.entity_type}
+          entityId={attachTo.entity_id}
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          onAttached={() => {
+            void queryClient.invalidateQueries({ queryKey: documentQueryKeys.all() });
+          }}
+        />
+      ) : null}
     </section>
   );
 }
