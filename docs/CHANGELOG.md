@@ -5,6 +5,97 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M6.2 Notary Deed surface and frontend
+
+Branch `feat/m6-notary`, from `33dfe32`. **Nine routes, no migration, no permission — the count stays
+at 177.** Backend **2496 passed + 8 skipped** (44 new), frontend **114 passed** (was 100). Implements
+D-120; no new decision.
+
+### What landed
+
+Backend: `NotaryDeedController` (9 endpoints), six Actions, `DeedStatusNotEligible`, three Form
+Requests, `NotaryDeedResource`.
+
+Frontend: `types/notary.ts`, `services/notary.ts`, five components, three pages, the Matter deeds
+section, a navigation entry, and 71 translation keys per locale with verified parity.
+
+### Five things the brief asked for that this does not do
+
+Each was refused for a reason already recorded, and each refusal is asserted by a test.
+
+**No `DELETE`.** The brief asked for a soft delete restricted to `DRAFT`, *and* forbade both a
+migration and a new permission. Its own constraints rule the endpoint out: `notary_deeds` has no
+`deleted_at` (M6.1) and the catalogue has no `notary.deeds.delete`. Four canonical sources agree
+separately (D-120).
+
+**`approve` is not restricted to a role name.** *"Hanya PRINCIPAL/SUPER_ADMIN"* is the authorization
+shape D-032, D-041 and D-048 forbid. Restricting approval to the Principal is done by granting
+`notary.deeds.approve` to that role alone — office configuration, not a check in code. A test asserts
+a `SUPER_ADMIN` role name confers nothing.
+
+**Finalizing assigns no number.** *"Set deed_number jika belum"* asserts *when* a deed is numbered,
+which is half of open question one. Numbering is `notary.deeds.number` on its own endpoint — the
+capability the catalogue defined and nothing had used. Finalizing also writes no `locked_at` and
+creates no register entry.
+
+**An approved deed is still editable.** The brief wanted edits confined to `DRAFT` and `UNDER_REVIEW`.
+`CLAUDE.md` §29 denies normal updates *once finalized* and says nothing about approval; the narrower
+rule is an approval requirement, which §62 forbids inventing. Encoded as M6.1's `isEditable()` had it.
+
+**No parties, tasks or document collection in the deed payload.** Participation answers to
+`notary.matters.parties.view`, tasks to `tasks.view`, documents to `documents.view` — each with its
+own Data Scope. Embedding any of them would make `notary.deeds.view` a way to read it.
+
+Also: **sections, not tabs** — the repository has no `Tabs` primitive, the ruling M5.2, M5.3 and M5.4
+each made. And **no audit or `Activity` placeholder**: D-115 forbids it, and writing deed events into
+`task_comments` would have been worse than not recording them.
+
+### Four guard tests narrowed, and one of them is the interesting case
+
+`CompanyRegistryStatusTest`, `CompanyRelationshipRegistryTest` and `ProjectLifecycleTest` each
+forbade a bare `deeds` route segment. Each was narrowed to the rooted direction it was really about —
+`companies/{company}/deeds`, `projects/{project}/deeds` — exactly as `documents` was narrowed at M5.2.
+
+**`ProjectReferenceTest` is the one worth reading.** It forbade any route URI containing `number`, on
+the grounds that a Project reference is system-allocated and immutable so *"there is nothing for a
+caller to send"*. M6.2 ships `notary/deeds/{deed}/number`, and the guard fired **correctly on a route
+that is correct**: D-103 already ruled that `PRJ-2026-000001` is *"ordinary office identification …
+not a deed number, a repertorium number, a minuta or Warkah number"*. A deed number is
+caller-supplied precisely because it is not system-allocated. `number` is now scoped to Project's own
+addresses; `reference`, `sequence` and `counter` stay forbidden everywhere.
+
+### Verification
+
+Backend `pint --test` clean, 2496 passed + 8 skipped. Frontend `format:check`, `lint` (0 errors, 3
+pre-existing warnings), `typecheck`, 114 tests and `build` all clean.
+
+**HTTP smoke — 29/29 against real PostgreSQL**, on a disposable `m62_probe` at 40 migrations, over a
+real Sanctum cookie session with CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer`, and **no Bearer
+authentication anywhere**. Per O-034 the serving process proved its own database with
+`SELECT current_database()` before the first functional request, launched via `php -S` with the
+framework's front controller rather than `artisan serve`.
+
+Covered: the full `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED` ladder; approving before review
+refused 422; editing a finalized deed refused 403; a PPAT Matter, a `deed_number` and a `status` each
+refused 422 at creation; a duplicate number refused and a re-recorded one accepted; `DELETE` 405,
+`/void` 404, `/ppat/deeds` 404; and the payload carrying no parties, tasks, documents or identity.
+
+**Two smoke assertions failed before the code did anything wrong.** `?? 'x'` was used as a
+present-key sentinel, and `??` coalesces on a **null value** as well as a missing key — so a
+legitimately-null `deed_number` defeated its own check and reported "finalize assigned a number".
+Printing the payload settled it: the API had returned `"deed_number": null` and `"locked_at": null`
+throughout. The assertion was fixed; nothing in the product changed.
+
+**One behaviour confirmed rather than assumed.** The feature suite runs on SQLite, where `LIKE` is
+case-insensitive, so the deed search could plausibly have behaved differently on PostgreSQL. It does
+not: Laravel's `whereLike` defaults to case-insensitive and compiles to `ILIKE`, and a lowercase
+search matched both mixed-case titles on the probe.
+
+Probe dropped; **the persistent development database was not touched and remains at 22 migrations**,
+re-verified afterwards.
+
+---
+
 ## 2026-08-24 — M6.1 Notary Deed schema and Policy
 
 Branch `feat/m6-notary`, from `bec5dd5`. **Two migrations (38 → 40), no route, no permission — the

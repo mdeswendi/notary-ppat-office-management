@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\MatterLifecycleController;
 use App\Http\Controllers\Api\V1\MatterPartyController;
 use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\NotaryDeedController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
@@ -497,6 +498,56 @@ Route::prefix('v1')->group(function (): void {
             ->whereUlid('task')->name('api.v1.tasks.comments.index');
         Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store'])
             ->whereUlid('task')->name('api.v1.tasks.comments.store');
+
+        /*
+         * Notarial Deeds (M6.2, D-120).
+         *
+         * **One root, not two.** `notary.deeds.*` is a Notary-only namespace — PPAT
+         * deeds are a different table in a different milestone — so unlike Matter
+         * there is no `foreach` over two domains here. The `notary` prefix is still
+         * what selects the permission namespace (D-101); there is simply one case.
+         *
+         * **Seven acts, seven capabilities, none implying another** —
+         * `notary.deeds.view`, `create`, `update`, `review`, `approve`, `finalize`
+         * and `number`. An office that separates preparing a deed from approving it
+         * is expressing something about who may bind it legally, so `update` reaching
+         * `review`, or `finalize` reaching `number`, would collapse a distinction the
+         * catalogue drew deliberately.
+         *
+         * **`deeds/{deed}/number` is its own route**, not folded into `finalize`.
+         * `notary.deeds.number` has been canonical since M1.2 and nothing had used
+         * it. Numbering at finalization would assert *when* a deed is numbered, which
+         * is half of `08_NOTARY_WORKFLOW.md` section 6's first open question.
+         *
+         * **`options` is declared before `{deed}`**, or the literal segment would
+         * bind as a deed id and answer 404.
+         *
+         * **There is deliberately no `DELETE` and no `void` route.** `notary_deeds`
+         * has no `deleted_at`, the catalogue has no `notary.deeds.delete`,
+         * `notary.deeds.void` or `notary.deeds.lock`, and the correction mechanisms
+         * that would need them are an open domain question (D-120). A route that
+         * pretended otherwise would be a control nobody can authorize.
+         */
+        Route::prefix('notary')->name('api.v1.notary.deeds.')->group(function (): void {
+            Route::get('deeds/options', [NotaryDeedController::class, 'options'])->name('options');
+
+            Route::get('deeds', [NotaryDeedController::class, 'index'])->name('index');
+            Route::post('deeds', [NotaryDeedController::class, 'store'])->name('store');
+
+            Route::get('deeds/{deed}', [NotaryDeedController::class, 'show'])
+                ->whereUlid('deed')->name('show');
+            Route::patch('deeds/{deed}', [NotaryDeedController::class, 'update'])
+                ->whereUlid('deed')->name('update');
+
+            Route::patch('deeds/{deed}/review', [NotaryDeedController::class, 'review'])
+                ->whereUlid('deed')->name('review');
+            Route::patch('deeds/{deed}/approve', [NotaryDeedController::class, 'approve'])
+                ->whereUlid('deed')->name('approve');
+            Route::patch('deeds/{deed}/finalize', [NotaryDeedController::class, 'finalize'])
+                ->whereUlid('deed')->name('finalize');
+            Route::patch('deeds/{deed}/number', [NotaryDeedController::class, 'recordNumber'])
+                ->whereUlid('deed')->name('number');
+        });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');
         Route::post('projects', [ProjectController::class, 'store'])->name('api.v1.projects.store');

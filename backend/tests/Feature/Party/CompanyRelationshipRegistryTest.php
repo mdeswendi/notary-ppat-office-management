@@ -126,9 +126,13 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     // root (D-117). `documents` is no longer forbidden outright; the
     // Company-rooted direction still is, which is the boundary this guard has
     // always been about.
+    //
+    // **Narrowed a fourth time at M6.2**, which ships the Notarial Deed surface at
+    // `/notary/deeds` (D-120). Same treatment as `documents`: the bare segment
+    // goes, the Company-rooted direction stays forbidden.
     foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
         'companies/{company}/matters', 'companies/{company}/documents',
-        'deeds', 'properties', 'warkah'] as $segment) {
+        'companies/{company}/deeds', 'properties', 'warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 

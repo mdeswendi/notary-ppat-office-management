@@ -70,7 +70,8 @@
     "tasks": "Tugas",
     "tasksMy": "Tugas Saya",
     "tasksAll": "Semua Tugas",
-    "tasksCompleted": "Selesai"
+    "tasksCompleted": "Selesai",
+    "notaryDeeds": "Akta"
   },
   "dashboard": {
     "title": "Dasbor",
@@ -1236,5 +1237,86 @@
     "emailInvalid": "Format email tidak valid.",
     "passwordRequired": "Kata sandi wajib diisi."
   },
-  "legal": {}
+  "legal": {},
+  "notary": {
+    "deeds": "Akta Notaris",
+    "deedsSubtitle": "Setiap Akta Notaris yang boleh Anda lihat.",
+    "newDeed": "Akta Baru",
+    "newDeedSubtitle": "Catat Akta Notaris terhadap sebuah Pekerjaan Notaris.",
+    "deedTitle": "Judul",
+    "deedNumber": "Nomor Akta",
+    "deedDate": "Tanggal Akta",
+    "deedType": "Jenis Akta",
+    "status": "Status",
+    "officeLabel": "Kantor",
+    "matterLabel": "Pekerjaan",
+    "unnumbered": "Belum bernomor",
+    "readOnly": "Terkunci",
+    "loading": "Memuat…",
+    "allStatuses": "Semua status",
+    "selectMatter": "Pilih Pekerjaan",
+    "deedOverview": "Ringkasan",
+    "deedTimeline": "Riwayat",
+    "deedDocuments": "Dokumen Akta",
+    "noDocument": "Belum ada",
+    "reviewedAt": "Diperiksa",
+    "approvedAt": "Disetujui",
+    "finalizedAt": "Difinalisasi",
+    "submitForReview": "Ajukan Pemeriksaan",
+    "approve": "Setujui",
+    "finalize": "Finalisasi",
+    "finalizeConfirm": "Setelah difinalisasi, akta ini tidak dapat diubah lagi. Lanjutkan?",
+    "finalizedNotice": "Akta ini sudah difinalisasi dan bersifat baca-saja.",
+    "recordNumberTitle": "Nomor Akta",
+    "recordNumberHint": "Masukkan nomor akta sesuai penomoran kantor Anda. Sistem tidak menentukan formatnya.",
+    "deedNumberHint": "Nomor akta dicatat terpisah dari halaman akta setelah akta dibuat.",
+    "deedCreateHint": "Kantor akta mengikuti Pekerjaan induknya, dan akta baru selalu berstatus Konsep.",
+    "matterHint": "Hanya Pekerjaan Notaris di kantor Anda yang dapat dipilih.",
+    "timelineHint": "Tiga catatan di atas adalah yang disimpan pada akta itu sendiri. Riwayat peristiwa lengkap menunggu penyimpanan audit.",
+    "deedSearchLabel": "Cari akta",
+    "deedSearchPlaceholder": "Cari judul atau nomor akta",
+    "deedTableCaption": "Daftar Akta Notaris",
+    "deedErrorTitle": "Akta tidak dapat dimuat",
+    "deedsEmptyTitle": "Belum ada akta",
+    "deedsEmptyDescription": "Akta Notaris akan muncul di sini setelah dicatat.",
+    "noMatchesTitle": "Tidak ada hasil",
+    "noMatchesDescription": "Ubah kata kunci atau filter Anda.",
+    "matterDeedsTitle": "Akta Notaris",
+    "matterDeedsHint": "Akta yang dihasilkan dari Pekerjaan ini. Membuka Pekerjaan tidak dengan sendirinya memberi akses ke aktanya.",
+    "matterDeedsEmptyTitle": "Belum ada akta",
+    "matterDeedsEmptyDescription": "Belum ada Akta Notaris yang dicatat untuk Pekerjaan ini.",
+    "paginationLabel": "Navigasi halaman",
+    "paginationSummary": "Halaman {current} dari {last} · {total} akta",
+    "previousPage": "Sebelumnya",
+    "nextPage": "Berikutnya",
+    "deedStatuses": {
+      "DRAFT": "Konsep",
+      "UNDER_REVIEW": "Dalam Pemeriksaan",
+      "APPROVED": "Disetujui",
+      "FINALIZED": "Final",
+      "VOID": "Batal",
+      "SUPERSEDED": "Digantikan"
+    },
+    "documentSlots": {
+      "draft": "Konsep",
+      "final": "Final",
+      "minuta": "Minuta Akta"
+    },
+    "validation": {
+      "titleRequired": "Judul wajib diisi.",
+      "matterRequired": "Pekerjaan wajib dipilih.",
+      "matterUnavailable": "Pekerjaan tidak tersedia.",
+      "deedNumberTaken": "Nomor akta sudah dipakai di kantor ini.",
+      "tooLong": "Terlalu panjang."
+    },
+    "errors": {
+      "forbidden": "Anda tidak memiliki akses untuk tindakan ini.",
+      "notFound": "Akta tidak ditemukan.",
+      "validation": "Periksa kembali isian Anda.",
+      "conflict": "Tindakan ini tidak tersedia dari status akta saat ini.",
+      "tooManyAttempts": "Terlalu banyak percobaan. Coba lagi nanti.",
+      "network": "Koneksi terputus. Periksa jaringan Anda.",
+      "server": "Terjadi kesalahan. Coba lagi nanti."
+    }
+  }
 }

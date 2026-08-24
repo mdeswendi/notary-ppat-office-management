@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M5.2
+# Project Handoff — M0 through M6.2
 
-**Position:** branch `feat/m5-documents-tasks` at `3dec054`, three commits ahead of `main` (`f82dc25`).
+**Position:** branch `feat/m6-notary`, ahead of `main` (`f82dc25`) by the M5 and M6 work below.
 **Last accepted merge to `main`:** M4 — Matter & Workflow Engine.
-**Written:** 2026-08-24, after M5.2.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M6.2.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -38,10 +38,10 @@ boundary. Every frontend permission check is presentation.
 | Migrations | **40** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 28 |
-| API routes | **144** under `/api/v1` (151 total) — M6.1 adds none |
-| Backend tests | **2452 passing, 8 skipped** across 82 files (Pest) |
-| Frontend tests | **100 passing** across 11 files (Vitest + RTL) |
-| Frontend pages | 41 |
+| API routes | **153** under `/api/v1` (160 total) |
+| Backend tests | **2496 passing, 8 skipped** across 83 files (Pest) |
+| Frontend tests | **114 passing** across 12 files (Vitest + RTL) |
+| Frontend pages | 44 |
 | Decisions recorded | **D-001 … D-120** |
 | Open items | 14 still open (§7) |
 
@@ -51,9 +51,9 @@ never been migrated past M1. Every schema verification since has run on a dispos
 ### Routes by domain
 
 ```text
-companies 19   notary 17   ppat 17   projects 15   individuals 14
-users 13       tasks 12     security 12  documents 12  roles 7
-profile 2      parties 1    permissions 1  health 1   me 1
+notary 26      companies 19  ppat 17   projects 15   individuals 14
+users 13       tasks 12      security 12  documents 12  roles 7
+profile 2      parties 1     permissions 1  health 1   me 1
 ```
 
 ---
@@ -78,7 +78,8 @@ the single most load-bearing process choice in the project.
 | **M5.3** | Document relation surfaces (attach / detach), Party document sections | `077365b` |
 | **M5.4** | Task schema, twelve endpoints, five pages, Project/Matter task sections | `6d0c2e9` |
 | **M6.0** | Notary architecture lock — and what the empty specification actually costs | `bec5dd5` |
-| **M6.1** | `notary_matters` + `notary_deeds` schema, Policy, Data Scope — no routes | on branch |
+| **M6.1** | `notary_matters` + `notary_deeds` schema, Policy, Data Scope — no routes | `33dfe32` |
+| **M6.2** | Nine deed endpoints, three pages, Matter deeds section | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -332,7 +333,7 @@ metadata, and the whole authorization surface.
 
 ```text
 M6.1  notary_matters + notary_deeds schema + Policy   (no routes)   <- done
-M6.2  Deed management surface + deed frontend
+M6.2  Deed management surface + deed frontend   <- done
 M6.3  notary_minuta — metadata only
 ```
 

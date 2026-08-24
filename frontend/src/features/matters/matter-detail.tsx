@@ -19,6 +19,7 @@ import { matterBasePath } from "@/features/matters/matter-domain";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
 import { MatterWorkflowSection } from "@/features/matters/matter-workflow-section";
+import { MatterDeedsSection } from "@/features/notary/matter-deeds-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { Link } from "@/i18n/navigation";
 import {
@@ -225,6 +226,19 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           createHref={`/tasks/new?matter_id=${matter.id}`}
         />
       </section>
+
+      {/* Notarial Deeds (M6.2, D-120). **Only on a NOTARY Matter** — a PPAT Matter
+          has no notarial deeds, and an empty section headed "Deeds" on a PPAT page
+          would suggest the office had failed to draw one up.
+
+          Like the four above, it asks its own endpoint: deeds answer to
+          `notary.deeds.view` with their own Data Scope, and reaching a Matter
+          confers no Deed authority. */}
+      {domain === "NOTARY" ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <MatterDeedsSection matterId={matter.id} />
+        </section>
+      ) : null}
 
       {matter.can_assign ? (
         <section className="border-border flex flex-col gap-3 rounded-lg border p-4">

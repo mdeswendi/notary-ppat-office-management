@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Scale,
+  ScrollText,
   Settings,
   UserRound,
   Users,
@@ -154,6 +155,21 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // and not PPAT, or the reverse — the two are independent, so each entry
         // is gated on its own code rather than on a shared one (D-101).
         requiredPermission: "notary.matters.view",
+      },
+      {
+        key: "notary.deeds",
+        translationKey: "notaryDeeds",
+        href: "/notary/deeds",
+        icon: ScrollText,
+        // Added at M6.2, when the routes landed — not at M6.1 when the schema and
+        // Policy did (D-064). The seven `notary.deeds.*` codes have been canonical
+        // since the catalogue was transcribed at M1.2 and this entry stayed absent
+        // for every milestone since.
+        implemented: true,
+        // Its own capability, separate from the Matter one: reaching a Matter
+        // confers no Deed authority (D-100, restated at D-120), so an account may
+        // hold one and not the other in either direction.
+        requiredPermission: "notary.deeds.view",
       },
     ],
   },
