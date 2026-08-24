@@ -366,6 +366,33 @@ class NotaryDeedController extends Controller
             }
         }
 
+        /*
+         * `project_id` resolves through the Matter (O-037).
+         *
+         * A deed has no `project_id` of its own — it is the output of a Matter, and
+         * the Matter names the Project. So this is the one filter that reaches a
+         * column the deed does not carry, correlated through `matter_id`.
+         *
+         * **A filter, not a nested route.** The obvious alternative,
+         * `GET /projects/{project}/notary-deeds`, is the shape D-118 refused for
+         * exactly this question: *"A second address for one question is two surfaces
+         * that must be kept in step, and the first divergence between them would be
+         * a bug."* Documents and Tasks both answer the Project page through
+         * `?project_id=`, and deeds now do the same.
+         *
+         * **It needs no extra authorization, because a filter only narrows.** Every
+         * row is already bounded by `notary.deeds.view` and its Data Scope before
+         * this runs, so filtering by a Project the caller cannot open returns the
+         * deeds they could already see — never one more. Requiring `projects.view`
+         * here would refuse a legitimate narrowing rather than protect anything,
+         * and `matter_id` above has always worked the same way.
+         */
+        if (($projectId = trim((string) $request->query('project_id', ''))) !== '') {
+            $query->whereHas('matter', function (Builder $matter) use ($projectId): void {
+                $matter->where('project_id', $projectId);
+            });
+        }
+
         foreach (['deed_date_from' => '>=', 'deed_date_to' => '<='] as $filter => $operator) {
             $value = trim((string) $request->query($filter, ''));
 

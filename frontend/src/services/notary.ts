@@ -37,6 +37,7 @@ export async function getNotaryDeeds(query: NotaryDeedListQuery): Promise<Notary
       search: blank(query.search),
       status: blank(query.status),
       matter_id: blank(query.matter_id),
+      project_id: blank(query.project_id),
       deed_type_code: blank(query.deed_type_code),
       deed_date_from: blank(query.deed_date_from),
       deed_date_to: blank(query.deed_date_to),

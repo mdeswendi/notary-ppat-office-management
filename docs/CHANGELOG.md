@@ -5,6 +5,61 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — O-037: Notary Deeds on the Project page
+
+Branch `fix/o-037-project-deeds`, from `cc56a4f`. **One filter, one section, no migration, no
+permission.** Backend **2552 passed + 8 skipped** (7 new), frontend **127 passed** (was 121).
+Closes **O-037**; **O-038 stays open**.
+
+### Built as a filter, not the nested route the brief specified
+
+The follow-up brief asked for `GET /api/v1/projects/{project}/notary-deeds`. That is the shape
+**D-118 refused** for exactly this question:
+
+> *"No `GET /{entity}/{id}/documents`. That question is already answered by
+> `GET /documents?project_id=…`. A second address for one question is two surfaces that must be
+> kept in step, and the first divergence between them would be a bug."*
+
+Documents and Tasks already answer the Project page through `?project_id=`, and every existing
+section on that page is a `filter` against the entity's own top-level endpoint. So
+`GET /notary/deeds` gained `project_id` instead — correlated through `matter_id`, because a deed
+carries no Project of its own.
+
+A test asserts no `projects/{project}/…deeds` route exists, so the refused shape cannot reappear
+quietly.
+
+### The filter needs no second capability, and that is deliberate
+
+Every row is bounded by `notary.deeds.view` and its Data Scope **before** the filter runs, so
+naming a Project the caller cannot open returns the deeds they could already see — never one
+more. Requiring `projects.view` would refuse a legitimate narrowing rather than protect anything,
+and `matter_id` has always worked the same way. A test pins it: an `OWN`-scoped actor filtering
+by a shared Project still sees only their own.
+
+### The grandchildren objection, answered rather than dropped
+
+O-037 recorded a real design question: a Project holds Matters and Matters hold Deeds, so this is
+the **one surface in the product that reaches two levels down**. It earns the exception because
+*"what has this engagement actually produced?"* is a question about the Project, and answering it
+by opening each Matter in turn is the thing a summary exists to avoid.
+
+Because rows span several Matters, `DeedsList` gained an optional `matterOptions` prop — adding a
+Matter column and a Matter dropdown — rather than being duplicated. The deeds page and the Matter
+section leave it undefined: on a single-Matter view a column repeating the parent and a dropdown
+that cannot change anything are both noise.
+
+### Also
+
+`ProjectDetail`'s class docblock said the page *"deliberately has no participants, Matter,
+workflow, document, or deed section"*. Three of those five have been built since M3.3. Corrected,
+keeping the part that is still true — no Matter and no workflow section, because a Matter is
+reached at its own domain root (D-101).
+
+**No PPAT deeds can appear here.** `notary_deeds` rows exist only against NOTARY Matters, so a
+Project running both domains shows only its Notary output. PPAT deeds are a different table in M7.
+
+---
+
 ## 2026-08-24 — M6.3 Minuta Akta metadata
 
 Branch `feat/m6-notary`, from `8c638d4`. **Two migrations (40 → 42), three routes, no permission —

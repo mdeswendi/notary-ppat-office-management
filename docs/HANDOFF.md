@@ -39,11 +39,11 @@ boundary. Every frontend permission check is presentation.
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 29 |
 | API routes | **156** under `/api/v1` (163 total) |
-| Backend tests | **2545 passing, 8 skipped** across 84 files (Pest) |
-| Frontend tests | **121 passing** across 13 files (Vitest + RTL) |
+| Backend tests | **2552 passing, 8 skipped** across 84 files (Pest) |
+| Frontend tests | **127 passing** across 14 files (Vitest + RTL) |
 | Frontend pages | 44 |
 | Decisions recorded | **D-001 … D-120** |
-| Open items | 16 still open (§7) |
+| Open items | 15 still open (§7) — O-037 closed 2026-08-25 |
 
 **The persistent development database stands at 22 migrations and is deliberately behind.** It has
 never been migrated past M1. Every schema verification since has run on a disposable database. See §6.
@@ -288,7 +288,6 @@ Twelve of thirty-four. Each is recorded in `DECISIONS.md` with its full reasonin
 | O-034 | `artisan serve` drops `DB_DATABASE` for its subprocess | Needs upstream change or a committed smoke launcher |
 | O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
 | O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
-| O-037 | The Project detail page shows no Notary Deeds | Grandchildren, and the list filters by matter not project |
 | O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
 
 **The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of

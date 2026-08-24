@@ -115,6 +115,14 @@ export type NotaryDeedListQuery = {
   search?: string;
   status?: NotaryDeedStatus | "";
   matter_id?: string;
+  /**
+   * Resolves through the Matter — a deed has no `project_id` of its own (O-037).
+   *
+   * A filter rather than a nested route, for the reason D-118 gave when it refused
+   * `GET /{entity}/{id}/documents`: one question deserves one surface, and Documents
+   * and Tasks both answer the Project page the same way.
+   */
+  project_id?: string;
   deed_type_code?: string;
   deed_date_from?: string;
   deed_date_to?: string;

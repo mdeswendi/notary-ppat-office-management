@@ -1339,6 +1339,11 @@
       "unset": "Not set",
       "shelfHint": "Location, volume and bundle are free text — the system does not decide how your office files.",
       "lifecycleHint": "Release status and archiving cannot be changed yet: the procedure awaits domain validation."
-    }
+    },
+    "projectDeeds": "Notarial Deeds",
+    "projectDeedsDescription": "Notarial Deeds produced by the Notary Matters in this project.",
+    "projectDeedsEmptyTitle": "No Notarial Deeds yet",
+    "projectDeedsEmptyDescription": "No Notarial Deed has been recorded for this project.",
+    "allMatters": "All Matters"
   }
 }
