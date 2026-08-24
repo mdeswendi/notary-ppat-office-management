@@ -5,11 +5,72 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — CI fix: M5.3 formatting
+
+**Quality #53 failed on `077365b`.** One cause, one line, and it was a reporting
+failure rather than a code one.
+
+`pnpm format:check` rejected `document-relation-list.test.tsx`: Prettier wanted a
+three-line `expect(...)` collapsed onto one. The M5.3 report claimed
+`format:check ✓`, and that claim was true when the command ran — the gate was run,
+then two test files were edited to fix a failing assertion, and **the gate was
+never re-run.** The D-077 defect class: a claim that stopped being true.
+
+### What was checked, and what was ruled out
+
+The milestone brief suggested PostgreSQL, `lockForUpdate()` and missing environment
+variables. None of those could be it, and the workflow says so plainly: **CI runs
+the backend suite on in-memory SQLite** — `backend/phpunit.xml` pins
+`DB_CONNECTION=sqlite` and `DB_DATABASE=:memory:`, and no PostgreSQL service is
+declared. CI never reaches a database where `lockForUpdate()` means anything.
+
+`gh` is still not installed (O-010), so the run log could not be read from the
+terminal. The cause was found by **reproducing CI in a clean clone** at `077365b`
+instead, which is closer to what CI does than the working copy is:
+
+| CI step | Clean clone at `077365b` |
+|---|---|
+| `composer install` | ✓ |
+| `cp .env.example .env` + `key:generate` | ✓ |
+| `vendor/bin/pint --test` | ✓ |
+| `php artisan test` | ✓ 2238 passed, 8 skipped |
+| `pnpm install --frozen-lockfile` | ✓ |
+| `pnpm format:check` | **✗ — the failure** |
+| `pnpm lint` | ✓ 0 errors |
+| `pnpm typecheck` | ✓ |
+| `pnpm test:ci` | ✓ 82 passed |
+| `pnpm build` | ✓ |
+
+Also ruled out along the way: no PHP 8.4-only function is used
+(`array_find`, `array_any`, `mb_trim` and the rest — none present);
+`composer.json` pins `config.platform.php` to `8.3.0`, so dependencies resolve for
+the CI runtime; every `@/` import resolves with **exact case**, checked against
+real directory listings rather than `existsSync`, which is case-insensitive on
+Windows and would have hidden a failure that only appears on `ubuntu-latest`; and
+every M5.3 file is present in the commit tree.
+
+**One thing remains unverified locally: PHP 8.3.** The workstation carries only 8.4
+and 8.5, so the version CI pins cannot be run here. The checks above are the
+evidence that stands in for it.
+
+### The rule this produced
+
+`CLAUDE.md` §52 gains one: **run the gate after the last edit, and report only what
+that run said.** A green run is evidence about the tree that produced it and
+nothing later — if a file is touched afterwards, the gate has not been run.
+
+---
+
 ## 2026-08-24 — M5.3 Document relation surfaces
 
 Branch `feat/m5-documents-tasks`, from `bb6ea99`. **Three routes, no migration, no permission — the
 count stays at 177.** Backend **2238 passed + 8 skipped**, frontend **82 passed** (was 76). One new
 decision, **D-118**.
+
+> **Correction.** This entry originally recorded `format:check ✓`. That was true
+> when the command ran and stopped being true two edits later, and Quality #53
+> failed on it. Fixed in the entry above; the gate result for this milestone is
+> only green as of that fix.
 
 ### Three of six requested entity types can exist, and that was checked before anything was written
 

@@ -1535,6 +1535,13 @@ This list must never be weaker than `.github/workflows/quality.yml`. It was, onc
 documented command still failed CI. Adding a gate to the workflow means adding it
 here in the same change.
 
+**Run the gate after the last edit, and report only what that run said.** M5.3
+failed CI on `format:check` for a single reflowed line: the gate was run, then two
+test files were edited to fix a failing assertion, and the gate was never re-run —
+so the milestone report carried a result that had stopped being true. A green run
+is evidence about the tree that produced it and about nothing later. If you touch
+a file after the gate, the gate has not been run.
+
 `pnpm test` joined both lists together when O-032 added the runner. **Use `test`,
 never `test:watch`** — the watch mode never exits, so a task using it would appear
 to hang rather than to pass. CI runs `test:ci`, which is the same single run plus

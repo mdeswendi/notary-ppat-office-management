@@ -130,9 +130,7 @@ describe("DocumentRelationList", () => {
       await screen.findByRole("button", { name: "documents.relations.detach: Budi Santoso" }),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("button", { name: "documents.relations.attach" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "documents.relations.attach" })).toBeInTheDocument();
   });
 
   /**
