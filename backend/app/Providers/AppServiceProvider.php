@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\MatterParty;
+use App\Models\NotaryDeed;
 use App\Models\ProjectParty;
 use App\Models\ServiceType;
 use App\Models\Task;
@@ -16,6 +17,7 @@ use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
+use App\Policies\NotaryDeedPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\RolePolicy;
@@ -113,6 +115,15 @@ class AppServiceProvider extends ServiceProvider
         // `created_by` and `assigned_to` — which union when an actor holds both
         // rather than one containing the other (D-119).
         Gate::policy(Task::class, TaskPolicy::class);
+
+        // Notarial Deed (M6.1, D-120). Two things about it are worth pointing at.
+        // `OWN` and `ASSIGNED` resolve through the **parent Matter**, because a deed
+        // carries no owner column of its own — the Matter supplies the predicate and
+        // never the grant, so `notary.matters.view` still reaches no deed. And there
+        // is deliberately **no `delete`, `lock` or `void` ability**: the catalogue
+        // defines no code for any of them, and the correction mechanisms that would
+        // need them are open domain questions.
+        Gate::policy(NotaryDeed::class, NotaryDeedPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

@@ -3,6 +3,7 @@
 namespace App\Domains\Authorization;
 
 use App\Domains\Authorization\Enums\DataScope;
+use App\Domains\Notary\NotaryDeedVisibility;
 
 /**
  * Which Data Scopes may be assigned to which permission.
@@ -320,6 +321,42 @@ class PermissionScopeRules
     ];
 
     /**
+     * The Notary Deed domain, whose predicates M6.1 settled (D-120).
+     *
+     * All four assignable scopes mean something, and **two of them resolve through
+     * the parent Matter** rather than against a column of the deed's own:
+     *
+     *   OWN       the parent Matter's created_by  = actor id
+     *   ASSIGNED  the parent Matter's pic_user_id = actor id
+     *   OFFICE    notary_deeds.office_id          = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere — no Team entity exists (D-042).
+     *
+     * **This is not parent reach becoming child reach.** D-100 forbids that, and
+     * `MatterVisibility` carries the warning: an actor holding `projects.view` must
+     * not thereby see Matters. Nothing of that kind happens here, because the
+     * Matter supplies the **predicate** and never the **grant** — holding
+     * `notary.matters.view` at any scope reaches no deed at all. See
+     * {@see NotaryDeedVisibility} for the full argument.
+     *
+     * **`notary.deeds.lock`, `.void` and `.delete` are absent from this list
+     * because they are absent from the catalogue.** They are the post-finalization
+     * correction mechanisms `08_NOTARY_WORKFLOW.md` section 6 asks about and
+     * `CLAUDE.md` section 29 requires documented rules for. M6 invents neither the
+     * codes nor the rules (D-120).
+     */
+    private const NOTARY_DEED_DOMAIN = [
+        'notary.deeds.view',
+        'notary.deeds.create',
+        'notary.deeds.update',
+        'notary.deeds.review',
+        'notary.deeds.approve',
+        'notary.deeds.finalize',
+        'notary.deeds.number',
+    ];
+
+    /**
      * The scopes assignable to a permission, in canonical order.
      *
      * @return array<int, DataScope>
@@ -359,6 +396,10 @@ class PermissionScopeRules
         }
 
         if (in_array($permission, self::TASK_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::NOTARY_DEED_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
         }
 

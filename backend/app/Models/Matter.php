@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use RuntimeException;
 
 /**
@@ -199,6 +201,33 @@ class Matter extends Model
     {
         return $this->belongsToMany(Document::class, 'matter_documents')
             ->withPivot(['attached_at', 'attached_by']);
+    }
+
+    /**
+     * The Notary-specific classification of this Matter (M6.1, D-120).
+     *
+     * **Present only on `NOTARY` Matters, and optional even there** — a Matter with
+     * no extension row is classified as nothing in particular, which is the correct
+     * state while `deed_category` has no catalogue. Nothing branches on
+     * `requires_minuta` or `requires_register_entry`; see `NotaryMatter`.
+     */
+    public function notaryExtension(): HasOne
+    {
+        return $this->hasOne(NotaryMatter::class, 'matter_id');
+    }
+
+    /**
+     * The Notarial Deeds produced by this Matter (M6.1, D-120).
+     *
+     * **Reading this relation is not authorization.** Which of these a caller may
+     * see answers to `notary.deeds.view` and its own Data Scope, never to
+     * `notary.matters.view` — reaching a Matter confers no Deed authority, the
+     * symmetric statement of D-100. The deed section on the Matter page asks its own
+     * endpoint, exactly as the document section does.
+     */
+    public function notaryDeeds(): HasMany
+    {
+        return $this->hasMany(NotaryDeed::class);
     }
 
     protected function casts(): array

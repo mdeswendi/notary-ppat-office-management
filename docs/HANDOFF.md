@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0, M1, M2, M3, M4 (merged) · M5.0–M5.4 (on the branch) |
-| Migrations | **38** |
+| Milestones complete | M0, M1, M2, M3, M4 (merged) · M5.0–M5.4, M6.0–M6.1 (on branches) |
+| Migrations | **40** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 26 |
-| API routes | **144** under `/api/v1` (151 total) |
-| Backend tests | **2360 passing, 8 skipped** across 80 files (Pest) |
+| Models | 28 |
+| API routes | **144** under `/api/v1` (151 total) — M6.1 adds none |
+| Backend tests | **2452 passing, 8 skipped** across 82 files (Pest) |
 | Frontend tests | **100 passing** across 11 files (Vitest + RTL) |
 | Frontend pages | 41 |
-| Decisions recorded | **D-001 … D-119** |
-| Open items | 12 still open (§7) |
+| Decisions recorded | **D-001 … D-120** |
+| Open items | 14 still open (§7) |
 
 **The persistent development database stands at 22 migrations and is deliberately behind.** It has
 never been migrated past M1. Every schema verification since has run on a disposable database. See §6.
@@ -76,7 +76,9 @@ the single most load-bearing process choice in the project.
 | **M5.1** | Document schema, private storage, `DOC-` allocator, three junctions, Policy — no routes | `6f495f8` |
 | **M5.2** | Nine document endpoints, four pages, Project/Matter document sections | `3dec054` |
 | **M5.3** | Document relation surfaces (attach / detach), Party document sections | `077365b` |
-| **M5.4** | Task schema, twelve endpoints, five pages, Project/Matter task sections | on branch |
+| **M5.4** | Task schema, twelve endpoints, five pages, Project/Matter task sections | `6d0c2e9` |
+| **M6.0** | Notary architecture lock — and what the empty specification actually costs | `bec5dd5` |
+| **M6.1** | `notary_matters` + `notary_deeds` schema, Policy, Data Scope — no routes | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -329,7 +331,7 @@ pattern. What remains buildable is the deed record itself, its lifecycle ladder 
 metadata, and the whole authorization surface.
 
 ```text
-M6.1  notary_matters + notary_deeds schema + Policy   (no routes)
+M6.1  notary_matters + notary_deeds schema + Policy   (no routes)   <- done
 M6.2  Deed management surface + deed frontend
 M6.3  notary_minuta — metadata only
 ```

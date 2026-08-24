@@ -5,6 +5,80 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M6.1 Notary Deed schema and Policy
+
+Branch `feat/m6-notary`, from `bec5dd5`. **Two migrations (38 → 40), no route, no permission — the
+count stays at 177.** Backend **2452 passed + 8 skipped** (92 of them new). Implements D-120; no new
+decision.
+
+Schema, Policy and Data Scope only — no CRUD UI, following M2.1, M3.1, M4.1, M4.2 and M5.1.
+
+### What landed
+
+| | |
+|---|---|
+| `2026_08_26_090000` | `notary_matters` — the Matter extension, keyed by `matter_id` |
+| `2026_08_26_090001` | `notary_deeds` — 20 columns, 12 foreign keys, 4 PostgreSQL CHECKs |
+
+Plus `NotaryDeedStatus`, `NotaryDeed`, `NotaryMatter`, `NotaryDeedVisibility`, `NotaryDeedPolicy`,
+two factories, a `NOTARY_DEED_DOMAIN` scope entry, and `Matter::notaryExtension()` /
+`Matter::notaryDeeds()`.
+
+**No support key was added** — `matters`, `documents` and `users` have carried theirs since M4.2, M5.1
+and M5.4. The first milestone since M2 for which that is true.
+
+### A Deed's reach is its Matter's reach
+
+A deed carries no `created_by` and no `pic_user_id`, so `OWN` and `ASSIGNED` resolve through the parent
+Matter via a correlated `EXISTS`. This looks like the thing `MatterVisibility` forbids and is its
+opposite: **the Matter supplies the predicate, never the grant.** Holding `notary.matters.view` at
+`ALL` still reaches no deed, and holding every deed code at `ALL` still reaches no Matter — D-100 in
+both directions, and both are asserted.
+
+### Three omissions and one addition, each recorded
+
+* **`locked_by`** — the ERD carries `locked_at` alone, and adding an actor would assert somebody
+  performs a locking act, which is an open domain question. *(Contrast M5.4's `created_by`, which was
+  added because the `OWN` predicate structurally required an owner.)*
+* **`deleted_at` and soft delete** — four canonical sources agree they should not exist.
+* **`created_by`** — the `OWN` predicate has somewhere else to go.
+* **`office_id` on `notary_matters`** — added as the composite-key carrier, absent from the canonical
+  field list, recorded rather than made quietly.
+
+### `deed_number` without a numbering rule
+
+Nullable, unique per Office where present, supplied by the office, **no format validated and no
+allocator built**. Set through `notary.deeds.number` — the capability the catalogue had defined and
+nothing had used. A test asserts no allocator class or counter table exists, because D-103 already
+ruled `N-YYYY-NNNNNN` is *"an operational identifier, never a legal deed number"*.
+
+### Two guard tests narrowed, not deleted
+
+`MatterSchemaTest` and `ProjectSchemaTest` both asserted `notary_matters` did not exist — correct for
+M4 and M3, and correct only for `ppat_matters` now. Each was narrowed with a note on why, and each
+keeps the stronger half of its original claim: **no column on `matters` or `projects` stands in for an
+extension.**
+
+### Verification
+
+PostgreSQL probe on a disposable `m6_probe` at 40 migrations. All 12 foreign keys present; cross-office
+matter, document and reviewer each refused; the three act-pair CHECKs each refused half an act and
+accepted a whole one; `RESTRICT` proven on document, Matter and User deletion; a duplicate deed number
+refused within an Office and accepted across two; a free-form number accepted; a second extension row
+refused by the primary key.
+
+**The status vocabulary was proven twice, deliberately.** The enum cast refuses `PENDING` and `LOCKED`
+before they reach the database — so a raw `INSERT` bypassing Eloquent was run to prove the
+`notary_deeds_status_check` refuses them independently, and that it **accepts `VOID`**. That is the
+D-109 pattern made visible: storable at the database, unreachable through the API.
+
+Ten tables confirmed absent: `notary_minuta`, `notary_register_entries`, `notary_protocols`,
+`notary_protocol_items`, `protocol_records`, `notary_deed_documents`, `ppat_matters`, `audit_logs`,
+`activities`, `task_templates`. Probe dropped; **the persistent development database was not touched
+and remains at 22 migrations**, re-verified afterwards.
+
+---
+
 ## 2026-08-24 — M6.0 Notary architecture lock
 
 Branch `feat/m6-notary`, from `6d0c2e9`. **No code, no migration, no permission — the count stays at
