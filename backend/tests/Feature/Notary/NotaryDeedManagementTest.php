@@ -599,10 +599,22 @@ it('names no deed route the catalogue could not authorize', function (): void {
 
     sort($names);
 
+    // **Extended at M6.3**, which nests the three Minuta routes under the deed
+    // (D-105's convention: no address reaches a Minuta without naming its deed). The
+    // guard fired on them, which is what it is for — every name here is checked
+    // against a canonical capability, and `notary.minuta.view`, `.create` and
+    // `.update` are three of the five the catalogue defines.
+    //
+    // The two it does **not** define — a `delete` for either family — still have no
+    // route, and `notary.minuta.archive` and `.release` have none either because
+    // their trigger is an open domain question (D-120).
     expect($names)->toBe([
         'api.v1.notary.deeds.approve',
         'api.v1.notary.deeds.finalize',
         'api.v1.notary.deeds.index',
+        'api.v1.notary.deeds.minuta.show',
+        'api.v1.notary.deeds.minuta.store',
+        'api.v1.notary.deeds.minuta.update',
         'api.v1.notary.deeds.number',
         'api.v1.notary.deeds.options',
         'api.v1.notary.deeds.review',

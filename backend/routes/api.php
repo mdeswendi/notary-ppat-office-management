@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\MatterPartyController;
 use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
+use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
@@ -547,6 +548,31 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('deed')->name('finalize');
             Route::patch('deeds/{deed}/number', [NotaryDeedController::class, 'recordNumber'])
                 ->whereUlid('deed')->name('number');
+
+            /*
+             * Minuta Akta (M6.3, D-120).
+             *
+             * **Nested, with no top-level `/notary/minuta` root**, following the M4.5
+             * participation convention (D-105): there is deliberately no address that
+             * reaches a Minuta without naming the deed it belongs to, because a
+             * Minuta has no independent existence — one per deed, reached exactly as
+             * its deed is.
+             *
+             * Singular and honest: `GET` answers **one record or 404**, never a
+             * collection.
+             *
+             * **No `DELETE`, no `archive`, no `release`.** The catalogue has no
+             * `notary.minuta.delete` at all; `archive` and `release` exist and stay
+             * unimplemented because the trigger for both is open question four in
+             * `08_NOTARY_WORKFLOW.md` section 6. Correcting a filing replaces
+             * `document_id` through `PATCH`.
+             */
+            Route::get('deeds/{deed}/minuta', [NotaryMinutaController::class, 'show'])
+                ->whereUlid('deed')->name('minuta.show');
+            Route::post('deeds/{deed}/minuta', [NotaryMinutaController::class, 'store'])
+                ->whereUlid('deed')->name('minuta.store');
+            Route::patch('deeds/{deed}/minuta', [NotaryMinutaController::class, 'update'])
+                ->whereUlid('deed')->name('minuta.update');
         });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');

@@ -184,6 +184,52 @@ class NotaryDeedPolicy
         return $this->reaches($actor, 'notary.deeds.number', $deed);
     }
 
+    /**
+     * Minuta Akta (M6.3).
+     *
+     * **Three abilities, and all three take the Deed rather than the Minuta.** A
+     * Minuta has no owner, no assignee and no Office of its own choosing: it is the
+     * original record of exactly one deed, it lives at a nested address under that
+     * deed, and it is reached exactly as the deed is. Taking the parent is therefore
+     * honest rather than a shortcut — there is no Minuta-shaped predicate to
+     * evaluate, and inventing one would be a second reach mechanism.
+     *
+     * What is *not* inherited is the capability. `notary.minuta.*` is its own family
+     * of codes: an actor who may read a deed does not thereby read where its original
+     * is filed, and an actor who may edit a deed does not thereby re-file it. That is
+     * the D-091 discipline, one level down from where {@see update()} applies it.
+     *
+     * **There is no `deleteMinuta`, and it is not an omission.** The canonical
+     * catalogue defines `notary.minuta.view`, `create`, `update`, `archive` and
+     * `release` — verified against the live registry — and **no `delete`**. The M6.3
+     * brief asked for a soft delete restricted to `DRAFT`, which would need both a
+     * column the ERD omits and a code the catalogue does not have. A Minuta filed
+     * against the wrong deed is corrected by replacing `document_id`; removing the
+     * record itself is a correction mechanism, and those are an open domain question
+     * (D-120).
+     *
+     * **There is no `archiveMinuta` or `releaseMinuta` either.** Both codes exist and
+     * both stay unimplemented: *"What triggers Minuta Akta archiving, and what
+     * release conditions apply?"* is open question four in `08_NOTARY_WORKFLOW.md`
+     * section 6. Registering a permission is not shipping a feature (D-064), and the
+     * reverse holds — shipping one before its rule is written would be inventing the
+     * rule.
+     */
+    public function viewMinuta(User $actor, NotaryDeed $deed): bool
+    {
+        return $this->reaches($actor, 'notary.minuta.view', $deed);
+    }
+
+    public function createMinuta(User $actor, NotaryDeed $deed): bool
+    {
+        return $this->reaches($actor, 'notary.minuta.create', $deed);
+    }
+
+    public function updateMinuta(User $actor, NotaryDeed $deed): bool
+    {
+        return $this->reaches($actor, 'notary.minuta.update', $deed);
+    }
+
     private function reaches(User $actor, string $permission, NotaryDeed $deed): bool
     {
         return $this->visibility->permits(

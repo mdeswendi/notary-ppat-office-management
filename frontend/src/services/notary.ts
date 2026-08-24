@@ -6,6 +6,8 @@ import type {
   NotaryDeedListQuery,
   NotaryDeedOptions,
   NotaryDeedUpdateInput,
+  NotaryMinuta,
+  NotaryMinutaInput,
 } from "@/types/notary";
 
 const ROOT = "/api/v1/notary/deeds";
@@ -19,6 +21,7 @@ const ROOT = "/api/v1/notary/deeds";
  */
 export const notaryDeedKeys = {
   all: () => ["notary", "deeds"] as const,
+  minuta: (id: string) => ["notary", "deeds", "detail", id, "minuta"] as const,
   list: (query: NotaryDeedListQuery) => ["notary", "deeds", "list", query] as const,
   detail: (id: string) => ["notary", "deeds", "detail", id] as const,
   options: () => ["notary", "deeds", "options"] as const,
@@ -105,6 +108,46 @@ export async function recordNotaryDeedNumber(id: string, deedNumber: string): Pr
   const response = await apiClient.patch<{ data: NotaryDeed }>(`${ROOT}/${id}/number`, {
     deed_number: deedNumber,
   });
+
+  return response.data.data;
+}
+
+/**
+ * The deed's filing record (M6.3, D-120).
+ *
+ * **Nested under the deed and singular** — one record or 404, never a collection.
+ * There is deliberately no `/notary/minuta/{id}` address: a Minuta has no independent
+ * existence, so an address that omitted the deed would name something the domain does
+ * not have (the M4.5 convention, D-105).
+ *
+ * A 404 here means one of two things the caller cannot tell apart, which is by
+ * design: nothing filed, or a deed the caller may not reach.
+ */
+export async function getMinuta(deedId: string): Promise<NotaryMinuta> {
+  const response = await apiClient.get<{ data: NotaryMinuta }>(`${ROOT}/${deedId}/minuta`);
+
+  return response.data.data;
+}
+
+export async function fileMinuta(deedId: string, input: NotaryMinutaInput): Promise<NotaryMinuta> {
+  const response = await apiClient.post<{ data: NotaryMinuta }>(`${ROOT}/${deedId}/minuta`, input);
+
+  return response.data.data;
+}
+
+/**
+ * Correct the filing — the shelf reference, or the file itself.
+ *
+ * **Replacing `document_id` is the point**, not an edge case: a bad scan, a page
+ * missed, a better copy. Both Documents keep their own version histories either side
+ * of it. There is no delete — the catalogue defines no `notary.minuta.delete`, and a
+ * Minuta filed against the wrong deed is corrected by replacing its file.
+ */
+export async function updateMinuta(
+  deedId: string,
+  input: NotaryMinutaInput,
+): Promise<NotaryMinuta> {
+  const response = await apiClient.patch<{ data: NotaryMinuta }>(`${ROOT}/${deedId}/minuta`, input);
 
   return response.data.data;
 }

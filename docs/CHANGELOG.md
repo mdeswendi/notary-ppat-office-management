@@ -5,6 +5,110 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-24 — M6.3 Minuta Akta metadata
+
+Branch `feat/m6-notary`, from `8c638d4`. **Two migrations (40 → 42), three routes, no permission —
+the count stays at 177.** Backend **2545 passed + 8 skipped** (49 new), frontend **121 passed** (was
+114). Implements D-120; no new decision.
+
+### Two migrations, not one
+
+The brief expected 40 → 41. `notary_minuta (notary_deed_id, office_id) -> notary_deeds (id, office_id)`
+needs a unique index on **exactly** those columns, and `notary_deeds` did not carry one — M6.1
+correctly declined to build a support key no table referenced. So
+`add_notary_deed_office_support_key` lands first, its own forward migration following the
+`add_user_office_support_key` precedent from M5.4. It rejects nothing that was previously accepted.
+
+### `release_status` is created and no vocabulary is asserted
+
+The ERD names the column and gives it **no values at all**. The `DRAFT / ARCHIVED / RELEASED` triple
+the brief specified appears in no canonical document, and *"What triggers Minuta Akta archiving, and
+what release conditions apply?"* is open question four.
+
+So the column is **nullable, with no default and no CHECK** — verified on PostgreSQL. Defaulting it to
+`DRAFT` would assert a vocabulary; constraining it to three values would assert the whole lifecycle.
+`archived_at` and `archived_by` are the same: canonical, unwritten, and kept honest by a pair CHECK so
+a later milestone cannot write half an archival. All three are refused on presence by both Form
+Requests, and a test asserts no minuta status enum exists anywhere.
+
+`notary.minuta.archive` and `notary.minuta.release` stay registered and unimplemented (D-064).
+
+### Three more things the brief asked for that this does not do
+
+**No `DELETE`.** The catalogue defines `view`, `create`, `update`, `archive` and `release` and **no
+`notary.minuta.delete`** — verified against the live registry — and `notary_minuta` has no
+`deleted_at`, the ERD omitting it. The brief asked for a soft delete restricted to `DRAFT`, needing
+both. A Minuta filed against the wrong deed is corrected by replacing `document_id`, which is exactly
+what `update` is for.
+
+**No top-level `/notary/minuta/{minuta}` address.** The brief proposed `PUT` and `DELETE` there; the
+routes are nested under the deed instead, following D-105's explicit convention that no address
+reaches a row without naming the parent it belongs to. A Minuta has no independent existence — one per
+deed — so `GET /notary/deeds/{deed}/minuta` is **one record or 404**, never a collection.
+
+**`status` is `release_status`**, and `notes` was restored: both transcribed from the ERD rather than
+from the brief's field list.
+
+### What it does do
+
+`office_id` added as the composite-key carrier (the M6.0 ruling). `UNIQUE (notary_deed_id)` — one
+Minuta per deed, because the term carries the cardinality. Three composite foreign keys so the deed,
+the Document and any future archiver all belong to the Minuta's own Office. `document_id` is the one
+mutable pointer, because replacing a bad scan is ordinary correction and both Documents keep their
+version histories (D-116).
+
+**The Document is re-resolved, never trusted.** `notary.minuta.create` is authority to record a
+filing, never authority to discover which Documents exist — an unreachable Document, one in another
+Office and one that does not exist all answer alike (the D-118 two-question rule applied to a column
+rather than a junction).
+
+**`notary.minuta.*` is its own capability family.** Reading a deed does not confer reading where its
+original is filed, and the reverse holds too — both asserted.
+
+### Frontend
+
+`MinutaSection` on the deed detail page — a section, not a tab, for the fifth milestone running. **A
+404 is rendered as the ordinary empty state**, not a failure: the endpoint answers one record or
+nothing, and "nothing filed yet" is what most deeds look like.
+
+The document picker is a **selection control, not `EntityDocumentPicker`** — that component commits an
+attach to the junction endpoint on choice (M5.3), whereas here the chosen id is a column submitted
+with the rest of the form. The candidate list is the same one either way, already bounded by
+`documents.view`.
+
+`release_status` and `archived_at` render as *unset* rather than being hidden, so a reader can see the
+fields exist and are empty rather than wondering whether they were dropped.
+
+### Three guard tests narrowed, one extended
+
+`NotaryDeedSchemaTest` asserted `notary_minuta` did not exist — narrowed to keep the claim that
+outlives this milestone: registers and protocol are batch 11 and outside M6 entirely.
+`NotaryDeedManagementTest`'s route-name guard fired on the three new names and was extended to include
+them, with the two families' missing `delete` codes still absent. `deed-detail.test.tsx` needed its
+service mock extended, since `DeedDetail` now renders a section that asks its own endpoint.
+
+### Verification
+
+Backend `pint --test` clean, 2545 passed + 8 skipped. Frontend `format:check`, `lint` (0 errors, 3
+pre-existing warnings), `typecheck`, 121 tests and `build` all clean.
+
+PostgreSQL probe on a disposable `m63_probe` at **42 migrations**: six foreign keys, the archival pair
+CHECK, the deed unique index, the new support key on `notary_deeds`, and **`release_status` confirmed
+nullable with no default and no CHECK**.
+
+**HTTP smoke — 20/20**, over a real Sanctum cookie session with CSRF cookie, `X-XSRF-TOKEN`, `Origin`
+and `Referer`, and no Bearer authentication. Per O-034 the serving process proved its own database
+before the first functional request. Covered: 404 before filing; filing with shelf metadata; a second
+filing refused 422; `release_status`, `archived_at` and `notary_deed_id` each refused 422 on both write
+paths; a Document replaced and a shelf field edited alone without disturbing it; cross-office and
+nonexistent Documents refused alike; `DELETE` 405, `/archive` and `/release` 404, top-level
+`/notary/minuta` 404.
+
+Probe dropped; **the persistent development database was not touched and remains at 22 migrations**,
+re-verified afterwards.
+
+---
+
 ## 2026-08-24 — M6.2 Notary Deed surface and frontend
 
 Branch `feat/m6-notary`, from `33dfe32`. **Nine routes, no migration, no permission — the count stays

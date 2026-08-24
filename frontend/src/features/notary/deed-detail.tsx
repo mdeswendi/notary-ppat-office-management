@@ -15,6 +15,7 @@ import {
   NotaryDeedTypeBadge,
 } from "@/features/notary/deed-badges";
 import { hasFieldError, toNotaryErrorKey } from "@/features/notary/deed-errors";
+import { MinutaSection } from "@/features/notary/minuta-section";
 import { Link } from "@/i18n/navigation";
 import {
   approveNotaryDeed,
@@ -232,6 +233,13 @@ export function DeedDetail({ deedId }: { deedId: string }) {
       </section>
 
       <DeedDocuments deed={deed} />
+
+      {/* Minuta Akta (M6.3, D-120). A section, not a tab, like everything else on
+          this page. It asks its own endpoint under `notary.minuta.*` — its own family
+          of codes, so reading the deed does not confer reading where its original is
+          filed, and the section renders its own honest failure for a reader who holds
+          one and not the other. */}
+      <MinutaSection deedId={deed.id} />
 
       {deed.can_record_number ? <DeedNumberSection deed={deed} /> : null}
     </div>

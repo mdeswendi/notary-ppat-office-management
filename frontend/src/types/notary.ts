@@ -161,3 +161,54 @@ export type NotaryDeedOptions = {
     matters: { id: string; matter_number: string; title: string }[];
   };
 };
+
+/**
+ * Where a deed's original is filed — Minuta Akta (M6.3, D-120).
+ *
+ * **Not the file itself.** The file lives on a Document; `document` is a stub naming
+ * it. What this record adds is what the Document cannot know: which shelf, volume and
+ * bundle the physical original sits in. `notary_deeds.minuta_document_id` answers
+ * *which file*; this answers *which shelf*.
+ *
+ * **`release_status` and `archived_at` are always null**, and the interface renders
+ * them as unset rather than hiding them. The ERD names both columns and gives
+ * `release_status` no vocabulary at all — the `DRAFT / ARCHIVED / RELEASED` triple
+ * that briefs keep proposing appears in no canonical document, and *"what triggers
+ * Minuta Akta archiving?"* is an open domain question. `notary.minuta.archive` and
+ * `notary.minuta.release` are registered and unimplemented, so no control sets
+ * either.
+ */
+export type NotaryMinuta = {
+  id: string;
+  notary_deed_id: string;
+
+  document: NotaryDeedDocumentStub | null;
+
+  archive_location: string | null;
+  volume_number: string | null;
+  bundle_number: string | null;
+  notes: string | null;
+
+  /** Canonical, unwritten. See the type docblock. */
+  release_status: string | null;
+  archived_at: string | null;
+
+  created_at: string | null;
+  updated_at: string | null;
+
+  can_update: boolean;
+};
+
+/**
+ * What the filing form sends.
+ *
+ * The deed comes from the address, not the body. Office is inherited, and the
+ * lifecycle fields are refused outright — sending any is a 422.
+ */
+export type NotaryMinutaInput = {
+  document_id?: string;
+  archive_location?: string | null;
+  volume_number?: string | null;
+  bundle_number?: string | null;
+  notes?: string | null;
+};

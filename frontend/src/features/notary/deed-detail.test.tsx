@@ -9,6 +9,7 @@ import type { NotaryDeed } from "@/types/notary";
 vi.mock("@/services/notary", () => ({
   notaryDeedKeys: {
     all: () => ["notary", "deeds"],
+    minuta: (id: string) => ["notary", "deeds", "detail", id, "minuta"],
     list: (query: unknown) => ["notary", "deeds", "list", query],
     detail: (id: string) => ["notary", "deeds", "detail", id],
     options: () => ["notary", "deeds", "options"],
@@ -22,6 +23,27 @@ vi.mock("@/services/notary", () => ({
   approveNotaryDeed: vi.fn(),
   finalizeNotaryDeed: vi.fn(),
   recordNotaryDeedNumber: vi.fn(),
+
+  // The detail page delegates its Minuta block to `MinutaSection`, which asks its
+  // own endpoint (M6.3). Mocked here so this file keeps testing the deed page rather
+  // than the network. A rejection is the ordinary "nothing filed" answer.
+  getMinuta: vi.fn().mockRejectedValue(new Error("no minuta")),
+  fileMinuta: vi.fn(),
+  updateMinuta: vi.fn(),
+}));
+
+// `MinutaSection`'s document picker reads the ordinary document list.
+vi.mock("@/services/documents", () => ({
+  documentQueryKeys: {
+    all: () => ["documents"],
+    list: (query: unknown) => ["documents", "list", query],
+    detail: (id: string) => ["documents", "detail", id],
+    options: () => ["documents", "options"],
+  },
+  getDocuments: vi.fn().mockResolvedValue({
+    data: [],
+    meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
+  }),
 }));
 
 const services = await import("@/services/notary");

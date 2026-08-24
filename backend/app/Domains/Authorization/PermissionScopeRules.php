@@ -354,6 +354,24 @@ class PermissionScopeRules
         'notary.deeds.approve',
         'notary.deeds.finalize',
         'notary.deeds.number',
+
+        // Minuta Akta (M6.3). **The same list, and the same four scopes**, because a
+        // Minuta selects records by exactly the deed predicates — it has no owner,
+        // no assignee and no Office of its own, and is reached through the deed it
+        // is the original record of. Giving it a narrower or wider scope set would
+        // encode one boundary as two.
+        //
+        // `archive` and `release` are included even though nothing implements them:
+        // they select the same records by the same predicates, and their scope
+        // metadata should be right before somebody builds the act — a grant saved
+        // with no usable scope is the dead control D-080 named. What keeps them
+        // unreachable is the absence of a Policy ability and a route, not a missing
+        // entry here.
+        'notary.minuta.view',
+        'notary.minuta.create',
+        'notary.minuta.update',
+        'notary.minuta.archive',
+        'notary.minuta.release',
     ];
 
     /**

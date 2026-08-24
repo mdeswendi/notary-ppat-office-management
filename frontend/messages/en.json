@@ -1317,6 +1317,28 @@
       "tooManyAttempts": "Too many attempts. Please try again later.",
       "network": "The connection dropped. Check your network.",
       "server": "Something went wrong. Please try again later."
+    },
+    "minuta": {
+      "title": "Minuta Akta",
+      "hint": "The record of where the deed’s original is filed. The file itself lives in Documents; this records the shelf.",
+      "noMinuta": "No Minuta Akta has been recorded for this deed.",
+      "attach": "Record Minuta",
+      "update": "Update Minuta",
+      "document": "Document",
+      "noDocument": "None yet",
+      "findDocument": "Find a document",
+      "findDocumentPlaceholder": "Search document titles",
+      "selectDocument": "Select a document",
+      "documentUnavailable": "That document is not available, or a Minuta is already recorded for this deed.",
+      "archiveLocation": "Archive Location",
+      "volumeNumber": "Volume Number",
+      "bundleNumber": "Bundle Number",
+      "notes": "Notes",
+      "releaseStatus": "Release Status",
+      "archivedAt": "Archived",
+      "unset": "Not set",
+      "shelfHint": "Location, volume and bundle are free text — the system does not decide how your office files.",
+      "lifecycleHint": "Release status and archiving cannot be changed yet: the procedure awaits domain validation."
     }
   }
 }

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use RuntimeException;
 
 /**
@@ -122,13 +123,28 @@ class NotaryDeed extends Model
     /**
      * The Minuta Akta file.
      *
-     * A pointer at a Document, not at the `notary_minuta` metadata row — that table
-     * arrives at M6.3 and records where the physical original is filed. The two are
-     * different questions: this is *which file*, that is *which shelf*.
+     * A pointer at a Document, not at the `notary_minuta` metadata row — see
+     * {@see minuta()}. The two are different questions: this is *which file*, that is
+     * *which shelf*.
      */
     public function minutaDocument(): BelongsTo
     {
         return $this->belongsTo(Document::class, 'minuta_document_id');
+    }
+
+    /**
+     * Where the original deed record is filed (M6.3).
+     *
+     * **`hasOne`, enforced by a unique index** — a Minuta Akta is the original record
+     * of one deed, and the term carries the cardinality (D-120).
+     *
+     * Distinct from `minuta_document_id` above, and both are legitimate: that column
+     * is the deed's own pointer at a file, this row is the filing record with its
+     * shelf, volume and bundle. A deed may carry either, both, or neither.
+     */
+    public function minuta(): HasOne
+    {
+        return $this->hasOne(NotaryMinuta::class, 'notary_deed_id');
     }
 
     public function reviewer(): BelongsTo

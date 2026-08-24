@@ -416,15 +416,18 @@ it('honours notary.deeds.number as the separate capability the catalogue defined
     expect(app(PermissionRegistry::class)->all())->toContain('notary.deeds.number');
 });
 
-it('creates no register, protocol or minuta table', function (string $table): void {
-    // Registers and protocol are batch 11 per 03_DATABASE_ERD.md section 32 — later
-    // even than PPAT deeds — and `notary_minuta` is M6.3. The brief's
-    // `notary_protocols` and `notary_protocol_items` are not canonical at all: the
-    // ERD's table is `protocol_records`, one table with a domain discriminator and
-    // no junction to deeds.
+it('creates no register or protocol table', function (string $table): void {
+    // **Narrowed at M6.3, not deleted.** `notary_minuta` was on this list while it was
+    // unbuilt; M6.3 owns it now and `NotaryMinutaTest` asserts its shape.
+    //
+    // What survives is the claim that outlives this milestone: registers and protocol
+    // are **batch 11** per 03_DATABASE_ERD.md section 32 — later even than PPAT
+    // deeds — and are outside M6 entirely (D-120). The brief's `notary_protocols` and
+    // `notary_protocol_items` are not canonical at all: the ERD's table is
+    // `protocol_records`, one table with a domain discriminator and no junction to
+    // deeds (O-036).
     expect(Schema::hasTable($table))->toBeFalse();
 })->with([
-    'notary_minuta',
     'notary_register_entries',
     'notary_protocols',
     'notary_protocol_items',

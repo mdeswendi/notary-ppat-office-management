@@ -1317,6 +1317,28 @@
       "tooManyAttempts": "Terlalu banyak percobaan. Coba lagi nanti.",
       "network": "Koneksi terputus. Periksa jaringan Anda.",
       "server": "Terjadi kesalahan. Coba lagi nanti."
+    },
+    "minuta": {
+      "title": "Minuta Akta",
+      "hint": "Catatan tempat asli akta disimpan. Berkasnya ada di Dokumen; bagian ini mencatat raknya.",
+      "noMinuta": "Belum ada Minuta Akta yang dicatat untuk akta ini.",
+      "attach": "Catat Minuta",
+      "update": "Perbarui Minuta",
+      "document": "Dokumen",
+      "noDocument": "Belum ada",
+      "findDocument": "Cari dokumen",
+      "findDocumentPlaceholder": "Cari judul dokumen",
+      "selectDocument": "Pilih dokumen",
+      "documentUnavailable": "Dokumen tidak tersedia, atau Minuta sudah dicatat untuk akta ini.",
+      "archiveLocation": "Lokasi Arsip",
+      "volumeNumber": "Nomor Volume",
+      "bundleNumber": "Nomor Bundel",
+      "notes": "Catatan",
+      "releaseStatus": "Status Rilis",
+      "archivedAt": "Diarsipkan",
+      "unset": "Belum diisi",
+      "shelfHint": "Lokasi, volume, dan bundel adalah teks bebas — sistem tidak menentukan cara kantor Anda mengarsip.",
+      "lifecycleHint": "Status rilis dan pengarsipan belum dapat diubah: prosedurnya menunggu validasi domain."
     }
   }
 }
