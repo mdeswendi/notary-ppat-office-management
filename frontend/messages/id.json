@@ -1339,6 +1339,11 @@
       "unset": "Belum diisi",
       "shelfHint": "Lokasi, volume, dan bundel adalah teks bebas — sistem tidak menentukan cara kantor Anda mengarsip.",
       "lifecycleHint": "Status rilis dan pengarsipan belum dapat diubah: prosedurnya menunggu validasi domain."
-    }
+    },
+    "projectDeeds": "Akta Notaris",
+    "projectDeedsDescription": "Akta Notaris yang dihasilkan dari Pekerjaan Notaris dalam proyek ini.",
+    "projectDeedsEmptyTitle": "Belum ada Akta Notaris",
+    "projectDeedsEmptyDescription": "Belum ada Akta Notaris yang dicatat untuk proyek ini.",
+    "allMatters": "Semua Pekerjaan"
   }
 }

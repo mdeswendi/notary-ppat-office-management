@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
+import { ProjectDeedsSection } from "@/features/notary/project-deeds-section";
 import { ProjectAssignmentSection } from "@/features/projects/project-assignment-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
@@ -40,9 +41,20 @@ import { PROJECT_STATUSES, type Project, type ProjectStatus } from "@/types/proj
  * interface offers exactly what the server would accept. They remain
  * presentation only — each endpoint authorizes again.
  *
- * There is deliberately no participants, Matter, workflow, document, or deed
- * section: `project_parties` is M3.4 and the rest are M4 and later. An empty tab
- * is a promise the product cannot keep (D-064).
+ * **Five sections, each asking its own endpoint under its own capability.**
+ * Participation (M3.4), Documents (M5.2), Tasks (M5.4) and Notarial Deeds (O-037)
+ * are all reached through their own permission and Data Scope, never through the
+ * Project's — so a reader who can open the Project and not one of these sees that
+ * section fail honestly rather than see a fabricated empty one.
+ *
+ * *(This docblock previously said the page deliberately had no participation,
+ * document or deed section. That was true at M3.3 and each milestone since has
+ * added one; the reason it gave — an empty tab is a promise the product cannot keep,
+ * D-064 — is why each waited for its routes to exist rather than being stubbed.)*
+ *
+ * **There is still no Matter and no workflow section**, and those are the ones
+ * D-064 still applies to: a Matter is reached at its own domain root, never through
+ * a Project address (D-101).
  *
  * The internal reference is displayed and never editable — system-generated,
  * immutable, and unique only within its Office (D-096).
@@ -188,6 +200,24 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           filter={{ project_id: project.id }}
           createHref={`/tasks/new?project_id=${project.id}`}
         />
+      </section>
+
+      {/* Notarial Deeds (O-037). A section, not a tab, like the four above it, and
+          it filters `/notary/deeds?project_id=` rather than calling a nested route
+          — the shape D-118 refused, and the shape Documents and Tasks already
+          avoid on this same page.
+
+          **The one surface that reaches grandchildren.** A Project holds Matters
+          and Matters hold Deeds; this answers "what has this engagement actually
+          produced?" without opening each Matter in turn. It answers to
+          `notary.deeds.view` on its own endpoint, so reaching the Project confers
+          nothing here (D-100) and a reader who holds one and not the other sees an
+          honest failure rather than a fabricated empty section.
+
+          PPAT deeds cannot appear: `notary_deeds` rows exist only against NOTARY
+          Matters. Their own surface is M7. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <ProjectDeedsSection projectId={project.id} />
       </section>
     </div>
   );
