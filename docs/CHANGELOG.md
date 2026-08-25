@@ -5,6 +5,115 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.1 PPAT schema and Policy
+
+Branch `feat/m7-ppat`, from `aa0c251`. **Eight migrations (42 → 50), no route, no permission — the
+count stays at 177.** Implements D-121; no new decision.
+
+Schema, Policy and Data Scope only — no CRUD UI, following M2.1, M3.1, M4.1, M4.2, M5.1 and M6.1.
+
+### What landed
+
+| | |
+|---|---|
+| `properties` | 25 columns, the land object |
+| `property_owners` | the chain of title |
+| `matter_properties` | the junction the M7 brief omitted and the lock restored |
+| `ppat_matters` | the Matter extension |
+| `ppat_deeds` | 18 columns, **one** document pointer |
+| `ppat_warkah` | the supporting bundle |
+| `ppat_warkah_items` | its lines |
+| `ppat_warkah_documents` | composite PK, no surrogate `id` |
+
+Plus seven models, **three** enums, two visibility classes, two Policies, five factories, and 95
+tests. Every `(id, office_id)` support key is created **in the migration that creates its table**,
+so M7 does not repeat M6.3's separate-migration correction.
+
+### Two brief items would have failed at runtime
+
+**`$table->check()` does not exist** in Laravel's Blueprint — verified against the vendor source. The
+CHECK constraints are raw `ALTER TABLE` statements guarded on the `pgsql` driver, as M5.4 and M6.1
+do.
+
+**`nullOnDelete()` on a composite foreign key nulls `office_id`**, which is `NOT NULL` — the M5.4
+finding. The brief used it on eleven composite keys. Every foreign key here is `RESTRICT`, except two
+deliberate `CASCADE`s where a row has no meaning apart from its parent.
+
+### Three enums, not the seven the brief specified
+
+The other four have **no canonical vocabulary**, and inventing one is what `CLAUDE.md` §62 forbids:
+
+| Proposed | Reality |
+|---|---|
+| `RightType` | ERD says *"**may** use stable machine codes, **for example**"* → plain `VARCHAR`, no CHECK |
+| `PropertyStatus` | ERD names the column and gives it **no values** → nullable, no default, nothing writes it |
+| `PpatDeedType` | ERD says *"**Possible** deed codes"* → no CHECK |
+| `PpatWarkahItemStatus` | ERD gives the column **no values** → and an item-status vocabulary *is* the verification rule (open question three) |
+
+`PropertyType` **is** constrained, because its four values are given as a closed list — the
+difference is in the ERD's own wording. It is also `APARTMENT_UNIT`, not the brief's `APARTMENT`: a
+stable machine code is only stable if copied exactly.
+
+### Completeness counts documents, never statuses
+
+The consequence of having no item-status vocabulary, and the ruling the M7 lock exists to hold.
+`PpatWarkah::computeCompleteness()` counts **items with at least one document attached, over items
+the office created** — observable, needing no vocabulary. An empty Warkah is **0%, not 100%**.
+
+`recalculateCompleteness()` writes only the percentage, **never the status**: 100% does not imply
+`COMPLETE` and `COMPLETE` does not require 100%, because which governs legal sufficiency is open
+question three. A test pins it by setting item statuses to `REJECTED` and `VERIFIED` and showing the
+count does not move.
+
+### `is_current` is kept, and D-116 does not apply
+
+A Property legitimately has several current owners at once, so it is a *"this row applies now"* flag
+on many rows rather than the *"this is the one"* pointer D-116 removed from `document_versions`.
+**There is deliberately no unique index on `(property_id, is_current)`** — one would break
+co-ownership, and a test asserts two current owners at 50% each.
+
+**No percentage sum is enforced** (a rule about Indonesian co-ownership), but the arithmetic is: 0–100
+per row, periods run forwards, and a row that has ended cannot also be current. All three are
+PostgreSQL CHECKs **and** model guards, because the suite runs SQLite.
+
+### Property gets two scopes, not four
+
+`OFFICE` and `ALL` only — the Party (D-080) and Service Type (D-106) answer, not Project's (D-088). A
+Property is office-owned reference data: it predates every Matter that names it. `OWN` would have to
+mean `created_by`, and the colleague who typed in a parcel has no claim on it.
+
+`PropertyVisibility` carries an explicit warning against the tempting addition: a `whereHas('matters')`
+branch would make `ppat.matters.view` a silent superset of `properties.view`. A test asserts a
+`ppat.matters.view` holder at `ALL` still reaches no Property.
+
+**Ownership is its own capability pair.** `properties.ownership.view` / `.update` are separate
+canonical codes, so reading a Property does not read its chain of title.
+
+### Four guard tests narrowed, not deleted
+
+`MatterSchemaTest`, `PartySchemaTest`, `ProjectPartySchemaTest` and `ProjectSchemaTest` each asserted
+that an M7 table did not exist. Each keeps the claim that outlives this milestone: **no column on
+`matters`, `parties`, `projects` or `project_parties` stands in for a later-milestone table.** Three
+of the four lists are now empty and gone — every table they named exists and carries its own schema
+test.
+
+### Verification
+
+Backend `pint --test` clean, **95 PPAT tests**, full suite green.
+
+PostgreSQL probe on a disposable `m71_probe` at 50 migrations: **32/32**. All eight tables migrate; 13
+CHECK constraints present and **correctly none** on `right_type`, `properties.status`,
+`deed_type_code` or `warkah_items.status`; raw SQL past the enum cast confirms `ppat_deeds.status`
+stores all six canonical values and refuses `PENDING`, `LOCKED` and `draft`; `property_type` refuses
+both an unlisted code and the brief's `APARTMENT` spelling; the four `property_owners` CHECKs refuse
+what they should while permitting several current owners and shares over 100; all four support keys
+present. Five tables confirmed absent: `ppat_tax_records`, `ppat_register_entries`,
+`protocol_records`, `ppat_deed_documents`, `audit_logs`.
+
+Probe dropped afterwards.
+
+---
+
 ## 2026-08-25 — M7.0 PPAT architecture lock
 
 Branch `feat/m7-ppat`, from `1f1dab5`. **No code, no migration, no permission — the count stays at

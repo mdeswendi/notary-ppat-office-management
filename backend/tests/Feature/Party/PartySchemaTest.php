@@ -239,10 +239,14 @@ it('gives Party no foreign key into a later milestone', function (): void {
     // always really about, and it now covers Matter explicitly.
     //
     // **Narrowed again at M5.1**, which builds `documents` and `party_documents`
-    // (D-116). Both have their own schema test. `properties` is M7 and stays.
-    foreach (['properties'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
+    // (D-116), and **again at M7.1**, which builds `properties` and `property_owners`
+    // (D-121). Every table this list once named now exists and has its own schema
+    // test, so the list itself is gone.
+    //
+    // The column check below is what the guard was always for, and M7.1 makes it
+    // sharper rather than weaker: `property_owners` points **at** a Party, so a
+    // `property_id` on `parties` would be the mirror-image coupling this test exists
+    // to refuse.
 
     // The point that survives every narrowing, and the one M5.1 makes real:
     // **Party points at none of it.** `party_documents` is a relationship table —

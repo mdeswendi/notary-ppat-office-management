@@ -366,10 +366,11 @@ it('introduces no Matter or later-milestone persistence', function (): void {
     // here is M5 and beyond.
     // **Narrowed again at M5.1**, which builds `documents` (D-116) with its own
     // schema test, and at M5.4, which builds `tasks` (D-119) with its own.
-    // `warkah`, `deeds` and `properties` are M6/M7 and stay.
-    foreach (['properties', 'warkah', 'deeds'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
+    // **Narrowed a final time at M7.1**, which builds `properties`, `ppat_warkah` and
+    // `ppat_deeds` (D-121) — the last three entries on a list that started with
+    // eight, each now carrying its own schema test.
+    //
+    // The list is gone; the column check below is what the guard was always for.
 
     // The point this test was always making, and the one M4.5 makes sharper:
     // Project participation gains no foreign key into Matter participation. The

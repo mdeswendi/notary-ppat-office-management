@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M7.0
+# Project Handoff — M0 through M7.1
 
-**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 is the lock on this branch.
+**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 and M7.1 are on this branch.
 **Last accepted merge to `main`:** O-037 (`fa381fa`), which brought M5 and M6 with it.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M7.0.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M7.1.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,19 +34,27 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0 – M6 **merged to main** · M7.0 lock on `feat/m7-ppat` |
-| Migrations | **42** |
+| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.1 on `feat/m7-ppat` |
+| Migrations | **50** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 29 |
+| Models | 36 |
 | API routes | **156** under `/api/v1` (163 total) |
-| Backend tests | **2552 passing, 8 skipped** across 84 files (Pest) |
+| Backend tests | **2647 passing, 8 skipped** across 85 files (Pest) |
 | Frontend tests | **127 passing** across 14 files (Vitest + RTL) |
 | Frontend pages | 44 |
 | Decisions recorded | **D-001 … D-121** |
 | Open items | 20 still open (§7) — O-037 closed, O-039…O-043 added 2026-08-25 |
 
-**The persistent development database stands at 22 migrations and is deliberately behind.** It has
-never been migrated past M1. Every schema verification since has run on a disposable database. See §6.
+**The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
+took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
+M6.3. It does **not** carry M7.1 — `properties` and the seven `ppat_*` tables are absent from it.
+
+*(This section previously said 22 and "deliberately behind". That was true until batch 12 was applied.
+The figure is corrected rather than the history rewritten, because which milestone a dev database sits
+at is a fact about somebody's machine, not a project invariant.)*
+
+**What has not changed is the working rule**: every schema verification runs on a **disposable**
+database created and dropped for the purpose, never against this one. See §6.
 
 ### Routes by domain
 
@@ -83,7 +91,8 @@ the single most load-bearing process choice in the project.
 | **M6.3** | `notary_minuta` metadata, three nested endpoints, deed-page section | `9bef689` |
 | **M6 merge** | M5 and M6 both entered `main` here — M5 had never been merged on its own | `cc56a4f` |
 | **O-037** | Notary Deeds on the Project page, as a `project_id` filter | `fa381fa` |
-| **M7.0** | PPAT architecture lock — nine open questions, seven of them M7's | on branch |
+| **M7.0** | PPAT architecture lock — nine open questions, seven of them M7's | `aa0c251` |
+| **M7.1** | Property + PPAT schema (eight tables), two Policies, Data Scope — no routes | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -362,7 +371,7 @@ M6.1 also removes the obstacle D-118 recorded for `notary_deed_documents`: it wa
 
 ```text
 M7.0  PPAT architecture lock                      <- done
-M7.1  Property + PPAT schema + Policy   (eight tables, no routes)
+M7.1  Property + PPAT schema + Policy   (eight tables, no routes)   <- done
 M7.2  PPAT Deed surface + deed frontend
 M7.3  Property surface + ownership history + frontend
 M7.4  Warkah surface + completeness + frontend
