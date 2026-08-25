@@ -5,6 +5,104 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.0 PPAT architecture lock
+
+Branch `feat/m7-ppat`, from `1f1dab5`. **No code, no migration, no permission — the count stays at
+177.** One new decision, **D-121**, and five new open items, **O-039** … **O-043**.
+
+`docs/17_M7_PPAT_ARCHITECTURE.md` is the sixth `.0` lock and the second in a row whose subject is a
+specification that is deliberately empty.
+
+### M7 is M6's problem one degree worse
+
+`09_PPAT_WORKFLOW.md` section 6 carries **nine** open questions where `08_NOTARY_WORKFLOW.md` carries
+seven, and **seven of the nine** bear on what M7 would otherwise build. Its section 2 says why in its
+own words: PPAT's statutory obligations around the register, monthly reporting and the binding of
+deeds with their Warkah are *"precisely the kind of rule that must not be reconstructed from memory."*
+
+### The finding that changed the scope
+
+**`ppat.taxes.*` does not exist — not one code of it.** Verified against the live registry:
+`view`, `manage`, `create` and `update` are all absent, while every other PPAT family has been
+catalogued since M1.2. `ppat_tax_records` is a canonical table with **no canonical capability that
+could authorize a single operation on it** — the shape `notary.protocol.*` had at M6.0.
+
+Three further grounds agree: taxes are **batch 11** (M7 is batches 8 and 10), tax gating is open
+question four, and `03_DATABASE_ERD.md` §20 closes its own field list with *"Final legal/tax behavior
+must be validated before production."* **The tax surface is outside M7** (O-040).
+
+One transcription note recorded for whoever does build it: `ppat_tax_records` hangs off **`matter_id`,
+not `ppat_deed_id`** — the brief inverted this, which would have put the table under the wrong parent.
+
+### One decision, not the seven the brief pre-wrote
+
+D-121 consolidates, following D-120's precedent — and pointedly, because **three of the seven
+proposed decisions state things that turned out not to be true.** Recording them separately would have
+enshrined the errors:
+
+* **D-121 as briefed** said the PPAT deed ladder *"follows the Notary pattern."* But `ppat_deeds` has
+  **no status vocabulary in the ERD** while `notary_deeds` has six. M7 adopts the same six — on
+  `CLAUDE.md` §29's authority — but that is a **decision, not a transcription**, and the lock says so.
+* **D-122 as briefed** would have made completeness computed and dropped `completeness_percentage`, a
+  canonical column. The real issue is the denominator: see below.
+* **D-127 as briefed** — a register entry created on finalization — is exactly what M6 refused twice,
+  and directly answers open question six.
+
+### Completeness is counted, never judged
+
+The ruling the lock exists to hold. `ppat_warkah.completeness_percentage` is stored, but **a
+percentage is meaningless without a denominator, and the denominator is the mandatory Warkah
+composition per deed type that nobody has authored** (open question three).
+
+So the number counts the items the office itself created; no requirement template drives it;
+`requirement_code` is stored and matched against nothing; and **100% means every item this office
+listed has a document, not that the Warkah is legally sufficient.** No completeness figure gates any
+deed act (O-041).
+
+### `is_current` is kept, and D-116 does not apply
+
+M5.1 removed `is_current` from `document_versions` because exactly one version may be current. That
+**inverts** for `property_owners`: a Property legitimately has several current owners at once, each
+with a percentage. It is a *"this row applies now"* flag on many rows, not a *"this is the one"*
+pointer on one — a different construct sharing a name. Worth stating so nobody "fixes" it later.
+
+**No percentage sum is enforced** — whether shares must total 100 is a rule about Indonesian
+co-ownership.
+
+### Also settled
+
+`matter_properties` is built (the ERD names it; the brief omitted it). `ppat_deeds` carries **one**
+document pointer, not Notary's three — PPAT's supporting material is the Warkah. `properties.right_type`
+and `matter_properties.role_code` stay CHECK-free because the ERD says *"may use"* and *"example"*,
+while `property_type` is constrained because its four values are a closed list. Property gets
+`OFFICE` and `ALL` only — the Party and Service Type answer, not Project's. Deed reach resolves
+through the parent Matter, as D-120 ruled for Notary.
+
+### Decomposition
+
+```text
+M7.0  PPAT architecture lock                      <- this
+M7.1  Property + PPAT schema + Policy   (eight tables, no routes)
+M7.2  PPAT Deed surface + deed frontend
+M7.3  Property surface + ownership history + frontend
+M7.4  Warkah surface + completeness + frontend
+```
+
+There is no M7.5: taxes, registers, protocol and reports are outside M7, not deferred within it. The
+`(id, office_id)` support keys are created **in the migrations that create their tables**, so M7 does
+not repeat M6.3's separate-migration correction. Project detail gains its PPAT Deeds section at M7.2
+through a `project_id` filter, following O-037 rather than the nested route D-118 refused.
+
+### One question left for M7.1 to answer explicitly
+
+Whether `property_number` is allocated or office-supplied. The ERD gives no format; `CLAUDE.md` §38
+names `PROP-000001` as an example internal reference; but D-103's allocator is namespaced by Office
+**and calendar year**, and a land parcel is not a yearly thing. Recorded in the lock's §15 so M7.1
+meets it as a decision rather than a surprise — the same shape as the `created_by` question M5.0 left
+for M5.4.
+
+---
+
 ## 2026-08-25 — O-037: Notary Deeds on the Project page
 
 Branch `fix/o-037-project-deeds`, from `cc56a4f`. **One filter, one section, no migration, no

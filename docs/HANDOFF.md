@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M6.3
+# Project Handoff — M0 through M7.0
 
-**Position:** branch `feat/m6-notary`, ahead of `main` (`f82dc25`) by the M5 and M6 work below.
-**Last accepted merge to `main`:** M4 — Matter & Workflow Engine.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M6.3.
+**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 is the lock on this branch.
+**Last accepted merge to `main`:** O-037 (`fa381fa`), which brought M5 and M6 with it.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M7.0.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,7 +34,7 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0, M1, M2, M3, M4 (merged) · M5.0–M5.4, M6.0–M6.3 (on branches) |
+| Milestones complete | M0 – M6 **merged to main** · M7.0 lock on `feat/m7-ppat` |
 | Migrations | **42** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 29 |
@@ -42,8 +42,8 @@ boundary. Every frontend permission check is presentation.
 | Backend tests | **2552 passing, 8 skipped** across 84 files (Pest) |
 | Frontend tests | **127 passing** across 14 files (Vitest + RTL) |
 | Frontend pages | 44 |
-| Decisions recorded | **D-001 … D-120** |
-| Open items | 15 still open (§7) — O-037 closed 2026-08-25 |
+| Decisions recorded | **D-001 … D-121** |
+| Open items | 20 still open (§7) — O-037 closed, O-039…O-043 added 2026-08-25 |
 
 **The persistent development database stands at 22 migrations and is deliberately behind.** It has
 never been migrated past M1. Every schema verification since has run on a disposable database. See §6.
@@ -81,6 +81,9 @@ the single most load-bearing process choice in the project.
 | **M6.1** | `notary_matters` + `notary_deeds` schema, Policy, Data Scope — no routes | `33dfe32` |
 | **M6.2** | Nine deed endpoints, three pages, Matter deeds section | `8c638d4` |
 | **M6.3** | `notary_minuta` metadata, three nested endpoints, deed-page section | `9bef689` |
+| **M6 merge** | M5 and M6 both entered `main` here — M5 had never been merged on its own | `cc56a4f` |
+| **O-037** | Notary Deeds on the Project page, as a `project_id` filter | `fa381fa` |
+| **M7.0** | PPAT architecture lock — nine open questions, seven of them M7's | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -211,8 +214,9 @@ docs/
 ├── 13_M3_PROJECT_ARCHITECTURE.md  │ milestone architecture locks — read the one
 ├── 14_M4_MATTER_ARCHITECTURE.md   │ for the domain you are changing
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md │
-├── 16_M6_NOTARY_ARCHITECTURE.md   ┘ ← and read §5 of this one first
-├── DECISIONS.md                   ← D-001…D-120 + the Open Items register
+├── 16_M6_NOTARY_ARCHITECTURE.md   │
+├── 17_M7_PPAT_ARCHITECTURE.md     ┘ ← read §5 of these two first
+├── DECISIONS.md                   ← D-001…D-121 + the Open Items register
 ├── CHANGELOG.md                   ← what each milestone did
 └── HANDOFF.md                     ← this file
 ```
@@ -354,18 +358,55 @@ expect (O-036).
 M6.1 also removes the obstacle D-118 recorded for `notary_deed_documents`: it was blocked because
 `notary_deeds` did not exist.
 
+### M7 — PPAT, locked at M7.0 (D-121)
+
+```text
+M7.0  PPAT architecture lock                      <- done
+M7.1  Property + PPAT schema + Policy   (eight tables, no routes)
+M7.2  PPAT Deed surface + deed frontend
+M7.3  Property surface + ownership history + frontend
+M7.4  Warkah surface + completeness + frontend
+```
+
+**M7 is M6's problem one degree worse.** `09_PPAT_WORKFLOW.md` §6 carries **nine** open questions to
+Notary's seven, and **seven of the nine** bear on M7 (O-039). Read `17_M7_PPAT_ARCHITECTURE.md` §5
+before touching anything.
+
+**The finding that shaped the scope: `ppat.taxes.*` does not exist.** Not one code of it — verified
+against the live registry, while every other PPAT family has been catalogued since M1.2. So
+`ppat_tax_records` is a canonical table nothing may authorize, and the tax surface is **outside M7**
+on four independent grounds (O-040). `notary.protocol.*` is absent the same way (O-036). **A canonical
+table is not a canonical capability**, and that distinction now governs two milestones.
+
+**Registers and protocol stay outside M7**, exactly as they stayed outside M6 — batch 11 against M7's
+batches 8 and 10, so neither domain reaches a batch further than the other (O-042).
+
+**Two rulings worth knowing before writing schema:**
+
+- **`ppat_deeds` has no status vocabulary in the ERD.** M7 adopts Notary's six on `CLAUDE.md` §29's
+  authority, but that is a **decision, not a transcription** — reconcile rather than assume if a
+  canonical PPAT list turns up.
+- **`property_owners.is_current` is kept and D-116 does not apply.** A Property legitimately has
+  several current owners at once; it is a *"this row applies now"* flag on many rows, not the
+  *"this is the one"* pointer D-116 removed from `document_versions`. Do not "fix" it.
+
+**M7.1 owes one explicit decision**: whether `property_number` is allocated or office-supplied. The
+ERD gives no format and D-103's allocator is namespaced by Office *and year*, which a land parcel is
+not. Lock §15.
+
 ### Before the next milestone starts
 
-M5.2 is **pending acceptance**. The branch has not been merged. Three items from the M5.2 report are
-worth a decision:
+Three items from the M5.2 report were never given an explicit yes or no. They are not blockers — M5
+and M6 are merged and green — but each is a judgement somebody should confirm rather than inherit:
 
 1. **`matterReachable()` reads the permission namespace from the Matter's stored `domain` column** —
-   the only place in the repository that happens. The argument that it is not the D-101 hazard is
-   documented in the controller; it deserves an explicit yes or no.
+   one of only two places in the repository that happens (the other is `DocumentRelationController`).
+   The argument that it is not the D-101 hazard is documented in the controller; it deserves an
+   explicit yes or no.
 2. **`is_sensitive` locks on `ARCHIVED`** as well as `VERIFIED` and `FINAL`, which extends the stated
    requirement. Same rule applied consistently, but it is an extension.
 3. **`documents.sensitive.download` grants nothing** until audit exists. An administrator granting it
-   will see no effect.
+   will see no effect (D-115).
 
 ---
 
