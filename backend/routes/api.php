@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
 use App\Http\Controllers\Api\V1\MatterPartyController;
+use App\Http\Controllers\Api\V1\MatterPropertyController;
 use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
@@ -28,6 +29,8 @@ use App\Http\Controllers\Api\V1\ProjectAssignmentController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectPartyController;
 use App\Http\Controllers\Api\V1\ProjectStatusController;
+use App\Http\Controllers\Api\V1\PropertyController;
+use App\Http\Controllers\Api\V1\PropertyOwnerController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -623,6 +626,89 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('deed')->name('finalize');
             Route::patch('deeds/{deed}/number', [PpatDeedController::class, 'recordNumber'])
                 ->whereUlid('deed')->name('number');
+        });
+
+        /*
+         * Properties and their chains of title (M7.3, D-121).
+         *
+         * **The root is `/properties`, not `/ppat/properties`.** D-101 says the route
+         * decides the permission namespace, and the canonical family is
+         * `properties.*` — there is no `ppat.properties.*` in the catalogue, so a
+         * `/ppat` prefix here would name a namespace that does not exist. The *page*
+         * lives at `/ppat/properties` because `CLAUDE.md` section 16 lists Property
+         * among the PPAT-specific concepts; a page path is not a permission
+         * namespace, and the asymmetry is deliberate.
+         *
+         * **Four acts on the parcel, and one absent.** `view`, `create`, `update` and
+         * `archive` are the four the catalogue defines. **`properties.delete` is
+         * absent** — verified against the live registry, the check that ruled out
+         * `ppat.deeds.delete` at M7.2 — so there is no `DELETE` route. Archiving is
+         * the retirement path, and it writes `deleted_at` rather than `status`,
+         * because `properties.status` has no canonical vocabulary at all (O-045).
+         *
+         * **Ownership is nested and answers to its own pair.**
+         * `properties.ownership.view` reads the chain, `properties.ownership.update`
+         * writes it, neither implies the other, and `properties.update` reaches
+         * neither. There is no `/property-owners/{owner}` collection: a link has no
+         * existence apart from its Property (the M4.5 convention, D-105).
+         *
+         * **No `DELETE` on a link either.** `property_owners` has no `deleted_at` in
+         * the ERD, so a delete could only be a hard one, and hard-deleting a link
+         * destroys the history the table exists to keep (`CLAUDE.md` sections 30 and
+         * 63). Ending an ownership is closing it — `PATCH` with an `effective_until`.
+         *
+         * `options` precedes `{property}`, or the literal segment would bind as an id.
+         */
+        Route::prefix('properties')->name('api.v1.properties.')->group(function (): void {
+            Route::get('options', [PropertyController::class, 'options'])->name('options');
+
+            Route::get('/', [PropertyController::class, 'index'])->name('index');
+            Route::post('/', [PropertyController::class, 'store'])->name('store');
+
+            Route::get('{property}', [PropertyController::class, 'show'])
+                ->whereUlid('property')->name('show');
+            Route::patch('{property}', [PropertyController::class, 'update'])
+                ->whereUlid('property')->name('update');
+            Route::patch('{property}/archive', [PropertyController::class, 'archive'])
+                ->whereUlid('property')->name('archive');
+
+            Route::get('{property}/owners', [PropertyOwnerController::class, 'index'])
+                ->whereUlid('property')->name('owners.index');
+            Route::post('{property}/owners', [PropertyOwnerController::class, 'store'])
+                ->whereUlid('property')->name('owners.store');
+            Route::patch('{property}/owners/{owner}', [PropertyOwnerController::class, 'update'])
+                ->whereUlid('property')->whereUlid('owner')->name('owners.update');
+        });
+
+        /*
+         * Which land a PPAT Matter concerns (M7.3, D-121).
+         *
+         * Nested under the Matter because the junction row is **Matter composition** —
+         * it says which parcel this piece of work is about, the way participation says
+         * which people it is about.
+         *
+         * **No capability names this act**, so each side is judged by the one that
+         * already exists: `ppat.matters.update` composes the Matter, and
+         * `properties.view` reaches the target. The controller resolves the Property
+         * through canonical Property visibility before attaching, so composing a
+         * Matter never becomes a way to discover which Properties exist.
+         *
+         * **PPAT only.** `CLAUDE.md` section 16 lists Property among the PPAT-specific
+         * concepts, so there is no `/notary/matters/{matter}/properties` counterpart —
+         * a Notary Matter naming land would be a claim about Notary practice nobody
+         * here may make. The junction is domain-agnostic in the schema, which is the
+         * ERD's business; only this address reaches it.
+         *
+         * `DELETE` removes the junction row only — never the Matter, never the
+         * Property, never a link in a chain of title.
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.matters.properties.')->group(function (): void {
+            Route::get('matters/{matter}/properties', [MatterPropertyController::class, 'index'])
+                ->whereUlid('matter')->name('index');
+            Route::post('matters/{matter}/properties', [MatterPropertyController::class, 'store'])
+                ->whereUlid('matter')->name('store');
+            Route::delete('matters/{matter}/properties/{property}', [MatterPropertyController::class, 'destroy'])
+                ->whereUlid('matter')->whereUlid('property')->name('destroy');
         });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');

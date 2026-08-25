@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.2 on `feat/m7-ppat` |
+| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.3 on `feat/m7-ppat` |
 | Migrations | **50** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 36 |
-| API routes | **165** under `/api/v1` (172 total) |
-| Backend tests | **2699 passing, 8 skipped** across 86 files (Pest) |
-| Frontend tests | **149 passing** across 16 files (Vitest + RTL) |
-| Frontend pages | 47 |
+| API routes | **177** under `/api/v1` (184 total) |
+| Backend tests | **2765 passing, 8 skipped** across 87 files (Pest) |
+| Frontend tests | **171 passing** across 18 files (Vitest + RTL) |
+| Frontend pages | 51 |
 | Decisions recorded | **D-001 … D-121** |
-| Open items | 21 still open (§7) — O-037 closed, O-039…O-044 added 2026-08-25 |
+| Open items | 22 still open (§7) — O-037 closed, O-039…O-046 added 2026-08-25 |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -59,13 +59,21 @@ database created and dropped for the purpose, never against this one. See §6.
 ### Routes by domain
 
 ```text
-notary 29      companies 19  ppat 26   projects 15   individuals 14
-users 13       tasks 12      security 12  documents 12  roles 7
-profile 2      parties 1     permissions 1  health 1   me 1
+notary 29      companies 19  ppat 29   projects 15   individuals 14
+users 13       tasks 12      security 12  documents 12  properties 9
+roles 7        profile 2     parties 1    permissions 1  health 1   me 1
 ```
 
 `ppat` gained nine at M7.2 — index, store, show, update, options, review, approve, finalize and
-number. There is deliberately no `destroy`: see O-039 and the M7.2 entry in `CHANGELOG.md`.
+number — and three more at M7.3 for the Matter/Property junction. There is deliberately no `destroy`
+on a deed: see O-039 and the M7.2 entry in `CHANGELOG.md`.
+
+**`properties` is its own root, not `ppat/properties`**, and the asymmetry is deliberate. The
+canonical family is `properties.*` with no `ppat.` prefix, and D-101 says the route decides the
+permission namespace — so the endpoint matches the codes while the *page* sits at `/ppat/properties`,
+because `CLAUDE.md` §16 lists Property among the PPAT-specific concepts. A page path is not a
+permission namespace. There is no `DELETE` here either: `properties.delete` is absent and
+`properties.archive` soft-deletes (O-045).
 
 ---
 
@@ -287,7 +295,7 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-Twenty-one of forty-four. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
+Twenty-two of forty-six. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
 index — minus the five M7 scope items (**O-039** … **O-043**), which are described where they matter,
 in §8.
 
@@ -308,7 +316,9 @@ in §8.
 | O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
 | O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
 | O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
-| O-044 | PPAT Property and Warkah have capabilities, tables and no routes | M7.2 refused the navigation placeholders the brief asked for (D-064); M7.3 and M7.4 add each entry with its routes |
+| O-044 | PPAT Warkah has capabilities, tables and no routes | **Half closed at M7.3**, which built Property and added its entry. M7.4 adds the Warkah one with its routes (D-064) |
+| O-045 | Archiving a Property cannot be undone through the product | No `properties.restore` in the catalogue; archiving destroys nothing and the record stays readable |
+| O-046 | A Property has no documents, because `property_documents` does not exist | Blocked since M5.1; unblocking is a migration plus an enum case, which M7.3 was scoped without |
 
 **The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of
 M1 on the ERD's batch ordering; `audit.view` and `audit.export` are registered and unimplemented.
@@ -380,13 +390,13 @@ M6.1 also removes the obstacle D-118 recorded for `notary_deed_documents`: it wa
 M7.0  PPAT architecture lock                      <- done
 M7.1  Property + PPAT schema + Policy   (eight tables, no routes)   <- done
 M7.2  PPAT Deed surface + deed frontend (nine routes, no DELETE)    <- done
-M7.3  Property surface + ownership history + frontend
+M7.3  Property + ownership history      (twelve routes, no DELETE)  <- done
 M7.4  Warkah surface + completeness + frontend
 ```
 
-**M7.3 and M7.4 each owe a navigation entry.** M7.2 added only Deeds; Property and Warkah have
-capabilities, tables, Policies and no routes, so an entry for either would link to a 404 (D-064,
-O-044). Add each one in the milestone that lands its routes, as `notary.deeds` was.
+**M7.4 owes the last navigation entry.** M7.2 added Deeds and M7.3 added Property; Warkah has six
+capabilities, three tables and no routes, so an entry for it would link to a 404 (D-064, O-044). Add
+it in the milestone that lands its routes, as the other three were.
 
 **M7.4 note:** a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six
 `ppat.warkah.*` codes. `PpatDeedResource` deliberately carries **no** Warkah key — a deed capability
@@ -414,14 +424,31 @@ batches 8 and 10, so neither domain reaches a batch further than the other (O-04
   several current owners at once; it is a *"this row applies now"* flag on many rows, not the
   *"this is the one"* pointer D-116 removed from `document_versions`. Do not "fix" it.
 
-**M7.1 owed one explicit decision** — whether `property_number` is allocated or office-supplied —
-and made it. Lock §15.
+**M7.1 owed one explicit decision** — whether `property_number` is allocated or office-supplied.
+**M7.3 settled it: office-supplied**, unique per Office, no format validated, immutable once
+assigned. The ERD gives no format, `CLAUDE.md` §38 shows `PROP-000001` without a year (alone among
+the internal references), and an allocator would need a counter table. Lock §15.
 
 **M7.2's own finding: `ppat.deeds.delete` is not in the registry**, and neither is `.void` or
 `.lock`. The brief conditioned a `destroy` endpoint on that code existing, so its own condition ruled
 the endpoint out; `DELETE` answers 405 and both extra verbs answer 404. Do not add any of the three
 on the strength of the table having rows — a deed recorded in error is a **correction mechanism**,
 open question nine (O-039).
+
+**M7.3's findings, three of them, and each is a thing not to undo:**
+
+- **`properties.delete` is absent and `properties.archive` is what the catalogue defines**, so
+  archiving *is* the soft delete — the ERD gave `properties` a `deleted_at` and gave the catalogue no
+  delete code, and read together they are one mechanism. `status` stays unwritten: it has no ERD
+  vocabulary at all. There is no un-archive, because there is no `properties.restore` (O-045).
+- **Several owners may be current at once.** The M7 lock §7.2 says so by name, and the M7.3 brief
+  asked for the opposite. `is_current` is a flag on many rows; adding a co-owner does not close the
+  existing holders, and `supersedes_current` is how a caller says this is a transfer instead. **No
+  sum across shares is validated** — that is a rule about Indonesian co-ownership nobody here may
+  write.
+- **A link in a chain of title is never deleted.** `property_owners` has no `deleted_at`; ending an
+  ownership is stamping `effective_until`. Do not add a delete route on the strength of the brief
+  asking for one.
 
 ### Before the next milestone starts
 

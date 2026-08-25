@@ -10,6 +10,7 @@ import {
   Landmark,
   LayoutDashboard,
   ListChecks,
+  MapPinned,
   Scale,
   ScrollText,
   Settings,
@@ -200,19 +201,34 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // hold one and not the other in either direction.
         requiredPermission: "ppat.deeds.view",
       },
+      {
+        key: "ppat.properties",
+        translationKey: "ppatProperties",
+        href: "/ppat/properties",
+        icon: MapPinned,
+        // Added at M7.3, when the routes landed — not at M7.1 when the schema and
+        // Policy did (D-064). Half of O-044 closes here; the Warkah half stays open.
+        implemented: true,
+        // **`properties.view`, with no `ppat.` prefix.** The canonical family is
+        // domain-neutral — there is no `ppat.properties.*` in the catalogue — even
+        // though `CLAUDE.md` section 16 lists Property among the PPAT-specific
+        // concepts, which is why the entry sits in this group. The page path and the
+        // permission namespace are different things, deliberately.
+        requiredPermission: "properties.view",
+      },
       /*
-       * **No Property and no Warkah entry yet, and that is deliberate.**
+       * **No Warkah entry yet, and that is deliberate.**
        *
-       * The M7.2 brief asked for both as placeholders pointing at `/ppat/properties`
-       * and `/ppat/warkah`. D-064 is the standing ruling against exactly that: a
+       * The M7.2 and M7.3 briefs both asked for one as a placeholder pointing at
+       * `/ppat/warkah`. D-064 is the standing ruling against exactly that: a
        * navigation entry whose route does not exist offers somebody a link to a 404,
        * and every milestone since M5.2 has waited for the routes before adding the
        * entry — including `notary.deeds` above, which stayed absent through M6.1 and
-       * appeared at M6.2.
+       * appeared at M6.2, and `ppat.properties` beside it, which stayed absent
+       * through M7.1 and M7.2.
        *
-       * `ppat.properties.*` and `ppat.warkah.*` are canonical capabilities with
-       * tables since M7.1 and no surface. M7.3 and M7.4 add the routes; each adds its
-       * own entry then (O-044).
+       * `ppat.warkah.*` is a canonical family of six codes with three tables since
+       * M7.1 and no surface. M7.4 adds the routes and the entry together (O-044).
        */
     ],
   },

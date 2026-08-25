@@ -593,9 +593,15 @@ it('exposes no matter surface beyond the milestone that owns it', function (): v
     // `DELETE .../parties/{matterParty}` — that removes a relationship row and
     // touches neither endpoint (D-105), so the distinction the guard needs is
     // between deleting a Matter and unlinking a Party from one.
+    //
+    // **Narrowed again at M7.3** for `DELETE .../properties/{property}`, which is the
+    // same shape one aggregate over: it removes a `matter_properties` row and touches
+    // neither the Matter nor the Property. The claim that survives is unchanged — no
+    // address deletes a Matter.
     $destructive = collect(app('router')->getRoutes()->getRoutes())
         ->filter(fn ($route): bool => str_contains($route->uri(), 'matters')
             && ! str_contains($route->uri(), '/parties/')
+            && ! str_contains($route->uri(), '/properties/')
             && in_array('DELETE', $route->methods(), true));
 
     expect($destructive)->toBeEmpty();

@@ -15,6 +15,7 @@ import {
   PpatDeedTypeBadge,
 } from "@/features/ppat/deed-badges";
 import { hasFieldError, toPpatErrorKey } from "@/features/ppat/deed-errors";
+import { MatterPropertiesSection } from "@/features/properties/matter-properties-section";
 import { Link } from "@/i18n/navigation";
 import {
   approvePpatDeed,
@@ -241,6 +242,24 @@ export function PpatDeedDetail({ deedId }: { deedId: string }) {
       </section>
 
       <DeedDocument deed={deed} />
+
+      {/*
+        Which land this deed is about (M7.3, D-121).
+
+        **Read from the Matter, because a deed has no property column.** The ERD gives
+        `ppat_deeds` no link to `properties`; the land attaches to the *Matter* through
+        `matter_properties`, so this section asks that endpoint with the deed's parent.
+
+        Rendered only when the deed carries its Matter stub, and read-only: attaching a
+        parcel is Matter composition and belongs on the Matter page, where
+        `ppat.matters.update` is the capability that governs it. A deed capability must
+        not become a way to change what a Matter is about.
+      */}
+      {deed.matter ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <MatterPropertiesSection matterId={deed.matter.id} />
+        </section>
+      ) : null}
 
       {deed.can_record_number ? <DeedNumberSection deed={deed} /> : null}
     </div>

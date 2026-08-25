@@ -642,7 +642,7 @@ M5.2, M5.3, M5.4, M6.2 and M6.3 each followed.
 M7.0   PPAT architecture lock                          <- this document
 M7.1   Property + PPAT schema + Policy                   (no routes, like M5.1 and M6.1)   <- done
 M7.2   PPAT Deed surface + deed frontend                 (nine routes, no DELETE)          <- done
-M7.3   Property surface + ownership history + frontend
+M7.3   Property surface + ownership history + frontend   (twelve routes, no DELETE)        <- done
 M7.4   Warkah surface + completeness + frontend
 ```
 
@@ -658,9 +658,23 @@ the seven canonical `ppat.deeds.*` capabilities plus `options`. **No `DELETE`, n
 `/lock`**: those three codes are absent from the catalogue, `ppat_deeds` has no `deleted_at`, and a
 deed recorded in error is a correction mechanism, which is open question nine (§5, O-039).
 
-It also added the **Deeds** navigation entry and no other. Property and Warkah have capabilities and
+It also added the **Deeds** navigation entry and no other. Property and Warkah had capabilities and
 tables from M7.1 and no routes, so a placeholder entry for either would link to a 404 — D-064, the
-ruling `notary.deeds` followed when it stayed absent through M6.1. M7.3 and M7.4 add theirs (O-044).
+ruling `notary.deeds` followed when it stayed absent through M6.1.
+
+**M7.3 landed twelve routes**: six on the parcel (`index`, `store`, `show`, `update`, `archive`,
+`options`), three nested for the chain of title, and three more nested under a PPAT Matter for the
+`matter_properties` junction. It added the **Property** entry, gated on `properties.view` — the
+domain-neutral code, because there is no `ppat.properties.*` family even though the entry sits in the
+PPAT group. M7.4 adds the last one (O-044).
+
+Three of its rulings settle questions this document left open, and section 7 now carries them:
+
+- **`properties.archive` soft-deletes** and never writes `status` — the reading that leaves neither
+  the ERD's `deleted_at` nor the catalogue's `archive` code dead. There is no un-archive (O-045).
+- **`property_number` is office-supplied**, which answers section 15's last M7.1 question.
+- **Adding a co-owner does not close the existing holders**, which is section 7.2 honoured against a
+  brief that asked for the opposite.
 
 **M7.3 before M7.4** deliberately: a Warkah item may name a `party_id` and a deed names a Property
 through `matter_properties`, so the Property surface should exist before the Warkah surface leans on
@@ -689,8 +703,9 @@ templates, no workflow stages, no right-type catalogue.
 | Monthly reporting obligation, deadline, recipient | **OPEN — §6.** M8; `ppat.reports.*` stays unimplemented (O-043) | **No** |
 | Binding and archiving of deeds with their Warkah | **OPEN — §6.** `ppat.warkah.finalize` and `.archive` stay unimplemented (O-041) | **No** |
 | Correction mechanisms after finalization | **OPEN — §6 and `CLAUDE.md` §29.** `VOID`, `SUPERSEDED`, `locked_at` are stored vocabulary with no path | **No** |
-| Whether `property_number` is allocated or office-supplied | **OPEN, and M7.1 must resolve it explicitly.** The ERD gives no format; `CLAUDE.md` §38 names `PROP-000001` as an example internal reference, but D-103's allocator is namespaced by Office **and year** and a Property is not a yearly thing. Recorded so M7.1 meets it as a decision rather than a surprise | **No** — it is M7.1's own first question |
-| Whether ownership percentages must total 100 | **OPEN.** A rule about Indonesian co-ownership; the column stores what the office records | **No** |
+| Whether `property_number` is allocated or office-supplied | **RESOLVED 2026-08-25 by M7.3: office-supplied.** The ERD gives no format; `CLAUDE.md` §38 names `PROP-000001` as an example internal reference **without a year**, alone among the ones it lists, so D-108's Office+year allocator does not fit; and an allocator needs a counter table. Required at creation, unique per Office (D-103), immutable once assigned, **no format validated** — the `ppat.deeds.number` shape | **No** |
+| What `properties.archive` does | **RESOLVED 2026-08-25 by M7.3: it soft-deletes.** The ERD gives `properties` a `deleted_at` and the catalogue gives `archive` while withholding `properties.delete`; read separately each is dead, read together they are one mechanism. `status` stays unwritten — it has no ERD vocabulary. **One-way**: no `properties.restore` exists (O-045) | **No** |
+| Whether ownership percentages must total 100 | **OPEN.** A rule about Indonesian co-ownership; the column stores what the office records. M7.3 displays the arithmetic total and attaches no judgement to it | **No** |
 | `ppat_deed_documents` junction | **UNBLOCKED but not built** (§3.6) | **No** |
 | Protocol: table shape, lifecycle, four missing codes | **OPEN, and outside M7** (§11, O-036) | **No** |
 | Audit | **OPEN since M5** (D-115). M7 adds no sensitive-download surface and does not lift the gate | **No** |

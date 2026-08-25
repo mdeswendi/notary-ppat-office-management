@@ -95,11 +95,22 @@ class PropertyVisibility
 
     /**
      * May the actor reach this specific Property?
+     *
+     * **`withTrashed()` since M7.3**, and the distinction it draws is the point:
+     * *reach* is a question about Office, and *archived* is a question about record
+     * state. They are answered by different things — the scope predicate here, and the
+     * Policy's own state checks — so folding archived-ness into reach would make an
+     * archived parcel indistinguishable from one in another Office.
+     *
+     * Concretely: without this, opening an archived Property answered **403** instead
+     * of rendering it read-only, and archiving a record would have made it unreadable
+     * rather than retired. `ArchiveProperty` is explicit that archiving destroys
+     * nothing and an office must still be able to look up an old certificate.
      */
     public function permits(User $actor, EffectiveAccess $access, Property $property): bool
     {
         return $this->scope(
-            Property::query()->whereKey($property->getKey()),
+            Property::query()->withTrashed()->whereKey($property->getKey()),
             $actor,
             $access,
         )->exists();

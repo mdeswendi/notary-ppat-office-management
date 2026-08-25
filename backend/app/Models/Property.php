@@ -96,6 +96,30 @@ class Property extends Model
     }
 
     /**
+     * Who recorded the parcel (M7.3).
+     *
+     * Attribution only — **not** a Data Scope predicate. `PropertyVisibility` applies
+     * `OFFICE` and `ALL` alone, so unlike `Matter::createdBy()` this relation confers
+     * nothing: the colleague who typed in a parcel has no claim on it (D-080, D-106).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Who last corrected it (M7.3). Attribution only, as above.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function updatedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
      * The whole chain of title, newest first.
      *
      * History is added and never overwritten (`CLAUDE.md` section 63), so this is the

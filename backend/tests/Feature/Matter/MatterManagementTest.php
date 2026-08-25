@@ -78,16 +78,17 @@ it('registers exactly the expected matter routes and nothing more', function ():
     // An inventory rather than an absence check: a new Matter route now has to be
     // added here deliberately. No DELETE — M4 ships no archive lifecycle (D-102).
     //
-    // **Narrowed at M4.5 and again at M4.7** to the Matter lifecycle surface this
-    // file owns. Participation routes are M4.5's and stage routes are M4.7's,
-    // each pinned just as exactly in its own suite; listing them in two places
-    // would mean every future change had to be applied twice, which is how one of
-    // the two copies goes stale.
+    // **Narrowed at M4.5, again at M4.7, and again at M7.3** to the Matter lifecycle
+    // surface this file owns. Participation routes are M4.5's, stage routes are
+    // M4.7's, and the Property junction is M7.3's — each pinned just as exactly in its
+    // own suite. Listing them in two places would mean every future change had to be
+    // applied twice, which is how one of the two copies goes stale.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
         ->filter(fn (string $route): bool => str_contains($route, 'matters')
             && ! str_contains($route, 'parties')
             && ! str_contains($route, 'party-options')
+            && ! str_contains($route, 'properties')
             && ! str_contains($route, 'stages'))
         ->values()->sort()->values()->all();
 

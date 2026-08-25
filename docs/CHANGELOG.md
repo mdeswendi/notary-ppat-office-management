@@ -5,6 +5,181 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.3 Property, ownership history and frontend
+
+Branch `feat/m7-ppat`, from `55b9655`. **Twelve routes, no migration, no permission — the count
+stays at 177.** Implements D-121; no new decision. Two new open items, **O-045** and **O-046**, and
+half of **O-044** closes.
+
+The land object becomes reachable, and with it the chain of title: five Actions plus two junction
+Actions, one Exception, five Form Requests, two Resources, three Controllers, twelve routes, and the
+frontend that reads them — types, service, eight components, four pages, a navigation entry and both
+locales.
+
+### `properties.archive` is the soft delete, and that answers M7.1's open question
+
+M7.1 left it explicitly: *"`properties.archive` is the canonical capability; what it does is M7.3's
+question."* Two canonical facts constrain the answer and only one reading satisfies both.
+
+`03_DATABASE_ERD.md` §16 gives `properties` a **`deleted_at`**, unlike either deed table. The
+catalogue gives `properties.archive` and **withholds `properties.delete`** — checked against the live
+registry, the same check that ruled out `ppat.deeds.delete` at M7.2.
+
+Read separately each is dead: a soft-delete column no capability reaches, and a capability with
+nothing to do. Read together they are one mechanism. So `PATCH /{property}/archive` writes
+`deleted_at` and **never `status`** — that column has no vocabulary in the ERD at all, and
+`ACTIVE`/`ARCHIVED` would be a lifecycle nobody defined (D-121 §12). There is no `DELETE` route.
+
+It destroys nothing: every junction row and every link in the chain survives, and the parcel stays
+readable through `?archived=1`. It is refused while a Matter that has not finished names the parcel —
+a product guard about data hygiene, stated as such, which clears by itself. **It cannot be undone**:
+there is no `properties.restore` (O-045).
+
+### Co-ownership: the brief and the M7 lock disagreed, and the lock won
+
+The brief specified *"`addOwner` — set `is_current` = true, update yang lama"* and, in its
+constraints, *"hanya satu owner yang bisa `is_current` = true per property."* The M7 lock §7.2 rules
+that out **by name**:
+
+> *"a Property legitimately has **several** current owners at once, each with an
+> `ownership_percentage`. `is_current` on `property_owners` is a 'this row applies now' flag on many
+> rows, not a 'this is the one' pointer on one."*
+
+The migration says it, the model says it, and an M7.1 test asserts two current owners at 50% each.
+Closing the previous holders on every insert would make co-ownership unrepresentable — and
+co-ownership is ordinary for Indonesian land.
+
+So there are two acts and the caller says which: **`supersedes_current`**, defaulting to `false`
+because that is the choice which ends nobody's recorded ownership. The form offers the radio pair
+only when there are current holders to supersede. The smoke asserts both paths.
+
+**No sum is validated.** 0–100 per link is arithmetic; whether shares must total 100 is a rule about
+Indonesian co-ownership `CLAUDE.md` §62 forbids inventing. A total of 160% is stored, displayed and
+not judged — the interface says so in words rather than leaving it implied.
+
+### There is no way to delete a link in a chain of title
+
+The brief asked for `DELETE /properties/{property}/owners/{owner}`, described as a *"soft delete
+ownership"*. **`property_owners` has no `deleted_at`** — the ERD's field list gives it nine columns
+and none is one, so M7.1 added no `SoftDeletes`. A `DELETE` could only be hard, and hard-deleting a
+link destroys exactly the history the table exists to keep (§§30 and 63).
+
+Ending an ownership is **closing the link**: `PATCH` with an `effective_until`, which clears
+`is_current` in the same save so the flag and the date cannot disagree. The control says "close", not
+"remove". A row entered by mistake is a correction mechanism — the same open question with no answer
+for deeds either (O-039).
+
+### `property_number` is office-supplied, which settles the M7 lock's last M7.1 question
+
+The lock recorded *"whether `property_number` is allocated or office-supplied"* as a question
+somebody had to settle explicitly. **The office supplies it**, on three grounds: the ERD gives the
+column no format; `CLAUDE.md` §38 shows `PROP-000001` **without a year**, alone among the internal
+references it lists, so D-108's Office+year counter does not fit; and an allocator needs a counter
+table, which is a migration this milestone was scoped without.
+
+Required at creation, unique **within the Office** (D-103), immutable afterwards, and **no format
+validated** — the shape `ppat.deeds.number` has. The smoke records `kavling blok C/7` successfully.
+
+### Two vocabularies, two controls, and the ERD's own wording is the difference
+
+`property_type` is a `<select>` and a database CHECK: four values given flat, no hedging word.
+`right_type` is a **text input with a `datalist`**: the ERD says *"Right type **may** use stable
+machine codes, **for example**"*, so the six codes are typeahead suggestions and `HAK_ULAYAT` is
+accepted. A `<select>` would assert that Indonesian land law has six kinds of right.
+`matter_properties.role_code` gets the same treatment for the same reason.
+
+Neither is translated. `PropertyTypeBadge` uses message keys because a closed list of stable codes is
+what those are for; `RightTypeBadge` renders verbatim, like `deed_type_code` on both deed surfaces.
+
+### Ownership is its own surface because it is its own capability
+
+`properties.ownership.view` and `.update` are separate canonical codes, so the chain lives on
+`/properties/{property}/owners` rather than as fields on the parcel. Reading a Property does not read
+who owns it: `current_owners` arrives **`null`** for a caller without the code — not `[]`, because
+"not shown to you" and "nobody owns it" are different statements. A clerk maintaining addresses is
+not the person who records a transfer, and the catalogue drew that line before anything implemented
+it.
+
+There is no `properties.ownership.create` — adding a link is an `update` to the chain, which is what
+the two codes support.
+
+### Two things the brief asked for that do not exist to be built
+
+**`document_count` and a Documents section.** `property_documents` does not exist —
+`DocumentRelationType` carries `party`, `project` and `matter` only and names it *"blocked — batch 8,
+M7"*. Building it is *"adding a case and a migration"*, and M7.3 was scoped without one. A count of
+zero would be a lie about a table with no rows because it has none (O-046).
+
+**A Timeline section and an activity log.** No audit store exists; D-115 rules it required, absent,
+and not to be improvised, and five milestones have now declined to invent one. What the record
+preserves — creator, last editor, and the whole chain of title — is shown.
+
+### Structure notes
+
+Three departures from the brief's proposed shapes, each following established repository convention:
+controllers live in `app/Http/Controllers/Api/V1/` and Form Requests in `app/Http/Requests/Ppat/`,
+not a new `app/Domains/PPAT/Controllers/`; **`PATCH`, not `PUT`**, which the repository reserves for
+full replacement; and **sections, not tabs**, since no `Tabs` primitive exists — the ruling every
+milestone since M5.2 has made.
+
+**The API root is `/api/v1/properties` and the page is `/ppat/properties`**, deliberately. D-101 says
+the route decides the permission namespace and the canonical family is `properties.*` with no `ppat.`
+prefix, so a `/ppat/properties` endpoint would name a namespace that does not exist; `CLAUDE.md` §16
+lists Property among the PPAT-specific concepts, which is where the page and the menu entry belong. A
+page path is not a permission namespace. Recorded in three places so nobody "fixes" one to match the
+other.
+
+### Two capabilities for the Matter junction, because there is no third
+
+**No `*.matters.properties.*` code and no `properties.matters.*` code exist.** So attaching is
+`ppat.matters.update` — the junction row is Matter composition, saying which parcel this work is
+about — while the target is resolved through canonical `properties.view` visibility first, so
+composing a Matter never becomes a way to discover which Properties exist. **PPAT only**: there is no
+`/notary/matters/{matter}/properties`, and the smoke confirms it 404s.
+
+### Five guard tests narrowed, not deleted
+
+`MatterAuthorizationTest` forbade any `DELETE` on a URI containing `matters`; the junction detach is
+the same shape M4.5's participation delete already was, so `/properties/` joins `/parties/` in the
+exclusion and the surviving claim — no address deletes a Matter — is unchanged.
+`MatterManagementTest`'s route inventory excludes the junction, which has its own suite.
+`CompanyRegistryStatusTest`, `CompanyRelationshipRegistryTest` and `ProjectLifecycleTest` each
+forbade the bare segment `properties`; each now forbids the **rooted direction** instead
+(`companies/{company}/properties`, `projects/{project}/properties`), which is the boundary all three
+were always about. `warkah` stays forbidden outright in all three.
+
+One production change came out of the same sweep: **`PropertyVisibility::permits()` now uses
+`withTrashed()`**. Reach is a question about Office and archived is a question about record state;
+folding them together made an archived parcel answer 403 instead of opening read-only, which would
+have made archiving equal to hiding.
+
+### Verification
+
+Backend `pint --test` clean; full suite green — **2765 passing, 8 skipped**, of which **66 are new
+Property tests**. Frontend `format:check`, `lint` (0 errors, 3 pre-existing warnings), `typecheck`,
+`test` (**171, 22 new**) and `build` all pass.
+
+PostgreSQL HTTP smoke on a disposable `m73_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere:
+**74/74**. The serving process proved its own database with `SELECT current_database()` before the
+first functional request (O-034). Three actors: fully capable, view-only, and one holding the parcel
+capabilities **without** the ownership pair — which is how the catalogue's split was measured rather
+than assumed.
+
+Confirmed end to end: two owners current at once with a 100% total; a 160% total stored and reported;
+a transfer closing the previous holders while leaving their party and share intact; the property
+number free-format and unique per Office; `status` and `office_id` refused on presence; `APARTMENT`
+refused where `APARTMENT_UNIT` is accepted; archive blocked by a running Matter and permitted after
+detaching; an archived parcel readable, filterable and refusing every write with 403; `DELETE` on a
+parcel and on a link both 405; `/restore`, `/ppat/warkah`, `/properties/{id}/documents`,
+`/notary/matters/{id}/properties` and `/projects/{id}/properties` all 404; no NIK or NPWP anywhere in
+the payload; anonymous 401.
+
+The persistent development database was not touched: 42 migrations before and after, with
+`properties` confirmed absent from it. Probe dropped afterwards.
+
+---
+
 ## 2026-08-25 — M7.2 PPAT Deed surface and frontend
 
 Branch `feat/m7-ppat`, from `0d04c07`. **Nine routes, no migration, no permission — the count stays

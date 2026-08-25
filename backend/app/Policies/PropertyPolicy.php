@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
+use App\Domains\Ppat\Actions\ArchiveProperty;
 use App\Domains\Ppat\PropertyVisibility;
 use App\Models\Property;
 use App\Models\User;
@@ -88,20 +89,52 @@ class PropertyPolicy
         );
     }
 
+    /**
+     * May the actor correct this Property's own fields?
+     *
+     * **An archived Property is read-only** (M7.3). Archiving writes `deleted_at` —
+     * see {@see ArchiveProperty} for why that is what `properties.archive` means — and
+     * a retired record is not one an office keeps editing. The check sits here rather
+     * than in the Action so the answer is **403**: archived-ness is a property of the
+     * record, the way `CLAUDE.md` section 29 makes read-only a property of a finalized
+     * deed, and `NotaryDeedPolicy::update()` reads the same shape.
+     *
+     * Reading stays open, deliberately: an office looking up an old certificate must
+     * still be able to open the record.
+     */
     public function update(User $actor, Property $property): bool
     {
+        if ($property->deleted_at !== null) {
+            return false;
+        }
+
         return $this->reaches($actor, 'properties.update', $property);
     }
 
     /**
      * May the actor retire this Property?
      *
-     * The capability is canonical and authorized here; **what archiving does is M7.3
-     * question**, because `properties.status` has no canonical vocabulary and
-     * inventing `ACTIVE`/`ARCHIVED` would be inventing a lifecycle (D-121).
+     * **M7.3 answered what archiving does**: it soft-deletes. The ERD gave this table
+     * a `deleted_at` and the catalogue gave `properties.archive` while withholding
+     * `properties.delete`, so read together they are one mechanism rather than two
+     * dead ones — {@see ArchiveProperty} carries the full argument. `status` stays
+     * null, because it has no canonical vocabulary and inventing `ACTIVE`/`ARCHIVED`
+     * would be inventing a lifecycle (D-121).
+     *
+     * **Archiving an archived Property is refused**, so the control is absent rather
+     * than present and idempotent. There is no un-archive: `properties.restore` is not
+     * in the catalogue, unlike `projects.restore` (O-045).
+     *
+     * Whether a *running* Matter names the parcel is `ArchiveProperty`'s question and
+     * answers 422 — that is a fact about other records which clears by itself, not a
+     * fact about this one, so it is not an authorization decision.
      */
     public function archive(User $actor, Property $property): bool
     {
+        if ($property->deleted_at !== null) {
+            return false;
+        }
+
         return $this->reaches($actor, 'properties.archive', $property);
     }
 
@@ -122,9 +155,18 @@ class PropertyPolicy
      * Also its own capability. Correcting an address is `properties.update`; changing
      * who owns the land is this, and an office may reasonably grant one without the
      * other in either direction.
+     *
+     * **An archived Property's chain of title is read-only** (M7.3), for the reason
+     * {@see update()} gives: a retired record is not one an office keeps writing to.
+     * Reading it stays open under `viewOwnership` — the history is exactly what
+     * somebody opening an archived parcel came for.
      */
     public function updateOwnership(User $actor, Property $property): bool
     {
+        if ($property->deleted_at !== null) {
+            return false;
+        }
+
         return $this->reaches($actor, 'properties.ownership.update', $property);
     }
 
