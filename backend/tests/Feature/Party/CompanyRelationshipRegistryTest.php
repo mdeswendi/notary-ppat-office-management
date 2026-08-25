@@ -136,9 +136,14 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     // direction stays: a Company that owns land is a Party to the ownership, reached
     // through `properties/{property}/owners` — never a parcel hanging off a Company
     // relationship address.
+    //
+    // **Narrowed a sixth time at M7.4**, which ships the Warkah surface. The last of
+    // the five bare segments goes the same way: a Company may be named on a Warkah
+    // line, and that is read from the line rather than from the Company.
     foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
         'companies/{company}/matters', 'companies/{company}/documents',
-        'companies/{company}/deeds', 'companies/{company}/properties', 'warkah'] as $segment) {
+        'companies/{company}/deeds', 'companies/{company}/properties',
+        'companies/{company}/warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 

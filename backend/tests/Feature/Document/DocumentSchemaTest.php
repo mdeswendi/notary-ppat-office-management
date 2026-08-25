@@ -580,9 +580,17 @@ it('exposes exactly the twelve document routes and nothing more', function (): v
     // The list is spelled out rather than counted, which is why this failed the
     // moment M5.3 added routes — a count would have needed the same edit and told
     // the reader less.
+    //
+    // **Narrowed at M7.4**, which nests two routes for attaching and detaching a
+    // Document on a Warkah line. Those live at the *Warkah* root, answer to
+    // `ppat.warkah.upload` rather than any `documents.*` code, and are pinned just as
+    // exactly in `WarkahManagementTest`. The claim this file owns is unchanged:
+    // **the Document surface itself has exactly these twelve addresses.** A route
+    // rooted at `api/v1/documents` is what it is about, and nothing has grown a
+    // thirteenth.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
-        ->filter(fn (string $route): bool => str_contains($route, 'documents'))
+        ->filter(fn (string $route): bool => str_contains($route, 'api/v1/documents'))
         ->sort()
         ->values()
         ->all();

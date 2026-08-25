@@ -16,6 +16,7 @@ import {
 } from "@/features/ppat/deed-badges";
 import { hasFieldError, toPpatErrorKey } from "@/features/ppat/deed-errors";
 import { MatterPropertiesSection } from "@/features/properties/matter-properties-section";
+import { WarkahSection } from "@/features/warkah/warkah-section";
 import { Link } from "@/i18n/navigation";
 import {
   approvePpatDeed,
@@ -260,6 +261,22 @@ export function PpatDeedDetail({ deedId }: { deedId: string }) {
           <MatterPropertiesSection matterId={deed.matter.id} />
         </section>
       ) : null}
+
+      {/*
+        Warkah (M7.4, D-121). A section, not a tab, like everything else on this page.
+
+        It asks its own endpoint under `ppat.warkah.*` — its own family of six codes —
+        so reading the deed does not confer reading which supporting legal documents
+        the office does or does not hold, and the section renders its own honest
+        failure for a reader who holds one capability and not the other.
+
+        This is the Notary page's Minuta section one domain over: a PPAT deed's
+        supporting material is its Warkah, which is why `PpatDeedResource` carries no
+        Warkah key and why the deed payload has no completeness figure.
+      */}
+      <section className="border-border rounded-lg border p-4">
+        <WarkahSection deedId={deed.id} />
+      </section>
 
       {deed.can_record_number ? <DeedNumberSection deed={deed} /> : null}
     </div>

@@ -643,8 +643,11 @@ M7.0   PPAT architecture lock                          <- this document
 M7.1   Property + PPAT schema + Policy                   (no routes, like M5.1 and M6.1)   <- done
 M7.2   PPAT Deed surface + deed frontend                 (nine routes, no DELETE)          <- done
 M7.3   Property surface + ownership history + frontend   (twelve routes, no DELETE)        <- done
-M7.4   Warkah surface + completeness + frontend
+M7.4   Warkah surface + completeness + frontend          (eleven routes, four of six codes) <- done
 ```
+
+**M7 is feature-complete.** Sections 10 and 11 stand: taxes, registers, protocol and reports were
+never in scope and none of them was quietly added on the way past.
 
 **M7.1 is schema, Policy and Data Scope — not CRUD UI**, following M2.1, M3.1, M4.1, M4.2, M5.1 and
 M6.1. It creates, in one batch: `properties`, `property_owners`, `matter_properties`, `ppat_matters`,
@@ -675,6 +678,23 @@ Three of its rulings settle questions this document left open, and section 7 now
 - **`property_number` is office-supplied**, which answers section 15's last M7.1 question.
 - **Adding a co-owner does not close the existing holders**, which is section 7.2 honoured against a
   brief that asked for the opposite.
+
+**M7.4 landed eleven routes** and built **four of the six** `ppat.warkah.*` capabilities: `view`,
+`update`, `verify` and `upload`. `finalize` and `archive` have no route and no Policy ability, which
+is section 8.2's ruling carried out rather than reconsidered — their trigger is open question eight.
+
+Section 8.2's three refusals all held against a brief that pushed on each of them:
+
+- **Completeness counts documents, not `VERIFIED` items.** There is no item-status vocabulary to
+  count; the brief proposed six values, and `ppat_warkah_items.status` has none in the ERD.
+- **Status is settable and not gated.** The brief proposed a four-rule transition matrix; two of its
+  rules were unbuildable on their own terms, and all four are the verification rule question three
+  does not answer.
+- **No completeness figure gates any act.** A bundle at 0% verifies, and verifying says nothing about
+  the deed's own lifecycle.
+
+It also added the last navigation entry, closing **O-044**: all four PPAT destinations appeared in
+the milestone that landed their routes, and no placeholder was ever shipped.
 
 **M7.3 before M7.4** deliberately: a Warkah item may name a `party_id` and a deed names a Property
 through `matter_properties`, so the Property surface should exist before the Warkah surface leans on

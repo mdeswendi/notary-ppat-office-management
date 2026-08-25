@@ -5,6 +5,168 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.4 Warkah, completeness and frontend
+
+Branch `feat/m7-ppat`, from `1a18e14`. **Eleven routes, no migration, no permission — the count stays
+at 177.** Implements D-121; no new decision. **O-044 closes**; O-041 stays open and gains the record
+of how M7.4 honoured it.
+
+The last M7 surface: seven Actions, five Form Requests, two Resources, one new Policy, two
+Controllers, eleven routes, and the frontend that reads them — types, service, six components, one
+page, the last navigation entry and both locales.
+
+### Two of the six Warkah capabilities have no route, and that is the milestone's central refusal
+
+```text
+ppat.warkah.view      built    read the bundle, its lines and their documents
+ppat.warkah.update    built    compose it: lines, order, and status
+ppat.warkah.verify    built    mark it COMPLETE, stamping verified_at / verified_by
+ppat.warkah.upload    built    attach and detach the documents on a line
+
+ppat.warkah.finalize  NO ROUTE, no Policy ability
+ppat.warkah.archive   NO ROUTE, no Policy ability
+```
+
+The M7.4 brief asked for both endpoints. Both codes are canonical; what is missing is the **trigger**.
+*"What are the binding/archiving requirements for deeds and supporting Warkah?"* is open question
+eight, and `09_PPAT_WORKFLOW.md` §2 names exactly those obligations as *"precisely the kind of rule
+that must not be reconstructed from memory."*
+
+So `FINALIZED` and `ARCHIVED` stay stored vocabulary no code path reaches (D-121 §12), where
+`notary.minuta.archive` and `.release` also sit. `PATCH .../status` answers **422** for either; there
+is no `/finalize` or `/archive` address; and there is no `can_finalize` or `can_archive` flag,
+because a flag for an act with no route invites a control that cannot work.
+
+### Completeness counts documents, not statuses — and the brief asked for the opposite
+
+The brief specified `$verified = $this->items()->where('status', 'VERIFIED')->count()`.
+**`ppat_warkah_items.status` has no values in the ERD at all**, which is why M7.1 built no
+`PpatWarkahItemStatus` enum, left the column nullable with no default and no CHECK, and left it out
+of the fillable set. The brief's six values — `MISSING / RECEIVED / UNDER_REVIEW / VERIFIED /
+REJECTED / NOT_APPLICABLE` — are not in any canonical document.
+
+An item-status vocabulary **is** the verification rule, and *"what is the mandatory Warkah
+composition per deed type?"* is open question three. So the numerator stays what M7.1 built: **lines
+with at least one document attached, over lines the office created.** Observable, needing no
+vocabulary.
+
+`status` is `prohibited` on both item Form Requests — refused on presence rather than silently
+dropped — and exposed in the payload as a permanently-null field, so the concept stays visible for
+whoever answers question three. What the interface shows instead is `has_document`, the same fact the
+percentage counts, so the list and the figure cannot disagree.
+
+### Status is settable and not gated
+
+The brief specified a four-rule transition matrix. The M7 lock §8.2 settles it in four words:
+**"Status is settable and not gated."** Two of the four rules were also unbuildable on their own
+terms — *"every item VERIFIED or NOT_APPLICABLE"* needs the vocabulary that does not exist, and
+*"COMPLETE → FINALIZED"* needs a `FINALIZED` nothing reaches.
+
+What is enforced is the **capability**, which is the honest gate and the shape D-102 ruled for
+`MatterStatus`. `INCOMPLETE` and `UNDER_REVIEW` answer to `ppat.warkah.update`; `COMPLETE` answers to
+`ppat.warkah.verify` and is a 422 through the update path, because it stamps a pair a separate code
+was granted to control (D-091).
+
+**Verification checks nothing.** Not completeness — a bundle at 0% verifies, because *"100% does not
+mean complete in law"*. Not the item statuses. Not the current status. Each would be an invented
+rule. Reopening a verified bundle **keeps** the stamp: somebody did check it on that date, and §63
+asks that facts not be overwritten because the current state moved on.
+
+### Reading never starts a bundle
+
+The brief asked `GET .../warkah` to *"create if not exists"*. It answers **404** instead. A `view`
+capability that silently writes is one nobody can reason about; it would mean a read-only actor's
+page load inserts a row, and that every PPAT deed anyone opened acquires a bundle it never needed.
+
+The bundle materialises on the **first act of composing it** — the first line added or the first
+status set — because there is no `ppat.warkah.create` in the catalogue for a separate "start" act to
+answer to. The same reading M7.3 applied to `properties.ownership.update`. `GET .../warkah/items`
+answers 200 with `warkah_started: false`, so the section renders an empty state rather than an error.
+
+### Its own Policy, because it is its own capability family
+
+`PpatDeedPolicy` already said so: *"There is no Warkah ability here either… reading a deed does not
+read its supporting bundle, and the reverse holds too."* So `PpatWarkahPolicy` is new, registered
+against `PpatWarkah`, and every ability takes the parent **Deed** as its subject — a Warkah's reach
+*is* its deed's reach (the composite key guarantees it), and the bundle may not exist yet.
+
+### One inconsistency the smoke caught, and it was mine
+
+`PpatWarkahItemController` originally resolved the deed under *the act's* capability, so a caller
+holding `ppat.warkah.view` and not `.update` got **404** where `PpatWarkahController` gave **403** for
+the same class of refusal. The 404 was wrong: it tells a legitimate reader that nothing is there.
+
+Reachability is one question — answered 404 so an unreachable bundle stays indistinguishable from a
+nonexistent one (D-098) — and authority to act is the Policy's, answered 403. Both controllers now
+resolve under `ppat.warkah.view` and let the Policy speak, which is where `PpatDeedController` and
+`PropertyController` already drew the line. A test pins both halves.
+
+### Five guard tests narrowed, not deleted
+
+`DocumentSchemaTest`'s twelve-route inventory now filters on `api/v1/documents` rather than the bare
+word, because the two attach/detach routes live at the **Warkah** root and answer to
+`ppat.warkah.upload`. `PpatDeedManagementTest`'s *"registers no ppat warkah route yet"* asserted a
+404 that was measuring the calendar; it now asserts the boundary it was for — a deed capability gets
+**403** from the Warkah surface — and gained a sibling pinning that the deed payload carries no
+Warkah key. `CompanyRegistryStatusTest`, `CompanyRelationshipRegistryTest` and `ProjectLifecycleTest`
+each forbade the bare segment `warkah`; each now forbids the **rooted direction**, the last of the
+five segments those three have given up in turn.
+
+The frontend `deed-detail.test.tsx` guard asserted nothing on the page mentioned a Warkah; it now
+asserts the claim about the **payload**, which is the one that outlives the milestone.
+
+### Structure notes
+
+**Two controllers, not one.** The brief put eleven methods on `PpatWarkahController`; the bundle and
+its lines are split the way `PropertyController` / `PropertyOwnerController` are.
+
+**No top-level item address.** The brief proposed `PUT /api/v1/ppat/warkah/items/{item}`; a line has
+no existence apart from its bundle and a bundle none apart from its deed, so every address names all
+three — D-105's convention, which M6.3 and M7.3 both followed. `PATCH`, not `PUT`.
+
+**Route names carry the capability family** — `api.v1.ppat.warkah.*` — while the URIs nest under the
+deed. A name is checked against the code that authorizes it, and these answer to `ppat.warkah.*`.
+
+**Sections, not tabs**, for the sixth milestone running.
+
+**A hard delete on a line, said plainly.** `ppat_warkah_items` has no `deleted_at` in the ERD, so the
+brief's "soft delete" has no column. Removing a line the office typed in error is composing the
+checklist; the Documents themselves survive, and only the assertion that this file satisfied this
+line goes. The confirmation says so.
+
+### Verification
+
+Backend `pint --test` clean; full suite green — **2820 passing, 8 skipped**, of which **54 are new
+Warkah tests**. Frontend `format:check`, `lint` (0 errors, 3 pre-existing warnings), `typecheck`,
+`test` (**187, 16 new**) and `build` all pass.
+
+PostgreSQL HTTP smoke on a disposable `m74_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere:
+**74/74**. The serving process proved its own database with `SELECT current_database()` before the
+first functional request (O-034). Four actors: fully capable (including the two unimplemented codes,
+granted deliberately to prove they still reach nothing), view-only, one holding `update` without
+`upload`, and one holding `ppat.deeds.view` and no Warkah capability at all — which is how both
+capability splits were measured rather than assumed.
+
+Confirmed end to end: the bundle 404s until the first line and is never created by a read; four
+lines with one document is 25% and a second document on the same line is still 25%; detaching the
+last document drops it back to 0%; `MISSING`, `RECEIVED`, `VERIFIED` and `NOT_APPLICABLE` all refused
+on presence; `COMPLETE`, `FINALIZED` and `ARCHIVED` all 422 through the status path; verification at
+0% succeeds and writes no finalized pair; reopening keeps the stamp; `/finalize` and `/archive` 404;
+`DELETE` on a bundle 405; the top-level item address and a cross-deed line both 404; a removed line
+leaves its Document standing; `update` without `upload` is 403 on attach; a deed capability alone
+gets 404 on the bundle and 403 on the list; no NIK or NPWP anywhere; anonymous 401.
+
+**One run was discarded rather than reported**: the first attempt crashed in PowerShell's output
+formatter *after* mutating the probe, so the second run against that database showed nine lines where
+it expected four. The probe was dropped and recreated rather than the expectations adjusted — a green
+number from a dirty fixture is worth nothing.
+
+The persistent development database was not touched: 42 migrations before and after, with
+`ppat_warkah` confirmed absent from it. Probe dropped afterwards.
+
+---
+
 ## 2026-08-25 — M7.3 Property, ownership history and frontend
 
 Branch `feat/m7-ppat`, from `55b9655`. **Twelve routes, no migration, no permission — the count

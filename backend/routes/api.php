@@ -24,6 +24,8 @@ use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PpatDeedController;
+use App\Http\Controllers\Api\V1\PpatWarkahController;
+use App\Http\Controllers\Api\V1\PpatWarkahItemController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProjectAssignmentController;
 use App\Http\Controllers\Api\V1\ProjectController;
@@ -626,6 +628,72 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('deed')->name('finalize');
             Route::patch('deeds/{deed}/number', [PpatDeedController::class, 'recordNumber'])
                 ->whereUlid('deed')->name('number');
+        });
+
+        /*
+         * Warkah — the supporting documents bound with a PPAT Deed (M7.4, D-121).
+         *
+         * **The URIs nest under the deed; the route names carry the capability
+         * family.** `api.v1.ppat.warkah.*` rather than `api.v1.ppat.deeds.warkah.*`,
+         * because a name is checked against the code that authorizes it and these
+         * answer to `ppat.warkah.*` — a family entirely separate from
+         * `ppat.deeds.*`. The URI says who owns the row; the name says who may
+         * touch it.
+         *
+         * **Four capabilities have routes and two deliberately do not:**
+         *
+         * ```text
+         * view     index, show, options, items.index
+         * update   status, items.store, items.update, items.destroy
+         * verify   verify
+         * upload   items.documents.store, items.documents.destroy
+         *
+         * finalize   NO ROUTE — registered, unimplemented
+         * archive    NO ROUTE — registered, unimplemented
+         * ```
+         *
+         * The M7.4 brief asked for `finalize` and `archive` endpoints. Both codes
+         * are canonical; what is missing is the *trigger*. *"What are the
+         * binding/archiving requirements for deeds and supporting Warkah?"* is open
+         * question eight, and `09_PPAT_WORKFLOW.md` section 2 names exactly those
+         * obligations as *"precisely the kind of rule that must not be reconstructed
+         * from memory."* `FINALIZED` and `ARCHIVED` stay stored vocabulary no code
+         * path reaches (D-064, O-041).
+         *
+         * **No top-level item address.** The brief proposed
+         * `PUT /ppat/warkah/items/{item}`; a line has no existence apart from its
+         * bundle, and a bundle none apart from its deed, so every address names all
+         * three — the D-105 convention M6.3 and M7.3 both followed.
+         *
+         * **`GET /ppat/deeds/{deed}/warkah` answers 404 while nothing is started**
+         * and does not create one. A `view` capability that silently writes is one
+         * nobody can reason about; the bundle materialises on the first act of
+         * composing it, under `ppat.warkah.update`.
+         *
+         * `warkah` and `options` are declared before `{deed}` bindings where they
+         * could otherwise be read as an id.
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.warkah.')->group(function (): void {
+            Route::get('warkah', [PpatWarkahController::class, 'index'])->name('index');
+            Route::get('warkah/options', [PpatWarkahController::class, 'options'])->name('options');
+
+            Route::prefix('deeds/{deed}/warkah')->whereUlid('deed')->group(function (): void {
+                Route::get('/', [PpatWarkahController::class, 'show'])->name('show');
+                Route::patch('status', [PpatWarkahController::class, 'updateStatus'])->name('status');
+                Route::post('verify', [PpatWarkahController::class, 'verify'])->name('verify');
+
+                Route::get('items', [PpatWarkahItemController::class, 'index'])->name('items.index');
+                Route::post('items', [PpatWarkahItemController::class, 'store'])->name('items.store');
+                Route::patch('items/{item}', [PpatWarkahItemController::class, 'update'])
+                    ->whereUlid('item')->name('items.update');
+                Route::delete('items/{item}', [PpatWarkahItemController::class, 'destroy'])
+                    ->whereUlid('item')->name('items.destroy');
+
+                Route::post('items/{item}/documents', [PpatWarkahItemController::class, 'attachDocument'])
+                    ->whereUlid('item')->name('items.documents.store');
+                Route::delete('items/{item}/documents/{document}', [PpatWarkahItemController::class, 'detachDocument'])
+                    ->whereUlid('item')->whereUlid('document')->name('items.documents.destroy');
+            });
         });
 
         /*

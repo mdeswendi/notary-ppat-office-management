@@ -409,11 +409,16 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // own root under `properties.*`, never at `/projects/{id}/properties`. The Project
     // page answers *"which land does this engagement concern?"* with
     // `?project_id=`, correlated through the Matter — the D-118 shape, not a second
-    // address. `warkah` stays forbidden outright: M7.4 has not shipped it anywhere.
+    // address.
+    //
+    // **Narrowed again at M7.4** for Warkah, the last of them. A Warkah is the
+    // supporting bundle of one *deed* and is reached by naming that deed; a Project
+    // never roots one.
     foreach ([
         'projects/{project}/participants', 'projects/{project}/matters',
         'projects/{project}/workflow', 'projects/{project}/stages',
-        'projects/{project}/deeds', 'projects/{project}/properties', 'warkah',
+        'projects/{project}/deeds', 'projects/{project}/properties',
+        'projects/{project}/warkah',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);

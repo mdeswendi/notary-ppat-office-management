@@ -5,6 +5,7 @@ import {
   Building2,
   Contact,
   FileText,
+  FolderCheck,
   FolderKanban,
   KeyRound,
   Landmark,
@@ -216,20 +217,21 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         // permission namespace are different things, deliberately.
         requiredPermission: "properties.view",
       },
-      /*
-       * **No Warkah entry yet, and that is deliberate.**
-       *
-       * The M7.2 and M7.3 briefs both asked for one as a placeholder pointing at
-       * `/ppat/warkah`. D-064 is the standing ruling against exactly that: a
-       * navigation entry whose route does not exist offers somebody a link to a 404,
-       * and every milestone since M5.2 has waited for the routes before adding the
-       * entry — including `notary.deeds` above, which stayed absent through M6.1 and
-       * appeared at M6.2, and `ppat.properties` beside it, which stayed absent
-       * through M7.1 and M7.2.
-       *
-       * `ppat.warkah.*` is a canonical family of six codes with three tables since
-       * M7.1 and no surface. M7.4 adds the routes and the entry together (O-044).
-       */
+      {
+        key: "ppat.warkah",
+        translationKey: "ppatWarkah",
+        href: "/ppat/warkah",
+        icon: FolderCheck,
+        // Added at M7.4, when the routes landed — the last of the four PPAT entries
+        // and the one that closes O-044. Both the M7.2 and M7.3 briefs asked for it
+        // as a placeholder and both were refused: a navigation entry whose route does
+        // not exist offers somebody a link to a 404 (D-064).
+        implemented: true,
+        // Its own family of six codes. Reading a deed confers nothing here, and
+        // reading a Warkah confers nothing on the deed — an office may reasonably
+        // grant one without the other in either direction.
+        requiredPermission: "ppat.warkah.view",
+      },
     ],
   },
   {

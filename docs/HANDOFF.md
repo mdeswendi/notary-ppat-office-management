@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M7.1
+# Project Handoff — M0 through M7.4
 
-**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 and M7.1 are on this branch.
+**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 through M7.4 are on this branch.
 **Last accepted merge to `main`:** O-037 (`fa381fa`), which brought M5 and M6 with it.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M7.1.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M7.4.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.3 on `feat/m7-ppat` |
+| Milestones complete | **M0 – M7 feature-complete** — M0 – M6 merged to main · M7.0 – M7.4 on `feat/m7-ppat` |
 | Migrations | **50** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 36 |
-| API routes | **177** under `/api/v1` (184 total) |
-| Backend tests | **2765 passing, 8 skipped** across 87 files (Pest) |
-| Frontend tests | **171 passing** across 18 files (Vitest + RTL) |
-| Frontend pages | 51 |
+| API routes | **188** under `/api/v1` (195 total) |
+| Backend tests | **2820 passing, 8 skipped** across 88 files (Pest) |
+| Frontend tests | **187 passing** across 19 files (Vitest + RTL) |
+| Frontend pages | 52 |
 | Decisions recorded | **D-001 … D-121** |
-| Open items | 22 still open (§7) — O-037 closed, O-039…O-046 added 2026-08-25 |
+| Open items | 21 still open (§7) — O-037 and **O-044** closed, O-039…O-046 added 2026-08-25 |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -59,14 +59,21 @@ database created and dropped for the purpose, never against this one. See §6.
 ### Routes by domain
 
 ```text
-notary 29      companies 19  ppat 29   projects 15   individuals 14
+notary 29      companies 19  ppat 40   projects 15   individuals 14
 users 13       tasks 12      security 12  documents 12  properties 9
 roles 7        profile 2     parties 1    permissions 1  health 1   me 1
 ```
 
 `ppat` gained nine at M7.2 — index, store, show, update, options, review, approve, finalize and
-number — and three more at M7.3 for the Matter/Property junction. There is deliberately no `destroy`
-on a deed: see O-039 and the M7.2 entry in `CHANGELOG.md`.
+number — three more at M7.3 for the Matter/Property junction, and **eleven at M7.4** for Warkah.
+There is deliberately no `destroy` on a deed: see O-039 and the M7.2 entry in `CHANGELOG.md`.
+
+**The Warkah routes nest under the deed and are named for their capability family.** The URIs are
+`ppat/deeds/{deed}/warkah/…` because a bundle has no existence apart from one deed; the names are
+`api.v1.ppat.warkah.*` because a route name is checked against the code that authorizes it, and these
+answer to `ppat.warkah.*` rather than `ppat.deeds.*`. There is one top-level address,
+`GET /ppat/warkah`, which answers the one question a per-deed page cannot: *which bundles are still
+short?*
 
 **`properties` is its own root, not `ppat/properties`**, and the asymmetry is deliberate. The
 canonical family is `properties.*` with no `ppat.` prefix, and D-101 says the route decides the
@@ -103,7 +110,10 @@ the single most load-bearing process choice in the project.
 | **M6 merge** | M5 and M6 both entered `main` here — M5 had never been merged on its own | `cc56a4f` |
 | **O-037** | Notary Deeds on the Project page, as a `project_id` filter | `fa381fa` |
 | **M7.0** | PPAT architecture lock — nine open questions, seven of them M7's | `aa0c251` |
-| **M7.1** | Property + PPAT schema (eight tables), two Policies, Data Scope — no routes | on branch |
+| **M7.1** | Property + PPAT schema (eight tables), two Policies, Data Scope — no routes | `0d04c07` |
+| **M7.2** | Nine PPAT deed endpoints, three pages, Matter and Project deed sections | `55b9655` |
+| **M7.3** | Property surface, chain of title, Matter/Property junction — twelve routes | `1a18e14` |
+| **M7.4** | Warkah: eleven routes, four of the six codes, deed section and list | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -316,7 +326,6 @@ in §8.
 | O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
 | O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
 | O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
-| O-044 | PPAT Warkah has capabilities, tables and no routes | **Half closed at M7.3**, which built Property and added its entry. M7.4 adds the Warkah one with its routes (D-064) |
 | O-045 | Archiving a Property cannot be undone through the product | No `properties.restore` in the catalogue; archiving destroys nothing and the record stays readable |
 | O-046 | A Property has no documents, because `property_documents` does not exist | Blocked since M5.1; unblocking is a migration plus an enum case, which M7.3 was scoped without |
 
@@ -391,12 +400,20 @@ M7.0  PPAT architecture lock                      <- done
 M7.1  Property + PPAT schema + Policy   (eight tables, no routes)   <- done
 M7.2  PPAT Deed surface + deed frontend (nine routes, no DELETE)    <- done
 M7.3  Property + ownership history      (twelve routes, no DELETE)  <- done
-M7.4  Warkah surface + completeness + frontend
+M7.4  Warkah + completeness + frontend  (eleven routes, four of six codes)  <- done
 ```
 
-**M7.4 owes the last navigation entry.** M7.2 added Deeds and M7.3 added Property; Warkah has six
-capabilities, three tables and no routes, so an entry for it would link to a 404 (D-064, O-044). Add
-it in the milestone that lands its routes, as the other three were.
+**M7 is feature-complete.** All four PPAT navigation entries are in place and **O-044 is closed** —
+each appeared in the milestone that landed its routes, and no placeholder was ever shipped despite
+three briefs asking for one.
+
+**What M7 deliberately did not build stays unbuilt**: taxes (no capability at all, O-040), registers
+and protocol (batch 11, O-042), reports (M8, O-043), and the two Warkah acts whose trigger is open
+question eight (O-041). None of those is a gap to fill on the way past — each needs a domain source
+or a catalogue decision first.
+
+**The next milestone is M8 — Dashboard, Billing & Reports.** It is the first that has never had an
+architecture lock written, and `01_ARCHITECTURE.md` §28 is where it starts.
 
 **M7.4 note:** a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six
 `ppat.warkah.*` codes. `PpatDeedResource` deliberately carries **no** Warkah key — a deed capability
@@ -449,6 +466,25 @@ open question nine (O-039).
 - **A link in a chain of title is never deleted.** `property_owners` has no `deleted_at`; ending an
   ownership is stamping `effective_until`. Do not add a delete route on the strength of the brief
   asking for one.
+
+**M7.4's findings, and each is a thing not to undo:**
+
+- **`ppat_warkah_items.status` has no vocabulary, and none may be invented.** The ERD names the column
+  and gives it no values. The M7.4 brief proposed six; an item-status vocabulary *is* the verification
+  rule, which is open question three. The column is `prohibited` on both item Form Requests and always
+  null in the payload. **Completeness therefore counts documents, not statuses** — lines with a file
+  attached, over lines the office created (O-041).
+- **`ppat.warkah.finalize` and `.archive` have no route and no Policy ability.** Both codes are
+  canonical; the trigger is open question eight, which `09_PPAT_WORKFLOW.md` §2 names as exactly the
+  kind of rule not to reconstruct from memory. `FINALIZED` and `ARCHIVED` stay stored vocabulary
+  nothing reaches, and `PATCH .../status` answers 422 for either.
+- **Status is settable and not gated.** No transition matrix (the M7 lock §8.2, and D-102's shape).
+  The capability is the gate: `INCOMPLETE`/`UNDER_REVIEW` under `update`, `COMPLETE` under `verify`.
+  Verification checks neither completeness nor item statuses nor the current status — each would be an
+  invented rule.
+- **Reading never starts a bundle.** `GET .../warkah` 404s until the office composes one; the brief
+  asked the read endpoint to create it. There is no `ppat.warkah.create`, so the first line or the
+  first status materialises the row under `ppat.warkah.update`.
 
 ### Before the next milestone starts
 

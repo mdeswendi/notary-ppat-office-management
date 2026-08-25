@@ -648,12 +648,35 @@ it('does not let a ppat capability reach the notary deed surface', function (): 
     $this->actingAs($actor)->getJson('/api/v1/notary/deeds')->assertForbidden();
 });
 
-it('registers no ppat warkah route yet', function (): void {
-    // `ppat.warkah.*` is its own family of capabilities and M7.4 owns that surface. A
-    // Warkah is not reachable through a deed capability, and no address serves one.
+it('does not let a deed capability reach the warkah surface', function (): void {
+    // **Narrowed at M7.4, not deleted.** This read `assertNotFound()` while
+    // `/api/v1/ppat/warkah` did not exist — M7.4 owns that surface and has now built
+    // it, so the old assertion was measuring the calendar rather than the boundary.
+    //
+    // What the guard was actually for survives intact, and it is the sentence the
+    // original comment already carried: **a Warkah is not reachable through a deed
+    // capability.** `ppat.warkah.*` is its own family of six codes, and holding
+    // `ppat.deeds.view` confers nothing on it. 403, not 404 — the surface exists, this
+    // caller may not use it.
     [$actor] = ppatDeedApiActor(['ppat.deeds.view']);
 
-    $this->actingAs($actor)->getJson('/api/v1/ppat/warkah')->assertNotFound();
+    $this->actingAs($actor)->getJson('/api/v1/ppat/warkah')->assertForbidden();
+});
+
+it('does not carry a warkah into the deed payload', function (): void {
+    // The symmetric half, and the reason `PpatDeedResource` names its absence: reading
+    // a deed does not read which supporting legal documents an office does or does not
+    // hold. The bundle is asked for separately, under its own capability.
+    [$actor, $office] = ppatDeedApiActor(['ppat.deeds.view', 'ppat.warkah.view']);
+
+    $deed = PpatDeed::factory()->forMatter(ppatDeedMatterIn($office))->create();
+
+    $response = $this->actingAs($actor)->getJson("/api/v1/ppat/deeds/{$deed->getKey()}")
+        ->assertOk();
+
+    expect($response->json('data'))
+        ->not->toHaveKey('warkah')
+        ->not->toHaveKey('completeness_percentage');
 });
 
 /*

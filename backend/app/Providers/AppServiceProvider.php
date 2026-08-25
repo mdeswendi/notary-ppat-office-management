@@ -9,6 +9,7 @@ use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\NotaryDeed;
 use App\Models\PpatDeed;
+use App\Models\PpatWarkah;
 use App\Models\ProjectParty;
 use App\Models\Property;
 use App\Models\ServiceType;
@@ -22,6 +23,7 @@ use App\Policies\MatterPolicy;
 use App\Policies\NotaryDeedPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\PpatDeedPolicy;
+use App\Policies\PpatWarkahPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\PropertyPolicy;
 use App\Policies\RolePolicy;
@@ -140,6 +142,16 @@ class AppServiceProvider extends ServiceProvider
         // D-080 withheld them for Party. Ownership is its own capability pair,
         // separate from viewing and updating the parcel itself.
         Gate::policy(Property::class, PropertyPolicy::class);
+
+        // Warkah (M7.4, D-121). Its own family of six codes, four of which are
+        // implemented — `finalize` and `archive` have no ability and no route,
+        // because their trigger is open question eight (O-041, D-064).
+        //
+        // Every ability takes the parent Deed as its subject: a Warkah's reach *is*
+        // its deed's reach, and the bundle may not exist yet. Registered against
+        // `PpatWarkah` so the class-level form `authorize('manage', [PpatWarkah::class,
+        // $deed])` resolves here.
+        Gate::policy(PpatWarkah::class, PpatWarkahPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

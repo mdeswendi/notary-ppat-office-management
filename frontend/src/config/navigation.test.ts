@@ -163,25 +163,26 @@ describe("visibleNavigation — the M4 domain groups", () => {
     expect(ppat).not.toContain("notary.matters");
   });
 
-  it("carries Matters, Deeds and Property and nothing else in the PPAT group", () => {
-    // **Narrowed three times, never deleted.** It first asserted that *both* domain
+  it("carries the four PPAT destinations and nothing else", () => {
+    // **Narrowed four times, never deleted.** It first asserted that *both* domain
     // groups carried exactly one child, which was right until M6.2 gave Notary its
     // Deeds entry; M6.2 narrowed it to PPAT alone; M7.2 gave PPAT its Deeds entry;
-    // M7.3 gives it Property.
+    // M7.3 gave it Property; M7.4 gives it Warkah and completes the group.
     //
     // What survives is the claim the test was really making, and it still holds:
-    // **Warkah, taxes and registers have canonical capabilities and no routes**, so
+    // **taxes, registers and reports have canonical capabilities and no routes**, so
     // they are absent rather than shown dark — a group whose child is unreachable is a
-    // promise the product does not keep (D-064).
+    // promise the product does not keep (D-064). `ppat.taxes.*` does not even have
+    // codes (O-040).
     const both = visibleNavigation(user(["notary.matters.view", "ppat.matters.view"]));
     const ppat = both.find((item) => item.key === "ppat");
 
-    // One child here, because this actor holds `ppat.matters.view` and neither of the
-    // other two gates — all three are independent.
+    // One child here, because this actor holds `ppat.matters.view` and none of the
+    // other three gates — all four are independent.
     expect(ppat?.children).toHaveLength(1);
 
     const capable = visibleNavigation(
-      user(["ppat.matters.view", "ppat.deeds.view", "properties.view"]),
+      user(["ppat.matters.view", "ppat.deeds.view", "properties.view", "ppat.warkah.view"]),
     );
     const group = capable.find((item) => item.key === "ppat");
 
@@ -189,6 +190,7 @@ describe("visibleNavigation — the M4 domain groups", () => {
       "ppat.matters",
       "ppat.deeds",
       "ppat.properties",
+      "ppat.warkah",
     ]);
   });
 });
@@ -295,17 +297,21 @@ describe("visibleNavigation — the M7 PPAT Deeds entry", () => {
   });
 
   /**
-   * **Narrowed at M7.3, not deleted.** This asserted that Property was among the
-   * destinations D-064 refused, which was true while `/ppat/properties` did not exist —
-   * the M7.2 brief asked for it as a placeholder and M7.2 declined. M7.3 built the
-   * routes, so Property leaves the list and gains its own tests below.
+   * **Narrowed at M7.3 and again at M7.4, never deleted.** This once asserted that
+   * Property *and* Warkah were among the destinations D-064 refused, which was true
+   * while neither route existed — both the M7.2 and M7.3 briefs asked for placeholders
+   * and both were declined. M7.3 built Property and M7.4 built Warkah, so each leaves
+   * the list in turn and gains its own tests. **O-044 closes here.**
    *
-   * The rest has not expired. Warkah, registers, taxes, protocol and reports all have
-   * canonical capabilities and no routes, which is precisely the situation D-064 was
-   * written for (O-044). `properties.view` is added to the actor here specifically to
-   * show that holding it lights up **Property and nothing else**.
+   * The rest has not expired, and is what the guard now protects: registers, taxes,
+   * protocol and reports all have tables or capabilities and no routes, which is
+   * precisely the situation D-064 was written for. `ppat.taxes.*` does not even have
+   * codes — the finding that shaped M7's scope (O-040).
+   *
+   * Both built capabilities are handed to the actor here specifically to show that
+   * holding them lights up **those two and nothing else**.
    */
-  it("offers no Warkah, register, tax, protocol or report destination", () => {
+  it("offers no register, tax, protocol or report destination", () => {
     const everything = keysOf(
       visibleNavigation(
         user([
@@ -320,12 +326,61 @@ describe("visibleNavigation — the M7 PPAT Deeds entry", () => {
     );
 
     expect(everything).toContain("ppat.properties");
+    expect(everything).toContain("ppat.warkah");
 
-    expect(everything).not.toContain("ppat.warkah");
     expect(everything).not.toContain("ppat.register");
     expect(everything).not.toContain("ppat.taxes");
     expect(everything).not.toContain("ppat.protocol");
     expect(everything).not.toContain("ppat.reports");
+  });
+});
+
+describe("visibleNavigation — the M7.4 Warkah entry", () => {
+  it("shows Warkah only to an account holding ppat.warkah.view", () => {
+    // The last of the four, and the same sequence every entry has followed: the six
+    // `ppat.warkah.*` codes have been canonical since M1.2 and the entry stayed absent
+    // through M7.1 (three tables), M7.2 and M7.3 — whose briefs both asked for a
+    // placeholder. Registering a permission is not shipping a feature (D-064); the
+    // entry appears at M7.4, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.view"])))).toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.upload"])))).not.toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.verify"])))).not.toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("ppat.warkah");
+  });
+
+  /**
+   * **Reading a deed confers no Warkah reach, and the reverse holds too.**
+   *
+   * `ppat.warkah.*` is its own family of six codes. An office may let a clerk assemble
+   * evidence without letting them read the deed, or the reverse — and the two entries
+   * are gated independently so the menu reflects that.
+   */
+  it("gates Warkah and Deeds on their own codes, in both directions", () => {
+    const deeds = keysOf(visibleNavigation(user(["ppat.deeds.view"])));
+    const bundles = keysOf(visibleNavigation(user(["ppat.warkah.view"])));
+
+    expect(deeds).toContain("ppat.deeds");
+    expect(deeds).not.toContain("ppat.warkah");
+
+    expect(bundles).toContain("ppat.warkah");
+    expect(bundles).not.toContain("ppat.deeds");
+
+    expect(deeds).toContain("ppat");
+    expect(bundles).toContain("ppat");
+  });
+
+  /**
+   * **The two unimplemented codes light up nothing.** `ppat.warkah.finalize` and
+   * `.archive` are canonical and have no route, because their trigger is open question
+   * eight (O-041). An account holding both and nothing else sees no PPAT group at all.
+   */
+  it("shows nothing for the two warkah codes that have no surface", () => {
+    const visible = keysOf(
+      visibleNavigation(user(["ppat.warkah.finalize", "ppat.warkah.archive"])),
+    );
+
+    expect(visible).not.toContain("ppat");
+    expect(visible).not.toContain("ppat.warkah");
   });
 });
 

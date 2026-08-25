@@ -24,6 +24,38 @@ vi.mock("@/services/ppat", () => ({
   recordPpatDeedNumber: vi.fn(),
 }));
 
+// The deed page delegates its Warkah block to `WarkahSection`, which asks its own
+// endpoint under `ppat.warkah.*` (M7.4). Mocked here so this file keeps testing the
+// deed page rather than the network. A rejection is the ordinary "nothing started"
+// answer, and a `warkah_started: false` list is the empty state beside it.
+vi.mock("@/services/warkah", () => ({
+  warkahKeys: {
+    all: () => ["ppat", "warkah"],
+    list: (query: unknown) => ["ppat", "warkah", "list", query],
+    options: () => ["ppat", "warkah", "options"],
+    forDeed: (id: string) => ["ppat", "deeds", id, "warkah"],
+    items: (id: string) => ["ppat", "deeds", id, "warkah", "items"],
+  },
+  getWarkah: vi.fn().mockRejectedValue(new Error("no warkah")),
+  getWarkahItems: vi.fn().mockResolvedValue({
+    data: [],
+    meta: {
+      total: 0,
+      can_manage: false,
+      can_upload: false,
+      collected: 0,
+      completeness_percentage: 0,
+      warkah_started: false,
+    },
+  }),
+  setWarkahStatus: vi.fn(),
+  verifyWarkah: vi.fn(),
+  addWarkahItem: vi.fn(),
+  removeWarkahItem: vi.fn(),
+  attachWarkahDocument: vi.fn(),
+  detachWarkahDocument: vi.fn(),
+}));
+
 const services = await import("@/services/ppat");
 
 function axiosError(status: number, data: unknown = {}): AxiosError {
@@ -177,11 +209,20 @@ describe("PpatDeedDetail", () => {
 
   /**
    * **One document slot, not three.** `ppat_deeds` carries `final_document_id` alone;
-   * the draft and Minuta slots belong to the Notary deed page. A PPAT deed's
-   * supporting material is its Warkah, which is M7.4's surface under its own family
-   * of capabilities — so nothing here claims to show one.
+   * the draft and Minuta slots belong to the Notary deed page.
+   *
+   * **Narrowed at M7.4, not deleted.** This also asserted that nothing on the page
+   * mentioned a Warkah, which was true while M7.4 had not shipped one. It now has, and
+   * the page carries a `WarkahSection` that asks its own endpoint.
+   *
+   * The claim worth keeping is the one about the **payload**: a PPAT deed's supporting
+   * material is its Warkah, and `PpatDeedResource` deliberately carries no Warkah key
+   * and no completeness figure — reading a deed does not read which supporting legal
+   * documents an office does or does not hold. The section is a separate request under
+   * `ppat.warkah.view`, and it fails honestly for a reader who holds one capability and
+   * not the other.
    */
-  it("shows one document slot and no warkah section", async () => {
+  it("shows one document slot, and carries no warkah in the deed payload", async () => {
     vi.mocked(services.getPpatDeed).mockResolvedValue(deed());
 
     renderDetail();
@@ -191,7 +232,12 @@ describe("PpatDeedDetail", () => {
     expect(screen.getByText("ppat.documentSlots.final")).toBeInTheDocument();
     expect(screen.queryByText("ppat.documentSlots.draft")).not.toBeInTheDocument();
     expect(screen.queryByText("ppat.documentSlots.minuta")).not.toBeInTheDocument();
-    expect(screen.queryByText(/warkah/i)).not.toBeInTheDocument();
+
+    // The payload the deed endpoint returns names no bundle and no percentage.
+    const payload = vi.mocked(services.getPpatDeed).mock.results[0]?.value as Promise<unknown>;
+
+    expect(await payload).not.toHaveProperty("warkah");
+    expect(await payload).not.toHaveProperty("completeness_percentage");
   });
 
   it("shows an unnumbered deed as unnumbered rather than blank", async () => {
