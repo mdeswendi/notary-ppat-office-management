@@ -5,6 +5,140 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M8.0 Dashboard, Billing & Reports architecture lock
+
+Branch `feat/m8-dashboard`, from `d3bd0b4`. **No code, no migration, no permission — the count stays
+at 177.** Adds `docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md`, D-122 through D-126, and
+O-047 through O-050. The seventh `.0` lock, and the last one the plan contains.
+
+### M8 is the mirror image of M6 and M7, not a repeat of them
+
+M6 and M7 were milestones with **canonical tables and missing capabilities** — `protocol_records` and
+`ppat_tax_records` are defined field by field in the ERD while the catalogue has no
+`notary.protocol.*` or `ppat.taxes.*` code at all (O-036, O-040). Billing is the reverse:
+
+```text
+Billing capabilities in the registry     17
+Billing tables in 03_DATABASE_ERD.md      0
+```
+
+`03_DATABASE_ERD.md` defines no `quotations`, `invoices`, `invoice_items`, `payments` or
+`disbursements` section. The only occurrences of "payment" in the whole ERD are `payment_reference`
+and `payment_date` — two columns inside `ppat_tax_records`, which belongs to the tax surface O-040
+refused. §27's numbering table names five sequence codes and neither `INVOICE` nor `QUOTATION` is
+among them.
+
+**So M8.2 will design database schema, which no milestone in this project has previously done**
+(D-124, O-049). M1 through M7 transcribed field lists, and where the ERD was silent about a table
+they needed, they did not build it. Three bounds make the departure a bounded one: the lifecycle is
+**read off the catalogue's verbs** rather than invented, nothing computes or gates on tax, and the
+shape is marked as designed rather than transcribed so no future reader mistakes it for canon.
+
+### Sharing batch 11 is not sharing a disposition
+
+ERD §32 puts billing in batch 11 with registers, protocol and taxes — the three M6 and M7 both
+declined. Those were declined because **their domain rules are unauthored**: what a protocol period
+is and how it closes, which taxes gate which stage, a register's format and period. Billing has no
+such gap. An office invoicing its own client is commerce, not Indonesian notarial procedure, and
+`CLAUDE.md` §62's list of things not to invent does not include it.
+
+**The tax boundary is what keeps that distinction honest** (D-124). No `tax_amount`, no `ppn_rate`,
+no BPHTB, PPh or PNBP field, no calculation deriving one figure from another by a rate. An office
+needing to show a tax types it as a line item it names itself — a typed line is a fact the office
+asserted, a computed line is a tax rule the software encoded. Disbursements are records, not tax, and
+are not a back door to `ppat_tax_records`.
+
+### Batch 7 is overdue, not premature — and D-115 closes at M8.1
+
+ERD §32 places `activity` and `audit` in batch **7**. M5 built `tasks` from that batch and left the
+rest; M6 built batch 8 and M7 batches 8 and 10 — both *later*. The ordering argument that kept
+`audit_logs` out of M1 (D-033) and out of M5 (D-115) has been satisfied for three milestones running
+and is now the argument **for** building it.
+
+Both tables are transcribed verbatim from ERD §24 and §25, including the ERD's own note that
+`audit_logs` has no `updated_at` and no `deleted_at` — enforced **structurally** at M8.1, with no
+update path, no delete path, and no internal method that could perform one.
+
+**Neither table is backfilled** (D-123). Seven milestones happened before `activities` existed and
+those events were not recorded; manufacturing rows would put fabricated timestamps and inferred
+actors into a table whose entire value is being factual. The activity feed starts **empty** and the
+Dashboard's activity panel shows an empty state on the day M8.1 ships — expected behaviour, not a
+defect, and not to be patched by seeding.
+
+### One premise of the M8 brief did not survive checking
+
+The brief listed the Activity model under what already exists and relevant for M8, with the dashboard
+activity feed and the audit report both reading from it. **There is no `Activity` model and no
+`activities` table.** There is no `audit_logs` table, no `AuditLog` model, and no `quotations`,
+`invoices`, `payments` or `disbursements` table or model. `backend/app/Models/` holds 35 models and
+none of them is any of these. The lock states this explicitly in §3.4, because an activity feed is
+the most natural thing to assume is already present by M8 — and it is not.
+
+### The Dashboard invents no authority
+
+There is no `dashboard.*` code in the registry, none is registered, and none is needed (D-122). Every
+panel is gated by the capability of the resource it summarises; an actor holding none of them sees a
+Dashboard with no panels, which is correct rather than an error state.
+
+**A count is a disclosure and obeys Data Scope.** An actor whose `notary.matters.view` scope is
+`ASSIGNED` sees a count of Matters assigned to them, never the Office total. This is the rule most
+easily got wrong, because a count feels like less disclosure than a list and is not: on a small
+Office a count plus a filter reconstructs the list.
+
+### Two gaps ship stated rather than closed with an invented verb
+
+**`billing.amount.view` is a second gate** (D-125): it authorizes every monetary figure, including
+aggregates, and masking is applied server-side — a masked amount is **absent from the payload**, not
+present-and-hidden, the same rule that governs NIK and NPWP.
+
+**A verified payment has no correction path** (O-050). No `payments.update`, no delete, no reversal
+verb. Mitigated by the verify gate — only `VERIFIED` payments count toward a settled total — but a
+payment verified in error cannot be fixed through the product. Shipped honestly, as M7.3 shipped
+one-way property archiving (O-045).
+
+### Two report families exist and their names differ only in word order
+
+The registry carries `reports.ppat.view` — one of M8's six `reports.*` codes, a cross-cutting read of
+PPAT activity — and separately a **five-code `ppat.reports.*` family**: `view`, `generate`, `review`,
+`approve`, `export`. The second is a production-and-sign-off workflow, which is the PPAT **monthly
+reporting obligation** — open question five, with deadline, recipient and format all unauthored
+(O-043, still open).
+
+**M8.3 implements the first family and builds no endpoint for any of the second** (D-126). The lock
+states this twice, in §3.2 and §10, because confusing the two is the most consequential mistake
+available in this milestone: it would produce something resembling a statutory return, which invites
+being filed as one.
+
+### Calendar is canonical, complete, and owned by nobody
+
+`calendar_events` has an ERD field list, six event types, five registered capabilities, a menu
+destination and a batch-7 position. **No milestone from M0 to M8 names it**, and DECISIONS.md had
+never recorded that. It stays outside M8 under `CLAUDE.md` §60, but O-048 records that **unlike every
+other item in the ledger it is blocked on nothing** — not a domain rule, not a catalogue extension,
+not a missing table. Only assignment.
+
+### M8 is the last milestone in the plan
+
+`CLAUDE.md` §2 and `01_ARCHITECTURE.md` §28 both end at M8. Nothing M8 declines has a later milestone
+to fall into. That changes no ruling — scope discipline is not suspended because the calendar is
+running out — but it changes what the ledger means. At M6 and M7 an open item was a deferral. **At M8
+it is a statement about what the delivered product does not do.**
+
+### Decomposition
+
+```text
+M8.0  Architecture lock                                   <- this entry
+M8.1  Dashboard + audit & activity foundation             closes D-115
+M8.2  Billing — quotations, invoices, payments, disbursements
+M8.3  Reports — five families, read-only, scoped
+M8.4  M8 quality gate
+```
+
+The order is forced, not chosen: `reports.audit.view` cannot be built before `audit_logs` exists and
+`reports.financial.view` cannot be built before billing does.
+
+---
+
 ## 2026-08-25 — M7.4 Warkah, completeness and frontend
 
 Branch `feat/m7-ppat`, from `1a18e14`. **Eleven routes, no migration, no permission — the count stays

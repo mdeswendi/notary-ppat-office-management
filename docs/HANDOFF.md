@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M7.4
+# Project Handoff — M0 through M8.0
 
-**Position:** branch `feat/m7-ppat`. M0–M6 and O-037 are **merged to `main`** (`fa381fa`); M7.0 through M7.4 are on this branch.
-**Last accepted merge to `main`:** O-037 (`fa381fa`), which brought M5 and M6 with it.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M7.4.
+**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 is on this branch.
+**Last accepted merge to `main`:** M7 (`d3bd0b4`), a `--no-ff` merge of `feat/m7-ppat`.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M8.0.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | **M0 – M7 feature-complete** — M0 – M6 merged to main · M7.0 – M7.4 on `feat/m7-ppat` |
+| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 lock on `feat/m8-dashboard` |
 | Migrations | **50** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 36 |
+| Models | 35 |
 | API routes | **188** under `/api/v1` (195 total) |
 | Backend tests | **2820 passing, 8 skipped** across 88 files (Pest) |
 | Frontend tests | **187 passing** across 19 files (Vitest + RTL) |
 | Frontend pages | 52 |
-| Decisions recorded | **D-001 … D-121** |
-| Open items | 21 still open (§7) — O-037 and **O-044** closed, O-039…O-046 added 2026-08-25 |
+| Decisions recorded | **D-001 … D-126** |
+| Open items | 25 still open (§7) — O-037 and **O-044** closed, O-039…O-046 added 2026-08-25, **O-047…O-050** added at M8.0 |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -113,7 +113,10 @@ the single most load-bearing process choice in the project.
 | **M7.1** | Property + PPAT schema (eight tables), two Policies, Data Scope — no routes | `0d04c07` |
 | **M7.2** | Nine PPAT deed endpoints, three pages, Matter and Project deed sections | `55b9655` |
 | **M7.3** | Property surface, chain of title, Matter/Property junction — twelve routes | `1a18e14` |
-| **M7.4** | Warkah: eleven routes, four of the six codes, deed section and list | on branch |
+| **M7.4** | Warkah: eleven routes, four of the six codes, deed section and list | `3010a86` |
+| **M7 validation** | Full QA sweep — 84/84 E2E, 60/60 authorization, schema constraints | `2c1e77e` |
+| **M7 merge** | `--no-ff` merge of `feat/m7-ppat`; migrations 42 → 50 | `d3bd0b4` |
+| **M8.0** | Dashboard / Billing / Reports lock — capabilities without a schema, and batch 7 comes due | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -245,8 +248,9 @@ docs/
 ├── 14_M4_MATTER_ARCHITECTURE.md   │ for the domain you are changing
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md │
 ├── 16_M6_NOTARY_ARCHITECTURE.md   │
-├── 17_M7_PPAT_ARCHITECTURE.md     ┘ ← read §5 of these two first
-├── DECISIONS.md                   ← D-001…D-121 + the Open Items register
+├── 17_M7_PPAT_ARCHITECTURE.md     │ ← read §5 of these two first
+├── 18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md ┘ ← §5 inverts M6/M7: capabilities, no schema
+├── DECISIONS.md                   ← D-001…D-126 + the Open Items register
 ├── CHANGELOG.md                   ← what each milestone did
 └── HANDOFF.md                     ← this file
 ```
@@ -305,7 +309,7 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-Twenty-one of forty-six. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
+Twenty-five of fifty. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
 index — minus the five M7 scope items (**O-039** … **O-043**), which are described where they matter,
 in §8.
 
@@ -328,11 +332,24 @@ in §8.
 | O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
 | O-045 | Archiving a Property cannot be undone through the product | No `properties.restore` in the catalogue; archiving destroys nothing and the record stays readable |
 | O-046 | A Property has no documents, because `property_documents` does not exist | Blocked since M5.1; unblocking is a migration plus an enum case, which M7.3 was scoped without |
+| O-047 | `activities` is a canonical table with no canonical capability | Resolved for M8 as infrastructure read through its subject (D-123); reopens if anyone wants a user-authored timeline |
+| O-048 | **Calendar is fully canonical and owned by no milestone** | Blocked on nothing but assignment — table, six event types, five codes, a menu entry, and no milestone from M0 to M8 names it |
+| O-049 | Billing has seventeen capabilities and no ERD table at all | M8.2 designs the schema under D-124 — the first this project has designed rather than transcribed; the ERD should adopt it |
+| O-050 | A verified payment has no correction path | No `payments.update`, no delete, no reversal verb; the verify gate is the only control |
 
-**The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of
-M1 on the ERD's batch ordering; `audit.view` and `audit.export` are registered and unimplemented.
-D-115 rules that **no sensitive-download surface ships before it exists**, which is why
-`documents.sensitive.download` currently authorizes nothing. Whoever builds audit removes that gate.
+**The largest structural gap is no longer unlisted, but it is still unbuilt: `audit_logs` does not
+exist.** D-033 kept it out of M1 on the ERD's batch ordering; `audit.view` and `audit.export` are
+registered and unimplemented. D-115 rules that **no sensitive-download surface ships before it
+exists**, which is why `documents.sensitive.download` currently authorizes nothing. **M8.1 is where
+that is paid** (D-123): `activity` and `audit` are ERD batch **7**, behind the batches M5, M6 and M7
+already built, so the ordering argument that deferred them three times is now the argument for
+building them.
+
+**One caution for whoever starts M8.1.** There is no `Activity` model, no `activities` table, no
+`AuditLog`, and no billing table or model of any kind — `backend/app/Models/` holds 35 models and
+none of them is any of these. An activity feed is the most natural thing to assume is present by M8.
+It is not, and it is not backfilled when it arrives: the feed starts empty and fills forward, which
+is expected behaviour rather than a defect.
 
 ---
 
@@ -412,8 +429,7 @@ and protocol (batch 11, O-042), reports (M8, O-043), and the two Warkah acts who
 question eight (O-041). None of those is a gap to fill on the way past — each needs a domain source
 or a catalogue decision first.
 
-**The next milestone is M8 — Dashboard, Billing & Reports.** It is the first that has never had an
-architecture lock written, and `01_ARCHITECTURE.md` §28 is where it starts.
+**The next milestone is M8 — Dashboard, Billing & Reports**, now locked at M8.0. See below.
 
 **M7.4 note:** a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six
 `ppat.warkah.*` codes. `PpatDeedResource` deliberately carries **no** Warkah key — a deed capability
@@ -486,6 +502,67 @@ open question nine (O-039).
   asked the read endpoint to create it. There is no `ppat.warkah.create`, so the first line or the
   first status materialises the row under `ppat.warkah.update`.
 
+### M8 — Dashboard, Billing & Reports, locked at M8.0 (D-122)
+
+```text
+M8.0  Architecture lock                                   <- done
+M8.1  Dashboard + audit & activity foundation             closes D-115
+M8.2  Billing — quotations, invoices, payments, disbursements
+M8.3  Reports — five families, read-only, scoped
+M8.4  M8 quality gate
+```
+
+The order is **forced, not chosen**: `reports.audit.view` cannot be built before `audit_logs` exists
+and `reports.financial.view` cannot be built before billing does, so Reports come last.
+
+**M8 is the mirror image of M6 and M7, not a repeat of them.** Those two had canonical tables and
+missing capabilities. Billing has **seventeen canonical capabilities and no canonical table at all** —
+`03_DATABASE_ERD.md` defines no `quotations`, `invoices`, `invoice_items`, `payments` or
+`disbursements` section, and §27 names no `INVOICE` or `QUOTATION` sequence code. So **M8.2 designs
+schema, which no milestone here has previously done** (D-124, O-049); M1 through M7 transcribed field
+lists and declined to build tables the ERD was silent about. Read `18_M8_...ARCHITECTURE.md` §5 and
+§9 before writing any of it.
+
+**Sharing batch 11 is not sharing a disposition.** Billing sits in batch 11 with registers, protocol
+and taxes — the three M6 and M7 declined. Those were declined because their **domain rules are
+unauthored**; billing has no such gap, because an office invoicing its own client is commerce, not
+Indonesian notarial procedure. **The tax boundary is what keeps that honest**: no `tax_amount`, no
+rate, no BPHTB/PPh/PNBP field, no computation. An office showing a tax types it as a line item it
+names itself. Disbursements are records, not tax, and are not a back door to `ppat_tax_records`
+(O-040, still open).
+
+**Four rulings not to undo:**
+
+- **The Dashboard invents no authority.** No `dashboard.*` code exists and none is needed; each panel
+  is gated by the capability of what it summarises. **Every count obeys Data Scope** — a count is a
+  disclosure, and on a small Office a count plus a filter reconstructs the list.
+- **Billing lifecycles are read off the catalogue's verbs, not invented.** `DRAFT → APPROVED` for a
+  quotation, `DRAFT → ISSUED → CANCELLED` for an invoice, `PENDING → VERIFIED` for a payment, and
+  **no status column at all** for a disbursement, which has no lifecycle verb. There is no
+  `quotations.reject`, so there is no `REJECTED`.
+- **`billing.amount.view` is a second gate**, masking every monetary figure including aggregates —
+  server-side, so a masked amount is *absent from the payload*, as with NIK and NPWP (D-125).
+- **Neither audit nor activity is backfilled** (D-123). The feed starts empty and fills forward.
+
+**Two gaps ship stated rather than closed with an invented verb**: a verified payment has no
+correction path (O-050), and `activities` has no capability — resolved for M8 as infrastructure read
+through its subject, reopening if anyone wants a user-authored timeline (O-047).
+
+**The trap in M8.3: `reports.ppat.view` and `ppat.reports.view` are different codes.** The first is
+M8's — a cross-cutting read of PPAT activity. The second belongs to a five-code
+`ppat.reports.generate → review → approve → export` workflow, which is the PPAT **monthly reporting
+obligation**, unspecified as to deadline, recipient and format (O-043). **M8.3 builds no endpoint for
+any of those five.** Nothing M8.3 produces may resemble a statutory return — a report that looks like
+one invites being filed as one.
+
+**Calendar is the cheapest open item in the ledger.** Canonical table, six event types, five
+registered codes, a menu destination, batch 7 — and **no milestone from M0 to M8 names it**. Unlike
+everything else outstanding it is blocked on nothing but assignment (O-048).
+
+**M8 is the last milestone in the plan.** `CLAUDE.md` §2 and `01_ARCHITECTURE.md` §28 both end there,
+so nothing M8 declines has a later milestone to fall into. At M6 and M7 an open item was a deferral;
+**at M8 it is a statement about what the delivered product does not do.**
+
 ### Before the next milestone starts
 
 Three items from the M5.2 report were never given an explicit yes or no. They are not blockers — M5
@@ -541,3 +618,6 @@ rather than to pass. CI runs `test:ci`, the same single run plus coverage.
 3. **Do not invent legal rules.** Stop, document the gap, ask.
 4. **Do not touch the persistent development database.** Verify on a disposable one.
 5. **Implement only the current milestone.** Registering a permission is not shipping a feature.
+6. **A canonical table is not a canonical capability — and the reverse is equally true.** M6 and M7
+   found tables with no codes (O-036, O-040); M8 found seventeen billing codes with no table at all
+   (O-049). Check both sides before you build, and say which one you are supplying.
