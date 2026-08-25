@@ -20,6 +20,7 @@ import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
 import { MatterWorkflowSection } from "@/features/matters/matter-workflow-section";
 import { MatterDeedsSection } from "@/features/notary/matter-deeds-section";
+import { PpatMatterDeedsSection } from "@/features/ppat/matter-deeds-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { Link } from "@/i18n/navigation";
 import {
@@ -237,6 +238,18 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
       {domain === "NOTARY" ? (
         <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
           <MatterDeedsSection matterId={matter.id} />
+        </section>
+      ) : null}
+
+      {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, and **only on a
+          PPAT Matter** for the same reason. The two are separate sections rather
+          than one domain-aware section because they are separate business domains
+          (`CLAUDE.md` section 16) reading separate tables through separate
+          capabilities — `ppat.deeds.view` here, and a caller may hold one and not
+          the other in either direction. */}
+      {domain === "PPAT" ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <PpatMatterDeedsSection matterId={matter.id} />
         </section>
       ) : null}
 

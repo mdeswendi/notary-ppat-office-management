@@ -187,6 +187,33 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         implemented: true,
         requiredPermission: "ppat.matters.view",
       },
+      {
+        key: "ppat.deeds",
+        translationKey: "ppatDeeds",
+        href: "/ppat/deeds",
+        icon: ScrollText,
+        // Added at M7.2, when the routes landed — not at M7.1 when the schema and
+        // Policy did (D-064), the same sequence the Notary entry above followed.
+        implemented: true,
+        // Its own capability, separate from the Matter one: reaching a Matter
+        // confers no Deed authority (D-100, restated at D-121), so an account may
+        // hold one and not the other in either direction.
+        requiredPermission: "ppat.deeds.view",
+      },
+      /*
+       * **No Property and no Warkah entry yet, and that is deliberate.**
+       *
+       * The M7.2 brief asked for both as placeholders pointing at `/ppat/properties`
+       * and `/ppat/warkah`. D-064 is the standing ruling against exactly that: a
+       * navigation entry whose route does not exist offers somebody a link to a 404,
+       * and every milestone since M5.2 has waited for the routes before adding the
+       * entry — including `notary.deeds` above, which stayed absent through M6.1 and
+       * appeared at M6.2.
+       *
+       * `ppat.properties.*` and `ppat.warkah.*` are canonical capabilities with
+       * tables since M7.1 and no surface. M7.3 and M7.4 add the routes; each adds its
+       * own entry then (O-044).
+       */
     ],
   },
   {

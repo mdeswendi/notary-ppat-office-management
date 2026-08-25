@@ -640,8 +640,8 @@ M5.2, M5.3, M5.4, M6.2 and M6.3 each followed.
 
 ```text
 M7.0   PPAT architecture lock                          <- this document
-M7.1   Property + PPAT schema + Policy                   (no routes, like M5.1 and M6.1)
-M7.2   PPAT Deed surface + deed frontend
+M7.1   Property + PPAT schema + Policy                   (no routes, like M5.1 and M6.1)   <- done
+M7.2   PPAT Deed surface + deed frontend                 (nine routes, no DELETE)          <- done
 M7.3   Property surface + ownership history + frontend
 M7.4   Warkah surface + completeness + frontend
 ```
@@ -652,7 +652,15 @@ M6.1. It creates, in one batch: `properties`, `property_owners`, `matter_propert
 `(id, office_id)` support keys on `properties` and `ppat_deeds` **in the same migrations that create
 them**, so M7 does not repeat M6.3's separate-migration correction.
 
-**M7.2 ships the frontend with the endpoints**, following M5.2, M5.4 and M6.2.
+**M7.2 ships the frontend with the endpoints**, following M5.2, M5.4 and M6.2. It landed **nine
+routes** — index, store, show, update, options, review, approve, finalize, number — one for each of
+the seven canonical `ppat.deeds.*` capabilities plus `options`. **No `DELETE`, no `/void`, no
+`/lock`**: those three codes are absent from the catalogue, `ppat_deeds` has no `deleted_at`, and a
+deed recorded in error is a correction mechanism, which is open question nine (§5, O-039).
+
+It also added the **Deeds** navigation entry and no other. Property and Warkah have capabilities and
+tables from M7.1 and no routes, so a placeholder entry for either would link to a 404 — D-064, the
+ruling `notary.deeds` followed when it stayed absent through M6.1. M7.3 and M7.4 add theirs (O-044).
 
 **M7.3 before M7.4** deliberately: a Warkah item may name a `party_id` and a deed names a Property
 through `matter_properties`, so the Property surface should exist before the Warkah surface leans on

@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\PpatDeedController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProjectAssignmentController;
 use App\Http\Controllers\Api\V1\ProjectController;
@@ -573,6 +574,55 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('deed')->name('minuta.store');
             Route::patch('deeds/{deed}/minuta', [NotaryMinutaController::class, 'update'])
                 ->whereUlid('deed')->name('minuta.update');
+        });
+
+        /*
+         * PPAT Deeds (M7.2, D-121).
+         *
+         * The structural twin of the Notary deed block above. `ppat.deeds.*` is a
+         * PPAT-only namespace, so like Notary there is one root and no `foreach`
+         * over domains — the `ppat` prefix is what selects the permission namespace
+         * (D-101).
+         *
+         * **Seven acts, seven capabilities, none implying another** — `view`,
+         * `create`, `update`, `review`, `approve`, `finalize` and `number`. An office
+         * that separates preparing a deed from approving it is expressing who may
+         * bind it legally, so `approve` reaching `finalize` would collapse a
+         * distinction the catalogue drew deliberately.
+         *
+         * **`deeds/{deed}/number` is its own route**, not folded into `finalize`.
+         * Numbering at finalization would assert *when* a deed is numbered, which is
+         * half of open question five in `09_PPAT_WORKFLOW.md` section 6.
+         *
+         * **`options` is declared before `{deed}`**, or the literal segment would
+         * bind as a deed id and answer 404.
+         *
+         * **There is no `DELETE`, and the M7.2 brief conditioned it correctly.** It
+         * asked for a soft delete *"jika `ppat.deeds.delete` ada di registry"* — it is
+         * **absent**, verified against the live registry, and `ppat_deeds` carries no
+         * `deleted_at` (M7.1). No `void` or `lock` route either: those codes are
+         * absent too, and the correction mechanisms that would need them are open
+         * question nine (O-039).
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.deeds.')->group(function (): void {
+            Route::get('deeds/options', [PpatDeedController::class, 'options'])->name('options');
+
+            Route::get('deeds', [PpatDeedController::class, 'index'])->name('index');
+            Route::post('deeds', [PpatDeedController::class, 'store'])->name('store');
+
+            Route::get('deeds/{deed}', [PpatDeedController::class, 'show'])
+                ->whereUlid('deed')->name('show');
+            Route::patch('deeds/{deed}', [PpatDeedController::class, 'update'])
+                ->whereUlid('deed')->name('update');
+
+            Route::patch('deeds/{deed}/review', [PpatDeedController::class, 'review'])
+                ->whereUlid('deed')->name('review');
+            Route::patch('deeds/{deed}/approve', [PpatDeedController::class, 'approve'])
+                ->whereUlid('deed')->name('approve');
+            Route::patch('deeds/{deed}/finalize', [PpatDeedController::class, 'finalize'])
+                ->whereUlid('deed')->name('finalize');
+            Route::patch('deeds/{deed}/number', [PpatDeedController::class, 'recordNumber'])
+                ->whereUlid('deed')->name('number');
         });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');

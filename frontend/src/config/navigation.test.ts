@@ -163,19 +163,26 @@ describe("visibleNavigation — the M4 domain groups", () => {
     expect(ppat).not.toContain("notary.matters");
   });
 
-  it("carries Matters and nothing else in the PPAT group", () => {
-    // **Narrowed at M6.2, not deleted.** This asserted that *both* domain groups
+  it("carries Matters and Deeds and nothing else in the PPAT group", () => {
+    // **Narrowed twice, never deleted.** It first asserted that *both* domain groups
     // carried exactly one child, which was right until M6.2 gave Notary its Deeds
-    // entry.
+    // entry; M6.2 narrowed it to PPAT alone; M7.2 gives PPAT its Deeds entry too.
     //
-    // What survives is the claim the test was really making, and it still holds for
-    // PPAT: Warkah, properties, taxes and registers belong to M7 and are absent
-    // rather than shown dark, because a group whose every child is unreachable is a
-    // promise the product does not keep.
+    // What survives is the claim the test was really making, and it still holds:
+    // Warkah, properties, taxes and registers have canonical capabilities and no
+    // routes, so they are absent rather than shown dark — a group whose child is
+    // unreachable is a promise the product does not keep (D-064).
     const both = visibleNavigation(user(["notary.matters.view", "ppat.matters.view"]));
     const ppat = both.find((item) => item.key === "ppat");
 
+    // One child here, because this actor holds `ppat.matters.view` and not
+    // `ppat.deeds.view` — the two gates are independent.
     expect(ppat?.children).toHaveLength(1);
+
+    const capable = visibleNavigation(user(["ppat.matters.view", "ppat.deeds.view"]));
+    const group = capable.find((item) => item.key === "ppat");
+
+    expect(keysOf(group?.children ?? [])).toEqual(["ppat.matters", "ppat.deeds"]);
   });
 });
 
@@ -208,10 +215,15 @@ describe("visibleNavigation — the M6 Notary Deeds entry", () => {
     expect(deeds).toContain("notary");
   });
 
-  it("offers no PPAT counterpart", () => {
-    // `notary.deeds.*` is a Notary-only namespace. PPAT deeds are a different table
-    // in a different milestone, and the catalogue has no `ppat.deeds.view` for an
-    // entry to be gated on.
+  it("does not carry into the PPAT group", () => {
+    // **Narrowed at M7.2, not deleted.** This read "offers no PPAT counterpart" and
+    // claimed the catalogue had no `ppat.deeds.view`, which was wrong even then —
+    // seven `ppat.deeds.*` codes have been canonical since M1.2, and what was
+    // actually missing was the route. M7.2 built it.
+    //
+    // The claim worth keeping is the one about namespaces: `notary.deeds.view` is a
+    // Notary-only code and gates a Notary-only entry. An account holding it and no
+    // PPAT deed capability still sees no PPAT Deeds entry.
     const visible = visibleNavigation(user(["notary.deeds.view", "ppat.matters.view"]));
     const ppat = visible.find((item) => item.key === "ppat");
 
@@ -236,6 +248,74 @@ describe("visibleNavigation — the M6 Notary Deeds entry", () => {
     expect(everything).not.toContain("notary.minuta");
     expect(everything).not.toContain("notary.register");
     expect(everything).not.toContain("notary.protocol");
+  });
+});
+
+describe("visibleNavigation — the M7 PPAT Deeds entry", () => {
+  it("shows Deeds only to an account holding ppat.deeds.view", () => {
+    // The same sequence the Notary entry followed: the `ppat.deeds.*` codes have been
+    // canonical since M1.2 and the entry stayed absent through M7.1, which built the
+    // schema and the Policy. Registering a permission is not shipping a feature
+    // (D-064); the entry appears at M7.2, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["ppat.deeds.view"])))).toContain("ppat.deeds");
+    expect(keysOf(visibleNavigation(user(["ppat.deeds.create"])))).not.toContain("ppat.deeds");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("ppat.deeds");
+  });
+
+  it("gates Deeds and Matters on their own codes, in both directions", () => {
+    // Reaching a Matter confers no Deed authority and reaching a Deed confers no
+    // Matter authority (D-100, restated one level down at D-121). An account may
+    // legitimately hold either alone, and either alone opens the group.
+    const matters = keysOf(visibleNavigation(user(["ppat.matters.view"])));
+    const deeds = keysOf(visibleNavigation(user(["ppat.deeds.view"])));
+
+    expect(matters).toContain("ppat.matters");
+    expect(matters).not.toContain("ppat.deeds");
+
+    expect(deeds).toContain("ppat.deeds");
+    expect(deeds).not.toContain("ppat.matters");
+
+    expect(matters).toContain("ppat");
+    expect(deeds).toContain("ppat");
+  });
+
+  it("does not carry into the Notary group", () => {
+    // The mirror of the Notary test above. `ppat.deeds.view` gates a PPAT-only entry.
+    const visible = visibleNavigation(user(["ppat.deeds.view", "notary.matters.view"]));
+    const notary = visible.find((item) => item.key === "notary");
+
+    expect(keysOf(notary?.children ?? [])).not.toContain("notary.deeds");
+  });
+
+  /**
+   * **The M7.2 brief asked for these two and D-064 refuses them.**
+   *
+   * It specified *"Property (/ppat/properties) → placeholder untuk M7.3"* and
+   * *"Warkah (/ppat/warkah) → placeholder untuk M7.4"*. Both routes exist nowhere;
+   * an entry for either would offer somebody a link to a 404. `ppat.properties.*` and
+   * `ppat.warkah.*` are canonical capabilities with tables since M7.1 and no surface,
+   * which is precisely the situation D-064 was written for (O-044).
+   */
+  it("offers no Property, Warkah, register, tax or protocol destination", () => {
+    const everything = keysOf(
+      visibleNavigation(
+        user([
+          "ppat.deeds.view",
+          "ppat.matters.view",
+          "ppat.properties.view",
+          "ppat.warkah.view",
+          "ppat.register.view",
+          "ppat.reports.view",
+        ]),
+      ),
+    );
+
+    expect(everything).not.toContain("ppat.properties");
+    expect(everything).not.toContain("ppat.warkah");
+    expect(everything).not.toContain("ppat.register");
+    expect(everything).not.toContain("ppat.taxes");
+    expect(everything).not.toContain("ppat.protocol");
+    expect(everything).not.toContain("ppat.reports");
   });
 });
 

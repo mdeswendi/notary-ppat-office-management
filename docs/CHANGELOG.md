@@ -5,6 +5,114 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.2 PPAT Deed surface and frontend
+
+Branch `feat/m7-ppat`, from `0d04c07`. **Nine routes, no migration, no permission — the count stays
+at 177.** Implements D-121; no new decision. One new open item, **O-044**.
+
+The PPAT deed becomes reachable: six Actions, one Exception, three Form Requests, one Resource, one
+Controller, nine routes, and the frontend that reads them — types, service, seven components, three
+pages, a navigation entry and both locales.
+
+### The `destroy` endpoint the brief asked for does not exist, by the brief's own condition
+
+The brief said *"`destroy` hanya jika permission `ppat.deeds.delete` ada di registry. Jika tidak,
+jangan buat."* It is not there. The canonical catalogue of 177 codes has no `ppat.deeds.delete`, no
+`.void` and no `.lock` — checked directly against the registry, not inferred.
+
+Three further sources agree separately: `ppat_deeds` has no `deleted_at` column (M7.1, matching the
+ERD), `03_DATABASE_ERD.md` §33 prefers states over destructive deletion for finalized legal records,
+and `CLAUDE.md` §30 forbids user-facing hard delete of Deeds. A deed recorded in error is a
+**correction mechanism**, which is open question nine (O-039).
+
+`DELETE /api/v1/ppat/deeds/{id}` answers **405**; `/void` and `/lock` answer **404**. All three are
+pinned by tests and by the HTTP smoke.
+
+### `approve` is a capability, never a role name
+
+The brief specified *"approve hanya untuk PRINCIPAL/SUPER_ADMIN"* and, in the same sentence, *"melalui
+permission `ppat.deeds.approve`, bukan role-name check (D-032)"*. The second half is what shipped: no
+role name appears anywhere in the domain, the controller, the Policy or the frontend. Restricting
+approval to the Principal is an office's grant of that one capability through the Permission Matrix —
+configuration, not code.
+
+### Finalize does four things it was asked to do and refuses three
+
+It sets `FINALIZED` and stamps `finalized_at` / `finalized_by`, inside a transaction (`CLAUDE.md`
+§37) even though it touches one row, so the milestone that adds register allocation inherits the
+boundary rather than introducing one.
+
+It does **not** assign a deed number — that is `ppat.deeds.number` on its own endpoint, and folding
+it in would answer *"who assigns the number, and when?"* (open question five). It does **not** create
+a register entry: `ppat_register_entries` does not exist and the register format is open question six
+(O-042). It does **not** touch taxes: no table, and **no capability at all** (O-040). It does **not**
+write `locked_at`, which stays canonical vocabulary nothing reaches.
+
+The smoke asserts both refusals directly — a finalized deed comes back with `deed_number: null` and
+`locked_at: null`.
+
+### `project_id` is a filter, correlated through the Matter
+
+The O-037 shape, second application. A deed has no `project_id`; the filter reaches it through
+`whereHas('matter')`. **Not** `GET /projects/{project}/ppat-deeds` — D-118 refused that shape for
+this exact question, and Documents, Tasks and Notarial Deeds all answer the Project page the same
+way. A test and the smoke both confirm the nested address 404s.
+
+It needs no extra authorization because a filter only narrows: every row is already bounded by
+`ppat.deeds.view` and its Data Scope before the filter runs.
+
+### One document pointer, not three
+
+`ppat_deeds` carries `final_document_id` alone. `draft_document_id` and `minuta_document_id` are
+`prohibited` in both Form Requests and absent from the Resource — a PPAT deed's supporting material
+is the **Warkah**, a separate aggregate answering to its own family of six `ppat.warkah.*` codes.
+M7.4 builds that surface. Nothing here implies it exists.
+
+### No Property and no Warkah navigation entry — D-064 over the brief
+
+The brief asked for both as placeholders pointing at `/ppat/properties` and `/ppat/warkah`. Neither
+route exists, and an entry whose route does not exist offers somebody a link to a 404. Every
+milestone since M5.2 has waited for the routes, including `notary.deeds`, which stayed absent through
+M6.1 and appeared at M6.2. The **Deeds** entry is the only one added; M7.3 and M7.4 add theirs
+(O-044).
+
+### Three guard tests narrowed, not deleted
+
+`NotaryDeedManagementTest` asserted `/api/v1/ppat/deeds` answered 404 because *"PPAT deeds are a
+different table in a different milestone"* — a claim about the calendar. It now asserts the boundary
+it was really for: a caller holding `notary.deeds.view` gets **403** from the PPAT surface, and the
+PPAT file carries the mirror.
+
+`navigation.test.ts` had two: *"carries Matters and nothing else in the PPAT group"* (narrowed once
+at M6.2, again here) and *"offers no PPAT counterpart"*, whose stated reason — that the catalogue had
+no `ppat.deeds.view` — was wrong even when written. Seven `ppat.deeds.*` codes have been canonical
+since M1.2; what was missing was the route.
+
+### Verification
+
+Backend `pint --test` clean; full suite green. Frontend `format:check`, `lint` (0 errors, 3
+pre-existing warnings), `typecheck`, `test` and `build` all pass — **149 tests, 22 new**.
+
+PostgreSQL HTTP smoke on a disposable `m72_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere: **37/37**.
+The serving process proved its own database with `SELECT current_database()` before the first
+functional request (O-034). Two actors: fully capable and view-only. The full lifecycle walks
+`DRAFT → UNDER_REVIEW → APPROVED → FINALIZED`; out-of-order acts answer 422 and uncapable ones 403;
+a Notary Matter and a nonexistent one are refused identically; numbering works in every status
+including finalized, refuses a number another deed holds, and permits re-recording a deed's own;
+`/ppat/warkah`, `/ppat/properties` and `/ppat/deeds/{id}/minuta` all 404; the payload carries no NIK
+or NPWP; anonymous gets 401.
+
+**One expectation in the smoke was wrong and the code was right**: editing a finalized deed answers
+**403, not 422**, because `PpatDeedPolicy::update()` checks `isReadOnly()` before the capability, so
+authorization denies before the Action's guard is reached. `NotaryDeedPolicy` is identical and the
+Pest suite already asserted the same 403.
+
+The persistent development database was not touched: 42 migrations before and after, and
+`ppat_deeds` confirmed absent from it. Probe dropped afterwards.
+
+---
+
 ## 2026-08-25 — M7.1 PPAT schema and Policy
 
 Branch `feat/m7-ppat`, from `aa0c251`. **Eight migrations (42 → 50), no route, no permission — the

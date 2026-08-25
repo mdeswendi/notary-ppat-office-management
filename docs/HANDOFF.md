@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.1 on `feat/m7-ppat` |
+| Milestones complete | M0 – M6 **merged to main** · M7.0 – M7.2 on `feat/m7-ppat` |
 | Migrations | **50** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 36 |
-| API routes | **156** under `/api/v1` (163 total) |
-| Backend tests | **2647 passing, 8 skipped** across 85 files (Pest) |
-| Frontend tests | **127 passing** across 14 files (Vitest + RTL) |
-| Frontend pages | 44 |
+| API routes | **165** under `/api/v1` (172 total) |
+| Backend tests | **2699 passing, 8 skipped** across 86 files (Pest) |
+| Frontend tests | **149 passing** across 16 files (Vitest + RTL) |
+| Frontend pages | 47 |
 | Decisions recorded | **D-001 … D-121** |
-| Open items | 20 still open (§7) — O-037 closed, O-039…O-043 added 2026-08-25 |
+| Open items | 21 still open (§7) — O-037 closed, O-039…O-044 added 2026-08-25 |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -59,10 +59,13 @@ database created and dropped for the purpose, never against this one. See §6.
 ### Routes by domain
 
 ```text
-notary 29      companies 19  ppat 17   projects 15   individuals 14
+notary 29      companies 19  ppat 26   projects 15   individuals 14
 users 13       tasks 12      security 12  documents 12  roles 7
 profile 2      parties 1     permissions 1  health 1   me 1
 ```
+
+`ppat` gained nine at M7.2 — index, store, show, update, options, review, approve, finalize and
+number. There is deliberately no `destroy`: see O-039 and the M7.2 entry in `CHANGELOG.md`.
 
 ---
 
@@ -248,9 +251,10 @@ These are standing constraints set during the project. They are not optional.
 ### Database safety
 
 - **Never** run `migrate:fresh`, `db:wipe`, or `docker compose down -v` against persistent data.
-- **Do not migrate the persistent development database.** It stays at 22 migrations. All schema
-  verification runs on a disposable database (`m44_smoke`, `m51_probe`, `m52_probe`, …), created and
-  dropped within the milestone.
+- **Do not migrate the persistent development database.** It stands at 42 migrations (see §2 — the
+  figure is a fact about somebody's machine, not a target). All schema verification runs on a
+  disposable database (`m44_smoke`, `m51_probe`, `m52_probe`, `m71_probe`, `m72_probe`, …), created
+  and dropped within the milestone.
 
 ### HTTP smoke testing
 
@@ -283,7 +287,9 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-Twelve of thirty-four. Each is recorded in `DECISIONS.md` with its full reasoning; this is the index.
+Twenty-one of forty-four. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
+index — minus the five M7 scope items (**O-039** … **O-043**), which are described where they matter,
+in §8.
 
 | ID | One line | Why it is still open |
 |---|---|---|
@@ -302,6 +308,7 @@ Twelve of thirty-four. Each is recorded in `DECISIONS.md` with its full reasonin
 | O-035 | Five of the seven Notary domain questions are rules a deed surface would encode | M6 stores the vocabulary and reaches none of it (D-120) |
 | O-036 | Notary Protocol has a menu entry, an ERD table, and no permission codes | Batch 11, and the catalogue would have to gain four codes |
 | O-038 | No list surface accepts a sort parameter | Cross-cutting product decision, not an M6 defect |
+| O-044 | PPAT Property and Warkah have capabilities, tables and no routes | M7.2 refused the navigation placeholders the brief asked for (D-064); M7.3 and M7.4 add each entry with its routes |
 
 **The largest structural gap is not on this list: `audit_logs` does not exist.** D-033 kept it out of
 M1 on the ERD's batch ordering; `audit.view` and `audit.export` are registered and unimplemented.
@@ -372,10 +379,18 @@ M6.1 also removes the obstacle D-118 recorded for `notary_deed_documents`: it wa
 ```text
 M7.0  PPAT architecture lock                      <- done
 M7.1  Property + PPAT schema + Policy   (eight tables, no routes)   <- done
-M7.2  PPAT Deed surface + deed frontend
+M7.2  PPAT Deed surface + deed frontend (nine routes, no DELETE)    <- done
 M7.3  Property surface + ownership history + frontend
 M7.4  Warkah surface + completeness + frontend
 ```
+
+**M7.3 and M7.4 each owe a navigation entry.** M7.2 added only Deeds; Property and Warkah have
+capabilities, tables, Policies and no routes, so an entry for either would link to a 404 (D-064,
+O-044). Add each one in the milestone that lands its routes, as `notary.deeds` was.
+
+**M7.4 note:** a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six
+`ppat.warkah.*` codes. `PpatDeedResource` deliberately carries **no** Warkah key — a deed capability
+must not become a way to read which supporting legal documents an office does or does not hold.
 
 **M7 is M6's problem one degree worse.** `09_PPAT_WORKFLOW.md` §6 carries **nine** open questions to
 Notary's seven, and **seven of the nine** bear on M7 (O-039). Read `17_M7_PPAT_ARCHITECTURE.md` §5
@@ -399,9 +414,14 @@ batches 8 and 10, so neither domain reaches a batch further than the other (O-04
   several current owners at once; it is a *"this row applies now"* flag on many rows, not the
   *"this is the one"* pointer D-116 removed from `document_versions`. Do not "fix" it.
 
-**M7.1 owes one explicit decision**: whether `property_number` is allocated or office-supplied. The
-ERD gives no format and D-103's allocator is namespaced by Office *and year*, which a land parcel is
-not. Lock §15.
+**M7.1 owed one explicit decision** — whether `property_number` is allocated or office-supplied —
+and made it. Lock §15.
+
+**M7.2's own finding: `ppat.deeds.delete` is not in the registry**, and neither is `.void` or
+`.lock`. The brief conditioned a `destroy` endpoint on that code existing, so its own condition ruled
+the endpoint out; `DELETE` answers 405 and both extra verbs answer 404. Do not add any of the three
+on the strength of the table having rows — a deed recorded in error is a **correction mechanism**,
+open question nine (O-039).
 
 ### Before the next milestone starts
 
