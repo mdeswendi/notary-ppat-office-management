@@ -305,7 +305,7 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-Twenty-two of forty-six. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
+Twenty-one of forty-six. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
 index — minus the five M7 scope items (**O-039** … **O-043**), which are described where they matter,
 in §8.
 
