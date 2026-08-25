@@ -143,9 +143,22 @@ it('introduces no surface beyond the milestone that owns it', function (): void 
     // reason: the bare segment is no longer forbidden, the Company-rooted
     // direction still is. A deed surface reachable from a Company address would
     // put legal-record work behind `companies.*`.
+    //
+    // **Narrowed a fifth time at M7.3**, which ships the Property surface at
+    // `/properties` under the `properties.*` capability family (D-121). Same
+    // treatment again: a parcel reachable from a Company address would put land
+    // records behind `companies.*`, and a Company that owns land is a *Party* to the
+    // ownership — which is `properties/{property}/owners`, in the other direction.
+    //
+    // **Narrowed a sixth time at M7.4**, which ships the Warkah surface under its
+    // deed and at `/ppat/warkah` (D-121). The bare segment goes and the Company-rooted
+    // direction takes its place, for the last of the five. A Warkah is the supporting
+    // bundle of a *deed*; a Company may be named on one of its lines, and that
+    // relationship is read from the line, never from the Company.
     foreach ([
         'companies/{company}/matters', 'companies/{company}/documents',
-        'companies/{company}/deeds', 'properties', 'warkah',
+        'companies/{company}/deeds', 'companies/{company}/properties',
+        'companies/{company}/warkah',
     ] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }

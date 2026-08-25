@@ -75,19 +75,16 @@ it('uses notes rather than a description column', function (): void {
         ->and(Schema::hasColumn('matters', 'description'))->toBeFalse();
 });
 
-it('builds no ppat extension table and no column standing in for one', function (): void {
-    // **Narrowed at M6.1, not deleted.** This asserted that *neither* extension
-    // table existed, which was right for M4 and stopped being right when M6.1 built
-    // `notary_matters` — the milestone D-102 assigned it to. `ppat_matters` still
-    // belongs to M7.
+it('stands in for no extension with a column on the matters table', function (): void {
+    // **Narrowed twice, never deleted.** M6.1 built `notary_matters` and M7.1 built
+    // `ppat_matters` — each in the milestone D-102 assigned it to — so the table half
+    // of this guard has now fully expired.
     //
-    // What survives is the claim the guard was always really making, and it is the
-    // stronger half: **no column on `matters` stands in for an extension.** That
-    // holds for all six, including the three M6.1 now persists elsewhere — D-095's
-    // rule that a column added on speculation is one somebody fills in wrongly, and
-    // the reason M4 refused to add them to the root table.
-    expect(Schema::hasTable('ppat_matters'))->toBeFalse();
-
+    // What survives is the claim it was always really making, and it is the stronger
+    // half: **no column on `matters` stands in for an extension.** That holds for all
+    // six, including the six the two extension tables now persist elsewhere. D-095
+    // is the reason: a column added on speculation is one somebody fills in wrongly,
+    // and it is why M4 refused to put any of them on the root table.
     foreach ([
         'deed_category', 'requires_minuta', 'requires_register_entry',
         'land_office_region', 'tax_processing_required', 'registration_required',

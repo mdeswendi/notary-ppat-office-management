@@ -4,6 +4,7 @@ namespace App\Domains\Authorization;
 
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Notary\NotaryDeedVisibility;
+use App\Domains\Ppat\PpatDeedVisibility;
 
 /**
  * Which Data Scopes may be assigned to which permission.
@@ -346,6 +347,84 @@ class PermissionScopeRules
      * `CLAUDE.md` section 29 requires documented rules for. M6 invents neither the
      * codes nor the rules (D-120).
      */
+    /**
+     * The Property domain, whose predicates M7.1 settled (D-121).
+     *
+     * **`OFFICE` and `ALL` only** — the Party answer (D-080) and the Service Type
+     * answer (D-106), not the Project one (D-088).
+     *
+     * A Property is **office-owned reference data**: it exists before any Matter names
+     * it, outlives every one of them, and several unrelated transactions may touch the
+     * same parcel over years. `OWN` would have to mean `created_by`, and the colleague
+     * who typed in a land parcel has no claim on it. `ASSIGNED` has no assignment
+     * entity — nobody is the PIC of a land parcel. `TEAM` has no Team entity at all
+     * (D-042).
+     *
+     * Withholding them matters because the Permission Matrix offers exactly this list.
+     * Leaving `properties.*` in the permissive default would let an administrator
+     * grant `properties.view` at `OWN`, see it saved, and get a silently powerless
+     * grant — the dead control D-080 named.
+     *
+     * **The ownership pair takes the same list**, because it selects the same records
+     * by the same predicate; what makes it different is that it is a *separate
+     * capability*, which the Policy enforces (D-091).
+     */
+    private const PROPERTY_DOMAIN = [
+        'properties.view',
+        'properties.create',
+        'properties.update',
+        'properties.archive',
+        'properties.ownership.view',
+        'properties.ownership.update',
+    ];
+
+    /**
+     * The PPAT Deed and Warkah domain, whose predicates M7.1 settled (D-121).
+     *
+     * All four assignable scopes mean something, and **two resolve through the parent
+     * Matter** rather than against a column of the deed own — identical to
+     * {@see NOTARY_DEED_DOMAIN} and for identical reasons:
+     *
+     *   OWN       the parent Matter created_by  = actor id
+     *   ASSIGNED  the parent Matter pic_user_id = actor id
+     *   OFFICE    ppat_deeds.office_id          = actor office
+     *   ALL       cross-office reach
+     *
+     * `TEAM` is withheld here as everywhere (D-042).
+     *
+     * **This is not parent reach becoming child reach.** The Matter supplies the
+     * predicate and never the grant — holding `ppat.matters.view` at any scope reaches
+     * no deed. See {@see PpatDeedVisibility}.
+     *
+     * **The Warkah codes take the same list** because a Warkah is reached exactly as
+     * its deed is. `ppat.warkah.finalize` and `.archive` are included even though
+     * nothing implements them: they select the same records by the same predicates,
+     * and their scope metadata should be right before somebody builds the act — a
+     * grant saved with no usable scope is the dead control D-080 named. What keeps
+     * them unreachable is the absence of a Policy ability and a route, not a missing
+     * entry here (O-041).
+     *
+     * **`ppat.taxes.*` is absent from this list because it is absent from the
+     * catalogue** — not one code of it exists (O-040). **`ppat.matters.view_all` is
+     * absent for the D-090 reason**, exactly as `notary.matters.view_all` is.
+     */
+    private const PPAT_DEED_DOMAIN = [
+        'ppat.deeds.view',
+        'ppat.deeds.create',
+        'ppat.deeds.update',
+        'ppat.deeds.review',
+        'ppat.deeds.approve',
+        'ppat.deeds.finalize',
+        'ppat.deeds.number',
+
+        'ppat.warkah.view',
+        'ppat.warkah.upload',
+        'ppat.warkah.update',
+        'ppat.warkah.verify',
+        'ppat.warkah.finalize',
+        'ppat.warkah.archive',
+    ];
+
     private const NOTARY_DEED_DOMAIN = [
         'notary.deeds.view',
         'notary.deeds.create',
@@ -419,6 +498,15 @@ class PermissionScopeRules
 
         if (in_array($permission, self::NOTARY_DEED_DOMAIN, true)) {
             return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::PPAT_DEED_DOMAIN, true)) {
+            return [DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL];
+        }
+
+        // Property is office-owned reference data — two scopes, not four.
+        if (in_array($permission, self::PROPERTY_DOMAIN, true)) {
+            return [DataScope::OFFICE, DataScope::ALL];
         }
 
         // Everything else, including every permission whose module is not built

@@ -534,6 +534,7 @@ The Project architecture lock is `docs/13_M3_PROJECT_ARCHITECTURE.md`.
 The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`.
 The Document and Task architecture lock is `docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md`.
 The Notary architecture lock is `docs/16_M6_NOTARY_ARCHITECTURE.md`.
+The PPAT architecture lock is `docs/17_M7_PPAT_ARCHITECTURE.md`.
 
 ---
 
@@ -1692,21 +1693,31 @@ docs/
 ├── 14_M4_MATTER_ARCHITECTURE.md
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
 ├── 16_M6_NOTARY_ARCHITECTURE.md
+├── 17_M7_PPAT_ARCHITECTURE.md
 ├── DECISIONS.md
 ├── CHANGELOG.md
 └── HANDOFF.md
 ```
 
-`12_` through `16_` are milestone architecture locks. Each records what its domain may
+`12_` through `17_` are milestone architecture locks. Each records what its domain may
 build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
 
-`16_M6_NOTARY_ARCHITECTURE.md` is unlike the other four in one respect worth knowing before you
-open it: **M6 is the first milestone whose specification is deliberately empty.** Five of the seven
-open questions in `08_NOTARY_WORKFLOW.md` section 6 are business rules a Notary deed surface would
-ordinarily encode — deed numbering, Repertorium procedure, Minuta archiving, post-finalization
-correction, and who approves. The lock's sections 5 and 8.4 record which values are therefore
-**stored vocabulary with no code path**, which is not the same as absent.
+`16_` and `17_` are unlike the other four in one respect worth knowing before you open either:
+**M6 and M7 are the milestones whose specifications are deliberately empty.** Five of the seven open
+questions in `08_NOTARY_WORKFLOW.md` section 6 are rules a Notary deed surface would ordinarily
+encode — deed numbering, Repertorium procedure, Minuta archiving, post-finalization correction, and
+who approves. `09_PPAT_WORKFLOW.md` section 6 carries **nine**, of which **seven** bear on M7: the
+same numbering and correction gaps, plus Warkah composition, tax gating, register format, monthly
+reporting, and the binding of deeds with their Warkah.
+
+Both locks record which values are therefore **stored vocabulary with no code path** — which is not
+the same as absent. See `16_` sections 5 and 8.4, and `17_` sections 5 and 12.
+
+**One thing carries across both and is easy to miss:** a canonical table is not the same as a
+canonical capability. `notary.protocol.*` and the whole `ppat.taxes.*` family are **absent** from the
+177-permission catalogue while their tables are defined in the ERD, so those surfaces cannot be built
+without extending a catalogue no milestone has extended since M1.2 (O-036, O-040).
 
 `HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
 be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a

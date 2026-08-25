@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
 use App\Http\Controllers\Api\V1\MatterPartyController;
+use App\Http\Controllers\Api\V1\MatterPropertyController;
 use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
@@ -22,11 +23,16 @@ use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\PpatDeedController;
+use App\Http\Controllers\Api\V1\PpatWarkahController;
+use App\Http\Controllers\Api\V1\PpatWarkahItemController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ProjectAssignmentController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectPartyController;
 use App\Http\Controllers\Api\V1\ProjectStatusController;
+use App\Http\Controllers\Api\V1\PropertyController;
+use App\Http\Controllers\Api\V1\PropertyOwnerController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -573,6 +579,204 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('deed')->name('minuta.store');
             Route::patch('deeds/{deed}/minuta', [NotaryMinutaController::class, 'update'])
                 ->whereUlid('deed')->name('minuta.update');
+        });
+
+        /*
+         * PPAT Deeds (M7.2, D-121).
+         *
+         * The structural twin of the Notary deed block above. `ppat.deeds.*` is a
+         * PPAT-only namespace, so like Notary there is one root and no `foreach`
+         * over domains — the `ppat` prefix is what selects the permission namespace
+         * (D-101).
+         *
+         * **Seven acts, seven capabilities, none implying another** — `view`,
+         * `create`, `update`, `review`, `approve`, `finalize` and `number`. An office
+         * that separates preparing a deed from approving it is expressing who may
+         * bind it legally, so `approve` reaching `finalize` would collapse a
+         * distinction the catalogue drew deliberately.
+         *
+         * **`deeds/{deed}/number` is its own route**, not folded into `finalize`.
+         * Numbering at finalization would assert *when* a deed is numbered, which is
+         * half of open question five in `09_PPAT_WORKFLOW.md` section 6.
+         *
+         * **`options` is declared before `{deed}`**, or the literal segment would
+         * bind as a deed id and answer 404.
+         *
+         * **There is no `DELETE`, and the M7.2 brief conditioned it correctly.** It
+         * asked for a soft delete *"jika `ppat.deeds.delete` ada di registry"* — it is
+         * **absent**, verified against the live registry, and `ppat_deeds` carries no
+         * `deleted_at` (M7.1). No `void` or `lock` route either: those codes are
+         * absent too, and the correction mechanisms that would need them are open
+         * question nine (O-039).
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.deeds.')->group(function (): void {
+            Route::get('deeds/options', [PpatDeedController::class, 'options'])->name('options');
+
+            Route::get('deeds', [PpatDeedController::class, 'index'])->name('index');
+            Route::post('deeds', [PpatDeedController::class, 'store'])->name('store');
+
+            Route::get('deeds/{deed}', [PpatDeedController::class, 'show'])
+                ->whereUlid('deed')->name('show');
+            Route::patch('deeds/{deed}', [PpatDeedController::class, 'update'])
+                ->whereUlid('deed')->name('update');
+
+            Route::patch('deeds/{deed}/review', [PpatDeedController::class, 'review'])
+                ->whereUlid('deed')->name('review');
+            Route::patch('deeds/{deed}/approve', [PpatDeedController::class, 'approve'])
+                ->whereUlid('deed')->name('approve');
+            Route::patch('deeds/{deed}/finalize', [PpatDeedController::class, 'finalize'])
+                ->whereUlid('deed')->name('finalize');
+            Route::patch('deeds/{deed}/number', [PpatDeedController::class, 'recordNumber'])
+                ->whereUlid('deed')->name('number');
+        });
+
+        /*
+         * Warkah — the supporting documents bound with a PPAT Deed (M7.4, D-121).
+         *
+         * **The URIs nest under the deed; the route names carry the capability
+         * family.** `api.v1.ppat.warkah.*` rather than `api.v1.ppat.deeds.warkah.*`,
+         * because a name is checked against the code that authorizes it and these
+         * answer to `ppat.warkah.*` — a family entirely separate from
+         * `ppat.deeds.*`. The URI says who owns the row; the name says who may
+         * touch it.
+         *
+         * **Four capabilities have routes and two deliberately do not:**
+         *
+         * ```text
+         * view     index, show, options, items.index
+         * update   status, items.store, items.update, items.destroy
+         * verify   verify
+         * upload   items.documents.store, items.documents.destroy
+         *
+         * finalize   NO ROUTE — registered, unimplemented
+         * archive    NO ROUTE — registered, unimplemented
+         * ```
+         *
+         * The M7.4 brief asked for `finalize` and `archive` endpoints. Both codes
+         * are canonical; what is missing is the *trigger*. *"What are the
+         * binding/archiving requirements for deeds and supporting Warkah?"* is open
+         * question eight, and `09_PPAT_WORKFLOW.md` section 2 names exactly those
+         * obligations as *"precisely the kind of rule that must not be reconstructed
+         * from memory."* `FINALIZED` and `ARCHIVED` stay stored vocabulary no code
+         * path reaches (D-064, O-041).
+         *
+         * **No top-level item address.** The brief proposed
+         * `PUT /ppat/warkah/items/{item}`; a line has no existence apart from its
+         * bundle, and a bundle none apart from its deed, so every address names all
+         * three — the D-105 convention M6.3 and M7.3 both followed.
+         *
+         * **`GET /ppat/deeds/{deed}/warkah` answers 404 while nothing is started**
+         * and does not create one. A `view` capability that silently writes is one
+         * nobody can reason about; the bundle materialises on the first act of
+         * composing it, under `ppat.warkah.update`.
+         *
+         * `warkah` and `options` are declared before `{deed}` bindings where they
+         * could otherwise be read as an id.
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.warkah.')->group(function (): void {
+            Route::get('warkah', [PpatWarkahController::class, 'index'])->name('index');
+            Route::get('warkah/options', [PpatWarkahController::class, 'options'])->name('options');
+
+            Route::prefix('deeds/{deed}/warkah')->whereUlid('deed')->group(function (): void {
+                Route::get('/', [PpatWarkahController::class, 'show'])->name('show');
+                Route::patch('status', [PpatWarkahController::class, 'updateStatus'])->name('status');
+                Route::post('verify', [PpatWarkahController::class, 'verify'])->name('verify');
+
+                Route::get('items', [PpatWarkahItemController::class, 'index'])->name('items.index');
+                Route::post('items', [PpatWarkahItemController::class, 'store'])->name('items.store');
+                Route::patch('items/{item}', [PpatWarkahItemController::class, 'update'])
+                    ->whereUlid('item')->name('items.update');
+                Route::delete('items/{item}', [PpatWarkahItemController::class, 'destroy'])
+                    ->whereUlid('item')->name('items.destroy');
+
+                Route::post('items/{item}/documents', [PpatWarkahItemController::class, 'attachDocument'])
+                    ->whereUlid('item')->name('items.documents.store');
+                Route::delete('items/{item}/documents/{document}', [PpatWarkahItemController::class, 'detachDocument'])
+                    ->whereUlid('item')->whereUlid('document')->name('items.documents.destroy');
+            });
+        });
+
+        /*
+         * Properties and their chains of title (M7.3, D-121).
+         *
+         * **The root is `/properties`, not `/ppat/properties`.** D-101 says the route
+         * decides the permission namespace, and the canonical family is
+         * `properties.*` — there is no `ppat.properties.*` in the catalogue, so a
+         * `/ppat` prefix here would name a namespace that does not exist. The *page*
+         * lives at `/ppat/properties` because `CLAUDE.md` section 16 lists Property
+         * among the PPAT-specific concepts; a page path is not a permission
+         * namespace, and the asymmetry is deliberate.
+         *
+         * **Four acts on the parcel, and one absent.** `view`, `create`, `update` and
+         * `archive` are the four the catalogue defines. **`properties.delete` is
+         * absent** — verified against the live registry, the check that ruled out
+         * `ppat.deeds.delete` at M7.2 — so there is no `DELETE` route. Archiving is
+         * the retirement path, and it writes `deleted_at` rather than `status`,
+         * because `properties.status` has no canonical vocabulary at all (O-045).
+         *
+         * **Ownership is nested and answers to its own pair.**
+         * `properties.ownership.view` reads the chain, `properties.ownership.update`
+         * writes it, neither implies the other, and `properties.update` reaches
+         * neither. There is no `/property-owners/{owner}` collection: a link has no
+         * existence apart from its Property (the M4.5 convention, D-105).
+         *
+         * **No `DELETE` on a link either.** `property_owners` has no `deleted_at` in
+         * the ERD, so a delete could only be a hard one, and hard-deleting a link
+         * destroys the history the table exists to keep (`CLAUDE.md` sections 30 and
+         * 63). Ending an ownership is closing it — `PATCH` with an `effective_until`.
+         *
+         * `options` precedes `{property}`, or the literal segment would bind as an id.
+         */
+        Route::prefix('properties')->name('api.v1.properties.')->group(function (): void {
+            Route::get('options', [PropertyController::class, 'options'])->name('options');
+
+            Route::get('/', [PropertyController::class, 'index'])->name('index');
+            Route::post('/', [PropertyController::class, 'store'])->name('store');
+
+            Route::get('{property}', [PropertyController::class, 'show'])
+                ->whereUlid('property')->name('show');
+            Route::patch('{property}', [PropertyController::class, 'update'])
+                ->whereUlid('property')->name('update');
+            Route::patch('{property}/archive', [PropertyController::class, 'archive'])
+                ->whereUlid('property')->name('archive');
+
+            Route::get('{property}/owners', [PropertyOwnerController::class, 'index'])
+                ->whereUlid('property')->name('owners.index');
+            Route::post('{property}/owners', [PropertyOwnerController::class, 'store'])
+                ->whereUlid('property')->name('owners.store');
+            Route::patch('{property}/owners/{owner}', [PropertyOwnerController::class, 'update'])
+                ->whereUlid('property')->whereUlid('owner')->name('owners.update');
+        });
+
+        /*
+         * Which land a PPAT Matter concerns (M7.3, D-121).
+         *
+         * Nested under the Matter because the junction row is **Matter composition** —
+         * it says which parcel this piece of work is about, the way participation says
+         * which people it is about.
+         *
+         * **No capability names this act**, so each side is judged by the one that
+         * already exists: `ppat.matters.update` composes the Matter, and
+         * `properties.view` reaches the target. The controller resolves the Property
+         * through canonical Property visibility before attaching, so composing a
+         * Matter never becomes a way to discover which Properties exist.
+         *
+         * **PPAT only.** `CLAUDE.md` section 16 lists Property among the PPAT-specific
+         * concepts, so there is no `/notary/matters/{matter}/properties` counterpart —
+         * a Notary Matter naming land would be a claim about Notary practice nobody
+         * here may make. The junction is domain-agnostic in the schema, which is the
+         * ERD's business; only this address reaches it.
+         *
+         * `DELETE` removes the junction row only — never the Matter, never the
+         * Property, never a link in a chain of title.
+         */
+        Route::prefix('ppat')->name('api.v1.ppat.matters.properties.')->group(function (): void {
+            Route::get('matters/{matter}/properties', [MatterPropertyController::class, 'index'])
+                ->whereUlid('matter')->name('index');
+            Route::post('matters/{matter}/properties', [MatterPropertyController::class, 'store'])
+                ->whereUlid('matter')->name('store');
+            Route::delete('matters/{matter}/properties/{property}', [MatterPropertyController::class, 'destroy'])
+                ->whereUlid('matter')->whereUlid('property')->name('destroy');
         });
 
         Route::get('projects', [ProjectController::class, 'index'])->name('api.v1.projects.index');

@@ -5,11 +5,13 @@ import {
   Building2,
   Contact,
   FileText,
+  FolderCheck,
   FolderKanban,
   KeyRound,
   Landmark,
   LayoutDashboard,
   ListChecks,
+  MapPinned,
   Scale,
   ScrollText,
   Settings,
@@ -186,6 +188,49 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         icon: Briefcase,
         implemented: true,
         requiredPermission: "ppat.matters.view",
+      },
+      {
+        key: "ppat.deeds",
+        translationKey: "ppatDeeds",
+        href: "/ppat/deeds",
+        icon: ScrollText,
+        // Added at M7.2, when the routes landed — not at M7.1 when the schema and
+        // Policy did (D-064), the same sequence the Notary entry above followed.
+        implemented: true,
+        // Its own capability, separate from the Matter one: reaching a Matter
+        // confers no Deed authority (D-100, restated at D-121), so an account may
+        // hold one and not the other in either direction.
+        requiredPermission: "ppat.deeds.view",
+      },
+      {
+        key: "ppat.properties",
+        translationKey: "ppatProperties",
+        href: "/ppat/properties",
+        icon: MapPinned,
+        // Added at M7.3, when the routes landed — not at M7.1 when the schema and
+        // Policy did (D-064). Half of O-044 closes here; the Warkah half stays open.
+        implemented: true,
+        // **`properties.view`, with no `ppat.` prefix.** The canonical family is
+        // domain-neutral — there is no `ppat.properties.*` in the catalogue — even
+        // though `CLAUDE.md` section 16 lists Property among the PPAT-specific
+        // concepts, which is why the entry sits in this group. The page path and the
+        // permission namespace are different things, deliberately.
+        requiredPermission: "properties.view",
+      },
+      {
+        key: "ppat.warkah",
+        translationKey: "ppatWarkah",
+        href: "/ppat/warkah",
+        icon: FolderCheck,
+        // Added at M7.4, when the routes landed — the last of the four PPAT entries
+        // and the one that closes O-044. Both the M7.2 and M7.3 briefs asked for it
+        // as a placeholder and both were refused: a navigation entry whose route does
+        // not exist offers somebody a link to a 404 (D-064).
+        implemented: true,
+        // Its own family of six codes. Reading a deed confers nothing here, and
+        // reading a Warkah confers nothing on the deed — an office may reasonably
+        // grant one without the other in either direction.
+        requiredPermission: "ppat.warkah.view",
       },
     ],
   },

@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { ProjectDeedsSection } from "@/features/notary/project-deeds-section";
+import { PpatProjectDeedsSection } from "@/features/ppat/project-deeds-section";
+import { ProjectPropertiesSection } from "@/features/properties/project-properties-section";
 import { ProjectAssignmentSection } from "@/features/projects/project-assignment-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
@@ -215,9 +217,34 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           honest failure rather than a fabricated empty section.
 
           PPAT deeds cannot appear: `notary_deeds` rows exist only against NOTARY
-          Matters. Their own surface is M7. */}
+          Matters. Their own section is below. */}
       <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
         <ProjectDeedsSection projectId={project.id} />
+      </section>
+
+      {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, filtering
+          `/ppat/deeds?project_id=` through the same correlated query.
+
+          **Two sections rather than one merged list**, because Notary and PPAT are
+          separate business domains (`CLAUDE.md` section 16) reading separate tables
+          through separate capabilities. Merging them would need a reader to hold
+          both to see either half honestly, and would put a "domain" column on a page
+          whose two halves already answer different questions. Each section fails on
+          its own if its capability is missing. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <PpatProjectDeedsSection projectId={project.id} />
+      </section>
+
+      {/* Which land this engagement is about (M7.3, D-121). The same `?project_id=`
+          shape as the two deed sections, correlated one junction further — a Property
+          has no `project_id` of its own, so the query reaches `matter_properties` to
+          `matters` to `project_id`.
+
+          It answers to `properties.view` on its own endpoint, so reaching the Project
+          confers nothing here (D-100) and a reader who holds one and not the other
+          sees an honest failure rather than a fabricated empty section. */}
+      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <ProjectPropertiesSection projectId={project.id} />
       </section>
     </div>
   );

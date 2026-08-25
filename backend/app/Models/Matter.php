@@ -230,6 +230,43 @@ class Matter extends Model
         return $this->hasMany(NotaryDeed::class);
     }
 
+    /**
+     * The PPAT-specific classification of this Matter (M7.1, D-121).
+     *
+     * Present only on `PPAT` Matters, and optional even there. Nothing branches on
+     * `tax_processing_required` or `registration_required`; see {@see PpatMatter}.
+     */
+    public function ppatExtension(): HasOne
+    {
+        return $this->hasOne(PpatMatter::class, 'matter_id');
+    }
+
+    /**
+     * The PPAT Deeds produced by this Matter (M7.1, D-121).
+     *
+     * **Reading this relation is not authorization.** Which of these a caller may see
+     * answers to `ppat.deeds.view` and its own Data Scope, never to
+     * `ppat.matters.view` — reaching a Matter confers no Deed authority, the
+     * symmetric statement of D-100.
+     */
+    public function ppatDeeds(): HasMany
+    {
+        return $this->hasMany(PpatDeed::class);
+    }
+
+    /**
+     * The land objects this Matter concerns (M7.1, D-121).
+     *
+     * A Property is office-owned reference data that predates the Matter; this
+     * junction records the role it plays in *this* transaction. Reading it answers to
+     * `properties.view`, not to the Matter capability.
+     */
+    public function properties(): BelongsToMany
+    {
+        return $this->belongsToMany(Property::class, 'matter_properties')
+            ->withPivot(['role_code', 'office_id']);
+    }
+
     protected function casts(): array
     {
         return [

@@ -5,6 +5,658 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-25 — M7.4 Warkah, completeness and frontend
+
+Branch `feat/m7-ppat`, from `1a18e14`. **Eleven routes, no migration, no permission — the count stays
+at 177.** Implements D-121; no new decision. **O-044 closes**; O-041 stays open and gains the record
+of how M7.4 honoured it.
+
+The last M7 surface: seven Actions, five Form Requests, two Resources, one new Policy, two
+Controllers, eleven routes, and the frontend that reads them — types, service, six components, one
+page, the last navigation entry and both locales.
+
+### Two of the six Warkah capabilities have no route, and that is the milestone's central refusal
+
+```text
+ppat.warkah.view      built    read the bundle, its lines and their documents
+ppat.warkah.update    built    compose it: lines, order, and status
+ppat.warkah.verify    built    mark it COMPLETE, stamping verified_at / verified_by
+ppat.warkah.upload    built    attach and detach the documents on a line
+
+ppat.warkah.finalize  NO ROUTE, no Policy ability
+ppat.warkah.archive   NO ROUTE, no Policy ability
+```
+
+The M7.4 brief asked for both endpoints. Both codes are canonical; what is missing is the **trigger**.
+*"What are the binding/archiving requirements for deeds and supporting Warkah?"* is open question
+eight, and `09_PPAT_WORKFLOW.md` §2 names exactly those obligations as *"precisely the kind of rule
+that must not be reconstructed from memory."*
+
+So `FINALIZED` and `ARCHIVED` stay stored vocabulary no code path reaches (D-121 §12), where
+`notary.minuta.archive` and `.release` also sit. `PATCH .../status` answers **422** for either; there
+is no `/finalize` or `/archive` address; and there is no `can_finalize` or `can_archive` flag,
+because a flag for an act with no route invites a control that cannot work.
+
+### Completeness counts documents, not statuses — and the brief asked for the opposite
+
+The brief specified `$verified = $this->items()->where('status', 'VERIFIED')->count()`.
+**`ppat_warkah_items.status` has no values in the ERD at all**, which is why M7.1 built no
+`PpatWarkahItemStatus` enum, left the column nullable with no default and no CHECK, and left it out
+of the fillable set. The brief's six values — `MISSING / RECEIVED / UNDER_REVIEW / VERIFIED /
+REJECTED / NOT_APPLICABLE` — are not in any canonical document.
+
+An item-status vocabulary **is** the verification rule, and *"what is the mandatory Warkah
+composition per deed type?"* is open question three. So the numerator stays what M7.1 built: **lines
+with at least one document attached, over lines the office created.** Observable, needing no
+vocabulary.
+
+`status` is `prohibited` on both item Form Requests — refused on presence rather than silently
+dropped — and exposed in the payload as a permanently-null field, so the concept stays visible for
+whoever answers question three. What the interface shows instead is `has_document`, the same fact the
+percentage counts, so the list and the figure cannot disagree.
+
+### Status is settable and not gated
+
+The brief specified a four-rule transition matrix. The M7 lock §8.2 settles it in four words:
+**"Status is settable and not gated."** Two of the four rules were also unbuildable on their own
+terms — *"every item VERIFIED or NOT_APPLICABLE"* needs the vocabulary that does not exist, and
+*"COMPLETE → FINALIZED"* needs a `FINALIZED` nothing reaches.
+
+What is enforced is the **capability**, which is the honest gate and the shape D-102 ruled for
+`MatterStatus`. `INCOMPLETE` and `UNDER_REVIEW` answer to `ppat.warkah.update`; `COMPLETE` answers to
+`ppat.warkah.verify` and is a 422 through the update path, because it stamps a pair a separate code
+was granted to control (D-091).
+
+**Verification checks nothing.** Not completeness — a bundle at 0% verifies, because *"100% does not
+mean complete in law"*. Not the item statuses. Not the current status. Each would be an invented
+rule. Reopening a verified bundle **keeps** the stamp: somebody did check it on that date, and §63
+asks that facts not be overwritten because the current state moved on.
+
+### Reading never starts a bundle
+
+The brief asked `GET .../warkah` to *"create if not exists"*. It answers **404** instead. A `view`
+capability that silently writes is one nobody can reason about; it would mean a read-only actor's
+page load inserts a row, and that every PPAT deed anyone opened acquires a bundle it never needed.
+
+The bundle materialises on the **first act of composing it** — the first line added or the first
+status set — because there is no `ppat.warkah.create` in the catalogue for a separate "start" act to
+answer to. The same reading M7.3 applied to `properties.ownership.update`. `GET .../warkah/items`
+answers 200 with `warkah_started: false`, so the section renders an empty state rather than an error.
+
+### Its own Policy, because it is its own capability family
+
+`PpatDeedPolicy` already said so: *"There is no Warkah ability here either… reading a deed does not
+read its supporting bundle, and the reverse holds too."* So `PpatWarkahPolicy` is new, registered
+against `PpatWarkah`, and every ability takes the parent **Deed** as its subject — a Warkah's reach
+*is* its deed's reach (the composite key guarantees it), and the bundle may not exist yet.
+
+### One inconsistency the smoke caught, and it was mine
+
+`PpatWarkahItemController` originally resolved the deed under *the act's* capability, so a caller
+holding `ppat.warkah.view` and not `.update` got **404** where `PpatWarkahController` gave **403** for
+the same class of refusal. The 404 was wrong: it tells a legitimate reader that nothing is there.
+
+Reachability is one question — answered 404 so an unreachable bundle stays indistinguishable from a
+nonexistent one (D-098) — and authority to act is the Policy's, answered 403. Both controllers now
+resolve under `ppat.warkah.view` and let the Policy speak, which is where `PpatDeedController` and
+`PropertyController` already drew the line. A test pins both halves.
+
+### Five guard tests narrowed, not deleted
+
+`DocumentSchemaTest`'s twelve-route inventory now filters on `api/v1/documents` rather than the bare
+word, because the two attach/detach routes live at the **Warkah** root and answer to
+`ppat.warkah.upload`. `PpatDeedManagementTest`'s *"registers no ppat warkah route yet"* asserted a
+404 that was measuring the calendar; it now asserts the boundary it was for — a deed capability gets
+**403** from the Warkah surface — and gained a sibling pinning that the deed payload carries no
+Warkah key. `CompanyRegistryStatusTest`, `CompanyRelationshipRegistryTest` and `ProjectLifecycleTest`
+each forbade the bare segment `warkah`; each now forbids the **rooted direction**, the last of the
+five segments those three have given up in turn.
+
+The frontend `deed-detail.test.tsx` guard asserted nothing on the page mentioned a Warkah; it now
+asserts the claim about the **payload**, which is the one that outlives the milestone.
+
+### Structure notes
+
+**Two controllers, not one.** The brief put eleven methods on `PpatWarkahController`; the bundle and
+its lines are split the way `PropertyController` / `PropertyOwnerController` are.
+
+**No top-level item address.** The brief proposed `PUT /api/v1/ppat/warkah/items/{item}`; a line has
+no existence apart from its bundle and a bundle none apart from its deed, so every address names all
+three — D-105's convention, which M6.3 and M7.3 both followed. `PATCH`, not `PUT`.
+
+**Route names carry the capability family** — `api.v1.ppat.warkah.*` — while the URIs nest under the
+deed. A name is checked against the code that authorizes it, and these answer to `ppat.warkah.*`.
+
+**Sections, not tabs**, for the sixth milestone running.
+
+**A hard delete on a line, said plainly.** `ppat_warkah_items` has no `deleted_at` in the ERD, so the
+brief's "soft delete" has no column. Removing a line the office typed in error is composing the
+checklist; the Documents themselves survive, and only the assertion that this file satisfied this
+line goes. The confirmation says so.
+
+### Verification
+
+Backend `pint --test` clean; full suite green — **2820 passing, 8 skipped**, of which **54 are new
+Warkah tests**. Frontend `format:check`, `lint` (0 errors, 3 pre-existing warnings), `typecheck`,
+`test` (**187, 16 new**) and `build` all pass.
+
+PostgreSQL HTTP smoke on a disposable `m74_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere:
+**74/74**. The serving process proved its own database with `SELECT current_database()` before the
+first functional request (O-034). Four actors: fully capable (including the two unimplemented codes,
+granted deliberately to prove they still reach nothing), view-only, one holding `update` without
+`upload`, and one holding `ppat.deeds.view` and no Warkah capability at all — which is how both
+capability splits were measured rather than assumed.
+
+Confirmed end to end: the bundle 404s until the first line and is never created by a read; four
+lines with one document is 25% and a second document on the same line is still 25%; detaching the
+last document drops it back to 0%; `MISSING`, `RECEIVED`, `VERIFIED` and `NOT_APPLICABLE` all refused
+on presence; `COMPLETE`, `FINALIZED` and `ARCHIVED` all 422 through the status path; verification at
+0% succeeds and writes no finalized pair; reopening keeps the stamp; `/finalize` and `/archive` 404;
+`DELETE` on a bundle 405; the top-level item address and a cross-deed line both 404; a removed line
+leaves its Document standing; `update` without `upload` is 403 on attach; a deed capability alone
+gets 404 on the bundle and 403 on the list; no NIK or NPWP anywhere; anonymous 401.
+
+**One run was discarded rather than reported**: the first attempt crashed in PowerShell's output
+formatter *after* mutating the probe, so the second run against that database showed nine lines where
+it expected four. The probe was dropped and recreated rather than the expectations adjusted — a green
+number from a dirty fixture is worth nothing.
+
+The persistent development database was not touched: 42 migrations before and after, with
+`ppat_warkah` confirmed absent from it. Probe dropped afterwards.
+
+---
+
+## 2026-08-25 — M7.3 Property, ownership history and frontend
+
+Branch `feat/m7-ppat`, from `55b9655`. **Twelve routes, no migration, no permission — the count
+stays at 177.** Implements D-121; no new decision. Two new open items, **O-045** and **O-046**, and
+half of **O-044** closes.
+
+The land object becomes reachable, and with it the chain of title: five Actions plus two junction
+Actions, one Exception, five Form Requests, two Resources, three Controllers, twelve routes, and the
+frontend that reads them — types, service, eight components, four pages, a navigation entry and both
+locales.
+
+### `properties.archive` is the soft delete, and that answers M7.1's open question
+
+M7.1 left it explicitly: *"`properties.archive` is the canonical capability; what it does is M7.3's
+question."* Two canonical facts constrain the answer and only one reading satisfies both.
+
+`03_DATABASE_ERD.md` §16 gives `properties` a **`deleted_at`**, unlike either deed table. The
+catalogue gives `properties.archive` and **withholds `properties.delete`** — checked against the live
+registry, the same check that ruled out `ppat.deeds.delete` at M7.2.
+
+Read separately each is dead: a soft-delete column no capability reaches, and a capability with
+nothing to do. Read together they are one mechanism. So `PATCH /{property}/archive` writes
+`deleted_at` and **never `status`** — that column has no vocabulary in the ERD at all, and
+`ACTIVE`/`ARCHIVED` would be a lifecycle nobody defined (D-121 §12). There is no `DELETE` route.
+
+It destroys nothing: every junction row and every link in the chain survives, and the parcel stays
+readable through `?archived=1`. It is refused while a Matter that has not finished names the parcel —
+a product guard about data hygiene, stated as such, which clears by itself. **It cannot be undone**:
+there is no `properties.restore` (O-045).
+
+### Co-ownership: the brief and the M7 lock disagreed, and the lock won
+
+The brief specified *"`addOwner` — set `is_current` = true, update yang lama"* and, in its
+constraints, *"hanya satu owner yang bisa `is_current` = true per property."* The M7 lock §7.2 rules
+that out **by name**:
+
+> *"a Property legitimately has **several** current owners at once, each with an
+> `ownership_percentage`. `is_current` on `property_owners` is a 'this row applies now' flag on many
+> rows, not a 'this is the one' pointer on one."*
+
+The migration says it, the model says it, and an M7.1 test asserts two current owners at 50% each.
+Closing the previous holders on every insert would make co-ownership unrepresentable — and
+co-ownership is ordinary for Indonesian land.
+
+So there are two acts and the caller says which: **`supersedes_current`**, defaulting to `false`
+because that is the choice which ends nobody's recorded ownership. The form offers the radio pair
+only when there are current holders to supersede. The smoke asserts both paths.
+
+**No sum is validated.** 0–100 per link is arithmetic; whether shares must total 100 is a rule about
+Indonesian co-ownership `CLAUDE.md` §62 forbids inventing. A total of 160% is stored, displayed and
+not judged — the interface says so in words rather than leaving it implied.
+
+### There is no way to delete a link in a chain of title
+
+The brief asked for `DELETE /properties/{property}/owners/{owner}`, described as a *"soft delete
+ownership"*. **`property_owners` has no `deleted_at`** — the ERD's field list gives it nine columns
+and none is one, so M7.1 added no `SoftDeletes`. A `DELETE` could only be hard, and hard-deleting a
+link destroys exactly the history the table exists to keep (§§30 and 63).
+
+Ending an ownership is **closing the link**: `PATCH` with an `effective_until`, which clears
+`is_current` in the same save so the flag and the date cannot disagree. The control says "close", not
+"remove". A row entered by mistake is a correction mechanism — the same open question with no answer
+for deeds either (O-039).
+
+### `property_number` is office-supplied, which settles the M7 lock's last M7.1 question
+
+The lock recorded *"whether `property_number` is allocated or office-supplied"* as a question
+somebody had to settle explicitly. **The office supplies it**, on three grounds: the ERD gives the
+column no format; `CLAUDE.md` §38 shows `PROP-000001` **without a year**, alone among the internal
+references it lists, so D-108's Office+year counter does not fit; and an allocator needs a counter
+table, which is a migration this milestone was scoped without.
+
+Required at creation, unique **within the Office** (D-103), immutable afterwards, and **no format
+validated** — the shape `ppat.deeds.number` has. The smoke records `kavling blok C/7` successfully.
+
+### Two vocabularies, two controls, and the ERD's own wording is the difference
+
+`property_type` is a `<select>` and a database CHECK: four values given flat, no hedging word.
+`right_type` is a **text input with a `datalist`**: the ERD says *"Right type **may** use stable
+machine codes, **for example**"*, so the six codes are typeahead suggestions and `HAK_ULAYAT` is
+accepted. A `<select>` would assert that Indonesian land law has six kinds of right.
+`matter_properties.role_code` gets the same treatment for the same reason.
+
+Neither is translated. `PropertyTypeBadge` uses message keys because a closed list of stable codes is
+what those are for; `RightTypeBadge` renders verbatim, like `deed_type_code` on both deed surfaces.
+
+### Ownership is its own surface because it is its own capability
+
+`properties.ownership.view` and `.update` are separate canonical codes, so the chain lives on
+`/properties/{property}/owners` rather than as fields on the parcel. Reading a Property does not read
+who owns it: `current_owners` arrives **`null`** for a caller without the code — not `[]`, because
+"not shown to you" and "nobody owns it" are different statements. A clerk maintaining addresses is
+not the person who records a transfer, and the catalogue drew that line before anything implemented
+it.
+
+There is no `properties.ownership.create` — adding a link is an `update` to the chain, which is what
+the two codes support.
+
+### Two things the brief asked for that do not exist to be built
+
+**`document_count` and a Documents section.** `property_documents` does not exist —
+`DocumentRelationType` carries `party`, `project` and `matter` only and names it *"blocked — batch 8,
+M7"*. Building it is *"adding a case and a migration"*, and M7.3 was scoped without one. A count of
+zero would be a lie about a table with no rows because it has none (O-046).
+
+**A Timeline section and an activity log.** No audit store exists; D-115 rules it required, absent,
+and not to be improvised, and five milestones have now declined to invent one. What the record
+preserves — creator, last editor, and the whole chain of title — is shown.
+
+### Structure notes
+
+Three departures from the brief's proposed shapes, each following established repository convention:
+controllers live in `app/Http/Controllers/Api/V1/` and Form Requests in `app/Http/Requests/Ppat/`,
+not a new `app/Domains/PPAT/Controllers/`; **`PATCH`, not `PUT`**, which the repository reserves for
+full replacement; and **sections, not tabs**, since no `Tabs` primitive exists — the ruling every
+milestone since M5.2 has made.
+
+**The API root is `/api/v1/properties` and the page is `/ppat/properties`**, deliberately. D-101 says
+the route decides the permission namespace and the canonical family is `properties.*` with no `ppat.`
+prefix, so a `/ppat/properties` endpoint would name a namespace that does not exist; `CLAUDE.md` §16
+lists Property among the PPAT-specific concepts, which is where the page and the menu entry belong. A
+page path is not a permission namespace. Recorded in three places so nobody "fixes" one to match the
+other.
+
+### Two capabilities for the Matter junction, because there is no third
+
+**No `*.matters.properties.*` code and no `properties.matters.*` code exist.** So attaching is
+`ppat.matters.update` — the junction row is Matter composition, saying which parcel this work is
+about — while the target is resolved through canonical `properties.view` visibility first, so
+composing a Matter never becomes a way to discover which Properties exist. **PPAT only**: there is no
+`/notary/matters/{matter}/properties`, and the smoke confirms it 404s.
+
+### Five guard tests narrowed, not deleted
+
+`MatterAuthorizationTest` forbade any `DELETE` on a URI containing `matters`; the junction detach is
+the same shape M4.5's participation delete already was, so `/properties/` joins `/parties/` in the
+exclusion and the surviving claim — no address deletes a Matter — is unchanged.
+`MatterManagementTest`'s route inventory excludes the junction, which has its own suite.
+`CompanyRegistryStatusTest`, `CompanyRelationshipRegistryTest` and `ProjectLifecycleTest` each
+forbade the bare segment `properties`; each now forbids the **rooted direction** instead
+(`companies/{company}/properties`, `projects/{project}/properties`), which is the boundary all three
+were always about. `warkah` stays forbidden outright in all three.
+
+One production change came out of the same sweep: **`PropertyVisibility::permits()` now uses
+`withTrashed()`**. Reach is a question about Office and archived is a question about record state;
+folding them together made an archived parcel answer 403 instead of opening read-only, which would
+have made archiving equal to hiding.
+
+### Verification
+
+Backend `pint --test` clean; full suite green — **2765 passing, 8 skipped**, of which **66 are new
+Property tests**. Frontend `format:check`, `lint` (0 errors, 3 pre-existing warnings), `typecheck`,
+`test` (**171, 22 new**) and `build` all pass.
+
+PostgreSQL HTTP smoke on a disposable `m73_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere:
+**74/74**. The serving process proved its own database with `SELECT current_database()` before the
+first functional request (O-034). Three actors: fully capable, view-only, and one holding the parcel
+capabilities **without** the ownership pair — which is how the catalogue's split was measured rather
+than assumed.
+
+Confirmed end to end: two owners current at once with a 100% total; a 160% total stored and reported;
+a transfer closing the previous holders while leaving their party and share intact; the property
+number free-format and unique per Office; `status` and `office_id` refused on presence; `APARTMENT`
+refused where `APARTMENT_UNIT` is accepted; archive blocked by a running Matter and permitted after
+detaching; an archived parcel readable, filterable and refusing every write with 403; `DELETE` on a
+parcel and on a link both 405; `/restore`, `/ppat/warkah`, `/properties/{id}/documents`,
+`/notary/matters/{id}/properties` and `/projects/{id}/properties` all 404; no NIK or NPWP anywhere in
+the payload; anonymous 401.
+
+The persistent development database was not touched: 42 migrations before and after, with
+`properties` confirmed absent from it. Probe dropped afterwards.
+
+---
+
+## 2026-08-25 — M7.2 PPAT Deed surface and frontend
+
+Branch `feat/m7-ppat`, from `0d04c07`. **Nine routes, no migration, no permission — the count stays
+at 177.** Implements D-121; no new decision. One new open item, **O-044**.
+
+The PPAT deed becomes reachable: six Actions, one Exception, three Form Requests, one Resource, one
+Controller, nine routes, and the frontend that reads them — types, service, seven components, three
+pages, a navigation entry and both locales.
+
+### The `destroy` endpoint the brief asked for does not exist, by the brief's own condition
+
+The brief said *"`destroy` hanya jika permission `ppat.deeds.delete` ada di registry. Jika tidak,
+jangan buat."* It is not there. The canonical catalogue of 177 codes has no `ppat.deeds.delete`, no
+`.void` and no `.lock` — checked directly against the registry, not inferred.
+
+Three further sources agree separately: `ppat_deeds` has no `deleted_at` column (M7.1, matching the
+ERD), `03_DATABASE_ERD.md` §33 prefers states over destructive deletion for finalized legal records,
+and `CLAUDE.md` §30 forbids user-facing hard delete of Deeds. A deed recorded in error is a
+**correction mechanism**, which is open question nine (O-039).
+
+`DELETE /api/v1/ppat/deeds/{id}` answers **405**; `/void` and `/lock` answer **404**. All three are
+pinned by tests and by the HTTP smoke.
+
+### `approve` is a capability, never a role name
+
+The brief specified *"approve hanya untuk PRINCIPAL/SUPER_ADMIN"* and, in the same sentence, *"melalui
+permission `ppat.deeds.approve`, bukan role-name check (D-032)"*. The second half is what shipped: no
+role name appears anywhere in the domain, the controller, the Policy or the frontend. Restricting
+approval to the Principal is an office's grant of that one capability through the Permission Matrix —
+configuration, not code.
+
+### Finalize does four things it was asked to do and refuses three
+
+It sets `FINALIZED` and stamps `finalized_at` / `finalized_by`, inside a transaction (`CLAUDE.md`
+§37) even though it touches one row, so the milestone that adds register allocation inherits the
+boundary rather than introducing one.
+
+It does **not** assign a deed number — that is `ppat.deeds.number` on its own endpoint, and folding
+it in would answer *"who assigns the number, and when?"* (open question five). It does **not** create
+a register entry: `ppat_register_entries` does not exist and the register format is open question six
+(O-042). It does **not** touch taxes: no table, and **no capability at all** (O-040). It does **not**
+write `locked_at`, which stays canonical vocabulary nothing reaches.
+
+The smoke asserts both refusals directly — a finalized deed comes back with `deed_number: null` and
+`locked_at: null`.
+
+### `project_id` is a filter, correlated through the Matter
+
+The O-037 shape, second application. A deed has no `project_id`; the filter reaches it through
+`whereHas('matter')`. **Not** `GET /projects/{project}/ppat-deeds` — D-118 refused that shape for
+this exact question, and Documents, Tasks and Notarial Deeds all answer the Project page the same
+way. A test and the smoke both confirm the nested address 404s.
+
+It needs no extra authorization because a filter only narrows: every row is already bounded by
+`ppat.deeds.view` and its Data Scope before the filter runs.
+
+### One document pointer, not three
+
+`ppat_deeds` carries `final_document_id` alone. `draft_document_id` and `minuta_document_id` are
+`prohibited` in both Form Requests and absent from the Resource — a PPAT deed's supporting material
+is the **Warkah**, a separate aggregate answering to its own family of six `ppat.warkah.*` codes.
+M7.4 builds that surface. Nothing here implies it exists.
+
+### No Property and no Warkah navigation entry — D-064 over the brief
+
+The brief asked for both as placeholders pointing at `/ppat/properties` and `/ppat/warkah`. Neither
+route exists, and an entry whose route does not exist offers somebody a link to a 404. Every
+milestone since M5.2 has waited for the routes, including `notary.deeds`, which stayed absent through
+M6.1 and appeared at M6.2. The **Deeds** entry is the only one added; M7.3 and M7.4 add theirs
+(O-044).
+
+### Three guard tests narrowed, not deleted
+
+`NotaryDeedManagementTest` asserted `/api/v1/ppat/deeds` answered 404 because *"PPAT deeds are a
+different table in a different milestone"* — a claim about the calendar. It now asserts the boundary
+it was really for: a caller holding `notary.deeds.view` gets **403** from the PPAT surface, and the
+PPAT file carries the mirror.
+
+`navigation.test.ts` had two: *"carries Matters and nothing else in the PPAT group"* (narrowed once
+at M6.2, again here) and *"offers no PPAT counterpart"*, whose stated reason — that the catalogue had
+no `ppat.deeds.view` — was wrong even when written. Seven `ppat.deeds.*` codes have been canonical
+since M1.2; what was missing was the route.
+
+### Verification
+
+Backend `pint --test` clean; full suite green. Frontend `format:check`, `lint` (0 errors, 3
+pre-existing warnings), `typecheck`, `test` and `build` all pass — **149 tests, 22 new**.
+
+PostgreSQL HTTP smoke on a disposable `m72_probe` at 50 migrations, real Sanctum cookie sessions with
+CSRF cookie, `X-XSRF-TOKEN`, `Origin` and `Referer` and no Bearer authentication anywhere: **37/37**.
+The serving process proved its own database with `SELECT current_database()` before the first
+functional request (O-034). Two actors: fully capable and view-only. The full lifecycle walks
+`DRAFT → UNDER_REVIEW → APPROVED → FINALIZED`; out-of-order acts answer 422 and uncapable ones 403;
+a Notary Matter and a nonexistent one are refused identically; numbering works in every status
+including finalized, refuses a number another deed holds, and permits re-recording a deed's own;
+`/ppat/warkah`, `/ppat/properties` and `/ppat/deeds/{id}/minuta` all 404; the payload carries no NIK
+or NPWP; anonymous gets 401.
+
+**One expectation in the smoke was wrong and the code was right**: editing a finalized deed answers
+**403, not 422**, because `PpatDeedPolicy::update()` checks `isReadOnly()` before the capability, so
+authorization denies before the Action's guard is reached. `NotaryDeedPolicy` is identical and the
+Pest suite already asserted the same 403.
+
+The persistent development database was not touched: 42 migrations before and after, and
+`ppat_deeds` confirmed absent from it. Probe dropped afterwards.
+
+---
+
+## 2026-08-25 — M7.1 PPAT schema and Policy
+
+Branch `feat/m7-ppat`, from `aa0c251`. **Eight migrations (42 → 50), no route, no permission — the
+count stays at 177.** Implements D-121; no new decision.
+
+Schema, Policy and Data Scope only — no CRUD UI, following M2.1, M3.1, M4.1, M4.2, M5.1 and M6.1.
+
+### What landed
+
+| | |
+|---|---|
+| `properties` | 25 columns, the land object |
+| `property_owners` | the chain of title |
+| `matter_properties` | the junction the M7 brief omitted and the lock restored |
+| `ppat_matters` | the Matter extension |
+| `ppat_deeds` | 18 columns, **one** document pointer |
+| `ppat_warkah` | the supporting bundle |
+| `ppat_warkah_items` | its lines |
+| `ppat_warkah_documents` | composite PK, no surrogate `id` |
+
+Plus seven models, **three** enums, two visibility classes, two Policies, five factories, and 95
+tests. Every `(id, office_id)` support key is created **in the migration that creates its table**,
+so M7 does not repeat M6.3's separate-migration correction.
+
+### Two brief items would have failed at runtime
+
+**`$table->check()` does not exist** in Laravel's Blueprint — verified against the vendor source. The
+CHECK constraints are raw `ALTER TABLE` statements guarded on the `pgsql` driver, as M5.4 and M6.1
+do.
+
+**`nullOnDelete()` on a composite foreign key nulls `office_id`**, which is `NOT NULL` — the M5.4
+finding. The brief used it on eleven composite keys. Every foreign key here is `RESTRICT`, except two
+deliberate `CASCADE`s where a row has no meaning apart from its parent.
+
+### Three enums, not the seven the brief specified
+
+The other four have **no canonical vocabulary**, and inventing one is what `CLAUDE.md` §62 forbids:
+
+| Proposed | Reality |
+|---|---|
+| `RightType` | ERD says *"**may** use stable machine codes, **for example**"* → plain `VARCHAR`, no CHECK |
+| `PropertyStatus` | ERD names the column and gives it **no values** → nullable, no default, nothing writes it |
+| `PpatDeedType` | ERD says *"**Possible** deed codes"* → no CHECK |
+| `PpatWarkahItemStatus` | ERD gives the column **no values** → and an item-status vocabulary *is* the verification rule (open question three) |
+
+`PropertyType` **is** constrained, because its four values are given as a closed list — the
+difference is in the ERD's own wording. It is also `APARTMENT_UNIT`, not the brief's `APARTMENT`: a
+stable machine code is only stable if copied exactly.
+
+### Completeness counts documents, never statuses
+
+The consequence of having no item-status vocabulary, and the ruling the M7 lock exists to hold.
+`PpatWarkah::computeCompleteness()` counts **items with at least one document attached, over items
+the office created** — observable, needing no vocabulary. An empty Warkah is **0%, not 100%**.
+
+`recalculateCompleteness()` writes only the percentage, **never the status**: 100% does not imply
+`COMPLETE` and `COMPLETE` does not require 100%, because which governs legal sufficiency is open
+question three. A test pins it by setting item statuses to `REJECTED` and `VERIFIED` and showing the
+count does not move.
+
+### `is_current` is kept, and D-116 does not apply
+
+A Property legitimately has several current owners at once, so it is a *"this row applies now"* flag
+on many rows rather than the *"this is the one"* pointer D-116 removed from `document_versions`.
+**There is deliberately no unique index on `(property_id, is_current)`** — one would break
+co-ownership, and a test asserts two current owners at 50% each.
+
+**No percentage sum is enforced** (a rule about Indonesian co-ownership), but the arithmetic is: 0–100
+per row, periods run forwards, and a row that has ended cannot also be current. All three are
+PostgreSQL CHECKs **and** model guards, because the suite runs SQLite.
+
+### Property gets two scopes, not four
+
+`OFFICE` and `ALL` only — the Party (D-080) and Service Type (D-106) answer, not Project's (D-088). A
+Property is office-owned reference data: it predates every Matter that names it. `OWN` would have to
+mean `created_by`, and the colleague who typed in a parcel has no claim on it.
+
+`PropertyVisibility` carries an explicit warning against the tempting addition: a `whereHas('matters')`
+branch would make `ppat.matters.view` a silent superset of `properties.view`. A test asserts a
+`ppat.matters.view` holder at `ALL` still reaches no Property.
+
+**Ownership is its own capability pair.** `properties.ownership.view` / `.update` are separate
+canonical codes, so reading a Property does not read its chain of title.
+
+### Four guard tests narrowed, not deleted
+
+`MatterSchemaTest`, `PartySchemaTest`, `ProjectPartySchemaTest` and `ProjectSchemaTest` each asserted
+that an M7 table did not exist. Each keeps the claim that outlives this milestone: **no column on
+`matters`, `parties`, `projects` or `project_parties` stands in for a later-milestone table.** Three
+of the four lists are now empty and gone — every table they named exists and carries its own schema
+test.
+
+### Verification
+
+Backend `pint --test` clean, **95 PPAT tests**, full suite green.
+
+PostgreSQL probe on a disposable `m71_probe` at 50 migrations: **32/32**. All eight tables migrate; 13
+CHECK constraints present and **correctly none** on `right_type`, `properties.status`,
+`deed_type_code` or `warkah_items.status`; raw SQL past the enum cast confirms `ppat_deeds.status`
+stores all six canonical values and refuses `PENDING`, `LOCKED` and `draft`; `property_type` refuses
+both an unlisted code and the brief's `APARTMENT` spelling; the four `property_owners` CHECKs refuse
+what they should while permitting several current owners and shares over 100; all four support keys
+present. Five tables confirmed absent: `ppat_tax_records`, `ppat_register_entries`,
+`protocol_records`, `ppat_deed_documents`, `audit_logs`.
+
+Probe dropped afterwards.
+
+---
+
+## 2026-08-25 — M7.0 PPAT architecture lock
+
+Branch `feat/m7-ppat`, from `1f1dab5`. **No code, no migration, no permission — the count stays at
+177.** One new decision, **D-121**, and five new open items, **O-039** … **O-043**.
+
+`docs/17_M7_PPAT_ARCHITECTURE.md` is the sixth `.0` lock and the second in a row whose subject is a
+specification that is deliberately empty.
+
+### M7 is M6's problem one degree worse
+
+`09_PPAT_WORKFLOW.md` section 6 carries **nine** open questions where `08_NOTARY_WORKFLOW.md` carries
+seven, and **seven of the nine** bear on what M7 would otherwise build. Its section 2 says why in its
+own words: PPAT's statutory obligations around the register, monthly reporting and the binding of
+deeds with their Warkah are *"precisely the kind of rule that must not be reconstructed from memory."*
+
+### The finding that changed the scope
+
+**`ppat.taxes.*` does not exist — not one code of it.** Verified against the live registry:
+`view`, `manage`, `create` and `update` are all absent, while every other PPAT family has been
+catalogued since M1.2. `ppat_tax_records` is a canonical table with **no canonical capability that
+could authorize a single operation on it** — the shape `notary.protocol.*` had at M6.0.
+
+Three further grounds agree: taxes are **batch 11** (M7 is batches 8 and 10), tax gating is open
+question four, and `03_DATABASE_ERD.md` §20 closes its own field list with *"Final legal/tax behavior
+must be validated before production."* **The tax surface is outside M7** (O-040).
+
+One transcription note recorded for whoever does build it: `ppat_tax_records` hangs off **`matter_id`,
+not `ppat_deed_id`** — the brief inverted this, which would have put the table under the wrong parent.
+
+### One decision, not the seven the brief pre-wrote
+
+D-121 consolidates, following D-120's precedent — and pointedly, because **three of the seven
+proposed decisions state things that turned out not to be true.** Recording them separately would have
+enshrined the errors:
+
+* **D-121 as briefed** said the PPAT deed ladder *"follows the Notary pattern."* But `ppat_deeds` has
+  **no status vocabulary in the ERD** while `notary_deeds` has six. M7 adopts the same six — on
+  `CLAUDE.md` §29's authority — but that is a **decision, not a transcription**, and the lock says so.
+* **D-122 as briefed** would have made completeness computed and dropped `completeness_percentage`, a
+  canonical column. The real issue is the denominator: see below.
+* **D-127 as briefed** — a register entry created on finalization — is exactly what M6 refused twice,
+  and directly answers open question six.
+
+### Completeness is counted, never judged
+
+The ruling the lock exists to hold. `ppat_warkah.completeness_percentage` is stored, but **a
+percentage is meaningless without a denominator, and the denominator is the mandatory Warkah
+composition per deed type that nobody has authored** (open question three).
+
+So the number counts the items the office itself created; no requirement template drives it;
+`requirement_code` is stored and matched against nothing; and **100% means every item this office
+listed has a document, not that the Warkah is legally sufficient.** No completeness figure gates any
+deed act (O-041).
+
+### `is_current` is kept, and D-116 does not apply
+
+M5.1 removed `is_current` from `document_versions` because exactly one version may be current. That
+**inverts** for `property_owners`: a Property legitimately has several current owners at once, each
+with a percentage. It is a *"this row applies now"* flag on many rows, not a *"this is the one"*
+pointer on one — a different construct sharing a name. Worth stating so nobody "fixes" it later.
+
+**No percentage sum is enforced** — whether shares must total 100 is a rule about Indonesian
+co-ownership.
+
+### Also settled
+
+`matter_properties` is built (the ERD names it; the brief omitted it). `ppat_deeds` carries **one**
+document pointer, not Notary's three — PPAT's supporting material is the Warkah. `properties.right_type`
+and `matter_properties.role_code` stay CHECK-free because the ERD says *"may use"* and *"example"*,
+while `property_type` is constrained because its four values are a closed list. Property gets
+`OFFICE` and `ALL` only — the Party and Service Type answer, not Project's. Deed reach resolves
+through the parent Matter, as D-120 ruled for Notary.
+
+### Decomposition
+
+```text
+M7.0  PPAT architecture lock                      <- this
+M7.1  Property + PPAT schema + Policy   (eight tables, no routes)
+M7.2  PPAT Deed surface + deed frontend
+M7.3  Property surface + ownership history + frontend
+M7.4  Warkah surface + completeness + frontend
+```
+
+There is no M7.5: taxes, registers, protocol and reports are outside M7, not deferred within it. The
+`(id, office_id)` support keys are created **in the migrations that create their tables**, so M7 does
+not repeat M6.3's separate-migration correction. Project detail gains its PPAT Deeds section at M7.2
+through a `project_id` filter, following O-037 rather than the nested route D-118 refused.
+
+### One question left for M7.1 to answer explicitly
+
+Whether `property_number` is allocated or office-supplied. The ERD gives no format; `CLAUDE.md` §38
+names `PROP-000001` as an example internal reference; but D-103's allocator is namespaced by Office
+**and calendar year**, and a land parcel is not a yearly thing. Recorded in the lock's §15 so M7.1
+meets it as a decision rather than a surprise — the same shape as the `created_by` question M5.0 left
+for M5.4.
+
+---
+
 ## 2026-08-25 — O-037: Notary Deeds on the Project page
 
 Branch `fix/o-037-project-deeds`, from `cc56a4f`. **One filter, one section, no migration, no

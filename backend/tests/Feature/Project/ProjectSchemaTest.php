@@ -240,13 +240,12 @@ it('introduces no Matter persistence', function (): void {
     // **Narrowed at M4.2, not deleted.** `matters` was on this list while Matter
     // was unbuilt; M4.2 owns it now (D-107) and its own schema test asserts its
     // shape. **Narrowed again at M4.5**, which builds `matter_parties` (D-105).
-    // **Narrowed a third time at M6.1**, which builds `notary_matters` — the
-    // milestone D-102 assigned it to (D-120). `ppat_matters` remains M7.
+    // **Narrowed a third time at M6.1**, which builds `notary_matters`, and a
+    // **fourth at M7.1**, which builds `ppat_matters` — each in the milestone D-102
+    // assigned it to (D-120, D-121). The table half has now fully expired.
     //
     // What this test was always really about is unchanged and still asserted
     // below — **Project gains no column pointing at any of it.**
-    expect(Schema::hasTable('ppat_matters'))->toBeFalse();
-
     expect(Schema::hasColumn('projects', 'matter_id'))->toBeFalse()
         ->and(Schema::hasColumn('projects', 'current_stage_id'))->toBeFalse();
 });
@@ -271,11 +270,11 @@ it('introduces no workflow or later-milestone table', function (): void {
     // test; what is left here is M5 and beyond.
     // **Narrowed again at M5.1**, which builds `documents` (D-116) with its own
     // schema test, and at M5.4, which builds `tasks` (D-119) with its own.
-    // `properties` is M7 and stays — the last entry on a list that started with
-    // eight.
-    foreach (['properties'] as $table) {
-        expect(Schema::hasTable($table))->toBeFalse($table);
-    }
+    // **Narrowed a final time at M7.1**, which builds `properties` (D-121) — the last
+    // entry on a list that started with eight.
+    //
+    // The list is gone; every table it named exists and carries its own schema test.
+    // What follows is the claim that outlives all of them.
 
     // The point that survives every narrowing: Project points at none of it —
     // and now that the template, the running workflow and the Document all

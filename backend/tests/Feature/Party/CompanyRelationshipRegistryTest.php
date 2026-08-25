@@ -130,9 +130,20 @@ it('introduces no merge, fingerprint, or later-module surface', function (): voi
     // **Narrowed a fourth time at M6.2**, which ships the Notarial Deed surface at
     // `/notary/deeds` (D-120). Same treatment as `documents`: the bare segment
     // goes, the Company-rooted direction stays forbidden.
+    //
+    // **Narrowed a fifth time at M7.3**, which ships the Property surface at
+    // `/properties` (D-121). Again the bare segment goes and the Company-rooted
+    // direction stays: a Company that owns land is a Party to the ownership, reached
+    // through `properties/{property}/owners` — never a parcel hanging off a Company
+    // relationship address.
+    //
+    // **Narrowed a sixth time at M7.4**, which ships the Warkah surface. The last of
+    // the five bare segments goes the same way: a Company may be named on a Warkah
+    // line, and that is read from the line rather than from the Company.
     foreach (['fingerprint', 'merge', 'similarity', 'score', 'clients',
         'companies/{company}/matters', 'companies/{company}/documents',
-        'companies/{company}/deeds', 'properties', 'warkah'] as $segment) {
+        'companies/{company}/deeds', 'companies/{company}/properties',
+        'companies/{company}/warkah'] as $segment) {
         expect($uris->filter(fn (string $u): bool => str_contains($u, $segment)))->toBeEmpty($segment);
     }
 

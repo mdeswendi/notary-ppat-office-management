@@ -624,11 +624,19 @@ it('names no deed route the catalogue could not authorize', function (): void {
     ]);
 });
 
-it('registers no ppat deed route', function (): void {
-    // PPAT deeds are a different table in a different milestone.
+it('does not let a notary capability reach the ppat deed surface', function (): void {
+    // **Narrowed at M7.2.** This read `assertNotFound()` while `/api/v1/ppat/deeds`
+    // did not exist — PPAT deeds were "a different table in a different milestone".
+    // M7.2 built that milestone, so the route now answers and the old assertion was
+    // measuring the calendar rather than the boundary.
+    //
+    // What the guard was actually for survives intact: the two families are separate
+    // business domains (`CLAUDE.md` section 16) with separate capabilities, and
+    // holding `notary.deeds.view` confers nothing on the PPAT side. 403, not 404 —
+    // the surface exists, this caller may not use it.
     [$actor] = deedApiActor(['notary.deeds.view']);
 
-    $this->actingAs($actor)->getJson('/api/v1/ppat/deeds')->assertNotFound();
+    $this->actingAs($actor)->getJson('/api/v1/ppat/deeds')->assertForbidden();
 });
 
 /*

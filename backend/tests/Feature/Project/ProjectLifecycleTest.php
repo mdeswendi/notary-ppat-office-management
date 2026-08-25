@@ -403,10 +403,22 @@ it('introduces no Matter, workflow, or Office-transfer surface', function (): vo
     // Project-rooted direction takes its place — a deed is reached at its own
     // Notary root, never at `/projects/{id}/deeds`, for exactly the reason a
     // Matter is not.
+    // **Narrowed again at M7.3**, which ships the Property surface at `/properties`
+    // (D-121). The bare segment leaves the list and the Project-rooted direction takes
+    // its place, for the third time and the same reason: a Property is reached at its
+    // own root under `properties.*`, never at `/projects/{id}/properties`. The Project
+    // page answers *"which land does this engagement concern?"* with
+    // `?project_id=`, correlated through the Matter — the D-118 shape, not a second
+    // address.
+    //
+    // **Narrowed again at M7.4** for Warkah, the last of them. A Warkah is the
+    // supporting bundle of one *deed* and is reached by naming that deed; a Project
+    // never roots one.
     foreach ([
         'projects/{project}/participants', 'projects/{project}/matters',
         'projects/{project}/workflow', 'projects/{project}/stages',
-        'projects/{project}/deeds', 'warkah', 'properties',
+        'projects/{project}/deeds', 'projects/{project}/properties',
+        'projects/{project}/warkah',
         'projects/{project}/office', 'projects/{project}/transfer',
     ] as $segment) {
         expect($uris->filter(fn (string $uri): bool => str_contains($uri, $segment)))->toBeEmpty($segment);

@@ -8,7 +8,10 @@ use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\NotaryDeed;
+use App\Models\PpatDeed;
+use App\Models\PpatWarkah;
 use App\Models\ProjectParty;
+use App\Models\Property;
 use App\Models\ServiceType;
 use App\Models\Task;
 use App\Models\User;
@@ -19,7 +22,10 @@ use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
 use App\Policies\NotaryDeedPolicy;
 use App\Policies\PermissionPolicy;
+use App\Policies\PpatDeedPolicy;
+use App\Policies\PpatWarkahPolicy;
 use App\Policies\ProjectPartyPolicy;
+use App\Policies\PropertyPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
 use App\Policies\TaskPolicy;
@@ -124,6 +130,28 @@ class AppServiceProvider extends ServiceProvider
         // defines no code for any of them, and the correction mechanisms that would
         // need them are open domain questions.
         Gate::policy(NotaryDeed::class, NotaryDeedPolicy::class);
+
+        // PPAT Deed (M7.1, D-121). The structural twin of the Notary policy above:
+        // OWN and ASSIGNED resolve through the parent Matter, and there is no
+        // delete, lock or void ability because the catalogue defines no code for
+        // any of them.
+        Gate::policy(PpatDeed::class, PpatDeedPolicy::class);
+
+        // Property (M7.1, D-121). Two scopes rather than four — a Property is
+        // office-owned reference data, so OWN and ASSIGNED are withheld the way
+        // D-080 withheld them for Party. Ownership is its own capability pair,
+        // separate from viewing and updating the parcel itself.
+        Gate::policy(Property::class, PropertyPolicy::class);
+
+        // Warkah (M7.4, D-121). Its own family of six codes, four of which are
+        // implemented — `finalize` and `archive` have no ability and no route,
+        // because their trigger is open question eight (O-041, D-064).
+        //
+        // Every ability takes the parent Deed as its subject: a Warkah's reach *is*
+        // its deed's reach, and the bundle may not exist yet. Registered against
+        // `PpatWarkah` so the class-level form `authorize('manage', [PpatWarkah::class,
+        // $deed])` resolves here.
+        Gate::policy(PpatWarkah::class, PpatWarkahPolicy::class);
 
         $this->registerSecurityRateLimiters();
     }

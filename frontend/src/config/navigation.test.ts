@@ -163,19 +163,35 @@ describe("visibleNavigation — the M4 domain groups", () => {
     expect(ppat).not.toContain("notary.matters");
   });
 
-  it("carries Matters and nothing else in the PPAT group", () => {
-    // **Narrowed at M6.2, not deleted.** This asserted that *both* domain groups
-    // carried exactly one child, which was right until M6.2 gave Notary its Deeds
-    // entry.
+  it("carries the four PPAT destinations and nothing else", () => {
+    // **Narrowed four times, never deleted.** It first asserted that *both* domain
+    // groups carried exactly one child, which was right until M6.2 gave Notary its
+    // Deeds entry; M6.2 narrowed it to PPAT alone; M7.2 gave PPAT its Deeds entry;
+    // M7.3 gave it Property; M7.4 gives it Warkah and completes the group.
     //
-    // What survives is the claim the test was really making, and it still holds for
-    // PPAT: Warkah, properties, taxes and registers belong to M7 and are absent
-    // rather than shown dark, because a group whose every child is unreachable is a
-    // promise the product does not keep.
+    // What survives is the claim the test was really making, and it still holds:
+    // **taxes, registers and reports have canonical capabilities and no routes**, so
+    // they are absent rather than shown dark — a group whose child is unreachable is a
+    // promise the product does not keep (D-064). `ppat.taxes.*` does not even have
+    // codes (O-040).
     const both = visibleNavigation(user(["notary.matters.view", "ppat.matters.view"]));
     const ppat = both.find((item) => item.key === "ppat");
 
+    // One child here, because this actor holds `ppat.matters.view` and none of the
+    // other three gates — all four are independent.
     expect(ppat?.children).toHaveLength(1);
+
+    const capable = visibleNavigation(
+      user(["ppat.matters.view", "ppat.deeds.view", "properties.view", "ppat.warkah.view"]),
+    );
+    const group = capable.find((item) => item.key === "ppat");
+
+    expect(keysOf(group?.children ?? [])).toEqual([
+      "ppat.matters",
+      "ppat.deeds",
+      "ppat.properties",
+      "ppat.warkah",
+    ]);
   });
 });
 
@@ -208,10 +224,15 @@ describe("visibleNavigation — the M6 Notary Deeds entry", () => {
     expect(deeds).toContain("notary");
   });
 
-  it("offers no PPAT counterpart", () => {
-    // `notary.deeds.*` is a Notary-only namespace. PPAT deeds are a different table
-    // in a different milestone, and the catalogue has no `ppat.deeds.view` for an
-    // entry to be gated on.
+  it("does not carry into the PPAT group", () => {
+    // **Narrowed at M7.2, not deleted.** This read "offers no PPAT counterpart" and
+    // claimed the catalogue had no `ppat.deeds.view`, which was wrong even then —
+    // seven `ppat.deeds.*` codes have been canonical since M1.2, and what was
+    // actually missing was the route. M7.2 built it.
+    //
+    // The claim worth keeping is the one about namespaces: `notary.deeds.view` is a
+    // Notary-only code and gates a Notary-only entry. An account holding it and no
+    // PPAT deed capability still sees no PPAT Deeds entry.
     const visible = visibleNavigation(user(["notary.deeds.view", "ppat.matters.view"]));
     const ppat = visible.find((item) => item.key === "ppat");
 
@@ -236,6 +257,173 @@ describe("visibleNavigation — the M6 Notary Deeds entry", () => {
     expect(everything).not.toContain("notary.minuta");
     expect(everything).not.toContain("notary.register");
     expect(everything).not.toContain("notary.protocol");
+  });
+});
+
+describe("visibleNavigation — the M7 PPAT Deeds entry", () => {
+  it("shows Deeds only to an account holding ppat.deeds.view", () => {
+    // The same sequence the Notary entry followed: the `ppat.deeds.*` codes have been
+    // canonical since M1.2 and the entry stayed absent through M7.1, which built the
+    // schema and the Policy. Registering a permission is not shipping a feature
+    // (D-064); the entry appears at M7.2, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["ppat.deeds.view"])))).toContain("ppat.deeds");
+    expect(keysOf(visibleNavigation(user(["ppat.deeds.create"])))).not.toContain("ppat.deeds");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("ppat.deeds");
+  });
+
+  it("gates Deeds and Matters on their own codes, in both directions", () => {
+    // Reaching a Matter confers no Deed authority and reaching a Deed confers no
+    // Matter authority (D-100, restated one level down at D-121). An account may
+    // legitimately hold either alone, and either alone opens the group.
+    const matters = keysOf(visibleNavigation(user(["ppat.matters.view"])));
+    const deeds = keysOf(visibleNavigation(user(["ppat.deeds.view"])));
+
+    expect(matters).toContain("ppat.matters");
+    expect(matters).not.toContain("ppat.deeds");
+
+    expect(deeds).toContain("ppat.deeds");
+    expect(deeds).not.toContain("ppat.matters");
+
+    expect(matters).toContain("ppat");
+    expect(deeds).toContain("ppat");
+  });
+
+  it("does not carry into the Notary group", () => {
+    // The mirror of the Notary test above. `ppat.deeds.view` gates a PPAT-only entry.
+    const visible = visibleNavigation(user(["ppat.deeds.view", "notary.matters.view"]));
+    const notary = visible.find((item) => item.key === "notary");
+
+    expect(keysOf(notary?.children ?? [])).not.toContain("notary.deeds");
+  });
+
+  /**
+   * **Narrowed at M7.3 and again at M7.4, never deleted.** This once asserted that
+   * Property *and* Warkah were among the destinations D-064 refused, which was true
+   * while neither route existed — both the M7.2 and M7.3 briefs asked for placeholders
+   * and both were declined. M7.3 built Property and M7.4 built Warkah, so each leaves
+   * the list in turn and gains its own tests. **O-044 closes here.**
+   *
+   * The rest has not expired, and is what the guard now protects: registers, taxes,
+   * protocol and reports all have tables or capabilities and no routes, which is
+   * precisely the situation D-064 was written for. `ppat.taxes.*` does not even have
+   * codes — the finding that shaped M7's scope (O-040).
+   *
+   * Both built capabilities are handed to the actor here specifically to show that
+   * holding them lights up **those two and nothing else**.
+   */
+  it("offers no register, tax, protocol or report destination", () => {
+    const everything = keysOf(
+      visibleNavigation(
+        user([
+          "ppat.deeds.view",
+          "ppat.matters.view",
+          "properties.view",
+          "ppat.warkah.view",
+          "ppat.register.view",
+          "ppat.reports.view",
+        ]),
+      ),
+    );
+
+    expect(everything).toContain("ppat.properties");
+    expect(everything).toContain("ppat.warkah");
+
+    expect(everything).not.toContain("ppat.register");
+    expect(everything).not.toContain("ppat.taxes");
+    expect(everything).not.toContain("ppat.protocol");
+    expect(everything).not.toContain("ppat.reports");
+  });
+});
+
+describe("visibleNavigation — the M7.4 Warkah entry", () => {
+  it("shows Warkah only to an account holding ppat.warkah.view", () => {
+    // The last of the four, and the same sequence every entry has followed: the six
+    // `ppat.warkah.*` codes have been canonical since M1.2 and the entry stayed absent
+    // through M7.1 (three tables), M7.2 and M7.3 — whose briefs both asked for a
+    // placeholder. Registering a permission is not shipping a feature (D-064); the
+    // entry appears at M7.4, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.view"])))).toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.upload"])))).not.toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user(["ppat.warkah.verify"])))).not.toContain("ppat.warkah");
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("ppat.warkah");
+  });
+
+  /**
+   * **Reading a deed confers no Warkah reach, and the reverse holds too.**
+   *
+   * `ppat.warkah.*` is its own family of six codes. An office may let a clerk assemble
+   * evidence without letting them read the deed, or the reverse — and the two entries
+   * are gated independently so the menu reflects that.
+   */
+  it("gates Warkah and Deeds on their own codes, in both directions", () => {
+    const deeds = keysOf(visibleNavigation(user(["ppat.deeds.view"])));
+    const bundles = keysOf(visibleNavigation(user(["ppat.warkah.view"])));
+
+    expect(deeds).toContain("ppat.deeds");
+    expect(deeds).not.toContain("ppat.warkah");
+
+    expect(bundles).toContain("ppat.warkah");
+    expect(bundles).not.toContain("ppat.deeds");
+
+    expect(deeds).toContain("ppat");
+    expect(bundles).toContain("ppat");
+  });
+
+  /**
+   * **The two unimplemented codes light up nothing.** `ppat.warkah.finalize` and
+   * `.archive` are canonical and have no route, because their trigger is open question
+   * eight (O-041). An account holding both and nothing else sees no PPAT group at all.
+   */
+  it("shows nothing for the two warkah codes that have no surface", () => {
+    const visible = keysOf(
+      visibleNavigation(user(["ppat.warkah.finalize", "ppat.warkah.archive"])),
+    );
+
+    expect(visible).not.toContain("ppat");
+    expect(visible).not.toContain("ppat.warkah");
+  });
+});
+
+describe("visibleNavigation — the M7.3 Property entry", () => {
+  it("shows Property only to an account holding properties.view", () => {
+    // The same sequence every entry has followed: the six `properties.*` codes have
+    // been canonical since M1.2 and the entry stayed absent through M7.1, which built
+    // eight tables and two Policies, and through M7.2, whose brief asked for a
+    // placeholder. Registering a permission is not shipping a feature (D-064); the
+    // entry appears at M7.3, when the routes landed.
+    expect(keysOf(visibleNavigation(user(["properties.view"])))).toContain("ppat.properties");
+    expect(keysOf(visibleNavigation(user(["properties.create"])))).not.toContain("ppat.properties");
+    expect(keysOf(visibleNavigation(user(["properties.ownership.view"])))).not.toContain(
+      "ppat.properties",
+    );
+    expect(keysOf(visibleNavigation(user([])))).not.toContain("ppat.properties");
+  });
+
+  /**
+   * **Gated on `properties.view`, with no `ppat.` prefix.**
+   *
+   * The entry sits in the PPAT group because `CLAUDE.md` section 16 lists Property
+   * among the PPAT-specific concepts — but the canonical capability family is
+   * domain-neutral, and there is no `ppat.properties.*` code for a gate to name. A
+   * page path is not a permission namespace, and this asserts the gate reads the code
+   * the catalogue actually defines.
+   */
+  it("gates the entry on the domain-neutral code, not an invented ppat one", () => {
+    const invented = keysOf(visibleNavigation(user(["ppat.properties.view"])));
+
+    expect(invented).not.toContain("ppat.properties");
+    expect(keysOf(visibleNavigation(user(["properties.view"])))).toContain("ppat.properties");
+  });
+
+  it("opens the PPAT group for a holder of Property alone", () => {
+    // Each child is gated on its own code and any one of them opens the parent — an
+    // account may legitimately maintain the office's land records and touch no Matter.
+    const visible = keysOf(visibleNavigation(user(["properties.view"])));
+
+    expect(visible).toContain("ppat");
+    expect(visible).toContain("ppat.properties");
+    expect(visible).not.toContain("ppat.matters");
+    expect(visible).not.toContain("ppat.deeds");
   });
 });
 

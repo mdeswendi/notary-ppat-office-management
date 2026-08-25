@@ -20,6 +20,8 @@ import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { MatterPartiesSection } from "@/features/matters/matter-parties-section";
 import { MatterWorkflowSection } from "@/features/matters/matter-workflow-section";
 import { MatterDeedsSection } from "@/features/notary/matter-deeds-section";
+import { PpatMatterDeedsSection } from "@/features/ppat/matter-deeds-section";
+import { MatterPropertiesSection } from "@/features/properties/matter-properties-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { Link } from "@/i18n/navigation";
 import {
@@ -237,6 +239,32 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
       {domain === "NOTARY" ? (
         <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
           <MatterDeedsSection matterId={matter.id} />
+        </section>
+      ) : null}
+
+      {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, and **only on a
+          PPAT Matter** for the same reason. The two are separate sections rather
+          than one domain-aware section because they are separate business domains
+          (`CLAUDE.md` section 16) reading separate tables through separate
+          capabilities — `ppat.deeds.view` here, and a caller may hold one and not
+          the other in either direction. */}
+      {domain === "PPAT" ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <PpatMatterDeedsSection matterId={matter.id} />
+        </section>
+      ) : null}
+
+      {/* Which land this Matter concerns (M7.3, D-121). **Only on a PPAT Matter** —
+          `CLAUDE.md` section 16 lists Property among the PPAT-specific concepts, and
+          there is no Notary counterpart route at all.
+
+          Reading answers to `properties.view` on its own endpoint; attaching and
+          detaching answer to `ppat.matters.update`, because the junction row is
+          Matter composition rather than a change to the parcel. No capability names
+          the act, so each side is judged by one that already exists. */}
+      {domain === "PPAT" ? (
+        <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
+          <MatterPropertiesSection matterId={matter.id} />
         </section>
       ) : null}
 
