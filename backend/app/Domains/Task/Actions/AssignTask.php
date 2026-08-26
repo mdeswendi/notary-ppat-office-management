@@ -2,6 +2,8 @@
 
 namespace App\Domains\Task\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Task\Exceptions\TaskStatusNotEligible;
 use App\Models\Task;
 use App\Models\User;
@@ -31,6 +33,8 @@ use App\Models\User;
  */
 class AssignTask
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     /**
      * @param  User|null  $assignee  already resolved and authorized by the caller; null unassigns
      */
@@ -43,6 +47,17 @@ class AssignTask
         $task->assigned_to = $assignee?->getKey();
         $task->assigned_by = $assignee === null ? null : $actor->getKey();
         $task->save();
+
+        // Audited whichever way it went; the timeline only reports a handover,
+        // because "nobody is on this any more" is not news to a colleague.
+        $this->events->updated($task, $actor);
+
+        if ($assignee !== null) {
+            $this->events->happened(ActivityType::TASK_ASSIGNED, $task, $actor, [
+                'title' => $task->title,
+                'assignee' => $assignee->name,
+            ]);
+        }
 
         return $task;
     }

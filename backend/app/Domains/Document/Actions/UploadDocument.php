@@ -2,6 +2,8 @@
 
 namespace App\Domains\Document\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Document\AllocateDocumentReference;
 use App\Domains\Document\DocumentStorage;
 use App\Domains\Document\Enums\DocumentStatus;
@@ -73,6 +75,7 @@ class UploadDocument
     public function __construct(
         private readonly AllocateDocumentReference $allocator,
         private readonly DocumentStorage $storage,
+        private readonly EventRecorder $events,
     ) {}
 
     /**
@@ -131,6 +134,14 @@ class UploadDocument
                 $document->save();
 
                 $this->attach($actor, $document, $relations);
+
+                // The metadata is recorded; the file never is, and neither is
+                // the original filename, which for a KTP scan is often the
+                // subject's own name (D-105).
+                $this->events->created($document, $actor, ActivityType::DOCUMENT_UPLOADED, [
+                    'reference' => $document->document_number,
+                    'title' => $document->title,
+                ]);
 
                 return $document;
             });

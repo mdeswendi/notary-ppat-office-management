@@ -2,11 +2,14 @@
 
 namespace App\Domains\Ppat\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Ppat\Enums\PpatDeedStatus;
 use App\Domains\Ppat\Exceptions\DeedStatusNotEligible;
 use App\Models\PpatDeed;
 use App\Models\User;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Approve a Deed (M7.2, D-121).
@@ -28,17 +31,32 @@ use Illuminate\Support\Facades\Date;
  */
 class ApprovePpatDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, PpatDeed $deed): PpatDeed
     {
-        if (! $deed->status->isApprovable()) {
-            throw new DeedStatusNotEligible($deed->status, 'approved');
-        }
+        return DB::transaction(function () use ($actor, $deed): PpatDeed {
+            if (! $deed->status->isApprovable()) {
+                throw new DeedStatusNotEligible($deed->status, 'approved');
+            }
 
-        $deed->status = PpatDeedStatus::APPROVED;
-        $deed->approved_at = Date::now();
-        $deed->approved_by = $actor->getKey();
-        $deed->save();
+            $from = $deed->status->value;
 
-        return $deed;
+            $deed->status = PpatDeedStatus::APPROVED;
+            $deed->approved_at = Date::now();
+            $deed->approved_by = $actor->getKey();
+            $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_APPROVED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
+
+            return $deed;
+        });
     }
 }

@@ -47,4 +47,21 @@ enum MatterStatus: string
     {
         return array_map(static fn (self $case): string => $case->value, self::cases());
     }
+
+    /**
+     * Matters being worked on right now (M8.1).
+     *
+     * **`WAITING` and `ON_HOLD` are deliberately excluded.** They are live rather
+     * than finished, but they are not being *advanced* — something is blocking
+     * them, and the Dashboard surfaces them in the "needs attention" panel
+     * instead. Between them the two panels partition the unfinished work rather
+     * than counting a stalled Matter twice, once as progress and once as a
+     * problem.
+     *
+     * @return array<int, string>
+     */
+    public static function activeValues(): array
+    {
+        return [self::OPEN->value, self::IN_PROGRESS->value];
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Audit\Services\AuditLogger;
 use App\Domains\Party\Actions\UpdateIndividualIdentity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Party\UpdateIndividualIdentityRequest;
@@ -32,7 +33,10 @@ use Illuminate\Support\Facades\Log;
  */
 class IndividualIdentityController extends Controller
 {
-    public function __construct(private readonly IndividualPolicy $policy) {}
+    public function __construct(
+        private readonly IndividualPolicy $policy,
+        private readonly AuditLogger $audit,
+    ) {}
 
     /**
      * Tier 1: the identity surface, masked.
@@ -96,14 +100,15 @@ class IndividualIdentityController extends Controller
      */
     private function reveal(Request $request, Individual $individual, string $field, ?string $value): JsonResponse
     {
-        // Metadata only. The field name, never its content — a raw identifier in
-        // a log line is a raw identifier in a backup, a log aggregator, and
-        // whatever ships logs off the host.
-        Log::info('PARTY_IDENTITY_REVEALED', [
-            'actor_id' => $request->user()->getKey(),
-            'party_id' => $individual->party_id,
-            'field' => $field,
-        ]);
+        // **This was an application `Log::info` until M8.1**, which D-115 named
+        // as the stopgap that becomes permanent: not append-only in the sense
+        // `CLAUDE.md` section 31 means, and not queryable by resource. The audit
+        // store now exists, so the record goes where it belongs and the log line
+        // is gone rather than duplicated — a second copy of this metadata in a
+        // log aggregator is a second place to leak from.
+        //
+        // Metadata only, unchanged: the field name, **never its content**.
+        $this->audit->sensitiveAccess($individual, $field, $request->user());
 
         return response()
             ->json([

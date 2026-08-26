@@ -1,8 +1,10 @@
 <?php
 
+use App\Domains\Audit\Enums\AuditEvent;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Document\Actions\UploadDocument;
 use App\Domains\Document\Enums\DocumentStatus;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Matter;
@@ -502,22 +504,74 @@ it('streams the current file with the uploader\'s filename', function (): void {
         ->and($response->streamedContent())->toBe('isi surat kuasa');
 });
 
-it('refuses a sensitive download to an actor holding every relevant code', function (): void {
-    // D-115: no sensitive-download surface before an audit store exists.
+it('permits a sensitive download to an actor holding every relevant code, and audits it', function (): void {
+    // **Inverted at M8.1.** This asserted D-115's gate — no sensitive-download
+    // surface before an audit store exists. M8.1 built the store (D-123), so the
+    // surface opens and the assertion turns over with it.
     [$actor, $office] = documentManager([
         ...documentCapabilities(), 'documents.sensitive.view', 'documents.sensitive.download',
     ]);
 
-    $sensitive = Document::factory()->inOffice($office)->sensitive()->create();
-    DocumentVersion::factory()->forDocument($sensitive)->create();
+    // Uploaded through the API rather than built by the factory, because this
+    // test now reaches the streaming path: a factory row has no file on disk, and
+    // the previous version of this test never got past the Policy to notice.
+    $this->actingAs($actor)->post('/api/v1/documents', [
+        'title' => 'KTP',
+        'is_sensitive' => true,
+        'file' => uploadedPdf('ktp.pdf', 'pindaian ktp'),
+    ])->assertCreated();
 
-    $this->actingAs($actor)->getJson("/api/v1/documents/{$sensitive->getKey()}/download")
-        ->assertForbidden();
+    $sensitive = Document::query()->sole();
 
-    // And the interface is told the same thing, so it never offers the button.
+    expect($sensitive->is_sensitive)->toBeTrue();
+
+    $this->actingAs($actor)->get("/api/v1/documents/{$sensitive->getKey()}/download")
+        ->assertOk();
+
+    // And the interface is told the same thing, so the button it offers works.
     $this->actingAs($actor)->getJson("/api/v1/documents/{$sensitive->getKey()}")
         ->assertOk()
-        ->assertJsonPath('data.can_download', false);
+        ->assertJsonPath('data.can_download', true);
+
+    // The half that makes the other half acceptable: reading a sensitive file is
+    // recorded. The row names the document and the actor — never the file's
+    // contents, and never the identity it is about (D-105, D-115).
+    // Filtered to the event under test: uploading the document already wrote its
+    // own CREATED row, which is the audit integration working rather than noise.
+    $audit = AuditLog::query()
+        ->where('auditable_type', Document::class)
+        ->where('auditable_id', $sensitive->getKey())
+        ->where('event', AuditEvent::SENSITIVE_ACCESS->value)
+        ->sole();
+
+    expect($audit->event)->toBe(AuditEvent::SENSITIVE_ACCESS)
+        ->and($audit->actor_user_id)->toBe($actor->getKey())
+        ->and($audit->office_id)->toBe($office->getKey())
+        ->and($audit->new_values)->toBe(['field' => 'file'])
+        ->and($audit->old_values)->toBeNull();
+});
+
+it('audits no download of an ordinary document', function (): void {
+    // Sensitivity is what makes a read worth recording. Auditing every download
+    // of every letter would bury the KTP scans in a table nobody may delete from.
+    [$actor] = documentManager(documentCapabilities());
+
+    $this->actingAs($actor)->post('/api/v1/documents', [
+        'title' => 'Surat',
+        'file' => uploadedPdf('surat.pdf', 'isi surat'),
+    ])->assertCreated();
+
+    $ordinary = Document::query()->sole();
+
+    $this->actingAs($actor)->get("/api/v1/documents/{$ordinary->getKey()}/download")
+        ->assertOk();
+
+    // No SENSITIVE_ACCESS row. The upload's own CREATED row is expected and is
+    // not what this test is about.
+    expect(AuditLog::query()
+        ->where('auditable_id', $ordinary->getKey())
+        ->where('event', AuditEvent::SENSITIVE_ACCESS->value)
+        ->exists())->toBeFalse();
 });
 
 it('refuses download to an actor holding only view', function (): void {

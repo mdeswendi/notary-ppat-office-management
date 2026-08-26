@@ -2,11 +2,14 @@
 
 namespace App\Domains\Ppat\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Ppat\Enums\PpatDeedStatus;
 use App\Domains\Ppat\Exceptions\DeedStatusNotEligible;
 use App\Models\PpatDeed;
 use App\Models\User;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Submit a Deed for review (M7.2, D-121).
@@ -26,17 +29,32 @@ use Illuminate\Support\Facades\Date;
  */
 class ReviewPpatDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, PpatDeed $deed): PpatDeed
     {
-        if (! $deed->status->isReviewable()) {
-            throw new DeedStatusNotEligible($deed->status, 'submitted for review');
-        }
+        return DB::transaction(function () use ($actor, $deed): PpatDeed {
+            if (! $deed->status->isReviewable()) {
+                throw new DeedStatusNotEligible($deed->status, 'submitted for review');
+            }
 
-        $deed->status = PpatDeedStatus::UNDER_REVIEW;
-        $deed->reviewed_at = Date::now();
-        $deed->reviewed_by = $actor->getKey();
-        $deed->save();
+            $from = $deed->status->value;
 
-        return $deed;
+            $deed->status = PpatDeedStatus::UNDER_REVIEW;
+            $deed->reviewed_at = Date::now();
+            $deed->reviewed_by = $actor->getKey();
+            $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_REVIEWED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
+
+            return $deed;
+        });
     }
 }

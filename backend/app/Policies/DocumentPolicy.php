@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Document\DocumentVisibility;
-use App\Http\Resources\DocumentResource;
+use App\Http\Controllers\Api\V1\DocumentController;
 use App\Models\Document;
 use App\Models\User;
 
@@ -114,19 +114,25 @@ class DocumentPolicy
      * Separate from `view`, which reaches metadata. Somebody may legitimately be
      * allowed to know a document exists and not to read it.
      *
-     * **Every sensitive download is refused, whatever the actor holds** (M5.2).
-     * D-115 rules that no sensitive-download surface ships before an audit store
-     * exists, because the capability to read a KTP scan and the record of who read
-     * it belong in the same milestone. `audit_logs` does not exist, so the gate is
-     * closed.
+     * **The D-115 gate is lifted at M8.1, and this is what closes D-115.**
      *
-     * The capability checks above it are kept rather than short-circuited, and
-     * that is deliberate: they are what the answer *will* be, and when audit lands
-     * the milestone that builds it deletes the gate rather than reconstructing the
-     * authorization. Until then an actor holding `documents.sensitive.download`
-     * holds a capability that authorizes nothing — recorded here and in
-     * {@see DocumentResource} rather than left to be
-     * discovered.
+     * From M5.2 until now this method ended `return ! $document->is_sensitive`,
+     * refusing every sensitive download whatever the actor held — because the
+     * capability to read a KTP scan and the record of who read it belong in the
+     * same milestone, and `audit_logs` did not exist. M8.1 builds it (D-123), so
+     * the gate comes out exactly as M5.2 said it would.
+     *
+     * **The authorization was never reconstructed.** The two capability checks
+     * below are the ones M5.1 wrote; all that changed is the line beneath them.
+     * That was the point of keeping them rather than short-circuiting the method.
+     *
+     * `documents.sensitive.download` now authorizes something for the first time
+     * since it was catalogued at M1.2. Every sensitive download writes a
+     * `SENSITIVE_ACCESS` audit row recording the document's key and the actor —
+     * **never the file's contents, and never the identity it is about** (D-105,
+     * restated with more force by D-115). {@see DocumentController::download}
+     * is where that write happens: in the controller rather than here, because a
+     * Policy answers a question and must not have a side effect.
      */
     public function download(User $actor, Document $document): bool
     {
@@ -134,11 +140,7 @@ class DocumentPolicy
             return false;
         }
 
-        if (! $this->passesSensitivity($actor, $document, 'documents.sensitive.download')) {
-            return false;
-        }
-
-        return ! $document->is_sensitive;
+        return $this->passesSensitivity($actor, $document, 'documents.sensitive.download');
     }
 
     /**

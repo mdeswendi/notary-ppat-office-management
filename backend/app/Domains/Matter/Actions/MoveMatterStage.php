@@ -2,6 +2,8 @@
 
 namespace App\Domains\Matter\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Matter\Enums\MatterStageStatus;
 use App\Models\Matter;
 use App\Models\MatterStageHistory;
@@ -61,6 +63,8 @@ use RuntimeException;
  */
 class MoveMatterStage
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(
         User $actor,
         Matter $matter,
@@ -118,6 +122,16 @@ class MoveMatterStage
             $history->reason = $reason;
             $history->changed_at = Date::now();
             $history->save();
+
+            $this->events->statusChanged(
+                $matter,
+                $actor,
+                $from,
+                $target->stage_code,
+                ActivityType::MATTER_STAGE_CHANGED,
+                ['stage' => $target->stage_code],
+                $reason,
+            );
 
             return $target;
         });

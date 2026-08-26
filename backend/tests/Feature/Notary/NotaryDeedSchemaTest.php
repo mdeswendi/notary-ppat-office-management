@@ -441,8 +441,14 @@ it('does not build the document junction it just unblocked', function (): void {
     expect(Schema::hasTable('notary_deed_documents'))->toBeFalse();
 });
 
-it('improvises no audit store', function (string $table): void {
+it('improvises no Notary-specific audit store', function (string $table): void {
     // D-115 and D-118 both refused this, and M5.4 refused it again. `reviewed_by`,
     // `approved_by` and `finalized_by` record who and when on the row itself.
+    //
+    // **Narrowed at M8.1, not deleted.** `audit_logs` and `activities` were in
+    // this list because M6 had to build neither; M8.1 builds both from the
+    // canonical ERD field lists under D-123, so their absence is no longer the
+    // assertion. A Notary-shaped audit table would still be the improvisation
+    // D-115 refused.
     expect(Schema::hasTable($table))->toBeFalse();
-})->with(['audit_logs', 'activities', 'notary_deed_activities']);
+})->with(['notary_deed_activities', 'notary_audit_logs']);

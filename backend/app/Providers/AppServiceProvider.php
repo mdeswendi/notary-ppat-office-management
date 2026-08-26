@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Listeners\RecordAuthenticationAudit;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\Individual;
@@ -30,8 +31,11 @@ use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -154,6 +158,23 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PpatWarkah::class, PpatWarkahPolicy::class);
 
         $this->registerSecurityRateLimiters();
+        $this->registerAuditListeners();
+    }
+
+    /**
+     * Session events that belong in the audit trail (M8.1, D-123).
+     *
+     * Registered explicitly rather than by listener auto-discovery, for the same
+     * reason every policy above is: one file answers what is wired to what.
+     *
+     * **`Login`, not `Authenticated`.** The latter fires on every authenticated
+     * request, so auditing it would write thousands of rows a day that say
+     * nothing and bury the ones that matter — in a table nobody may delete from.
+     */
+    private function registerAuditListeners(): void
+    {
+        Event::listen(Login::class, [RecordAuthenticationAudit::class, 'onLogin']);
+        Event::listen(Logout::class, [RecordAuthenticationAudit::class, 'onLogout']);
     }
 
     /**

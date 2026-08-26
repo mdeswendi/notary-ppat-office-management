@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Audit\Contracts\HasAuditOffice;
 use Database\Factories\IndividualFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -61,8 +62,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * material derived from it.
  */
 #[Hidden(['nik', 'npwp', 'nik_fingerprint', 'npwp_fingerprint', 'party_type'])]
-class Individual extends Model
+class Individual extends Model implements HasAuditOffice
 {
+    /**
+     * An Individual's Office lives on its Party (M8.1).
+     *
+     * M2 put identity on the subtype and ownership on the Party, so there is no
+     * `individuals.office_id` to read. Declared explicitly so an audit row for a
+     * NIK reveal is filed against the record's Office rather than the actor's —
+     * a distinction that only shows itself when the two differ, which is exactly
+     * when it matters.
+     */
+    public function auditOfficeId(): ?string
+    {
+        return $this->party?->office_id;
+    }
+
     /** @use HasFactory<IndividualFactory> */
     use HasFactory;
 

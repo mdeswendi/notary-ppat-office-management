@@ -80,6 +80,23 @@ enum TaskStatus: string
         return ! in_array($this, [self::COMPLETED, self::CANCELLED], true);
     }
 
+    /**
+     * The same idea as {@see self::isOpen()}, as values for a `whereIn` (M8.1).
+     *
+     * Added so the Dashboard's scoped counts express "live work" through the
+     * enum rather than repeating a literal array at every call site — three
+     * panels ask the same question, and a fourth will.
+     *
+     * @return array<int, string>
+     */
+    public static function openValues(): array
+    {
+        return array_values(array_map(
+            static fn (self $case): string => $case->value,
+            array_filter(self::cases(), static fn (self $case): bool => $case->isOpen()),
+        ));
+    }
+
     public function isCompletable(): bool
     {
         return in_array($this, [self::OPEN, self::IN_PROGRESS, self::WAITING], true);

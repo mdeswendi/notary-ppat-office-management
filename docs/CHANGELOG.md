@@ -5,6 +5,123 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-26 — M8.1 Dashboard and audit foundation
+
+Branch `feat/m8-dashboard`, from the M8.0 lock. **Two migrations, seven routes, no permission — the
+count stays at 177.** Implements D-122 and D-123; adds D-127 and D-128. **D-115 closes.** O-047 is
+built on its own stated terms and stays open for the question it actually names.
+
+### Batch 7 is paid, and D-115 closes with it
+
+`audit_logs` and `activities` are transcribed from `03_DATABASE_ERD.md` sections 25 and 24. Both had
+been owed since M1: D-033 kept audit out on the batch ordering, D-115 kept it out of M5 on the same
+ground, and M6 and M7 then built batches 8 and 10 — later batches. The argument that deferred it
+three times became the argument for building it.
+
+**Append-only is structural.** No `updated_at`, no `deleted_at`, no soft delete, and the model throws
+on `updating` and `deleting`, so there is no internal method that could perform one — `CLAUDE.md` §31
+extended from "no such permission" to "no such code path".
+
+**The gate in `DocumentPolicy::download()` came out exactly as M5.2 said it would.** That method
+ended `return ! $document->is_sensitive` for three milestones; `documents.sensitive.download` now
+authorizes something for the first time since it was catalogued at M1.2, and every sensitive download
+writes a `SENSITIVE_ACCESS` row naming the document and the actor — **never the file's contents and
+never the identity it is about**. The two `Log::info('PARTY_IDENTITY_REVEALED')` stopgaps are gone
+rather than duplicated: a second copy of that metadata in a log aggregator is a second place to leak
+from.
+
+### Both tables, because one would break the authorization model
+
+The M8.1 brief specified a dashboard activity feed reading from `audit_logs`. That table answers to
+`audit.view`, which leaves two outcomes and no third: the feed is denied to every actor without the
+audit capability, or the Dashboard becomes a way to read audit content without holding it — **which
+D-122 forbids by name**. So both canonical tables ship (D-128), with different vocabularies:
+
+```text
+audit_logs.event          CREATED UPDATED STATUS_CHANGED LOGIN LOGOUT DELETED SENSITIVE_ACCESS
+activities.activity_type  DEED_APPROVED TASK_COMPLETED DOCUMENT_UPLOADED ... (14)
+```
+
+Verified end to end on the probe: one login and one project creation produced **three audit rows**
+(`LOGIN`, `CREATED`, `LOGOUT`, each with an IP) and **one activity row** — the business milestone,
+not the session noise.
+
+### The finding a test caught, and a composite key would have hidden
+
+**`audit_logs.actor_user_id` is a plain foreign key, not the composite one every office-owned table
+has used since M2** (D-127). `office_id` is the *subject's* Office, because that is who may read the
+row; the actor may be from elsewhere, since Data Scope `ALL` reaches across Offices by design.
+
+The composite version was written first and `IndividualIdentityTest`'s cross-office reveal failed on
+it. The tempting fix — file the row under the actor's Office — would have "worked" while hiding the
+record from the only people entitled to see it, and would have been invisible in every same-Office
+case. **A composite key would make the single most security-relevant access in the system the one act
+that could not be recorded.**
+
+### The Dashboard invents no authority, and every count obeys Data Scope
+
+Six endpoints under `/api/v1/dashboard`, none carrying an `authorize()` call, because there is no
+`dashboard.*` code and none is needed. Every figure is produced through the resource's own visibility
+class: an actor whose `tasks.view` scope is `OWN` sees a count of **their** overdue tasks, not the
+office's — asserted directly, two against nine.
+
+**`null` means "not permitted"; `0` means "permitted and empty".** Collapsing them would invent a
+zero for somebody not entitled to count — the lie O-046 refused for document counts. The widgets
+render nothing at all for a `null` panel rather than an empty card.
+
+### Four things the brief asked for that were built differently, and one that could not be built
+
+- **Workload is not filtered by role name.** The brief specified `NOTARY_STAFF, PPAT_STAFF,
+  OFFICE_MANAGER`; that is the role-name authorization `CLAUDE.md` §24 and D-048 forbid. It lists
+  whoever the actor may read under `users.view` who actually holds live work.
+- **No staleness thresholds.** "Waiting more than 3 days", "pending more than 2 days" and "overdue by
+  more than 1 day" are office policy nobody has written down. Everything actually waiting, actually
+  under review or actually overdue is reported, with `days_waiting` for the reader to judge.
+- **No two layouts.** Staff-versus-manager layouts would be role branching; capability-gated panel
+  composition reaches the same two pages without asserting who anybody is.
+- **`Login`, not `Authenticated`** — the latter fires on every authenticated request. A related trap
+  the tests caught: **Laravel auto-discovers listener methods matching `handle*`**, so `handleLogin`
+  was bound twice alongside the explicit registration and wrote two rows per sign-in. Renamed to
+  `onLogin` / `onLogout`.
+- **"Matters with required documents missing" could not be built at all**: `matter_requirements` does
+  not exist, D-115 deferred it with `service_document_requirements`, and both remain unbuilt.
+
+### Written from Actions, never from model observers
+
+The brief proposed observers for create/update/delete. An observer fires for every
+`Project::factory()->create()` in a 2876-test suite — thousands of rows about records no actor
+created, in a table nobody may delete from — and it cannot tell approving a deed from any other write
+that sets `status`. Twenty Actions call an `EventRecorder` instead. The accepted cost is that a
+future write path could forget the call; a gap is better than a table of confident falsehoods.
+
+### Six guard tests narrowed, none deleted
+
+Five files asserted `audit_logs` and `activities` must **not** exist — the M5/M6/M7 position that no
+audit store had been improvised. Each keeps the part still true (`ppat_deed_activities`,
+`notary_deed_activities`, `notary_minuta_history`, spatie's `activity_log`) and records why the
+canonical pair landing is the opposite of the half-measure D-115 refused. `DocumentAuthorizationTest`
+inverted exactly as its own comment instructed: *"When audit_logs lands, the gate comes out and this
+test changes with it."*
+
+### Verification
+
+```text
+Migrations   50 -> 52
+Routes       195 -> 202 (188 -> 195 under /api/v1)
+Backend      2876 passed, 8 skipped (was 2820)   Pint clean
+Frontend     198 passed across 20 files (was 187)
+             format:check, lint (0 errors), typecheck, build all clean
+```
+
+**HTTP smoke on a disposable `m81_probe`**, real Sanctum cookie session, no bearer token. The serving
+process proved its own database (O-034): `{"current_database":"m81_probe","migrations":52,
+"has_audit_logs":true,"has_activities":true}`. Login 204, all six dashboard endpoints 200,
+`DELETE /api/v1/audit-logs` **405**, project creation wrote one activity row and one audit row, and
+`stats.active_projects` moved 0 → 1. Probe dropped; the persistent development database stands
+untouched at **42 migrations**.
+
+---
+
 ## 2026-08-25 — M8.0 Dashboard, Billing & Reports architecture lock
 
 Branch `feat/m8-dashboard`, from `d3bd0b4`. **No code, no migration, no permission — the count stays

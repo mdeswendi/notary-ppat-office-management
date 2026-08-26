@@ -2,6 +2,8 @@
 
 namespace App\Domains\Project\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Project\AllocateProjectReference;
 use App\Domains\Project\Enums\ProjectStatus;
 use App\Models\Project;
@@ -39,7 +41,10 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateProject
 {
-    public function __construct(private readonly AllocateProjectReference $allocator) {}
+    public function __construct(
+        private readonly AllocateProjectReference $allocator,
+        private readonly EventRecorder $events,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $attributes  ordinary fields only
@@ -61,6 +66,11 @@ class CreateProject
 
             $project->fill($attributes);
             $project->save();
+
+            $this->events->created($project, $actor, ActivityType::PROJECT_CREATED, [
+                'reference' => $project->project_number,
+                'title' => $project->title,
+            ]);
 
             return $project;
         });

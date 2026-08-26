@@ -298,11 +298,15 @@ it('separates sensitive viewing from sensitive downloading', function (): void {
     // Two codes, two answers. Somebody may legitimately be allowed to know a KTP
     // scan exists and not to read it.
     //
-    // **Narrowed at M5.2.** M5.1 asserted that granting
-    // `documents.sensitive.download` made the Policy answer true. It no longer
-    // does — see the D-115 gate below — so what survives here is the half that is
-    // still true and was always the point: the two codes are independent, and
-    // holding the view one does not reach a download.
+    // **Narrowed at M5.2, and unchanged at M8.1.** M5.1 asserted that granting
+    // `documents.sensitive.download` made the Policy answer true; the D-115 gate
+    // then made it false for everyone, so this narrowed to the half that was
+    // always the point — the two codes are independent, and holding the view one
+    // does not reach a download.
+    //
+    // M8.1 lifted that gate and this test did not move, because the actor below
+    // still holds only `documents.sensitive.view`. Granting it back is now
+    // asserted directly, one test down.
     [$actor, $office] = documentActor([
         'documents.view', 'documents.download', 'documents.sensitive.view',
     ]);
@@ -319,14 +323,36 @@ it('separates sensitive viewing from sensitive downloading', function (): void {
     expect(resolveAccess($actor->fresh(), 'documents.sensitive.download')->granted)->toBeTrue();
 });
 
-it('refuses every sensitive download until an audit store exists', function (): void {
-    // D-115: the capability to read a KTP scan and the record of who read it
-    // belong in the same milestone. `audit_logs` does not exist, so the gate is
-    // closed — and it is closed for an actor holding **every** relevant code, not
-    // just for one who is short a permission.
+it('permits a sensitive download now that the audit store exists', function (): void {
+    // **This test changed at M8.1, exactly as its previous version instructed.**
+    // It read: "When audit_logs lands, the gate in DocumentPolicy::download comes
+    // out and this test changes with it." M8.1 built the store (D-123), so the
+    // gate came out and the assertion inverts.
+    //
+    // D-115's rule was never that sensitive downloads are forbidden — it was that
+    // the capability to read a KTP scan and the record of who read it belong in
+    // the same milestone. They now do.
     [$actor, $office] = documentActor([
         'documents.view', 'documents.sensitive.view',
         'documents.download', 'documents.sensitive.download',
+    ]);
+
+    $ordinary = Document::factory()->inOffice($office)->create();
+    $sensitive = Document::factory()->inOffice($office)->sensitive()->create();
+
+    expect(documentPolicy()->download($actor, $ordinary))->toBeTrue()
+        ->and(documentPolicy()->download($actor, $sensitive))->toBeTrue()
+        ->and(documentPolicy()->view($actor, $sensitive))->toBeTrue();
+
+    expect(Schema::hasTable('audit_logs'))->toBeTrue();
+});
+
+it('still refuses a sensitive download to an actor without the sensitive code', function (): void {
+    // The half of the old gate that was never about audit: the two download codes
+    // are independent, and `documents.download` alone never reaches a sensitive
+    // file. Lifting the D-115 gate must not have quietly widened this.
+    [$actor, $office] = documentActor([
+        'documents.view', 'documents.sensitive.view', 'documents.download',
     ]);
 
     $ordinary = Document::factory()->inOffice($office)->create();
@@ -337,10 +363,6 @@ it('refuses every sensitive download until an audit store exists', function (): 
         // Metadata is unaffected. Refusing the file is not refusing to admit the
         // document exists.
         ->and(documentPolicy()->view($actor, $sensitive))->toBeTrue();
-
-    expect(Schema::hasTable('audit_logs'))->toBeFalse(
-        'When audit_logs lands, the gate in DocumentPolicy::download comes out and this test changes with it.'
-    );
 });
 
 it('gates every write ability on a sensitive document too', function (string $ability, string $capability): void {

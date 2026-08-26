@@ -2,10 +2,12 @@
 
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Http\Controllers\Api\V1\ArchivedProjectController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
@@ -53,6 +55,41 @@ Route::prefix('v1')->group(function (): void {
     // requests. No bearer token is involved.
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('me', MeController::class)->name('api.v1.me');
+
+        /*
+         * The operational overview (M8.1, D-122).
+         *
+         * **No permission guards these**, and that is not an omission: there is
+         * no `dashboard.*` code in the catalogue and none is needed. Every figure
+         * is produced by DashboardAggregator, which resolves each panel's own
+         * capability and applies that resource's own Data Scope. A panel the
+         * caller may not see comes back `null`, and an actor holding nothing gets
+         * a page of nulls and a 200 — correct behaviour, not an error state.
+         *
+         * Six addresses rather than one, so the cheapest panel never waits for
+         * the most expensive and a client can skip what its user cannot see.
+         */
+        Route::prefix('dashboard')->name('api.v1.dashboard.')->group(function (): void {
+            Route::get('stats', [DashboardController::class, 'stats'])->name('stats');
+            Route::get('tasks', [DashboardController::class, 'tasks'])->name('tasks');
+            Route::get('needs-attention', [DashboardController::class, 'needsAttention'])->name('needs-attention');
+            Route::get('workload', [DashboardController::class, 'workload'])->name('workload');
+            Route::get('activity', [DashboardController::class, 'activity'])->name('activity');
+            Route::get('deeds', [DashboardController::class, 'deeds'])->name('deeds');
+        });
+
+        /*
+         * The audit trail (M8.1, D-123, closing D-115).
+         *
+         * **Read-only, structurally.** `audit.view` guards it; there is no
+         * `audit.update` or `audit.delete` in the catalogue, the model throws on
+         * both, and no address here could reach one. `CLAUDE.md` section 31.
+         *
+         * One address with filters rather than nested routes (D-118): "what
+         * happened to this deed", "what has this person done" and "what happened
+         * last week" are three questions about one collection.
+         */
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.v1.audit-logs.index');
 
         // The authenticated user's own account. No permission guards these and
         // no id is accepted — the target is always the caller (D-066).

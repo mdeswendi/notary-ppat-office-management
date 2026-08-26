@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M8.0
+# Project Handoff — M0 through M8.1
 
-**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 is on this branch.
+**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 and M8.1 are on this branch.
 **Last accepted merge to `main`:** M7 (`d3bd0b4`), a `--no-ff` merge of `feat/m7-ppat`.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M8.0.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M8.1.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 lock on `feat/m8-dashboard` |
-| Migrations | **50** |
+| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.1 on `feat/m8-dashboard` |
+| Migrations | **52** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 35 |
-| API routes | **188** under `/api/v1` (195 total) |
-| Backend tests | **2820 passing, 8 skipped** across 88 files (Pest) |
-| Frontend tests | **187 passing** across 19 files (Vitest + RTL) |
+| Models | 37 |
+| API routes | **195** under `/api/v1` (202 total) |
+| Backend tests | **2876 passing, 8 skipped** across 90 files (Pest) |
+| Frontend tests | **198 passing** across 20 files (Vitest + RTL) |
 | Frontend pages | 52 |
-| Decisions recorded | **D-001 … D-126** |
-| Open items | 25 still open (§7) — O-037 and **O-044** closed, O-039…O-046 added 2026-08-25, **O-047…O-050** added at M8.0 |
+| Decisions recorded | **D-001 … D-128** |
+| Open items | 25 still open (§7) — O-037, **O-044** closed; O-039…O-046 added 2026-08-25; **O-047…O-050** added at M8.0. **D-115 closed at M8.1.** |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -337,19 +337,25 @@ in §8.
 | O-049 | Billing has seventeen capabilities and no ERD table at all | M8.2 designs the schema under D-124 — the first this project has designed rather than transcribed; the ERD should adopt it |
 | O-050 | A verified payment has no correction path | No `payments.update`, no delete, no reversal verb; the verify gate is the only control |
 
-**The largest structural gap is no longer unlisted, but it is still unbuilt: `audit_logs` does not
-exist.** D-033 kept it out of M1 on the ERD's batch ordering; `audit.view` and `audit.export` are
-registered and unimplemented. D-115 rules that **no sensitive-download surface ships before it
-exists**, which is why `documents.sensitive.download` currently authorizes nothing. **M8.1 is where
-that is paid** (D-123): `activity` and `audit` are ERD batch **7**, behind the batches M5, M6 and M7
-already built, so the ordering argument that deferred them three times is now the argument for
-building them.
+**The largest structural gap is closed. `audit_logs` exists as of M8.1** (D-123), transcribed from
+ERD §25, append-only structurally, and queryable by resource. D-115 is **resolved**: the
+sensitive-download gate in `DocumentPolicy::download()` came out, `documents.sensitive.download`
+authorizes something for the first time since M1.2, and every sensitive download writes a
+`SENSITIVE_ACCESS` row. `audit.view` has a surface at `GET /api/v1/audit-logs`; `audit.export` does
+not, and belongs with `reports.export` at M8.3.
 
-**One caution for whoever starts M8.1.** There is no `Activity` model, no `activities` table, no
-`AuditLog`, and no billing table or model of any kind — `backend/app/Models/` holds 35 models and
-none of them is any of these. An activity feed is the most natural thing to assume is present by M8.
-It is not, and it is not backfilled when it arrives: the feed starts empty and fills forward, which
-is expected behaviour rather than a defect.
+**Three cautions for whoever works on this next.**
+
+- **Neither table is backfilled** (D-123). The activity feed starts empty and fills forward, so an
+  office that upgrades sees nothing there until the next thing happens. That is expected behaviour,
+  and seeding it would put fabricated timestamps into a factual record.
+- **`audit_logs.actor_user_id` is a plain foreign key, not the composite one every other office-owned
+  table uses** (D-127). Do not "fix" it: `office_id` is the *subject's* Office, the actor may hold
+  Data Scope `ALL` and be from elsewhere, and a composite key would make cross-office access — the
+  event an auditor most needs — impossible to record.
+- **No billing table or model exists**, and none is transcribable: the ERD defines no billing schema
+  at all (O-049). `backend/app/Models/` holds 37 models and not one of them is a `Quotation`,
+  `Invoice`, `Payment` or `Disbursement`.
 
 ---
 
@@ -362,9 +368,10 @@ M5.5  (absorbed into M5.4 — the identifier stays retired)
 M5.6  M5 quality gate
 ```
 
-Audit is deliberately unnumbered — whether it becomes M5.2a or a prerequisite milestone is a scoped
-decision for whoever takes it. It is the one thing M5 named and did not build, and D-115 keeps
-`documents.sensitive.download` authorizing nothing until it exists.
+~~Audit is deliberately unnumbered — whether it becomes M5.2a or a prerequisite milestone is a scoped
+decision for whoever takes it.~~ **Answered at M8.1**, which built it as part of the Dashboard and
+audit foundation rather than as a retrofit into M5 (D-123). It was the one thing M5 named and did not
+build, and `documents.sensitive.download` now authorizes a real download.
 
 **The question M5.0 left for M5.4 is answered** (D-119): `created_by` was added, `OWN` is the creator,
 `ASSIGNED` is the assignee, and the two are separate predicates that union when both are held.
@@ -506,11 +513,18 @@ open question nine (O-039).
 
 ```text
 M8.0  Architecture lock                                   <- done
-M8.1  Dashboard + audit & activity foundation             closes D-115
+M8.1  Dashboard + audit & activity foundation             <- done, closes D-115
 M8.2  Billing — quotations, invoices, payments, disbursements
 M8.3  Reports — five families, read-only, scoped
 M8.4  M8 quality gate
 ```
+
+**M8.1 shipped** two migrations (50 → 52), two models, two enums, three services, seven routes and
+five dashboard widgets, registering **no permission**. What it did differently from its brief, and
+why, is in the changelog entry — the short version is that role-name filtering (D-048), invented
+staleness thresholds, and a role-branched layout were all replaced with capability-gated composition,
+and the activity feed reads `activities` rather than `audit_logs` because the latter would have made
+the Dashboard a way to read audit content without `audit.view` (D-128).
 
 The order is **forced, not chosen**: `reports.audit.view` cannot be built before `audit_logs` exists
 and `reports.financial.view` cannot be built before billing does, so Reports come last.
@@ -574,8 +588,9 @@ and M6 are merged and green — but each is a judgement somebody should confirm 
    explicit yes or no.
 2. **`is_sensitive` locks on `ARCHIVED`** as well as `VERIFIED` and `FINAL`, which extends the stated
    requirement. Same rule applied consistently, but it is an extension.
-3. **`documents.sensitive.download` grants nothing** until audit exists. An administrator granting it
-   will see no effect (D-115).
+3. ~~**`documents.sensitive.download` grants nothing** until audit exists.~~ **Closed at M8.1.** The
+   audit store exists, the gate came out, and granting the code now has the effect an administrator
+   would expect — with every such download recorded (D-115, D-123).
 
 ---
 

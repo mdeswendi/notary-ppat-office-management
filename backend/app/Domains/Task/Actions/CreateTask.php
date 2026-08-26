@@ -2,6 +2,8 @@
 
 namespace App\Domains\Task\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Models\Matter;
 use App\Models\Project;
@@ -46,6 +48,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateTask
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     /**
      * @param  array<string, mixed>  $attributes  ordinary fields only
      * @param  Project|null  $project  already resolved and authorized by the caller
@@ -82,6 +86,10 @@ class CreateTask
 
             $task->fill($attributes);
             $task->save();
+
+            $this->events->created($task, $actor, ActivityType::TASK_CREATED, [
+                'title' => $task->title,
+            ]);
 
             return $task;
         });

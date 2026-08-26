@@ -78,8 +78,53 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "foundationSubtitle": "Foundation UI",
-    "placeholderBody": "The application shell is ready. Dashboard summaries will appear once the modules behind them exist."
+    "subtitle": "This office's work at a glance, limited to what you may see.",
+    "loading": "Loading…",
+    "panelUnavailable": "This panel is unavailable right now.",
+    "viewAll": "View all",
+    "activeProjects": "Active Projects",
+    "activeMatters": "Active Matters",
+    "pendingReviews": "Pending Review",
+    "overdueTasks": "Overdue Tasks",
+    "totalDeeds": "Deeds This Month",
+    "myTasks": "My Tasks",
+    "today": "Today",
+    "overdue": "Overdue",
+    "upcoming": "Upcoming",
+    "noTasks": "No tasks.",
+    "needsAttention": "Needs Attention",
+    "nothingNeedsAttention": "Nothing is held up.",
+    "attention": {
+      "MATTER_WAITING": "Matter held up",
+      "DEED_PENDING_REVIEW": "Deed awaiting review",
+      "TASK_OVERDUE": "Task overdue",
+      "daysWaiting": "{days} days",
+      "noAge": "No due date"
+    },
+    "workload": "Workload",
+    "noWorkload": "No work is assigned yet.",
+    "workloadCounts": "{matters} matters · {tasks} tasks",
+    "activity": "Recent Activity",
+    "noActivity": "No activity yet. The record starts when this feature was enabled and fills as work happens.",
+    "systemActor": "System"
+  },
+  "activity": {
+    "types": {
+      "PROJECT_CREATED": "created project {title}",
+      "MATTER_CREATED": "created matter {title}",
+      "MATTER_STAGE_CHANGED": "moved the stage to {stage}",
+      "DOCUMENT_UPLOADED": "uploaded document {title}",
+      "DOCUMENT_VERIFIED": "verified document {title}",
+      "TASK_CREATED": "created task {title}",
+      "TASK_ASSIGNED": "assigned {title} to {assignee}",
+      "TASK_COMPLETED": "completed task {title}",
+      "DEED_CREATED": "created deed {title}",
+      "DEED_REVIEWED": "submitted deed {title} for review",
+      "DEED_APPROVED": "approved deed {title}",
+      "DEED_FINALIZED": "finalized deed {title}",
+      "PROPERTY_CREATED": "added land object {reference}",
+      "WARKAH_VERIFIED": "verified the Warkah"
+    }
   },
   "projects": {
     "title": "Projects",

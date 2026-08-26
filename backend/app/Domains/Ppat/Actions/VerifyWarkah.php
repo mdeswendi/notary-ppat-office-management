@@ -2,6 +2,8 @@
 
 namespace App\Domains\Ppat\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Ppat\Enums\PpatWarkahStatus;
 use App\Models\PpatWarkah;
 use App\Models\User;
@@ -53,9 +55,13 @@ use Illuminate\Support\Facades\DB;
  */
 class VerifyWarkah
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, PpatWarkah $warkah, ?string $notes = null): PpatWarkah
     {
         return DB::transaction(function () use ($actor, $warkah, $notes): PpatWarkah {
+            $from = $warkah->status?->value;
+
             $warkah->status = PpatWarkahStatus::COMPLETE;
 
             // Written together; the CHECK and the model guard both refuse a half pair.
@@ -67,6 +73,14 @@ class VerifyWarkah
             }
 
             $warkah->save();
+
+            $this->events->statusChanged(
+                $warkah,
+                $actor,
+                $from,
+                $warkah->status->value,
+                ActivityType::WARKAH_VERIFIED,
+            );
 
             return $warkah;
         });

@@ -1,6 +1,6 @@
 # M8 — Dashboard, Billing & Reports Architecture
 
-**Status:** `LOCKED — M8.0`
+**Status:** `LOCKED — M8.0, amended at M8.1`
 
 Sibling of `12_M2_PARTY_ARCHITECTURE.md` through `17_M7_PPAT_ARCHITECTURE.md`. Where those locked the
 Party, Project, Matter, Document, Notary and PPAT aggregates, this one locks the three surfaces that
@@ -463,6 +463,25 @@ filename carries an identity number.
 
 `metadata` on an activity row carries interpolation values for `description_key` only, and is subject
 to the same list.
+
+### 8.6 Amendment (M8.1) — the actor key is plain, and section 12 has one exception
+
+This section did not exist at M8.0, and the ruling it records was arrived at by a failing test rather
+than in advance. Section 12 says Office boundaries are structural, and every office-owned table since
+M2 has made a cross-office user reference *unrepresentable* by pairing the user column with
+`office_id` in a composite foreign key.
+
+**`audit_logs` and `activities` do not, and must not.** `office_id` is the **subject's** Office,
+because that is who may read the row; the actor may legitimately be from elsewhere, since Data Scope
+`ALL` reaches across Offices by design. A composite key makes *"somebody from head office revealed
+this Office's NIK"* impossible to write — turning the single most security-relevant access in the
+system into the one act that could not be recorded.
+
+So `actor_user_id` is a plain key to `users.id` on both tables. `activities` keeps its **composite**
+`project_id` and `matter_id` keys, because those describe the subject's own context and must agree
+with the row's Office. D-127 carries the full reasoning, including why the obvious alternative —
+filing the row under the actor's Office — would have hidden the record from the only people entitled
+to see it, invisibly, in every same-Office case.
 
 ---
 

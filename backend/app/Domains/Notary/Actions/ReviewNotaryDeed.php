@@ -2,11 +2,14 @@
 
 namespace App\Domains\Notary\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Notary\Exceptions\DeedStatusNotEligible;
 use App\Models\NotaryDeed;
 use App\Models\User;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Submit a Deed for review (M6.2, D-120).
@@ -26,17 +29,32 @@ use Illuminate\Support\Facades\Date;
  */
 class ReviewNotaryDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, NotaryDeed $deed): NotaryDeed
     {
-        if (! $deed->status->isReviewable()) {
-            throw new DeedStatusNotEligible($deed->status, 'submitted for review');
-        }
+        return DB::transaction(function () use ($actor, $deed): NotaryDeed {
+            if (! $deed->status->isReviewable()) {
+                throw new DeedStatusNotEligible($deed->status, 'submitted for review');
+            }
 
-        $deed->status = NotaryDeedStatus::UNDER_REVIEW;
-        $deed->reviewed_at = Date::now();
-        $deed->reviewed_by = $actor->getKey();
-        $deed->save();
+            $from = $deed->status->value;
 
-        return $deed;
+            $deed->status = NotaryDeedStatus::UNDER_REVIEW;
+            $deed->reviewed_at = Date::now();
+            $deed->reviewed_by = $actor->getKey();
+            $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_REVIEWED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
+
+            return $deed;
+        });
     }
 }

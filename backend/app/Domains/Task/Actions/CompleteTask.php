@@ -2,6 +2,8 @@
 
 namespace App\Domains\Task\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Domains\Task\Exceptions\TaskStatusNotEligible;
 use App\Models\Task;
@@ -31,16 +33,29 @@ use Illuminate\Support\Facades\Date;
  */
 class CompleteTask
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, Task $task): Task
     {
         if (! $task->status->isCompletable()) {
             throw new TaskStatusNotEligible($task->status, 'completed');
         }
 
+        $from = $task->status->value;
+
         $task->status = TaskStatus::COMPLETED;
         $task->completed_at = Date::now();
         $task->completed_by = $actor->getKey();
         $task->save();
+
+        $this->events->statusChanged(
+            $task,
+            $actor,
+            $from,
+            $task->status->value,
+            ActivityType::TASK_COMPLETED,
+            ['title' => $task->title],
+        );
 
         return $task;
     }

@@ -78,8 +78,53 @@
   },
   "dashboard": {
     "title": "Dasbor",
-    "foundationSubtitle": "Antarmuka fondasi",
-    "placeholderBody": "Kerangka aplikasi sudah siap. Ringkasan dasbor akan ditampilkan setelah modul terkait tersedia."
+    "subtitle": "Ringkasan pekerjaan kantor ini, sebatas yang boleh Anda lihat.",
+    "loading": "Memuat…",
+    "panelUnavailable": "Panel ini sedang tidak dapat ditampilkan.",
+    "viewAll": "Lihat semua",
+    "activeProjects": "Proyek Aktif",
+    "activeMatters": "Pekerjaan Aktif",
+    "pendingReviews": "Perlu Review",
+    "overdueTasks": "Tugas Terlambat",
+    "totalDeeds": "Akta Bulan Ini",
+    "myTasks": "Tugas Saya",
+    "today": "Hari Ini",
+    "overdue": "Terlambat",
+    "upcoming": "Mendatang",
+    "noTasks": "Tidak ada tugas.",
+    "needsAttention": "Perlu Perhatian",
+    "nothingNeedsAttention": "Tidak ada yang tertahan.",
+    "attention": {
+      "MATTER_WAITING": "Pekerjaan tertahan",
+      "DEED_PENDING_REVIEW": "Akta menunggu review",
+      "TASK_OVERDUE": "Tugas terlambat",
+      "daysWaiting": "{days} hari",
+      "noAge": "Tanpa tenggat"
+    },
+    "workload": "Beban Kerja",
+    "noWorkload": "Belum ada pekerjaan yang ditugaskan.",
+    "workloadCounts": "{matters} pekerjaan · {tasks} tugas",
+    "activity": "Aktivitas Terbaru",
+    "noActivity": "Belum ada aktivitas. Catatan dimulai sejak fitur ini aktif dan akan terisi seiring pekerjaan berjalan.",
+    "systemActor": "Sistem"
+  },
+  "activity": {
+    "types": {
+      "PROJECT_CREATED": "membuat proyek {title}",
+      "MATTER_CREATED": "membuat pekerjaan {title}",
+      "MATTER_STAGE_CHANGED": "memindahkan tahapan ke {stage}",
+      "DOCUMENT_UPLOADED": "mengunggah dokumen {title}",
+      "DOCUMENT_VERIFIED": "memverifikasi dokumen {title}",
+      "TASK_CREATED": "membuat tugas {title}",
+      "TASK_ASSIGNED": "menugaskan {title} kepada {assignee}",
+      "TASK_COMPLETED": "menyelesaikan tugas {title}",
+      "DEED_CREATED": "membuat akta {title}",
+      "DEED_REVIEWED": "mengajukan akta {title} untuk direview",
+      "DEED_APPROVED": "menyetujui akta {title}",
+      "DEED_FINALIZED": "memfinalkan akta {title}",
+      "PROPERTY_CREATED": "menambahkan objek tanah {reference}",
+      "WARKAH_VERIFIED": "memverifikasi Warkah"
+    }
   },
   "projects": {
     "title": "Proyek",
