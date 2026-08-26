@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M8.2
+# Project Handoff — M0 through M8.3
 
-**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 – M8.2 are on this branch.
+**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 – M8.3 are on this branch.
 **Last accepted merge to `main`:** M7 (`d3bd0b4`), a `--no-ff` merge of `feat/m7-ppat`.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M8.2.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M8.3.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,15 +34,15 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.2 on `feat/m8-dashboard` |
+| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.3 on `feat/m8-dashboard` |
 | Migrations | **58** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
 | Models | 43 |
-| API routes | **221** under `/api/v1` (228 total) |
-| Backend tests | **2930 passing, 8 skipped** across 91 files (Pest) |
-| Frontend tests | **207 passing** across 21 files (Vitest + RTL) |
-| Frontend pages | 56 |
-| Decisions recorded | **D-001 … D-130** |
+| API routes | **244** under `/api/v1` (251 total) |
+| Backend tests | **2967 passing, 8 skipped** across 92 files (Pest) |
+| Frontend tests | **217 passing** across 22 files (Vitest + RTL) |
+| Frontend pages | 69 |
+| Decisions recorded | **D-001 … D-132** |
 | Open items | 26 still open (§7) — O-037, **O-044** closed; O-039…O-046 added 2026-08-25; **O-047…O-050** added at M8.0, **O-051** at M8.2. **D-115 closed at M8.1.** |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
@@ -118,7 +118,8 @@ the single most load-bearing process choice in the project.
 | **M7 merge** | `--no-ff` merge of `feat/m7-ppat`; migrations 42 → 50 | `d3bd0b4` |
 | **M8.0** | Dashboard / Billing / Reports lock — capabilities without a schema, and batch 7 comes due | `af7d0d6` |
 | **M8.1** | Dashboard + audit & activity foundation; D-115 closes | `2d8d331` |
-| **M8.2** | Billing: seven tables designed, twenty-six routes, no tax anywhere | on branch |
+| **M8.2** | Billing: seven tables designed, twenty-six routes, no tax anywhere | `e3ae655` |
+| **M8.3** | Reports: five families, twenty-three routes, no migration, no statutory return | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -521,7 +522,7 @@ open question nine (O-039).
 M8.0  Architecture lock                                   <- done
 M8.1  Dashboard + audit & activity foundation             <- done, closes D-115
 M8.2  Billing — quotations, invoices, payments, disbursements  <- done
-M8.3  Reports — five families, read-only, scoped
+M8.3  Reports — five families, read-only, scoped              <- done
 M8.4  M8 quality gate
 ```
 
@@ -563,6 +564,20 @@ names itself. Disbursements are records, not tax, and are not a back door to `pp
 - **`billing.amount.view` is a second gate**, masking every monetary figure including aggregates —
   server-side, so a masked amount is *absent from the payload*, as with NIK and NPWP (D-125).
 - **Neither audit nor activity is backfilled** (D-123). The feed starts empty and fills forward.
+
+**M8.3 rulings not to undo:**
+
+- **Opening a report family is not reading its rows** (D-131). `ReportPolicy` guards a marker class
+  and answers only "may this actor open this family"; every row is narrowed by its source domain's
+  own capability. A holder of `reports.operational.view` alone sees correctly empty pages.
+- **`reports.export` re-uses the built query**, so an export cannot reach further than the page did.
+  Financial exports omit masked columns from the **header**, not just the cells.
+- **Nothing may resemble a statutory return** (D-132). CSV only, no PDF, no letterhead, no sequence
+  of its own. `ppat.reports.*` is reached by nothing — building any endpoint for it would answer
+  O-043 by implementation, and O-035, O-036 and O-042 stay open too.
+- **Revenue is verified payments**, not issued-invoice totals, and returns `null` rather than row
+  counts without `billing.amount.view`.
+- **The property report has no status filter**, because nothing writes `properties.status` (M7.3).
 
 **Two gaps ship stated rather than closed with an invented verb**: a verified payment has no
 correction path (O-050), and `activities` has no capability — resolved for M8 as infrastructure read

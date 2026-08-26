@@ -3,6 +3,7 @@
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Http\Controllers\Api\V1\ArchivedProjectController;
 use App\Http\Controllers\Api\V1\AuditLogController;
+use App\Http\Controllers\Api\V1\AuditReportController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DisbursementController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
+use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
@@ -24,11 +26,14 @@ use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
 use App\Http\Controllers\Api\V1\NotaryMinutaController;
+use App\Http\Controllers\Api\V1\NotaryReportController;
+use App\Http\Controllers\Api\V1\OperationalReportController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PpatDeedController;
+use App\Http\Controllers\Api\V1\PpatReportController;
 use App\Http\Controllers\Api\V1\PpatWarkahController;
 use App\Http\Controllers\Api\V1\PpatWarkahItemController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -94,6 +99,78 @@ Route::prefix('v1')->group(function (): void {
          * last week" are three questions about one collection.
          */
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.v1.audit-logs.index');
+
+        /*
+         * Reports (M8.3, D-126).
+         *
+         * **Five families for five `reports.*.view` codes, plus `reports.export`
+         * as a second gate.** An actor may hold a view code and not export; the
+         * page renders and the download does not.
+         *
+         * **`ppat.reports.*` is untouched.** `reports.ppat.view` and
+         * `ppat.reports.view` differ only in word order and are different
+         * capabilities: the second belongs to a five-code
+         * generate/review/approve workflow that is the PPAT **monthly reporting
+         * obligation**, whose deadline, recipient and format nobody here has
+         * authored (O-043). No route below reaches any of those five.
+         *
+         * **Nothing here produces a Repertorium, a register extract or a
+         * statutory return.** Each address is a filtered list with counts,
+         * exported as CSV working data — the lock's §10 ruling that a report
+         * which looks like a statutory return is worse than no report.
+         *
+         * **Opening a family is not reading its rows.** `ReportPolicy` answers
+         * the first; every row is narrowed by its own source domain's capability
+         * and Data Scope (see `ReportQueries`), so a holder of only
+         * `reports.operational.view` gets correctly empty pages.
+         *
+         * Export sits beside each report rather than at a single
+         * `/reports/{type}/export`, so the two share one query builder and the
+         * scope predicate cannot drift between them.
+         */
+        Route::prefix('reports')->name('api.v1.reports.')->group(function (): void {
+            Route::prefix('operational')->name('operational.')->group(function (): void {
+                Route::get('matters', [OperationalReportController::class, 'matters'])->name('matters');
+                Route::get('matters/export', [OperationalReportController::class, 'exportMatters'])->name('matters.export');
+                Route::get('tasks', [OperationalReportController::class, 'tasks'])->name('tasks');
+                Route::get('tasks/export', [OperationalReportController::class, 'exportTasks'])->name('tasks.export');
+                Route::get('documents', [OperationalReportController::class, 'documents'])->name('documents');
+                Route::get('documents/export', [OperationalReportController::class, 'exportDocuments'])->name('documents.export');
+            });
+
+            Route::prefix('notary')->name('notary.')->group(function (): void {
+                Route::get('deeds', [NotaryReportController::class, 'deeds'])->name('deeds');
+                Route::get('deeds/export', [NotaryReportController::class, 'exportDeeds'])->name('deeds.export');
+                Route::get('summary', [NotaryReportController::class, 'summary'])->name('summary');
+            });
+
+            Route::prefix('ppat')->name('ppat.')->group(function (): void {
+                Route::get('deeds', [PpatReportController::class, 'deeds'])->name('deeds');
+                Route::get('deeds/export', [PpatReportController::class, 'exportDeeds'])->name('deeds.export');
+                Route::get('properties', [PpatReportController::class, 'properties'])->name('properties');
+                Route::get('properties/export', [PpatReportController::class, 'exportProperties'])->name('properties.export');
+                Route::get('warkah', [PpatReportController::class, 'warkah'])->name('warkah');
+                Route::get('warkah/export', [PpatReportController::class, 'exportWarkah'])->name('warkah.export');
+                Route::get('summary', [PpatReportController::class, 'summary'])->name('summary');
+            });
+
+            Route::prefix('financial')->name('financial.')->group(function (): void {
+                Route::get('invoices', [FinancialReportController::class, 'invoices'])->name('invoices');
+                Route::get('invoices/export', [FinancialReportController::class, 'exportInvoices'])->name('invoices.export');
+                Route::get('payments', [FinancialReportController::class, 'payments'])->name('payments');
+                Route::get('payments/export', [FinancialReportController::class, 'exportPayments'])->name('payments.export');
+                // Every cell is a sum, so this one returns nothing at all
+                // without `billing.amount.view` (D-125).
+                Route::get('revenue', [FinancialReportController::class, 'revenue'])->name('revenue');
+            });
+
+            Route::prefix('audit')->name('audit.')->group(function (): void {
+                // One address. "The trail for this record" is `auditable_type`
+                // plus `auditable_id` on it, not a second route (D-118).
+                Route::get('activity', [AuditReportController::class, 'activity'])->name('activity');
+                Route::get('activity/export', [AuditReportController::class, 'exportActivity'])->name('activity.export');
+            });
+        });
 
         /*
          * Billing (M8.2, D-124).

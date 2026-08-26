@@ -5012,6 +5012,80 @@ so the interface never offers a control the record would refuse.
 
 ---
 
+### D-131 — Opening a report family is not reading its rows, and export is a third gate
+
+M8.3 builds the five `reports.*` families as read-only aggregations, exactly as D-126 ruled. Three
+things about **where** each refusal lives are settled here, because a report is the one surface where
+getting them wrong would be invisible.
+
+**`ReportPolicy` answers only "may this actor open this family".** It guards
+`App\Domains\Reports\Report`, a **marker class with no table** — `Gate::policy()` maps a class name,
+and the alternatives were a bare `Gate::define` on a permission code, which `CLAUDE.md` section 24
+forbids outright, or an inline resolver call in every action, which puts authorization somewhere the
+D-048 scan does not look.
+
+**What rows come back is decided by each source domain, under its own capability.** A Matter report
+runs through `MatterVisibility` under `notary.matters.view` or `ppat.matters.view` — never under
+`reports.operational.view`. So an actor holding a report code and nothing else opens a page that is
+**correctly empty**, which is the lock's ruling that *a report is a list with arithmetic on it, and
+the arithmetic does not widen the list*. Asserted directly: three Matters exist, the report shows
+zero.
+
+**`reports.export` is a separate gate and the export re-uses the built query.** `ReportExporter`
+takes the **already-scoped** builder and chunks it, so there is no second code path that could forget
+a predicate — "export produces the same rows the actor just saw" is a property of the code rather
+than a promise in a comment. Financial exports additionally obey `billing.amount.view`, and a
+withheld column is **absent from the CSV header**, not a column of blanks: blanks invite the reader
+to conclude the office was paid nothing.
+
+**Three smaller rulings.** Reports **paginate** — the brief's sketch called `->get()` on an unbounded
+query, which section 43 forbids, and export is the answer for "all of it". The audit report is **one
+address with filters**, because "the trail for this record" is `auditable_type` plus `auditable_id`
+and a second URL over one table is two places for the scope predicate to drift (D-118). And the
+**property report has no status filter**: `properties.status` has no ERD vocabulary and nothing
+writes it (M7.3), so a control for it would narrow by a column that is null on every row.
+
+**Revenue means money received, not money billed.** It sums **verified** payments in the period —
+the same rule an invoice's paid total follows (O-050) — because issued-invoice totals answer a
+different question and would double-count anything billed in one period and paid in another. The
+report returns `data: null` without `billing.amount.view`, since every cell of it is a sum and a
+revenue report of row counts would be a different report pretending to be this one. Service types
+ship as **code plus both names**: choosing a language in a SQL aggregate would put presentation where
+no locale is known (sections 6, 10).
+
+---
+
+### D-132 — No report may resemble a statutory return, and `ppat.reports.*` stays untouched
+
+The lock's section 10 says *"a report that looks like a statutory return is worse than no report,
+because it invites being filed as one."* M8.3 honours that in three concrete ways, recorded here
+because each is a thing a later milestone might undo without noticing.
+
+**Nothing is produced that a Repertorium, a register extract or a PPAT monthly return would be
+recognised as.** Every surface is a filtered list with counts, exported as CSV working data. No
+letterhead, no PDF, no sequence of the report's own, and no column that exists only because a
+register would have one. The Repertorium's format and procedure are open questions in
+`08_NOTARY_WORKFLOW.md` section 6 (O-035, O-036); the register format and period are O-042; the PPAT
+monthly obligation's deadline, recipient and format are O-043. **All four remain open.**
+
+**CSV is the only export format, and that is a decision rather than a shortcut.** A formatted
+document with a letterhead begins to look like something an office might file. CSV is unambiguously
+working data.
+
+**`ppat.reports.generate`, `.review`, `.approve`, `.view` and `.export` are reached by nothing.**
+`reports.ppat.view` and `ppat.reports.view` differ only in word order and are different capabilities.
+The second family carries a produce-and-sign-off workflow that **is** the monthly obligation, so
+building any endpoint for it would answer O-043 by implementation. A test asserts no route contains
+`generate`, `monthly`, `repertorium` or `register`, and the smoke confirmed all three candidate
+addresses answer 404.
+
+**`reports.audit.view` is a second reader of `audit_logs`, and legitimately so.** M8.1 built
+`GET /api/v1/audit-logs` under `audit.view`; both codes are canonical and neither implies the other
+(D-091), so an office may give a compliance reviewer the report without the operational surface. The
+rows are identical and so is the Office predicate.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

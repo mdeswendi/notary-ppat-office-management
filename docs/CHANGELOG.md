@@ -5,6 +5,118 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-26 — M8.3 Reports
+
+Branch `feat/m8-dashboard`, from `e3ae655`. **No migration, twenty-three routes, no permission — the
+count stays at 177.** Implements D-126; adds D-131 and D-132. Reports are queries, so there is
+nothing to migrate.
+
+### Opening a family is not reading its rows
+
+`ReportPolicy` guards `App\Domains\Reports\Report` — a **marker class with no table**, because
+`Gate::policy()` maps a class name and the alternatives were a bare `Gate::define` on a permission
+code (which `CLAUDE.md` §24 forbids) or an inline resolver call the D-048 scan would never see.
+
+It answers one question: may this actor open this family. **Which rows come back is decided by each
+source domain under its own capability** — a Matter report runs through `MatterVisibility` under
+`notary.matters.view` or `ppat.matters.view`, never under `reports.operational.view`. An actor
+holding a report code and nothing else opens a page that is **correctly empty**, asserted directly:
+three Matters exist, the report shows zero.
+
+That is the lock's §10 ruling in practice — *a report is a list with arithmetic on it, and the
+arithmetic does not widen the list*.
+
+### `reports.export` is a third gate, and the export re-uses the built query
+
+`ReportExporter` takes the **already-scoped** builder and chunks it with `chunkById`. There is no
+second code path that could forget a predicate, so *"export produces the same rows the actor just
+saw"* is a property of the code rather than a promise in a comment.
+
+Financial exports additionally obey `billing.amount.view`, and a withheld column is **absent from the
+CSV header** — not a column of blanks, which would invite the reader to conclude the office was paid
+nothing.
+
+### Nothing here may resemble a statutory return
+
+The lock's §10: *"a report that looks like a statutory return is worse than no report, because it
+invites being filed as one."* So every surface is a filtered list with counts, exported as CSV
+working data — no letterhead, no PDF, no sequence of its own, and no column that exists only because
+a register would have one.
+
+**`ppat.reports.generate`, `.review`, `.approve`, `.view` and `.export` are reached by nothing.**
+`reports.ppat.view` and `ppat.reports.view` differ only in word order; the second carries the
+produce-and-sign-off workflow that **is** the PPAT monthly obligation, so building any endpoint for
+it would answer O-043 by implementation. A test asserts no route contains `generate`, `monthly`,
+`repertorium` or `register`, and the smoke confirmed all three candidate addresses answer 404.
+O-035, O-036, O-042 and O-043 all remain open.
+
+### Revenue means money received, not money billed
+
+The revenue summary sums **verified** payments — the same rule an invoice's paid total follows
+(O-050). Issued-invoice totals answer a different question and would double-count anything billed in
+one period and paid in another. Proven on the probe: a 5,000,000 invoice with a 2,000,000 verified
+payment produced revenue of **2,000,000**.
+
+It returns `data: null` without `billing.amount.view`, because every cell of it is a sum and a
+revenue report of row counts would be a different report pretending to be this one. Service types
+ship as **code plus both names**: choosing a language in a SQL aggregate would put presentation where
+no locale is known.
+
+### Five column names in the brief did not exist
+
+Read from the migrations, not the database — the first probe accidentally queried the persistent
+development database (42 migrations, predating M7 and M8) and returned wrong answers for half of
+them:
+
+```text
+matters.target_date      ->  target_completion_date
+documents.type           ->  document_type_code
+documents.uploaded_by    ->  created_by
+*_deeds.deed_type        ->  deed_type_code
+Matter::pic              ->  Matter::picUser()
+```
+
+Service type names are bilingual (`name_id` / `name_en`), so the report returns the code and both.
+
+### One requested filter could not be built, and three things were done differently
+
+- **The property report has no status filter.** `properties.status` has no ERD vocabulary and nothing
+  writes it (M7.3) — it is null on every row, so a control would narrow by nothing and grouping would
+  produce one unlabelled bucket. `property_type` and `right_type` are real and are what it reports.
+- **Reports paginate.** The brief's `ReportService` sketch called `->get()` on an unbounded query;
+  §43 forbids that, and export is the answer for "all of it".
+- **The audit report is one address with filters**, not `/activity` plus `/trail`: "the trail for
+  this record" is `auditable_type` plus `auditable_id` (D-118).
+- **Both cited decisions were mislabeled.** D-125 is billing amount masking and D-126 is "Reports are
+  read-only projections" — neither mentions a query builder or CSV. The binding text is the lock's
+  §10, which is what M8.3 followed.
+
+### One guard test narrowed
+
+`MatterManagementTest`'s route inventory matched the substring `matters`, which
+`api/v1/reports/operational/matters` contains. Narrowed to exclude `reports/` — the same collision
+M8.1 hit with `dashboard/tasks`. Every other inventory guard already matched on an `api/v1/…` prefix
+or required a second term, so none needed changing.
+
+### Verification
+
+```text
+Routes       244 under /api/v1 (251 total) — 23 new
+Backend      2967 passed, 8 skipped (was 2930)   Pint clean
+Frontend     217 passed across 22 files (was 207)
+             format:check, lint (0 errors), typecheck, build all clean
+```
+
+**HTTP smoke on a disposable `m83_probe`**, real Sanctum cookie session. The serving process proved
+its own database (O-034). All thirteen report families answered 200; a seeded invoice reported
+`total 5,000,000 / outstanding 3,000,000`; revenue summed only the verified payment; the audit report
+returned short class names and its trail filter narrowed 8 rows to 2; the CSV export streamed as
+`text/csv; charset=UTF-8` with `total_amount` in the header; and `ppat/reports`,
+`ppat/reports/generate` and `reports/ppat/monthly` all answered **404**. Probe dropped; the persistent
+development database stands untouched at **42 migrations**.
+
+---
+
 ## 2026-08-26 — M8.2 Billing and invoices
 
 Branch `feat/m8-dashboard`, from `2d8d331`. **Six migrations (52 → 58), twenty-six routes, no

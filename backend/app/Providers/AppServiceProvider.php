@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domains\Reports\Report;
 use App\Listeners\RecordAuthenticationAudit;
 use App\Models\Company;
 use App\Models\Disbursement;
@@ -35,6 +36,7 @@ use App\Policies\PpatWarkahPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\PropertyPolicy;
 use App\Policies\QuotationPolicy;
+use App\Policies\ReportPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
 use App\Policies\TaskPolicy;
@@ -182,6 +184,19 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Disbursement::class, DisbursementPolicy::class);
+
+        // Reports (M8.3, D-126). **Registered against a marker class, not a
+        // model**: there is no `reports` table and never will be, because no
+        // capability in the `reports.*` family authorizes creating a stored
+        // report. `Gate::policy()` maps a class name, and `Report` is a name.
+        //
+        // The abilities answer only "may this actor open this family". **What
+        // rows come back is decided elsewhere** — by each source domain's own
+        // visibility under its own capability (see ReportQueries). Holding
+        // `reports.operational.view` and nothing else opens a correctly empty
+        // page, which is the lock's ruling that the arithmetic does not widen
+        // the list.
+        Gate::policy(Report::class, ReportPolicy::class);
 
         $this->registerSecurityRateLimiters();
         $this->registerAuditListeners();

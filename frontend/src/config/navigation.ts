@@ -3,6 +3,7 @@ import {
   BookUser,
   Briefcase,
   Building2,
+  ChartColumn,
   Contact,
   FileText,
   FolderCheck,
@@ -332,6 +333,128 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         icon: Wallet,
         implemented: true,
         requiredPermission: "disbursements.view",
+      },
+    ],
+  },
+  {
+    key: "reports",
+    translationKey: "reports",
+    icon: ChartColumn,
+    // Added at M8.3, when the routes landed (D-064). The six `reports.*` codes
+    // have been canonical since the catalogue was transcribed and this group
+    // stayed absent for every milestone since.
+    implemented: true,
+    // **No group-level permission**: unlike Billing, `reports.*` has no module
+    // code — the five families are five separate capabilities and none of them
+    // is "the reports module". The parent renders when at least one child
+    // survives filtering, which is what `visibleNavigation` already does.
+    //
+    // `reports.export` gates no entry: it is a control on a page, not a
+    // destination.
+    children: [
+      {
+        key: "reports.operational.matters",
+        translationKey: "reportsMatters",
+        href: "/reports/operational/matters",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.operational.view",
+      },
+      {
+        key: "reports.operational.tasks",
+        translationKey: "reportsTasks",
+        href: "/reports/operational/tasks",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.operational.view",
+      },
+      {
+        key: "reports.operational.documents",
+        translationKey: "reportsDocuments",
+        href: "/reports/operational/documents",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.operational.view",
+      },
+      {
+        key: "reports.notary.deeds",
+        translationKey: "reportsNotaryDeeds",
+        href: "/reports/notary/deeds",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.notary.view",
+      },
+      {
+        key: "reports.notary.summary",
+        translationKey: "reportsNotarySummary",
+        href: "/reports/notary/summary",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.notary.view",
+      },
+      {
+        key: "reports.ppat.deeds",
+        translationKey: "reportsPpatDeeds",
+        href: "/reports/ppat/deeds",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.ppat.view",
+      },
+      {
+        key: "reports.ppat.properties",
+        translationKey: "reportsProperties",
+        href: "/reports/ppat/properties",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.ppat.view",
+      },
+      {
+        key: "reports.ppat.warkah",
+        translationKey: "reportsWarkah",
+        href: "/reports/ppat/warkah",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.ppat.view",
+      },
+      {
+        key: "reports.ppat.summary",
+        translationKey: "reportsPpatSummary",
+        href: "/reports/ppat/summary",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.ppat.view",
+      },
+      {
+        key: "reports.financial.invoices",
+        translationKey: "reportsInvoices",
+        href: "/reports/financial/invoices",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.financial.view",
+      },
+      {
+        key: "reports.financial.payments",
+        translationKey: "reportsPayments",
+        href: "/reports/financial/payments",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.financial.view",
+      },
+      {
+        key: "reports.financial.revenue",
+        translationKey: "reportsRevenue",
+        href: "/reports/financial/revenue",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.financial.view",
+      },
+      {
+        key: "reports.audit.activity",
+        translationKey: "reportsActivity",
+        href: "/reports/audit/activity",
+        icon: ChartColumn,
+        implemented: true,
+        requiredPermission: "reports.audit.view",
       },
     ],
   },
