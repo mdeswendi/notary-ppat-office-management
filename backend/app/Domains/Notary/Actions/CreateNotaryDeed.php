@@ -2,6 +2,8 @@
 
 namespace App\Domains\Notary\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Models\Matter;
 use App\Models\NotaryDeed;
@@ -30,12 +32,14 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateNotaryDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     /**
      * @param  array<string, mixed>  $attributes
      */
     public function handle(User $actor, Matter $matter, array $attributes): NotaryDeed
     {
-        return DB::transaction(function () use ($matter, $attributes): NotaryDeed {
+        return DB::transaction(function () use ($actor, $matter, $attributes): NotaryDeed {
             $deed = new NotaryDeed;
 
             $deed->fill($attributes);
@@ -46,6 +50,10 @@ class CreateNotaryDeed
             $deed->status = NotaryDeedStatus::DRAFT;
 
             $deed->save();
+
+            $this->events->created($deed, $actor, ActivityType::DEED_CREATED, [
+                'title' => $deed->title,
+            ]);
 
             return $deed;
         });

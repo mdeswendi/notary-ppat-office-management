@@ -537,15 +537,21 @@ it('refuses every relation endpoint to a guest', function (string $method): void
 |--------------------------------------------------------------------------
 */
 
-it('improvises no audit store', function (): void {
+it('adopts no third-party activity package', function (): void {
     // D-115: no half-measure ships. An application log is not append-only in the
     // sense CLAUDE.md section 31 means, is not queryable by resource, and is the
     // stopgap that becomes permanent. `attached_by` and `attached_at` record who
     // and when on the row; the event record waits for the store built to hold it.
-    expect(Schema::hasTable('audit_logs'))->toBeFalse()
-        ->and(Schema::hasTable('activity_log'))->toBeFalse()
-        ->and(Schema::hasTable('activities'))->toBeFalse()
-        ->and(class_exists('App\Models\Activity'))->toBeFalse();
+    //
+    // **Narrowed at M8.1, not deleted.** That store now exists: M8.1 builds
+    // `audit_logs` and `activities` from `03_DATABASE_ERD.md` sections 24 and 25
+    // under D-123, append-only and queryable by resource — the thing this test
+    // was waiting for rather than a violation of it.
+    //
+    // `activity_log` is spatie/laravel-activitylog's table. Reaching for a
+    // package's schema over the canonical one is still the stopgap D-115 named,
+    // so that half of the assertion stands unchanged.
+    expect(Schema::hasTable('activity_log'))->toBeFalse();
 });
 
 it('registers no new permission', function (): void {

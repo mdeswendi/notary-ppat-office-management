@@ -702,6 +702,15 @@ it('does not build the document junction it just unblocked', function (): void {
     expect(Schema::hasTable('ppat_deed_documents'))->toBeFalse();
 });
 
-it('improvises no audit store', function (string $table): void {
+it('improvises no PPAT-specific audit store', function (string $table): void {
+    // **Narrowed at M8.1, not deleted.** This test originally covered
+    // `audit_logs` and `activities` too, because M7 had to build neither and
+    // D-115 forbade improvising either. M8.1 builds both from the canonical ERD
+    // field lists (sections 24 and 25) under D-123, so their absence is no longer
+    // the assertion — see AuditFoundationTest.
+    //
+    // What still holds is the part that was always about M7: a PPAT-shaped
+    // audit table would be exactly the improvisation D-115 refused, and the
+    // canonical store landing is the reason nobody needs one.
     expect(Schema::hasTable($table))->toBeFalse();
-})->with(['audit_logs', 'activities', 'ppat_deed_activities']);
+})->with(['ppat_deed_activities', 'ppat_audit_logs']);

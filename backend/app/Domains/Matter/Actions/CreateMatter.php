@@ -2,6 +2,8 @@
 
 namespace App\Domains\Matter\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Matter\AllocateMatterReference;
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Domains\Matter\Enums\MatterStatus;
@@ -46,6 +48,7 @@ class CreateMatter
     public function __construct(
         private readonly AllocateMatterReference $allocator,
         private readonly InstantiateMatterWorkflow $workflow,
+        private readonly EventRecorder $events,
     ) {}
 
     /**
@@ -102,6 +105,11 @@ class CreateMatter
             // a fresh deployment is every time: D-104 seeds no workflow content,
             // so the Matter is created without one rather than refused (D-112).
             $this->workflow->handle($actor, $matter);
+
+            $this->events->created($matter, $actor, ActivityType::MATTER_CREATED, [
+                'reference' => $matter->matter_number,
+                'title' => $matter->title,
+            ]);
 
             return $matter;
         });

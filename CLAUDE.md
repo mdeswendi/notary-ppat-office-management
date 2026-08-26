@@ -535,6 +535,8 @@ The Matter and Workflow architecture lock is `docs/14_M4_MATTER_ARCHITECTURE.md`
 The Document and Task architecture lock is `docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md`.
 The Notary architecture lock is `docs/16_M6_NOTARY_ARCHITECTURE.md`.
 The PPAT architecture lock is `docs/17_M7_PPAT_ARCHITECTURE.md`.
+The Dashboard, Billing and Reports architecture lock is
+`docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md`.
 
 ---
 
@@ -1694,16 +1696,17 @@ docs/
 ├── 15_M5_DOCUMENT_TASK_ARCHITECTURE.md
 ├── 16_M6_NOTARY_ARCHITECTURE.md
 ├── 17_M7_PPAT_ARCHITECTURE.md
+├── 18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md
 ├── DECISIONS.md
 ├── CHANGELOG.md
 └── HANDOFF.md
 ```
 
-`12_` through `17_` are milestone architecture locks. Each records what its domain may
+`12_` through `18_` are milestone architecture locks. Each records what its domain may
 build, what it must not, and which statements are transcribed from canonical sources rather than
 decided locally. Read the lock for the domain you are working in before changing it.
 
-`16_` and `17_` are unlike the other four in one respect worth knowing before you open either:
+`16_` and `17_` are unlike the other five in one respect worth knowing before you open either:
 **M6 and M7 are the milestones whose specifications are deliberately empty.** Five of the seven open
 questions in `08_NOTARY_WORKFLOW.md` section 6 are rules a Notary deed surface would ordinarily
 encode — deed numbering, Repertorium procedure, Minuta archiving, post-finalization correction, and
@@ -1718,6 +1721,15 @@ the same as absent. See `16_` sections 5 and 8.4, and `17_` sections 5 and 12.
 canonical capability. `notary.protocol.*` and the whole `ppat.taxes.*` family are **absent** from the
 177-permission catalogue while their tables are defined in the ERD, so those surfaces cannot be built
 without extending a catalogue no milestone has extended since M1.2 (O-036, O-040).
+
+**`18_` inverts exactly that, which is why it reads differently from `16_` and `17_`.** M8's gap is
+not a missing domain rule but a missing schema: Billing has **seventeen canonical capabilities and no
+canonical table anywhere in `03_DATABASE_ERD.md`** — no `quotations`, `invoices`, `payments` or
+`disbursements` section, and no `INVOICE` or `QUOTATION` sequence code in section 27. So M8.2 designs
+schema, which M1 through M7 never did, bounded three ways by D-124: lifecycles are read off the
+catalogue's verbs rather than invented, nothing computes or gates on tax, and the shape is marked as
+designed rather than transcribed (O-049). Check **both** sides — table and capability — before
+building anything, and say which one you are supplying.
 
 `HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
 be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a

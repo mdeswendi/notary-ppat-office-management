@@ -2,6 +2,8 @@
 
 namespace App\Domains\Ppat\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Ppat\Enums\PpatDeedStatus;
 use App\Domains\Ppat\Exceptions\DeedStatusNotEligible;
 use App\Models\PpatDeed;
@@ -49,6 +51,8 @@ use Illuminate\Support\Facades\DB;
  */
 class FinalizePpatDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, PpatDeed $deed): PpatDeed
     {
         return DB::transaction(function () use ($actor, $deed): PpatDeed {
@@ -56,10 +60,21 @@ class FinalizePpatDeed
                 throw new DeedStatusNotEligible($deed->status, 'finalized');
             }
 
+            $from = $deed->status->value;
+
             $deed->status = PpatDeedStatus::FINALIZED;
             $deed->finalized_at = Date::now();
             $deed->finalized_by = $actor->getKey();
             $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_FINALIZED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
 
             return $deed;
         });

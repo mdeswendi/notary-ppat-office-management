@@ -512,8 +512,12 @@ it('offers the four assignable scopes for every minuta capability', function (st
     'notary.minuta.release',
 ]);
 
-it('improvises no audit store', function (): void {
-    expect(Schema::hasTable('audit_logs'))->toBeFalse()
-        ->and(Schema::hasTable('activities'))->toBeFalse()
-        ->and(Schema::hasTable('notary_minuta_history'))->toBeFalse();
+it('improvises no Minuta-specific history table', function (): void {
+    // **Narrowed at M8.1, not deleted.** `audit_logs` and `activities` were
+    // asserted absent because M6.3 had to build neither; M8.1 builds both from
+    // the canonical ERD field lists under D-123.
+    //
+    // A Minuta-shaped history table is still the improvisation D-115 refused —
+    // and the canonical store landing is precisely why nobody needs one.
+    expect(Schema::hasTable('notary_minuta_history'))->toBeFalse();
 });

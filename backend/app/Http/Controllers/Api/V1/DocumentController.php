@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Audit\Services\AuditLogger;
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Document\Actions\ArchiveDocument;
 use App\Domains\Document\Actions\DeleteDocument;
@@ -90,6 +91,7 @@ class DocumentController extends Controller
         private readonly PartyVisibility $parties,
         private readonly ProjectVisibility $projects,
         private readonly MatterVisibility $matters,
+        private readonly AuditLogger $audit,
     ) {}
 
     /**
@@ -187,16 +189,25 @@ class DocumentController extends Controller
     /**
      * Stream the current file to an authorized caller.
      *
-     * **Every sensitive download is refused here**, whatever the actor holds,
-     * because D-115 keeps that surface closed until an audit store exists. The
-     * Policy carries the gate so the answer is the same one `can_download`
-     * reported — the interface never offers a button the endpoint will refuse.
+     * **Sensitive downloads are authorized here for the first time since M1.2,
+     * and each one is audited** (M8.1, closing D-115). The Policy decides; this
+     * method records. The two belong on opposite sides of that line because a
+     * Policy answers a question and must not have a side effect — a Policy that
+     * wrote rows would fire for every `can_download` flag on every list page.
+     *
+     * The audit row names the document and the actor. **It never names the file's
+     * contents and never names the identity the document is about** — D-105's
+     * leak-surface rule, which D-115 restates with more force precisely here.
      */
     public function download(Request $request, string $document, DownloadDocument $download): StreamedResponse
     {
         $record = $this->resolveDocument($document);
 
         $this->authorize('download', $record);
+
+        if ($record->is_sensitive) {
+            $this->audit->sensitiveAccess($record, 'file', $request->user());
+        }
 
         return $download->handle($record);
     }
@@ -398,6 +409,24 @@ class DocumentController extends Controller
     }
 
     /**
+     * Whether this actor may read a sensitive document's *file*.
+     *
+     * A separate capability from {@see self::reachableSensitively()}, never an
+     * escalation of it (D-115): knowing a KTP scan exists and reading it are
+     * different acts, and the catalogue gives each its own code.
+     *
+     * Unused before M8.1, because the D-115 gate refused every sensitive
+     * download whatever the actor held. The audit store now exists, so this is
+     * what `can_download` actually turns on.
+     */
+    private function downloadableSensitively(Request $request): bool
+    {
+        return $this->visibility->hasUsableScope(
+            $this->resolver->resolve($request->user(), 'documents.sensitive.download')
+        );
+    }
+
+    /**
      * Re-resolve each submitted relation through its own domain's visibility.
      *
      * **The submitted ids are never trusted.** A record from another Office,
@@ -511,10 +540,10 @@ class DocumentController extends Controller
      *
      * **Two adjustments are applied per row afterwards**, both from data the row
      * already carries, so neither costs a query: a sensitive document needs
-     * `documents.sensitive.view` for every write flag, and `can_download` is false
-     * for every sensitive document whatever the actor holds (D-115). Status
-     * eligibility is folded in too, so the interface offers `verify` only where
-     * verifying would actually succeed.
+     * `documents.sensitive.view` for every write flag, and `documents.sensitive.download`
+     * for `can_download` — two codes, never one escalating into the other (D-115).
+     * Status eligibility is folded in too, so the interface offers `verify` only
+     * where verifying would actually succeed.
      *
      * @param  Collection<int, Document>  $documents
      * @return array<string, array<string, bool>>
@@ -539,12 +568,14 @@ class DocumentController extends Controller
         }
 
         $sensitivelyReachable = $this->reachableSensitively($request);
+        $sensitivelyDownloadable = $this->downloadableSensitively($request);
 
         $map = [];
 
         foreach ($documents as $document) {
             $key = $document->getKey();
             $sensitiveOk = ! $document->is_sensitive || $sensitivelyReachable;
+            $sensitiveDownloadOk = ! $document->is_sensitive || $sensitivelyDownloadable;
 
             $map[$key] = [
                 'can_update' => $reachable['can_update']->has($key) && $sensitiveOk,
@@ -562,9 +593,12 @@ class DocumentController extends Controller
                     && $sensitiveOk
                     && $document->status->isDeletable(),
 
-                // The D-115 gate, reported rather than hidden. False for every
-                // sensitive document until an audit store exists.
-                'can_download' => $reachable['can_download']->has($key) && ! $document->is_sensitive,
+                // **The D-115 gate is gone as of M8.1.** This was
+                // `&& ! $document->is_sensitive` — false for every sensitive
+                // document whatever the actor held — until `audit_logs` existed.
+                // It now turns on the document's own capability, which is what
+                // the flag always meant to report.
+                'can_download' => $reachable['can_download']->has($key) && $sensitiveDownloadOk,
             ];
         }
 

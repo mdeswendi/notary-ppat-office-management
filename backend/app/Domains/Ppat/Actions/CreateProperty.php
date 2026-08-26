@@ -2,6 +2,8 @@
 
 namespace App\Domains\Ppat\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Models\Office;
 use App\Models\Property;
 use App\Models\User;
@@ -45,6 +47,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateProperty
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -66,6 +70,10 @@ class CreateProperty
             $property->updated_by = $actor->getKey();
 
             $property->save();
+
+            $this->events->created($property, $actor, ActivityType::PROPERTY_CREATED, [
+                'reference' => $property->property_number,
+            ]);
 
             return $property;
         });

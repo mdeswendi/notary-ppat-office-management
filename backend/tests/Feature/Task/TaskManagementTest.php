@@ -586,9 +586,15 @@ it('offers the vocabularies and the office\'s active colleagues', function (): v
 */
 
 it('exposes exactly the twelve task routes and nothing more', function (): void {
+    // **Matched on the `api/v1/tasks` prefix, not the substring "tasks"**
+    // (narrowed at M8.1). The substring form also caught
+    // `api/v1/dashboard/tasks`, which is a Dashboard route that happens to share
+    // a word — it answers to no `tasks.*` code of its own and belongs to no part
+    // of this surface. The guard's subject was always the Task surface's own
+    // routes, and a prefix says that where a substring only approximated it.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
-        ->filter(fn (string $route): bool => str_contains($route, 'tasks'))
+        ->filter(fn (string $route): bool => str_contains($route, 'api/v1/tasks'))
         ->sort()
         ->values()
         ->all();

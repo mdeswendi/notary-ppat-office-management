@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Audit\Contracts\HasAuditOffice;
 use App\Domains\Party\Enums\CompanyEntityType;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -49,8 +50,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * maintenance command, and disclosed to nobody.
  */
 #[Hidden(['tax_id', 'tax_id_fingerprint', 'party_type'])]
-class Company extends Model
+class Company extends Model implements HasAuditOffice
 {
+    /**
+     * A Company's Office lives on its Party (M8.1).
+     *
+     * The twin of {@see Individual::auditOfficeId()}, for the same reason.
+     */
+    public function auditOfficeId(): ?string
+    {
+        return $this->party?->office_id;
+    }
+
     /** @use HasFactory<CompanyFactory> */
     use HasFactory;
 

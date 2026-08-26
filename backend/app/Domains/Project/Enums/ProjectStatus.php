@@ -2,6 +2,8 @@
 
 namespace App\Domains\Project\Enums;
 
+use App\Domains\Matter\Enums\MatterStatus;
+
 /**
  * The business status of a Project.
  *
@@ -39,5 +41,18 @@ enum ProjectStatus: string
     public static function values(): array
     {
         return array_map(static fn (self $case): string => $case->value, self::cases());
+    }
+
+    /**
+     * Projects being worked on right now (M8.1).
+     *
+     * The twin of {@see MatterStatus::activeValues()},
+     * and excludes `WAITING` and `ON_HOLD` for the same reason.
+     *
+     * @return array<int, string>
+     */
+    public static function activeValues(): array
+    {
+        return [self::OPEN->value, self::IN_PROGRESS->value];
     }
 }

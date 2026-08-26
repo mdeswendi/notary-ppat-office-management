@@ -2,11 +2,14 @@
 
 namespace App\Domains\Notary\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Notary\Exceptions\DeedStatusNotEligible;
 use App\Models\NotaryDeed;
 use App\Models\User;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Approve a Deed (M6.2, D-120).
@@ -28,17 +31,32 @@ use Illuminate\Support\Facades\Date;
  */
 class ApproveNotaryDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, NotaryDeed $deed): NotaryDeed
     {
-        if (! $deed->status->isApprovable()) {
-            throw new DeedStatusNotEligible($deed->status, 'approved');
-        }
+        return DB::transaction(function () use ($actor, $deed): NotaryDeed {
+            if (! $deed->status->isApprovable()) {
+                throw new DeedStatusNotEligible($deed->status, 'approved');
+            }
 
-        $deed->status = NotaryDeedStatus::APPROVED;
-        $deed->approved_at = Date::now();
-        $deed->approved_by = $actor->getKey();
-        $deed->save();
+            $from = $deed->status->value;
 
-        return $deed;
+            $deed->status = NotaryDeedStatus::APPROVED;
+            $deed->approved_at = Date::now();
+            $deed->approved_by = $actor->getKey();
+            $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_APPROVED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
+
+            return $deed;
+        });
     }
 }

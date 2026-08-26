@@ -3988,6 +3988,18 @@ of the rest**: not empty, not without their foreign key, and not replaced by a p
 which section 14 explicitly argues against. Every junction key is `RESTRICT`, so removing a Party
 never takes a document with it.
 
+> **Resolved 2026-08-26 by M8.1** (D-123, D-128). `audit_logs` is built from `03_DATABASE_ERD.md`
+> section 25 — append-only structurally, queryable by resource, never a stopgap application log — so
+> all three rulings below are met. The sensitive-download gate in `DocumentPolicy::download()` came
+> out exactly as M5.2 said it would, and `documents.sensitive.download` authorizes something for the
+> first time since it was catalogued at M1.2. Every sensitive download now writes a
+> `SENSITIVE_ACCESS` row naming the document and the actor and **never the file's contents nor the
+> identity it is about**. The two `Log::info('PARTY_IDENTITY_REVEALED')` stopgaps are gone rather
+> than duplicated: a second copy of that metadata in a log aggregator is a second place to leak from.
+>
+> The rest of this entry stands as written — it is the reasoning that kept the half-measure out for
+> three milestones, and it is why the store that landed is the canonical one.
+
 **Audit is required, absent, and not improvised.** `CLAUDE.md` section 21 requires sensitive files be
 *"audited where appropriate"*; `audit_logs` has never been built, D-033 kept it out of M1 on the
 batch-7 ordering, and `audit.view` / `audit.export` are registered and unimplemented. Three rulings:
@@ -4634,6 +4646,446 @@ and a land parcel is not a yearly thing. Recorded in the lock's section 15 rathe
 
 ---
 
+### D-122 — M8 builds three cross-cutting surfaces, and the Dashboard invents no authority
+
+The M8 architecture lock, `18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md`. **No code, no migration,
+no permission — the count stays at 177.** The seventh `.0` lock, and the last one the plan contains:
+`CLAUDE.md` section 2 and `01_ARCHITECTURE.md` section 28 both end at M8.
+
+**M8 is the mirror image of M6 and M7, not a repeat of them.** Those two were milestones with
+canonical tables and missing capabilities — `protocol_records` and `ppat_tax_records` are defined
+field by field in the ERD while the catalogue has no `notary.protocol.*` or `ppat.taxes.*` code at all
+(O-036, O-040). Billing is the reverse: **seventeen canonical capabilities and no canonical table
+whatsoever.** D-124 resolves that; this decision fixes the scope around it.
+
+**Three sub-milestones, in a forced order.** M8.1 Dashboard plus the audit and activity foundation,
+M8.2 Billing, M8.3 Reports. The order is not a preference: `reports.audit.view` cannot be built
+before `audit_logs` exists and `reports.financial.view` cannot be built before billing does, so
+Reports come last because both prerequisites are earlier sub-milestones.
+
+**The Dashboard is not an authorization surface.** There is no `dashboard.*` code in the registry,
+none is registered, and none is needed. Every panel is gated by the capability of the resource it
+summarises, through the same resolver path as that resource's own page; an actor holding none of them
+sees a Dashboard with no panels, which is correct behaviour rather than an error state. This is D-091
+applied to reading — composing several readings onto one page creates no new thing to authorize, and
+must never become a way to read what the actor could not read on its own page.
+
+**A count is a disclosure and obeys Data Scope.** Every number, total and chart series is computed
+through the same predicate as the list it summarises. An actor whose `notary.matters.view` scope is
+`ASSIGNED` sees a count of Matters assigned to them, never the Office total. This is the rule most
+easily got wrong, because a count feels like less disclosure than a list and is not: on a small
+Office a count plus a filter reconstructs the list. Data Scopes are predicates that union, never a
+ladder (D-028), and a Dashboard aggregate that ignored them would be the first place in the system
+where reach was granted by page rather than by predicate.
+
+**No panel ships without a question it answers.** `CLAUDE.md` section 68 names six; section 57 forbids
+fake analytics to fill space. A chart with no decision attached is the decoration section 57 means.
+
+---
+
+### D-123 — Audit and activity are transcribed at M8.1, carry no history, and close D-115
+
+**Batch 7 is overdue, not premature.** `03_DATABASE_ERD.md` section 32 places `activity` and `audit`
+in migration batch 7. M5 built `tasks` from that batch and left the rest; M6 built batch 8 and M7
+batches 8 and 10 — both *later*. The ordering argument that kept `audit_logs` out of M1 (D-033) and
+out of M5 (D-115) has been satisfied for three milestones running and is now the argument **for**
+building it. M8.1 pays the backlog.
+
+**Both tables are transcribed verbatim from ERD sections 24 and 25. Neither is designed.** Including
+the ERD's own note on `audit_logs` — no `updated_at`, no `deleted_at`, append-only — which M8.1
+enforces **structurally**: no update path, no delete path, no soft delete, and no internal method
+that could perform one. `CLAUDE.md` section 31's prohibition on `audit.update` and `audit.delete`
+extends to there being nothing to call.
+
+**Activity and audit stay separate.** An activity row says *"a document was uploaded to this Matter"*
+and is read by users on a timeline; an audit row says *"this actor changed this field from A to B at
+this IP"* and is read by an auditor. Different ERD tables, different authorization, different
+retention meaning. Merging them would give the timeline audit's immutability burden and give audit
+the timeline's presentation concerns.
+
+**`activities` has no capability, and is read through its subject.** That is structurally the same
+shape O-036 and O-040 refused, and the difference is stated rather than assumed: protocol and taxes
+each needed a *destination of its own* — menu entry, lifecycle, acts — and the catalogue authorized
+none, so building either meant inventing both a schema and a capability family. `activities` needs
+neither. It is infrastructure, written by the system and never by a user, read only as a component
+inside a page the actor already reached. **Authorization is per row, by the subject's own
+visibility**; a row whose subject the actor cannot reach is absent, not redacted, per D-098. There is
+no `POST /api/v1/activities`. O-047 holds the question of what happens if a user-authored timeline
+entry is ever wanted.
+
+**Neither table is backfilled.** Seven milestones of work happened before `activities` existed and
+those events were not recorded; manufacturing rows would put fabricated timestamps and inferred
+actors into a table whose entire value is being a factual record. The feed therefore starts **empty**
+and fills forward, and the Dashboard's activity panel shows an empty state on the day M8.1 ships —
+**expected behaviour, not a defect, and not to be patched by seeding.** The same holds with more
+force for `audit_logs`: a trail containing reconstructed entries is worse than one that begins on a
+known date.
+
+**D-115 closes at M8.1.** Its three rulings are met — no half-measure (a queryable canonical table,
+not an application log), no sensitive-download surface before audit exists (now buildable, and it
+writes an audit row), and never the document's contents nor the identifier it is about. On that last
+point the lock's section 8.5 is explicit: `old_values` and `new_values` for a masked field record
+**that it changed**, not what it changed from and to.
+
+---
+
+### D-124 — Billing has seventeen capabilities and no schema, so M8.2 designs one — bounded by the verbs and stopped at tax
+
+**The gap, stated precisely.** `03_DATABASE_ERD.md` contains no `quotations`, `invoices`,
+`invoice_items`, `payments` or `disbursements` section. The only occurrences of "payment" in the
+entire ERD are `payment_reference` and `payment_date`, two columns inside `ppat_tax_records` — the
+tax surface O-040 refused, unrelated to billing a client. Section 27's numbering table names five
+sequence codes and neither `INVOICE` nor `QUOTATION` is among them. Meanwhile the catalogue carries
+seventeen billing codes and `02_MENU_AND_PERMISSIONS.md` names four menu destinations.
+
+**So M8.2 designs database schema, which no milestone in this project has previously done.** M1
+through M7 transcribed field lists; where the ERD was silent about a table they needed, they did not
+build it — D-115's four deferred junctions, `service_document_requirements`, `protocol_records`.
+M8.2 departs from that deliberately and once.
+
+**Why this is not the batch-11 refusal again.** Billing shares batch 11 with registers, protocol and
+taxes, and sharing a batch is not sharing a disposition. Those three were declined because **their
+domain rules are unauthored** — what a protocol period is and how it closes, which taxes gate which
+stage, a register's format and period. Billing has no such gap: an office invoicing its own client is
+commerce, not Indonesian notarial procedure, and `CLAUDE.md` section 62's list of things not to invent
+does not include it.
+
+**Three bounds make the departure safe.**
+
+**One — the lifecycle is read off the catalogue's verbs, not invented.** Where there is no verb there
+is no transition:
+
+```text
+Quotation      DRAFT --approve--> APPROVED
+Invoice        DRAFT --issue--> ISSUED --cancel--> CANCELLED
+Payment        PENDING --verify--> VERIFIED
+Disbursement   no lifecycle verb, therefore no status column at all
+```
+
+There is no `quotations.reject`, `.send` or `.cancel`, so there is no `REJECTED`, `SENT` or
+`CANCELLED` quotation state — one that comes to nothing stays `DRAFT`. Giving disbursements a status
+would create vocabulary nothing can reach, the D-109 pattern this project records as a cost rather
+than repeating as a design. `invoices.update` and `quotations.update` are **`DRAFT`-only acts**:
+issuing is finalization, and `CLAUDE.md` section 64's discipline applies to an invoice already sent
+to a client.
+
+**Two — nothing in billing computes, stores as computed, or gates on tax.** No `tax_amount`, no
+`ppn_rate`, no BPHTB, PPh or PNBP field, no calculation deriving one figure from another by a rate.
+An office needing to show a tax enters it as a line item it names and prices itself: a typed line is
+a fact the office asserted, a computed line is a tax rule the software encoded. Tax rules are named
+in `CLAUDE.md` section 62, are open question four in `09_PPAT_WORKFLOW.md`, and are O-040, still open.
+**Disbursements are records, not tax** — a disbursement records that the office spent money for the
+client and does not know whether that money was a tax, a fee or a courier charge. It gates nothing
+and is not a back door to `ppat_tax_records`.
+
+**Three — the shape is recorded as designed rather than transcribed**, in the lock's section 9.3 and
+marked as such, so no future reader mistakes it for canon. O-049 asks the ERD to adopt it.
+
+**Amounts are exact integer minor units, never floats.** `client_party_id` points at M2's unified
+`parties` rather than duplicating client identity, and no NIK, NPWP or sensitive identity value is
+copied into any billing table. Every table carries `office_id` and uses the composite-key structural
+invariant, so a billing record cannot reference another Office's Project or Matter.
+
+**Numbering follows D-103 and D-108** — atomic counter table, never `MAX + 1`, namespaced per Office
+and calendar year: `QUO-{YYYY}-{SEQ:6}` and `INV-{YYYY}-{SEQ:6}`. Both are internal application
+references. **Neither is a legal document number** and neither may be presented as one.
+
+---
+
+### D-125 — Billing corrections are additive, `billing.amount.view` is a second gate, and one gap ships open
+
+**No billing surface has a delete capability**, so corrections add records rather than removing them:
+an invoice is cancelled and a new one issued, never edited after issue and never deleted. This
+matches `CLAUDE.md` sections 29, 30 and 64, and is what a financial record ought to do regardless.
+
+**One case has no remedy, and this lock invents none.** A payment recorded with the wrong amount
+cannot be updated — `payments.update` does not exist — cannot be deleted, and has no reversal verb.
+Three responses, chosen rather than assumed: **the verify gate is the control**, and only `VERIFIED`
+payments count toward an invoice's settled total, so a mistake caught before verification affects no
+figure anywhere; **a wrong `PENDING` payment stays visible and uncounted**, shown as unverified
+rather than hidden; and **a wrongly verified payment has no product remedy**, shipped honestly rather
+than by adding an uncatalogued verb — the same disposition M7.3 gave one-way property archiving
+(O-045). O-050 records it. `payments` accordingly has no `deleted_at` and no `updated_by`, because
+the catalogue gives it neither verb.
+
+**`billing.amount.view` is a masking code, and a second gate.** The catalogue does not explain why it
+is separate from `billing.view`, but its shape matches `CLAUDE.md` section 22, where reading a record
+and reading its protected values are distinct capabilities. **Ruling:** `billing.view` authorizes
+seeing that a record exists — number, status, client, dates. `billing.amount.view` authorizes seeing
+**every monetary figure**, including line amounts, payment amounts, and every aggregate derived from
+them — the Dashboard's outstanding totals and the financial report's sums included. Masking is
+applied **server-side in the Resource**: a masked amount is **absent from the payload**, not
+present-and-hidden, the same rule that governs NIK and NPWP.
+
+---
+
+### D-126 — Reports are read-only projections, and M8 is the last milestone
+
+**Every M8.3 report is a read-only aggregation over records the requesting actor can already reach,
+computed at request time.** No report object is stored, because nothing in the `reports.*` family
+authorizes creating one: all six of its codes are `.view` plus one `.export`.
+
+**M8.3 implements `reports.*` and not `ppat.reports.*`, which are two different families whose names
+differ only in word order.** The registry carries `reports.ppat.view` — a cross-cutting read of PPAT
+activity, which M8.3 builds — and separately `ppat.reports.view`, `.generate`, `.review`, `.approve`
+and `.export`, a production-and-sign-off workflow that is the PPAT **monthly reporting obligation**:
+open question five in `09_PPAT_WORKFLOW.md`, whose deadline, recipient and format nobody here has
+authored (O-043, still open). **M8.3 builds no endpoint for any of those five codes.** Confusing the
+two would be the most consequential mistake available in this milestone, which is why the lock states
+the distinction twice (§3.2, §10).
+
+**Data Scope applies to every row and every total**, exactly as D-122 requires of the Dashboard. A
+report is a list with arithmetic on it; the arithmetic does not widen the list.
+
+**`reports.export` is a second gate.** An actor may hold `reports.financial.view` and not
+`reports.export`. An export produces the same rows the actor just saw — never more, never an unscoped
+variant — and a financial export by an actor without `billing.amount.view` carries no amounts (D-125).
+
+**No report invents a legal figure.** A count of deeds is a count of rows. Nothing in M8.3 produces a
+Repertorium, a PPAT monthly report, or a register extract: those have canonical legal formats nobody
+in this repository has authored, they are open questions in both workflow documents, and O-036, O-040,
+O-042 and O-043 all remain open. **A report that looks like a statutory return is worse than no
+report, because it invites being filed as one.**
+
+**"Advanced reporting" in batch 11 is not what M8.3 builds.** M8.3 aggregates tables that already
+exist. Whatever "advanced" names — an engine, a warehouse, scheduled generation — is in none of the
+six codes.
+
+**What M8 does not build, and what that now means.** Calendar (O-048), registers and protocol
+(O-036, O-042) and taxes (O-040) stay outside M8. The last three keep the disposition M6 and M7 gave
+them: each needs **both** a domain source **and** a decision about extending a catalogue unchanged
+since M1.2. Calendar is different in kind — it has a canonical table, six event types, five
+registered capabilities and a menu destination, and is **blocked on nothing but assignment.**
+
+**M8 is where the plan ends,** and nothing section 11 of the lock declines has a later milestone to
+fall into. That changes no ruling above — scope discipline is not suspended because the calendar is
+running out — but it changes what the ledger means. At M6 and M7 an open item was a deferral. **At M8
+it is a statement about what the delivered product does not do.**
+
+---
+
+### D-127 — The audit trail's actor is a plain key, because a composite one would make cross-office access unrecordable
+
+M8.1 built `audit_logs` and `activities` (ERD sections 25 and 24), and one thing about their shape
+departs from an invariant every office-owned table has held since M2. It was found by a failing test
+rather than by reasoning, which is why it is recorded here rather than left in a migration comment.
+
+**The pattern being departed from.** Every office-owned table pairs a user column with `office_id` in
+a composite foreign key, so the person named must work in the record's own Office —
+`company_people` (D-080), `project_parties` (D-098), `matters` (D-107), `tasks` (D-119). The point is
+that a cross-office reference is **unrepresentable** rather than merely validated.
+
+**Why audit is the exception.** `audit_logs.office_id` is the **subject's** Office, because that is
+who is entitled to read the row. The actor may legitimately be somebody else: an actor holding Data
+Scope `ALL` reaches records across Offices by design, and **revealing another Office's NIK is
+precisely the event an auditor most needs recorded**. A composite key makes that row impossible to
+write — so the single most security-relevant access in the system would be the one act that could not
+be written down.
+
+**How it surfaced.** The composite version was written first, and `IndividualIdentityTest`'s
+`ALL`-scope cross-office reveal failed on the foreign key. The tempting fix — file the row under the
+actor's Office — would have "worked" while hiding the record from the only people entitled to see it,
+and would have been invisible in every same-Office case, which is nearly all of them.
+
+So `actor_user_id` is a plain key to `users.id` on both new tables, `office_id` is keyed to `offices`
+independently, and `activities` keeps its **composite** `project_id` and `matter_id` keys, because
+those describe the subject's own context and must agree with the row's Office. `restrictOnDelete`
+throughout: an audit record whose actor was erased is not an audit record, and `nullOnDelete` on a
+composite key would null `office_id` too (the trap `create_tasks_table` documents).
+
+**This narrows no other table.** The invariant stands everywhere it was already stated; audit is the
+one place where the thing being recorded is the crossing itself.
+
+---
+
+### D-128 — Two stores, two vocabularies, and no observers
+
+**`audit_logs` and `activities` are both built and stay separate** (the lock's section 2). An
+auditor asks *"what changed, who did it, from where"*; a user asks *"what happened"*. `audit_logs`
+answers to `audit.view` and carries `old_values`/`new_values`; `activities` has **no capability at
+all** and carries a `description_key`.
+
+**The authorization consequence is what makes the second table necessary, not stylistic preference.**
+The M8.1 brief specified a dashboard activity feed reading from `audit_logs`. That leaves only two
+outcomes, and both are wrong: the feed requires `audit.view` and most staff see nothing, or the
+Dashboard becomes a way to read audit content without holding the audit capability — which D-122
+forbids by name. `activities` is read **per row by the visibility of its subject** (O-047), which is
+what lets an ordinary staff dashboard carry a feed at all.
+
+**Two vocabularies, deliberately.** `AuditEvent` is seven generic verbs — `CREATED`, `UPDATED`,
+`STATUS_CHANGED`, `LOGIN`, `LOGOUT`, `DELETED`, `SENSITIVE_ACCESS`. `ActivityType` is fourteen
+business milestones, the ERD's own four examples verbatim plus ten following their shape. Neither is
+CHECK-constrained: the ERD defines no vocabulary for either column, and freezing one would make every
+future milestone's new event a migration — the reasoning M7.1 applied to `ppat_warkah_items.status`.
+
+**Written from Actions, not from model observers.** The brief proposed observers for
+create/update/delete. Two reasons against, either sufficient. **Factories**: an observer fires for
+every `Project::factory()->create()` in a 2876-test suite, writing thousands of rows about records no
+actor ever created, into a table nobody may delete from — and the rows would be false, because a
+factory row was not created by the authenticated user. **Meaning**: an observer sees
+`status: UNDER_REVIEW -> APPROVED` and cannot tell approving from any other write that sets that
+column, where the feed's whole value is saying `DEED_APPROVED`. The accepted cost is that a future
+write path could forget the call; a forgotten call leaves a gap, where an observer firing in the
+wrong places leaves a table full of confident falsehoods.
+
+**Neither table is backfilled**, and `Login` is listened to rather than `Authenticated` — the latter
+fires on every authenticated request. A related trap, found by the test asserting one login writes
+one row: **Laravel auto-discovers listener methods matching `handle*`**, so `handleLogin` was bound
+twice alongside the explicit registration and wrote two rows per sign-in. The methods are `onLogin` /
+`onLogout` so only the explicit registration applies.
+
+---
+
+### D-129 — M8.2 builds billing from the verbs, and refuses nine acts the catalogue does not name
+
+The M8.2 brief specified endpoints for `quotations.send`, `.reject`, `.convert` and `.delete`;
+`invoices.send` and `.delete`; `payments.reject`; and `disbursements.delete`. **Verified against the
+live registry, not one of those nine codes exists** — and the same brief forbade adding permissions,
+so its own constraint ruled them out. No route, ability or model method reaches any of them.
+
+**The lifecycles are D-124's, unchanged.** `DRAFT → APPROVED` for a quotation, `DRAFT → ISSUED →
+CANCELLED` for an invoice, `PENDING → VERIFIED` for a payment, and no `status` column at all for a
+disbursement. The brief proposed six, six and three values respectively; the catalogue authorizes
+two, three and two.
+
+**Nothing is lost that the office actually needs, with one exception.** Converting a quotation is
+`POST /api/v1/invoices` carrying `quotation_id` — canonical `invoices.create`, which copies the lines
+as they stand so the bill records what was agreed rather than tracking a live offer. Withdrawing a
+document is `invoices.cancel`, which keeps the number and the figures where an audit can find them.
+The exception is a **draft quotation raised in error, which cannot be removed at all** (O-051).
+
+**`tax` is not a column anywhere**, and this is the ruling that matters most. The brief gave
+`quotations` and `invoices` a `decimal tax`. D-124 section 9.4 forbids it in as many words,
+`CLAUDE.md` section 62 names tax rules among the things not to invent, and O-040 is still open. An
+office showing PPN adds a **line it names and prices itself** — a fact the office asserted, where a
+computed one would be a tax rule this software encoded. `RecalculateBillingTotals` sums lines and
+applies no rate to anything.
+
+**Settlement is computed, never stored.** No `paid_amount`, no `remaining_amount`, and no
+`PARTIALLY_PAID`, `PAID` or `OVERDUE` status. Two independent reasons, either sufficient: nothing
+authorizes setting them, since recording a payment answers to `payments.*` and an issued invoice is
+finalized; and stored they would drift, with `OVERDUE` in particular needing a nightly job and being
+wrong until it ran. **M5.4 settled the same question for Task** — *"`isOverdue()` is computed, never
+stored"* — and `Invoice::scopeWithSettlement()` supplies the aggregate in one query per page.
+
+**Three defects in the brief's migration code were corrected rather than carried.** All eleven
+composite `->nullOnDelete()` calls fail at runtime, because nulling a composite key nulls `office_id`
+too (the trap `create_tasks_table` documents and M8.1 hit); `->unique()` on the reference columns
+would make one Office's `INV-2026-000001` block every other Office's, where D-103 namespaces per
+Office and year; and `$table->check()` does not exist on this Blueprint, so the CHECK constraints are
+raw `ALTER TABLE` guarded on `pgsql` as everywhere else in this project.
+
+**Amounts are `decimal(15, 2)`**, which satisfies the lock's actual requirement: an exact type, never
+a binary float. `numeric` is exact; the lock's phrase "integer minor units" described the property,
+and this preserves it while representing a currency that has a minor unit.
+
+---
+
+### D-130 — Money is masked in the Resource, and the state gate lives in the Action
+
+Two rulings about **where** a refusal belongs, both settled by following M6 and M7 rather than
+inventing a billing-specific convention.
+
+**`billing.amount.view` masks at serialization, never at reach** (D-125). `BillingVisibility` does
+not consult it and no Policy mentions it: folding it in would hide whole invoices from somebody
+entitled to know one exists, when the catalogue's two codes describe seeing a record and seeing its
+values. `MasksBillingAmounts` **omits every monetary key** — not null, not a placeholder — because
+sending a value the client is expected to hide is a disclosure with a request attached. It **fails
+closed**: a controller that forgets to resolve the grant withholds money rather than disclosing it.
+
+One implementation note worth keeping, because it was found by a failing test rather than reasoning:
+Laravel builds a `FormRequest` as a **separate object** from the request a Resource is handed, so a
+flag set on one is unset on the other and the fail-closed default then withholds money from somebody
+who holds the grant. The trait sets it on both.
+
+**State refusals are the Action's 422; capability refusals are the Policy's 403.** M6's
+`NotaryDeedPolicy` draws exactly this line — `update` checks `isReadOnly()` because "this row is
+frozen" makes editing meaningless and `can_update` must say so honestly, while `review`, `approve`
+and `finalize` check capability alone. M8.2 follows it: approving an already-approved quotation,
+issuing an empty invoice, cancelling twice, verifying twice, and paying a cancelled invoice are all
+**422**, because the actor has the authority and the record has the wrong state. Answering 403 would
+tell somebody they may not do a thing they may.
+
+The consequence is that a UI capability flag cannot be built from `can()` alone. `can_issue`,
+`can_cancel`, `can_approve` and `can_verify` each combine capability **and** state in the controller,
+so the interface never offers a control the record would refuse.
+
+---
+
+### D-131 — Opening a report family is not reading its rows, and export is a third gate
+
+M8.3 builds the five `reports.*` families as read-only aggregations, exactly as D-126 ruled. Three
+things about **where** each refusal lives are settled here, because a report is the one surface where
+getting them wrong would be invisible.
+
+**`ReportPolicy` answers only "may this actor open this family".** It guards
+`App\Domains\Reports\Report`, a **marker class with no table** — `Gate::policy()` maps a class name,
+and the alternatives were a bare `Gate::define` on a permission code, which `CLAUDE.md` section 24
+forbids outright, or an inline resolver call in every action, which puts authorization somewhere the
+D-048 scan does not look.
+
+**What rows come back is decided by each source domain, under its own capability.** A Matter report
+runs through `MatterVisibility` under `notary.matters.view` or `ppat.matters.view` — never under
+`reports.operational.view`. So an actor holding a report code and nothing else opens a page that is
+**correctly empty**, which is the lock's ruling that *a report is a list with arithmetic on it, and
+the arithmetic does not widen the list*. Asserted directly: three Matters exist, the report shows
+zero.
+
+**`reports.export` is a separate gate and the export re-uses the built query.** `ReportExporter`
+takes the **already-scoped** builder and chunks it, so there is no second code path that could forget
+a predicate — "export produces the same rows the actor just saw" is a property of the code rather
+than a promise in a comment. Financial exports additionally obey `billing.amount.view`, and a
+withheld column is **absent from the CSV header**, not a column of blanks: blanks invite the reader
+to conclude the office was paid nothing.
+
+**Three smaller rulings.** Reports **paginate** — the brief's sketch called `->get()` on an unbounded
+query, which section 43 forbids, and export is the answer for "all of it". The audit report is **one
+address with filters**, because "the trail for this record" is `auditable_type` plus `auditable_id`
+and a second URL over one table is two places for the scope predicate to drift (D-118). And the
+**property report has no status filter**: `properties.status` has no ERD vocabulary and nothing
+writes it (M7.3), so a control for it would narrow by a column that is null on every row.
+
+**Revenue means money received, not money billed.** It sums **verified** payments in the period —
+the same rule an invoice's paid total follows (O-050) — because issued-invoice totals answer a
+different question and would double-count anything billed in one period and paid in another. The
+report returns `data: null` without `billing.amount.view`, since every cell of it is a sum and a
+revenue report of row counts would be a different report pretending to be this one. Service types
+ship as **code plus both names**: choosing a language in a SQL aggregate would put presentation where
+no locale is known (sections 6, 10).
+
+---
+
+### D-132 — No report may resemble a statutory return, and `ppat.reports.*` stays untouched
+
+The lock's section 10 says *"a report that looks like a statutory return is worse than no report,
+because it invites being filed as one."* M8.3 honours that in three concrete ways, recorded here
+because each is a thing a later milestone might undo without noticing.
+
+**Nothing is produced that a Repertorium, a register extract or a PPAT monthly return would be
+recognised as.** Every surface is a filtered list with counts, exported as CSV working data. No
+letterhead, no PDF, no sequence of the report's own, and no column that exists only because a
+register would have one. The Repertorium's format and procedure are open questions in
+`08_NOTARY_WORKFLOW.md` section 6 (O-035, O-036); the register format and period are O-042; the PPAT
+monthly obligation's deadline, recipient and format are O-043. **All four remain open.**
+
+**CSV is the only export format, and that is a decision rather than a shortcut.** A formatted
+document with a letterhead begins to look like something an office might file. CSV is unambiguously
+working data.
+
+**`ppat.reports.generate`, `.review`, `.approve`, `.view` and `.export` are reached by nothing.**
+`reports.ppat.view` and `ppat.reports.view` differ only in word order and are different capabilities.
+The second family carries a produce-and-sign-off workflow that **is** the monthly obligation, so
+building any endpoint for it would answer O-043 by implementation. A test asserts no route contains
+`generate`, `monthly`, `repertorium` or `register`, and the smoke confirmed all three candidate
+addresses answer 404.
+
+**`reports.audit.view` is a second reader of `audit_logs`, and legitimately so.** M8.1 built
+`GET /api/v1/audit-logs` under `audit.view`; both codes are canonical and neither implies the other
+(D-091), so an office may give a compliance reviewer the report without the operational surface. The
+rows are identical and so is the Office predicate.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -4706,6 +5158,11 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-045 | **Archiving a Property cannot be undone through the product.** M7.3 settled what `properties.archive` does — it soft-deletes, because the ERD gave `properties` a `deleted_at` and the catalogue gave `archive` while withholding `properties.delete`, so read together they are one mechanism rather than two dead ones. There is no `properties.restore` in the catalogue, unlike `projects.restore` (D-093). | Open, and the archive path ships one-way rather than authorizing a return through a code that does not name the act (D-064). Mitigated rather than ignored: archiving **destroys nothing** — every `matter_properties` row and every link in the chain of title survives — an archived parcel stays readable and findable through `?archived=1`, and the confirmation says plainly that the product offers no way back. It is also **refused while a Matter that has not finished names the parcel**, which is the case a wrong archive would hurt most. Closing this needs a decision about whether the canonical catalogue gains `properties.restore`, which would be the first catalogue extension since M1.2 — the same decision O-036 and O-040 need. |
 | O-046 | **`property_documents` does not exist, so a Property has no documents.** `DocumentRelationType` carries `party`, `project` and `matter` only, and M5.3 named this junction *"blocked — batch 8, M7"* while recording that adding one later is *"adding a case and a migration, not redesigning this enum"*. M7.3 was scoped explicitly without a migration, so `PropertyResource` carries **no `document_count` and no document list**, and the detail page has no Documents section — the M7.3 brief asked for both. | Open, and a deliberate absence rather than an oversight: a count of zero would be a lie about a junction that has no rows because it has no table, and a section that could never list anything is worse than none. Unblocking is genuinely small — `properties` exists with its `(id, office_id)` support key since M7.1, so the migration is the ordinary composite-key junction M5.1 built three times. Whoever does it adds the enum case, the migration and the relation controller branch; nothing in M7.3 has to change. |
 | O-044 | **The PPAT Property and Warkah surfaces have capabilities, tables and no routes.** `properties.*` and `ppat.warkah.*` are canonical families; M7.1 built `properties`, `property_owners`, `matter_properties`, `ppat_warkah`, `ppat_warkah_items` and `ppat_warkah_documents`, and two Policies. No route reaches any of them. The M7.2 brief asked for navigation placeholders at `/ppat/properties` and `/ppat/warkah`. | **Resolved 2026-08-25 by M7.4.** Throughout, the placeholders were **refused** (D-064). An entry whose route does not exist offers somebody a link to a 404, and every milestone since M5.2 has waited for the routes — including `notary.deeds`, which stayed absent through M6.1 and appeared at M6.2. M7.2 adds only the **Deeds** entry. M7.3 owns Property and M7.4 owns Warkah; each adds its own entry when its routes land. **Half closed 2026-08-25 by M7.3**, which built `/properties` and added the Property entry — gated on `properties.view`, the domain-neutral code, because there is no `ppat.properties.*` family in the catalogue even though the entry sits in the PPAT group (`CLAUDE.md` §16). The M7.3 brief asked for the Warkah placeholder again and it was refused again. **Resolved 2026-08-25 by M7.4**, which built the Warkah surface — eleven routes under the deed plus a top-level list — and added the last entry, gated on `ppat.warkah.view`. The PPAT group now carries four destinations and the placeholders were never shipped: every one of the four appeared in the milestone that landed its routes, which is the whole of D-064. The note this item carried for M7.4 held: a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six codes, so `PpatDeedResource` still carries no Warkah key and the section asks its own endpoint. |
+| O-047 | **`activities` is a canonical table with no canonical capability.** `03_DATABASE_ERD.md` §24 defines the field list and four `activity_type` examples; the live registry has no `activity.*` code of any kind. Structurally the same shape as O-036 (protocol) and O-040 (taxes), both of which were refused on it. | Open, and **resolved for M8 rather than refused** (D-123). The difference is what each surface needs: protocol and taxes each wanted a destination of their own — menu entry, lifecycle, acts — so building either meant inventing a schema **and** a capability family. `activities` needs neither. It is infrastructure, written by the system and never by a user, read only as a component inside a page the actor already reached, and authorized **per row by its subject's own visibility** — a row whose subject is unreachable is absent, not redacted (D-098). There is no `POST /api/v1/activities`. This reopens the moment anyone wants a user-authored timeline entry or a standalone activity page: either needs an `activity.*` family, and therefore the first catalogue extension since M1.2 — the same decision O-036, O-040 and O-045 all wait on. **Built 2026-08-26 by M8.1 on exactly those terms** (D-128): the table exists, `ActivityRecorder` is its only writer, no create endpoint exists, and the Dashboard feed narrows to rows whose subject the actor can already reach — absent rather than redacted, per D-098. The item stays open because the question it names is not *"should the table exist"* but *"does a user-authored entry need a capability"*, and nobody has asked for one. |
+| O-048 | **Calendar is fully canonical and owned by no milestone.** `03_DATABASE_ERD.md` §23 defines `calendar_events` with six event types (`APPOINTMENT`, `SIGNING`, `DEADLINE`, `REMINDER`, `INTERNAL_MEETING`, `OTHER`); the registry carries `calendar.view`, `calendar.view_all`, `calendar.create`, `calendar.update`, `calendar.delete`; `02_MENU_AND_PERMISSIONS.md` gives it a menu destination; ERD §32 places it in batch 7, alongside the audit and activity work M8.1 does build. M5 was "Documents & Tasks" and built tasks. **No milestone from M0 to M8 names Calendar**, and DECISIONS.md has never recorded it. | Open, and outside M8 because M8's subject is Dashboard, Billing and Reports, and `CLAUDE.md` §60 forbids implementing a module merely because it appears in the specification (D-126). **Unlike every other item in this ledger it is blocked on nothing** — not a domain rule, not a catalogue extension, not a missing table. It has a schema, a vocabulary, a full capability family and a destination, and has simply never been assigned. Closing it needs only a decision to assign it. M8 is the last planned milestone, so absent that decision it ships unbuilt. |
+| O-049 | **Billing schema is designed, not transcribed.** `03_DATABASE_ERD.md` defines no `quotations`, `invoices`, `invoice_items`, `payments` or `disbursements` table — the only occurrences of "payment" in the entire ERD are `payment_reference` and `payment_date` inside `ppat_tax_records`, which belongs to the tax surface O-040 refused. §27's numbering table names five sequence codes and neither `INVOICE` nor `QUOTATION` is among them. Meanwhile the catalogue carries **seventeen** billing codes and `02_MENU_AND_PERMISSIONS.md` lines 70–74 name four menu destinations. | Open, and **the inverse of O-036 and O-040** — capabilities without a table, where those are tables without capabilities. M8.2 supplies the schema under D-124, bounded three ways: the lifecycle is read off the catalogue's verbs rather than invented, nothing computes or gates on tax, and the shape is marked as designed in the lock's §9.3 so no future reader mistakes it for canon. **This is the first schema any milestone in this project has designed rather than transcribed** — M1 through M7 all declined to build tables the ERD was silent about. Closing this means adopting the shipped shape into the ERD (including §27's two new sequence codes) so it becomes canon rather than precedent, or amending it before M8.2 builds. |
+| O-050 | **A verified payment has no correction path.** The catalogue gives `payments.view`, `payments.create` and `payments.verify` — **no `payments.update`, no delete, and no reversal verb.** No billing surface has a delete code at all, but the other three each have an `update`; payments alone do not. | Open, and shipped as a stated gap rather than closed with an uncatalogued verb (D-125) — the same disposition M7.3 gave one-way property archiving (O-045). Mitigated, not ignored: **only `VERIFIED` payments count toward an invoice's settled total**, so the verify gate is the control and a mistake caught before verification affects no figure anywhere; a wrong `PENDING` payment stays visible and uncounted rather than hidden. What remains genuinely unfixable is a payment that was verified in error. `payments` accordingly carries no `deleted_at` and no `updated_by`, because inventing the column would imply an act the catalogue does not authorize. Closing this needs a decision about whether the catalogue gains `payments.update` or a reversal capability — the catalogue-extension question O-036, O-040, O-045 and O-047 all wait on. |
+| O-051 | **No billing document can be deleted, and a draft quotation raised in error is permanent.** The catalogue has no `quotations.delete`, `invoices.delete` or `disbursements.delete` — verified against the live registry. M8.2 built the `deleted_at` columns the M8 lock's §9.3 field lists specify, and **nothing sets them**: stored vocabulary with no code path, the D-109 pattern. | Open, and shipped as a stated gap rather than closed with an uncatalogued verb (D-129). Mostly mitigated: an invoice raised in error is **cancelled**, which is better than deletion for a financial record — the number and the figures survive where an audit can find them, and a cancelled invoice is excluded from every outstanding figure. A disbursement can be corrected under `disbursements.update`. What has no remedy is a **draft quotation** nobody wants: it stays `DRAFT` forever, which is at least honest about what happened. Closing this needs a decision about whether the catalogue gains the three delete codes — the catalogue-extension question O-036, O-040, O-045, O-047 and O-050 all wait on. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

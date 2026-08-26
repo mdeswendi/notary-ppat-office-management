@@ -2,6 +2,8 @@
 
 namespace App\Domains\Document\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Document\Enums\DocumentStatus;
 use App\Domains\Document\Exceptions\DocumentStatusNotEligible;
 use App\Models\Document;
@@ -28,15 +30,28 @@ use App\Models\User;
  */
 class VerifyDocument
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, Document $document): Document
     {
         if (! $document->status->isVerifiable()) {
             throw new DocumentStatusNotEligible($document->status, 'verified');
         }
 
+        $from = $document->status->value;
+
         $document->status = DocumentStatus::VERIFIED;
         $document->updated_by = $actor->getKey();
         $document->save();
+
+        $this->events->statusChanged(
+            $document,
+            $actor,
+            $from,
+            $document->status->value,
+            ActivityType::DOCUMENT_VERIFIED,
+            ['title' => $document->title],
+        );
 
         return $document;
     }

@@ -339,13 +339,22 @@ it('builds no task template table', function (): void {
     expect(Schema::hasTable('task_templates'))->toBeFalse();
 });
 
-it('improvises no audit or notification store', function (): void {
+it('improvises no notification store, and no third-party activity package', function (): void {
     // D-115: no half-measure ships. `assigned_by`, `created_by`, `completed_by`
     // and the timestamps record who and when on the row itself.
-    expect(Schema::hasTable('audit_logs'))->toBeFalse()
-        ->and(Schema::hasTable('notifications'))->toBeFalse()
-        ->and(Schema::hasTable('activity_log'))->toBeFalse()
-        ->and(class_exists('App\Models\Activity'))->toBeFalse();
+    //
+    // **Narrowed at M8.1, not deleted.** `audit_logs` and `App\Models\Activity`
+    // were asserted absent because M5.4 had to build neither and D-115 forbade a
+    // stopgap. M8.1 builds both under D-123, from `03_DATABASE_ERD.md` sections
+    // 24 and 25 — which is the opposite of a stopgap, and is why the assertion
+    // moves rather than stays.
+    //
+    // `activity_log` keeps its place: that is spatie/laravel-activitylog's table
+    // name, and adopting a package's schema instead of the canonical one is
+    // precisely the half-measure D-115 named. `notifications` was never in scope
+    // for any milestone.
+    expect(Schema::hasTable('notifications'))->toBeFalse()
+        ->and(Schema::hasTable('activity_log'))->toBeFalse();
 });
 
 it('registers no new permission', function (): void {

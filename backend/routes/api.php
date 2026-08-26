@@ -2,15 +2,21 @@
 
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Http\Controllers\Api\V1\ArchivedProjectController;
+use App\Http\Controllers\Api\V1\AuditLogController;
+use App\Http\Controllers\Api\V1\AuditReportController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DisbursementController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
+use App\Http\Controllers\Api\V1\FinancialReportController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
+use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
@@ -20,10 +26,14 @@ use App\Http\Controllers\Api\V1\MatterStageController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
 use App\Http\Controllers\Api\V1\NotaryMinutaController;
+use App\Http\Controllers\Api\V1\NotaryReportController;
+use App\Http\Controllers\Api\V1\OperationalReportController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PpatDeedController;
+use App\Http\Controllers\Api\V1\PpatReportController;
 use App\Http\Controllers\Api\V1\PpatWarkahController;
 use App\Http\Controllers\Api\V1\PpatWarkahItemController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -33,6 +43,7 @@ use App\Http\Controllers\Api\V1\ProjectPartyController;
 use App\Http\Controllers\Api\V1\ProjectStatusController;
 use App\Http\Controllers\Api\V1\PropertyController;
 use App\Http\Controllers\Api\V1\PropertyOwnerController;
+use App\Http\Controllers\Api\V1\QuotationController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -53,6 +64,208 @@ Route::prefix('v1')->group(function (): void {
     // requests. No bearer token is involved.
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('me', MeController::class)->name('api.v1.me');
+
+        /*
+         * The operational overview (M8.1, D-122).
+         *
+         * **No permission guards these**, and that is not an omission: there is
+         * no `dashboard.*` code in the catalogue and none is needed. Every figure
+         * is produced by DashboardAggregator, which resolves each panel's own
+         * capability and applies that resource's own Data Scope. A panel the
+         * caller may not see comes back `null`, and an actor holding nothing gets
+         * a page of nulls and a 200 — correct behaviour, not an error state.
+         *
+         * Six addresses rather than one, so the cheapest panel never waits for
+         * the most expensive and a client can skip what its user cannot see.
+         */
+        Route::prefix('dashboard')->name('api.v1.dashboard.')->group(function (): void {
+            Route::get('stats', [DashboardController::class, 'stats'])->name('stats');
+            Route::get('tasks', [DashboardController::class, 'tasks'])->name('tasks');
+            Route::get('needs-attention', [DashboardController::class, 'needsAttention'])->name('needs-attention');
+            Route::get('workload', [DashboardController::class, 'workload'])->name('workload');
+            Route::get('activity', [DashboardController::class, 'activity'])->name('activity');
+            Route::get('deeds', [DashboardController::class, 'deeds'])->name('deeds');
+        });
+
+        /*
+         * The audit trail (M8.1, D-123, closing D-115).
+         *
+         * **Read-only, structurally.** `audit.view` guards it; there is no
+         * `audit.update` or `audit.delete` in the catalogue, the model throws on
+         * both, and no address here could reach one. `CLAUDE.md` section 31.
+         *
+         * One address with filters rather than nested routes (D-118): "what
+         * happened to this deed", "what has this person done" and "what happened
+         * last week" are three questions about one collection.
+         */
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.v1.audit-logs.index');
+
+        /*
+         * Reports (M8.3, D-126).
+         *
+         * **Five families for five `reports.*.view` codes, plus `reports.export`
+         * as a second gate.** An actor may hold a view code and not export; the
+         * page renders and the download does not.
+         *
+         * **`ppat.reports.*` is untouched.** `reports.ppat.view` and
+         * `ppat.reports.view` differ only in word order and are different
+         * capabilities: the second belongs to a five-code
+         * generate/review/approve workflow that is the PPAT **monthly reporting
+         * obligation**, whose deadline, recipient and format nobody here has
+         * authored (O-043). No route below reaches any of those five.
+         *
+         * **Nothing here produces a Repertorium, a register extract or a
+         * statutory return.** Each address is a filtered list with counts,
+         * exported as CSV working data — the lock's §10 ruling that a report
+         * which looks like a statutory return is worse than no report.
+         *
+         * **Opening a family is not reading its rows.** `ReportPolicy` answers
+         * the first; every row is narrowed by its own source domain's capability
+         * and Data Scope (see `ReportQueries`), so a holder of only
+         * `reports.operational.view` gets correctly empty pages.
+         *
+         * Export sits beside each report rather than at a single
+         * `/reports/{type}/export`, so the two share one query builder and the
+         * scope predicate cannot drift between them.
+         */
+        Route::prefix('reports')->name('api.v1.reports.')->group(function (): void {
+            Route::prefix('operational')->name('operational.')->group(function (): void {
+                Route::get('matters', [OperationalReportController::class, 'matters'])->name('matters');
+                Route::get('matters/export', [OperationalReportController::class, 'exportMatters'])->name('matters.export');
+                Route::get('tasks', [OperationalReportController::class, 'tasks'])->name('tasks');
+                Route::get('tasks/export', [OperationalReportController::class, 'exportTasks'])->name('tasks.export');
+                Route::get('documents', [OperationalReportController::class, 'documents'])->name('documents');
+                Route::get('documents/export', [OperationalReportController::class, 'exportDocuments'])->name('documents.export');
+            });
+
+            Route::prefix('notary')->name('notary.')->group(function (): void {
+                Route::get('deeds', [NotaryReportController::class, 'deeds'])->name('deeds');
+                Route::get('deeds/export', [NotaryReportController::class, 'exportDeeds'])->name('deeds.export');
+                Route::get('summary', [NotaryReportController::class, 'summary'])->name('summary');
+            });
+
+            Route::prefix('ppat')->name('ppat.')->group(function (): void {
+                Route::get('deeds', [PpatReportController::class, 'deeds'])->name('deeds');
+                Route::get('deeds/export', [PpatReportController::class, 'exportDeeds'])->name('deeds.export');
+                Route::get('properties', [PpatReportController::class, 'properties'])->name('properties');
+                Route::get('properties/export', [PpatReportController::class, 'exportProperties'])->name('properties.export');
+                Route::get('warkah', [PpatReportController::class, 'warkah'])->name('warkah');
+                Route::get('warkah/export', [PpatReportController::class, 'exportWarkah'])->name('warkah.export');
+                Route::get('summary', [PpatReportController::class, 'summary'])->name('summary');
+            });
+
+            Route::prefix('financial')->name('financial.')->group(function (): void {
+                Route::get('invoices', [FinancialReportController::class, 'invoices'])->name('invoices');
+                Route::get('invoices/export', [FinancialReportController::class, 'exportInvoices'])->name('invoices.export');
+                Route::get('payments', [FinancialReportController::class, 'payments'])->name('payments');
+                Route::get('payments/export', [FinancialReportController::class, 'exportPayments'])->name('payments.export');
+                // Every cell is a sum, so this one returns nothing at all
+                // without `billing.amount.view` (D-125).
+                Route::get('revenue', [FinancialReportController::class, 'revenue'])->name('revenue');
+            });
+
+            Route::prefix('audit')->name('audit.')->group(function (): void {
+                // One address. "The trail for this record" is `auditable_type`
+                // plus `auditable_id` on it, not a second route (D-118).
+                Route::get('activity', [AuditReportController::class, 'activity'])->name('activity');
+                Route::get('activity/export', [AuditReportController::class, 'exportActivity'])->name('activity.export');
+            });
+        });
+
+        /*
+         * Billing (M8.2, D-124).
+         *
+         * **Twenty-six routes for seventeen capabilities, and no route for an
+         * act the catalogue does not name.** The M8.2 brief asked for nine that
+         * are missing from the registry — `quotations.send`, `.reject`,
+         * `.convert`, `.delete`; `invoices.send`, `.delete`; `payments.reject`;
+         * `disbursements.delete` — and the brief also forbade adding
+         * permissions, so its own constraint rules them out. There is no
+         * `DELETE` on any billing document: a draft raised in error is
+         * cancelled, which keeps the number where an audit can find it (O-051).
+         *
+         * **Conversion is `POST /invoices` with a `quotation_id`.** That is
+         * `invoices.create`, which is canonical, so the brief's `convert` verb
+         * is delivered without a code that does not exist.
+         *
+         * **Line items sit under their parent and answer to its `update`
+         * ability.** There is no `*.items.*` family in the catalogue; editing
+         * what an invoice charges for is editing the invoice, which is why the
+         * routes inherit its DRAFT-only rule.
+         */
+        Route::prefix('quotations')->name('api.v1.quotations.')->group(function (): void {
+            Route::get('/', [QuotationController::class, 'index'])->name('index');
+            Route::post('/', [QuotationController::class, 'store'])->name('store');
+
+            Route::get('{quotation}', [QuotationController::class, 'show'])
+                ->whereUlid('quotation')->name('show');
+            Route::put('{quotation}', [QuotationController::class, 'update'])
+                ->whereUlid('quotation')->name('update');
+
+            // The only lifecycle act `quotations.*` authorizes.
+            Route::patch('{quotation}/approve', [QuotationController::class, 'approve'])
+                ->whereUlid('quotation')->name('approve');
+
+            Route::post('{quotation}/items', [QuotationController::class, 'storeLine'])
+                ->whereUlid('quotation')->name('items.store');
+            Route::put('{quotation}/items/{item}', [QuotationController::class, 'updateLine'])
+                ->whereUlid('quotation')->whereUlid('item')->name('items.update');
+            Route::delete('{quotation}/items/{item}', [QuotationController::class, 'destroyLine'])
+                ->whereUlid('quotation')->whereUlid('item')->name('items.destroy');
+        });
+
+        Route::prefix('invoices')->name('api.v1.invoices.')->group(function (): void {
+            Route::get('/', [InvoiceController::class, 'index'])->name('index');
+            Route::post('/', [InvoiceController::class, 'store'])->name('store');
+
+            Route::get('{invoice}', [InvoiceController::class, 'show'])
+                ->whereUlid('invoice')->name('show');
+            Route::put('{invoice}', [InvoiceController::class, 'update'])
+                ->whereUlid('invoice')->name('update');
+
+            // `issue`, never `send`: the catalogue's verb is `issue`, and
+            // issuing is sending.
+            Route::patch('{invoice}/issue', [InvoiceController::class, 'issue'])
+                ->whereUlid('invoice')->name('issue');
+            Route::patch('{invoice}/cancel', [InvoiceController::class, 'cancel'])
+                ->whereUlid('invoice')->name('cancel');
+
+            Route::post('{invoice}/items', [InvoiceController::class, 'storeLine'])
+                ->whereUlid('invoice')->name('items.store');
+            Route::put('{invoice}/items/{item}', [InvoiceController::class, 'updateLine'])
+                ->whereUlid('invoice')->whereUlid('item')->name('items.update');
+            Route::delete('{invoice}/items/{item}', [InvoiceController::class, 'destroyLine'])
+                ->whereUlid('invoice')->whereUlid('item')->name('items.destroy');
+
+            // Payments belong to the invoice they settle.
+            Route::get('{invoice}/payments', [PaymentController::class, 'forInvoice'])
+                ->whereUlid('invoice')->name('payments.index');
+            Route::post('{invoice}/payments', [PaymentController::class, 'store'])
+                ->whereUlid('invoice')->name('payments.store');
+        });
+
+        Route::prefix('payments')->name('api.v1.payments.')->group(function (): void {
+            // The same rows as the nested list, asked a different question —
+            // a filter, not a second surface (D-118).
+            Route::get('/', [PaymentController::class, 'index'])->name('index');
+
+            Route::get('{payment}', [PaymentController::class, 'show'])
+                ->whereUlid('payment')->name('show');
+
+            // The one-way door: no route undoes it, because no code does (O-050).
+            Route::patch('{payment}/verify', [PaymentController::class, 'verify'])
+                ->whereUlid('payment')->name('verify');
+        });
+
+        Route::prefix('disbursements')->name('api.v1.disbursements.')->group(function (): void {
+            Route::get('/', [DisbursementController::class, 'index'])->name('index');
+            Route::post('/', [DisbursementController::class, 'store'])->name('store');
+
+            Route::get('{disbursement}', [DisbursementController::class, 'show'])
+                ->whereUlid('disbursement')->name('show');
+            Route::put('{disbursement}', [DisbursementController::class, 'update'])
+                ->whereUlid('disbursement')->name('update');
+        });
 
         // The authenticated user's own account. No permission guards these and
         // no id is accepted — the target is always the caller (D-066).

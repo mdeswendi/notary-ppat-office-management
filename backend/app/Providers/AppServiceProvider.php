@@ -2,36 +2,50 @@
 
 namespace App\Providers;
 
+use App\Domains\Reports\Report;
+use App\Listeners\RecordAuthenticationAudit;
 use App\Models\Company;
+use App\Models\Disbursement;
 use App\Models\Document;
 use App\Models\Individual;
+use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\NotaryDeed;
+use App\Models\Payment;
 use App\Models\PpatDeed;
 use App\Models\PpatWarkah;
 use App\Models\ProjectParty;
 use App\Models\Property;
+use App\Models\Quotation;
 use App\Models\ServiceType;
 use App\Models\Task;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
+use App\Policies\DisbursementPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
+use App\Policies\InvoicePolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
 use App\Policies\NotaryDeedPolicy;
+use App\Policies\PaymentPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\PpatDeedPolicy;
 use App\Policies\PpatWarkahPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\PropertyPolicy;
+use App\Policies\QuotationPolicy;
+use App\Policies\ReportPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -153,7 +167,55 @@ class AppServiceProvider extends ServiceProvider
         // $deed])` resolves here.
         Gate::policy(PpatWarkah::class, PpatWarkahPolicy::class);
 
+        // Billing (M8.2, D-124). Four policies for four surfaces, listed here
+        // with the rest so one file still answers "which policy guards what".
+        //
+        // Two things about them are worth pointing at. **Every ability is Office
+        // scope** — `OWN` and `ASSIGNED` are withheld, because an invoice is the
+        // Office's claim on a client rather than the personal work of whoever
+        // typed it (see BillingVisibility). And **`PaymentPolicy::create` takes
+        // the parent Invoice**, not a Payment, because the question is whether
+        // this actor may record money against *this* bill; callers authorize
+        // with `[Payment::class, $invoice]`.
+        //
+        // `billing.amount.view` is deliberately absent from all four: masking
+        // money is a serialization concern (D-125), never a reach predicate.
+        Gate::policy(Quotation::class, QuotationPolicy::class);
+        Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Disbursement::class, DisbursementPolicy::class);
+
+        // Reports (M8.3, D-126). **Registered against a marker class, not a
+        // model**: there is no `reports` table and never will be, because no
+        // capability in the `reports.*` family authorizes creating a stored
+        // report. `Gate::policy()` maps a class name, and `Report` is a name.
+        //
+        // The abilities answer only "may this actor open this family". **What
+        // rows come back is decided elsewhere** — by each source domain's own
+        // visibility under its own capability (see ReportQueries). Holding
+        // `reports.operational.view` and nothing else opens a correctly empty
+        // page, which is the lock's ruling that the arithmetic does not widen
+        // the list.
+        Gate::policy(Report::class, ReportPolicy::class);
+
         $this->registerSecurityRateLimiters();
+        $this->registerAuditListeners();
+    }
+
+    /**
+     * Session events that belong in the audit trail (M8.1, D-123).
+     *
+     * Registered explicitly rather than by listener auto-discovery, for the same
+     * reason every policy above is: one file answers what is wired to what.
+     *
+     * **`Login`, not `Authenticated`.** The latter fires on every authenticated
+     * request, so auditing it would write thousands of rows a day that say
+     * nothing and bury the ones that matter — in a table nobody may delete from.
+     */
+    private function registerAuditListeners(): void
+    {
+        Event::listen(Login::class, [RecordAuthenticationAudit::class, 'onLogin']);
+        Event::listen(Logout::class, [RecordAuthenticationAudit::class, 'onLogout']);
     }
 
     /**

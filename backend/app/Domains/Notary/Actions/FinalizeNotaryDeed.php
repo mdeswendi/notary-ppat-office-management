@@ -2,6 +2,8 @@
 
 namespace App\Domains\Notary\Actions;
 
+use App\Domains\Activity\Enums\ActivityType;
+use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Notary\Exceptions\DeedStatusNotEligible;
 use App\Models\NotaryDeed;
@@ -46,6 +48,8 @@ use Illuminate\Support\Facades\DB;
  */
 class FinalizeNotaryDeed
 {
+    public function __construct(private readonly EventRecorder $events) {}
+
     public function handle(User $actor, NotaryDeed $deed): NotaryDeed
     {
         return DB::transaction(function () use ($actor, $deed): NotaryDeed {
@@ -53,10 +57,21 @@ class FinalizeNotaryDeed
                 throw new DeedStatusNotEligible($deed->status, 'finalized');
             }
 
+            $from = $deed->status->value;
+
             $deed->status = NotaryDeedStatus::FINALIZED;
             $deed->finalized_at = Date::now();
             $deed->finalized_by = $actor->getKey();
             $deed->save();
+
+            $this->events->statusChanged(
+                $deed,
+                $actor,
+                $from,
+                $deed->status->value,
+                ActivityType::DEED_FINALIZED,
+                ['reference' => $deed->deed_number, 'title' => $deed->title],
+            );
 
             return $deed;
         });

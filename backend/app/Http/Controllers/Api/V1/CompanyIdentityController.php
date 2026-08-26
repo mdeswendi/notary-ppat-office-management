@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Audit\Services\AuditLogger;
 use App\Domains\Party\Actions\UpdateCompanyIdentity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Party\UpdateCompanyIdentityRequest;
@@ -37,7 +38,10 @@ use Illuminate\Support\Facades\Log;
  */
 class CompanyIdentityController extends Controller
 {
-    public function __construct(private readonly CompanyPolicy $policy) {}
+    public function __construct(
+        private readonly CompanyPolicy $policy,
+        private readonly AuditLogger $audit,
+    ) {}
 
     /**
      * Tier 1: the identity surface, masked.
@@ -82,14 +86,12 @@ class CompanyIdentityController extends Controller
     {
         $this->authorize('viewFullTaxId', $company);
 
-        // Metadata only. The field name, never its content — a raw identifier in
-        // a log line is a raw identifier in a backup, a log aggregator, and
-        // whatever ships logs off the host.
-        Log::info('PARTY_IDENTITY_REVEALED', [
-            'actor_id' => $request->user()->getKey(),
-            'party_id' => $company->party_id,
-            'field' => 'tax_id',
-        ]);
+        // **This was an application `Log::info` until M8.1**, the stopgap D-115
+        // named. The audit store now exists, so the record goes there instead of
+        // to a log aggregator — see the twin in IndividualIdentityController.
+        //
+        // Metadata only, unchanged: the field name, **never its content**.
+        $this->audit->sensitiveAccess($company, 'tax_id', $request->user());
 
         return response()
             ->json([

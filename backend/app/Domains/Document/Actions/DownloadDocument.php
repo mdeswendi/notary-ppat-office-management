@@ -19,8 +19,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * **Authorization is the caller's job and is not optional.** This class knows
  * nothing about who is asking; handing it a Document is a statement that
- * {@see DocumentPolicy::download()} said yes — which includes the
- * D-115 gate that refuses every sensitive download until an audit store exists.
+ * {@see DocumentPolicy::download()} said yes — which since M8.1 includes the
+ * sensitive case, because the audit store D-115 waited for now exists.
+ *
+ * **The audit row is written by the controller, not here.** This class streams
+ * bytes and is also reachable from contexts that are not a user download; the
+ * record of who read a sensitive file belongs where the actor is known.
  *
  * ## Why the version is re-read rather than trusted
  *
