@@ -3,6 +3,8 @@
 namespace App\Domains\Dashboard\Services;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
+use App\Domains\Billing\BillingVisibility;
+use App\Domains\Billing\Enums\InvoiceStatus;
 use App\Domains\Document\DocumentVisibility;
 use App\Domains\Identity\UserVisibility;
 use App\Domains\Matter\Enums\MatterDomain;
@@ -17,11 +19,15 @@ use App\Domains\Project\ProjectVisibility;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Domains\Task\TaskVisibility;
 use App\Models\Activity;
+use App\Models\Disbursement;
 use App\Models\Document;
+use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\NotaryDeed;
+use App\Models\Payment;
 use App\Models\PpatDeed;
 use App\Models\Project;
+use App\Models\Quotation;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -95,6 +101,7 @@ class DashboardAggregator
         private readonly NotaryDeedVisibility $notaryDeeds,
         private readonly PpatDeedVisibility $ppatDeeds,
         private readonly UserVisibility $users,
+        private readonly BillingVisibility $billing,
     ) {}
 
     /**
@@ -110,7 +117,42 @@ class DashboardAggregator
             'pending_reviews' => $this->countDeedsUnderReview($actor),
             'overdue_tasks' => $this->countOverdueTasks($actor),
             'total_deeds_this_month' => $this->countDeedsThisMonth($actor),
+            'overdue_invoices' => $this->countOverdueInvoices($actor),
         ];
+    }
+
+    /**
+     * Invoices past their due date and not settled (M8.2).
+     *
+     * **A count, never a sum.** `billing.amount.view` is a separate gate (D-125)
+     * and the Dashboard consults no billing masking at all, so it reports *how
+     * many* bills are late and never *how much* is owed. Somebody entitled to
+     * know an invoice exists and is overdue is exactly who this figure is for;
+     * what it is worth stays behind the gate, on the record.
+     *
+     * Overdue is computed from `due_date`, not read from a status — there is no
+     * `OVERDUE` state (D-124), and a stored one would need a nightly job.
+     */
+    private function countOverdueInvoices(User $actor): ?int
+    {
+        $access = $this->resolver->resolve($actor, 'invoices.view');
+
+        if (! $this->billing->hasUsableScope($access)) {
+            return null;
+        }
+
+        return $this->billing
+            ->scope(Invoice::query(), $actor, $access)
+            ->where('invoices.status', InvoiceStatus::ISSUED->value)
+            ->whereNotNull('invoices.due_date')
+            ->whereDate('invoices.due_date', '<', Date::now()->toDateString())
+            ->withSettlement()
+            ->get(['invoices.id', 'invoices.status', 'invoices.total_amount', 'invoices.due_date'])
+            // Settlement is an aggregate rather than a column, so "still owed"
+            // is judged per row rather than in SQL. The set is small by
+            // construction: these are only the invoices already past due.
+            ->filter(static fn (Invoice $invoice): bool => ! $invoice->isSettled())
+            ->count();
     }
 
     /**
@@ -706,6 +748,32 @@ class DashboardAggregator
             if ($deedQuery !== null) {
                 $branches[$model] = fn (): Builder => $deedQuery->clone()->select($column);
             }
+        }
+
+        // **Billing subjects (M8.2).** Without these branches a billing activity
+        // row would match nothing and vanish from every feed — the failure mode
+        // of a denylist-shaped rule in an allowlist-shaped method. Each is
+        // scoped by its own capability, so somebody who may not read invoices
+        // sees no invoice entries rather than a redacted line.
+        //
+        // **`billing.amount.view` is not consulted**, and does not need to be:
+        // the recorder strips every monetary key before a row is written, so a
+        // timeline entry has nothing to mask.
+        foreach ([
+            [Quotation::class, 'quotations.view', 'quotations.id'],
+            [Invoice::class, 'invoices.view', 'invoices.id'],
+            [Payment::class, 'payments.view', 'payments.id'],
+            [Disbursement::class, 'disbursements.view', 'disbursements.id'],
+        ] as [$model, $code, $column]) {
+            $access = $this->resolver->resolve($actor, $code);
+
+            if (! $this->billing->hasUsableScope($access)) {
+                continue;
+            }
+
+            $branches[$model] = fn (): Builder => $this->billing
+                ->scope($model::query(), $actor, $access)
+                ->select($column);
         }
 
         if ($branches === []) {

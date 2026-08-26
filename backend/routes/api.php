@@ -8,11 +8,13 @@ use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DisbursementController;
 use App\Http\Controllers\Api\V1\DocumentController;
 use App\Http\Controllers\Api\V1\DocumentRelationController;
 use App\Http\Controllers\Api\V1\IndividualCompanyController;
 use App\Http\Controllers\Api\V1\IndividualController;
 use App\Http\Controllers\Api\V1\IndividualIdentityController;
+use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MatterAssignmentController;
 use App\Http\Controllers\Api\V1\MatterController;
 use App\Http\Controllers\Api\V1\MatterLifecycleController;
@@ -24,6 +26,7 @@ use App\Http\Controllers\Api\V1\NotaryDeedController;
 use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PpatDeedController;
 use App\Http\Controllers\Api\V1\PpatWarkahController;
@@ -35,6 +38,7 @@ use App\Http\Controllers\Api\V1\ProjectPartyController;
 use App\Http\Controllers\Api\V1\ProjectStatusController;
 use App\Http\Controllers\Api\V1\PropertyController;
 use App\Http\Controllers\Api\V1\PropertyOwnerController;
+use App\Http\Controllers\Api\V1\QuotationController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\RolePermissionController;
 use App\Http\Controllers\Api\V1\SecurityController;
@@ -90,6 +94,101 @@ Route::prefix('v1')->group(function (): void {
          * last week" are three questions about one collection.
          */
         Route::get('audit-logs', [AuditLogController::class, 'index'])->name('api.v1.audit-logs.index');
+
+        /*
+         * Billing (M8.2, D-124).
+         *
+         * **Twenty-six routes for seventeen capabilities, and no route for an
+         * act the catalogue does not name.** The M8.2 brief asked for nine that
+         * are missing from the registry — `quotations.send`, `.reject`,
+         * `.convert`, `.delete`; `invoices.send`, `.delete`; `payments.reject`;
+         * `disbursements.delete` — and the brief also forbade adding
+         * permissions, so its own constraint rules them out. There is no
+         * `DELETE` on any billing document: a draft raised in error is
+         * cancelled, which keeps the number where an audit can find it (O-051).
+         *
+         * **Conversion is `POST /invoices` with a `quotation_id`.** That is
+         * `invoices.create`, which is canonical, so the brief's `convert` verb
+         * is delivered without a code that does not exist.
+         *
+         * **Line items sit under their parent and answer to its `update`
+         * ability.** There is no `*.items.*` family in the catalogue; editing
+         * what an invoice charges for is editing the invoice, which is why the
+         * routes inherit its DRAFT-only rule.
+         */
+        Route::prefix('quotations')->name('api.v1.quotations.')->group(function (): void {
+            Route::get('/', [QuotationController::class, 'index'])->name('index');
+            Route::post('/', [QuotationController::class, 'store'])->name('store');
+
+            Route::get('{quotation}', [QuotationController::class, 'show'])
+                ->whereUlid('quotation')->name('show');
+            Route::put('{quotation}', [QuotationController::class, 'update'])
+                ->whereUlid('quotation')->name('update');
+
+            // The only lifecycle act `quotations.*` authorizes.
+            Route::patch('{quotation}/approve', [QuotationController::class, 'approve'])
+                ->whereUlid('quotation')->name('approve');
+
+            Route::post('{quotation}/items', [QuotationController::class, 'storeLine'])
+                ->whereUlid('quotation')->name('items.store');
+            Route::put('{quotation}/items/{item}', [QuotationController::class, 'updateLine'])
+                ->whereUlid('quotation')->whereUlid('item')->name('items.update');
+            Route::delete('{quotation}/items/{item}', [QuotationController::class, 'destroyLine'])
+                ->whereUlid('quotation')->whereUlid('item')->name('items.destroy');
+        });
+
+        Route::prefix('invoices')->name('api.v1.invoices.')->group(function (): void {
+            Route::get('/', [InvoiceController::class, 'index'])->name('index');
+            Route::post('/', [InvoiceController::class, 'store'])->name('store');
+
+            Route::get('{invoice}', [InvoiceController::class, 'show'])
+                ->whereUlid('invoice')->name('show');
+            Route::put('{invoice}', [InvoiceController::class, 'update'])
+                ->whereUlid('invoice')->name('update');
+
+            // `issue`, never `send`: the catalogue's verb is `issue`, and
+            // issuing is sending.
+            Route::patch('{invoice}/issue', [InvoiceController::class, 'issue'])
+                ->whereUlid('invoice')->name('issue');
+            Route::patch('{invoice}/cancel', [InvoiceController::class, 'cancel'])
+                ->whereUlid('invoice')->name('cancel');
+
+            Route::post('{invoice}/items', [InvoiceController::class, 'storeLine'])
+                ->whereUlid('invoice')->name('items.store');
+            Route::put('{invoice}/items/{item}', [InvoiceController::class, 'updateLine'])
+                ->whereUlid('invoice')->whereUlid('item')->name('items.update');
+            Route::delete('{invoice}/items/{item}', [InvoiceController::class, 'destroyLine'])
+                ->whereUlid('invoice')->whereUlid('item')->name('items.destroy');
+
+            // Payments belong to the invoice they settle.
+            Route::get('{invoice}/payments', [PaymentController::class, 'forInvoice'])
+                ->whereUlid('invoice')->name('payments.index');
+            Route::post('{invoice}/payments', [PaymentController::class, 'store'])
+                ->whereUlid('invoice')->name('payments.store');
+        });
+
+        Route::prefix('payments')->name('api.v1.payments.')->group(function (): void {
+            // The same rows as the nested list, asked a different question —
+            // a filter, not a second surface (D-118).
+            Route::get('/', [PaymentController::class, 'index'])->name('index');
+
+            Route::get('{payment}', [PaymentController::class, 'show'])
+                ->whereUlid('payment')->name('show');
+
+            // The one-way door: no route undoes it, because no code does (O-050).
+            Route::patch('{payment}/verify', [PaymentController::class, 'verify'])
+                ->whereUlid('payment')->name('verify');
+        });
+
+        Route::prefix('disbursements')->name('api.v1.disbursements.')->group(function (): void {
+            Route::get('/', [DisbursementController::class, 'index'])->name('index');
+            Route::post('/', [DisbursementController::class, 'store'])->name('store');
+
+            Route::get('{disbursement}', [DisbursementController::class, 'show'])
+                ->whereUlid('disbursement')->name('show');
+            Route::put('{disbursement}', [DisbursementController::class, 'update'])
+                ->whereUlid('disbursement')->name('update');
+        });
 
         // The authenticated user's own account. No permission guards these and
         // no id is accepted — the target is always the caller (D-066).

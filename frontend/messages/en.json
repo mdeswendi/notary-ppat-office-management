@@ -67,6 +67,11 @@
     "ppat": "PPAT",
     "ppatMatters": "Matters",
     "documents": "Documents",
+    "billing": "Billing",
+    "billingQuotations": "Quotations",
+    "billingInvoices": "Invoices",
+    "billingPayments": "Payments",
+    "billingDisbursements": "Disbursements",
     "tasks": "Tasks",
     "tasksMy": "My Tasks",
     "tasksAll": "All Tasks",
@@ -108,6 +113,68 @@
     "noActivity": "No activity yet. The record starts when this feature was enabled and fills as work happens.",
     "systemActor": "System"
   },
+  "billing": {
+    "quotations": "Quotations",
+    "quotationsSubtitle": "Priced offers this office has made to clients.",
+    "invoices": "Invoices",
+    "invoicesSubtitle": "Bills this office has raised.",
+    "payments": "Payments",
+    "paymentsSubtitle": "Money this office has recorded receiving.",
+    "disbursements": "Disbursements",
+    "disbursementsSubtitle": "Costs the office carried on a client's behalf.",
+    "loading": "Loading…",
+    "listUnavailable": "This list is unavailable right now.",
+    "search": "Search",
+    "searchInvoicesPlaceholder": "Invoice number or title",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "onlyOverdue": "Overdue only",
+    "overdue": "Overdue",
+    "client": "Client",
+    "matter": "Matter",
+    "invoice": "Invoice",
+    "quotationNumber": "Quotation No.",
+    "invoiceNumber": "Invoice No.",
+    "validUntil": "Valid Until",
+    "dueDate": "Due",
+    "total": "Total",
+    "outstanding": "Outstanding",
+    "invoiced": "Invoiced",
+    "amount": "Amount",
+    "paidAt": "Paid On",
+    "method": "Method",
+    "description": "Description",
+    "incurredOn": "Incurred",
+    "rebilledOn": "Re-billed On",
+    "verify": "Verify",
+    "verifyConfirm": "Verify this payment? Once verified it counts toward the invoice and cannot be undone.",
+    "verifyFailed": "This payment could not be verified.",
+    "noQuotations": "No quotations yet.",
+    "noInvoices": "No invoices yet.",
+    "noPayments": "No payments yet.",
+    "noDisbursements": "No disbursements yet.",
+    "amountWithheld": "—",
+    "amountWithheldHint": "Amount withheld. Requires the billing.amount.view permission.",
+    "quotationStatuses": {
+      "DRAFT": "Draft",
+      "APPROVED": "Approved"
+    },
+    "invoiceStatuses": {
+      "DRAFT": "Draft",
+      "ISSUED": "Issued",
+      "CANCELLED": "Cancelled"
+    },
+    "paymentStatuses": {
+      "PENDING": "Awaiting Verification",
+      "VERIFIED": "Verified"
+    },
+    "methods": {
+      "CASH": "Cash",
+      "BANK_TRANSFER": "Bank Transfer",
+      "CARD": "Card",
+      "OTHER": "Other"
+    }
+  },
   "activity": {
     "types": {
       "PROJECT_CREATED": "created project {title}",
@@ -123,7 +190,15 @@
       "DEED_APPROVED": "approved deed {title}",
       "DEED_FINALIZED": "finalized deed {title}",
       "PROPERTY_CREATED": "added land object {reference}",
-      "WARKAH_VERIFIED": "verified the Warkah"
+      "WARKAH_VERIFIED": "verified the Warkah",
+      "QUOTATION_CREATED": "created quotation {reference}",
+      "QUOTATION_APPROVED": "approved quotation {reference}",
+      "INVOICE_CREATED": "created invoice {reference}",
+      "INVOICE_ISSUED": "issued invoice {reference}",
+      "INVOICE_CANCELLED": "cancelled invoice {reference}",
+      "PAYMENT_RECORDED": "recorded a payment for {reference}",
+      "PAYMENT_VERIFIED": "verified a payment for {reference}",
+      "DISBURSEMENT_RECORDED": "recorded cost {title}"
     }
   },
   "projects": {

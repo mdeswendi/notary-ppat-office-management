@@ -45,6 +45,19 @@ enum ActivityType: string
     case PROPERTY_CREATED = 'PROPERTY_CREATED';
     case WARKAH_VERIFIED = 'WARKAH_VERIFIED';
 
+    // Billing (M8.2). Eight more of the same shape — a resource and a past-tense
+    // verb — added because each is a business milestone somebody on the timeline
+    // would want to see. Field corrections to a draft invoice are not here: they
+    // go to `audit_logs` with their old and new values, per D-128.
+    case QUOTATION_CREATED = 'QUOTATION_CREATED';
+    case QUOTATION_APPROVED = 'QUOTATION_APPROVED';
+    case INVOICE_CREATED = 'INVOICE_CREATED';
+    case INVOICE_ISSUED = 'INVOICE_ISSUED';
+    case INVOICE_CANCELLED = 'INVOICE_CANCELLED';
+    case PAYMENT_RECORDED = 'PAYMENT_RECORDED';
+    case PAYMENT_VERIFIED = 'PAYMENT_VERIFIED';
+    case DISBURSEMENT_RECORDED = 'DISBURSEMENT_RECORDED';
+
     /**
      * @return array<int, string>
      */

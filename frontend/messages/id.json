@@ -67,6 +67,11 @@
     "ppat": "PPAT",
     "ppatMatters": "Pekerjaan",
     "documents": "Dokumen",
+    "billing": "Penagihan",
+    "billingQuotations": "Penawaran",
+    "billingInvoices": "Tagihan",
+    "billingPayments": "Pembayaran",
+    "billingDisbursements": "Biaya Pihak Ketiga",
     "tasks": "Tugas",
     "tasksMy": "Tugas Saya",
     "tasksAll": "Semua Tugas",
@@ -108,6 +113,68 @@
     "noActivity": "Belum ada aktivitas. Catatan dimulai sejak fitur ini aktif dan akan terisi seiring pekerjaan berjalan.",
     "systemActor": "Sistem"
   },
+  "billing": {
+    "quotations": "Penawaran",
+    "quotationsSubtitle": "Penawaran biaya yang diajukan kantor ini kepada klien.",
+    "invoices": "Tagihan",
+    "invoicesSubtitle": "Tagihan yang diterbitkan kantor ini.",
+    "payments": "Pembayaran",
+    "paymentsSubtitle": "Pembayaran yang tercatat diterima kantor ini.",
+    "disbursements": "Biaya Pihak Ketiga",
+    "disbursementsSubtitle": "Biaya yang dikeluarkan kantor untuk kepentingan klien.",
+    "loading": "Memuat…",
+    "listUnavailable": "Daftar ini sedang tidak dapat ditampilkan.",
+    "search": "Cari",
+    "searchInvoicesPlaceholder": "Nomor atau judul tagihan",
+    "status": "Status",
+    "allStatuses": "Semua status",
+    "onlyOverdue": "Hanya yang terlambat",
+    "overdue": "Terlambat",
+    "client": "Klien",
+    "matter": "Pekerjaan",
+    "invoice": "Tagihan",
+    "quotationNumber": "Nomor Penawaran",
+    "invoiceNumber": "Nomor Tagihan",
+    "validUntil": "Berlaku Sampai",
+    "dueDate": "Jatuh Tempo",
+    "total": "Total",
+    "outstanding": "Sisa",
+    "invoiced": "Ditagihkan",
+    "amount": "Jumlah",
+    "paidAt": "Tanggal Bayar",
+    "method": "Metode",
+    "description": "Keterangan",
+    "incurredOn": "Tanggal",
+    "rebilledOn": "Ditagihkan Pada",
+    "verify": "Verifikasi",
+    "verifyConfirm": "Verifikasi pembayaran ini? Setelah diverifikasi, pembayaran diperhitungkan pada tagihan dan tidak dapat dibatalkan.",
+    "verifyFailed": "Pembayaran tidak dapat diverifikasi.",
+    "noQuotations": "Belum ada penawaran.",
+    "noInvoices": "Belum ada tagihan.",
+    "noPayments": "Belum ada pembayaran.",
+    "noDisbursements": "Belum ada biaya pihak ketiga.",
+    "amountWithheld": "—",
+    "amountWithheldHint": "Nilai disembunyikan. Diperlukan izin billing.amount.view.",
+    "quotationStatuses": {
+      "DRAFT": "Draf",
+      "APPROVED": "Disetujui"
+    },
+    "invoiceStatuses": {
+      "DRAFT": "Draf",
+      "ISSUED": "Diterbitkan",
+      "CANCELLED": "Dibatalkan"
+    },
+    "paymentStatuses": {
+      "PENDING": "Menunggu Verifikasi",
+      "VERIFIED": "Terverifikasi"
+    },
+    "methods": {
+      "CASH": "Tunai",
+      "BANK_TRANSFER": "Transfer Bank",
+      "CARD": "Kartu",
+      "OTHER": "Lainnya"
+    }
+  },
   "activity": {
     "types": {
       "PROJECT_CREATED": "membuat proyek {title}",
@@ -123,7 +190,15 @@
       "DEED_APPROVED": "menyetujui akta {title}",
       "DEED_FINALIZED": "memfinalkan akta {title}",
       "PROPERTY_CREATED": "menambahkan objek tanah {reference}",
-      "WARKAH_VERIFIED": "memverifikasi Warkah"
+      "WARKAH_VERIFIED": "memverifikasi Warkah",
+      "QUOTATION_CREATED": "membuat penawaran {reference}",
+      "QUOTATION_APPROVED": "menyetujui penawaran {reference}",
+      "INVOICE_CREATED": "membuat tagihan {reference}",
+      "INVOICE_ISSUED": "menerbitkan tagihan {reference}",
+      "INVOICE_CANCELLED": "membatalkan tagihan {reference}",
+      "PAYMENT_RECORDED": "mencatat pembayaran untuk {reference}",
+      "PAYMENT_VERIFIED": "memverifikasi pembayaran untuk {reference}",
+      "DISBURSEMENT_RECORDED": "mencatat biaya {title}"
     }
   },
   "projects": {

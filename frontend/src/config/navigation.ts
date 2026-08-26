@@ -17,6 +17,7 @@ import {
   Settings,
   UserRound,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -285,6 +286,54 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // `documents.*` has no Notary/PPAT split, so there is nothing for children to
     // separate.
     requiredPermission: "documents.view",
+  },
+  {
+    key: "billing",
+    translationKey: "billing",
+    icon: Wallet,
+    // Added at M8.2, when the routes landed — not at M8.0 when the lock did, and
+    // not at M8.1 (D-064). The seventeen `billing.*` codes have been canonical
+    // since the catalogue was transcribed and this group stayed absent for every
+    // milestone since.
+    implemented: true,
+    // Gated on `billing.view`, the module code, while each child is gated on its
+    // own entity code. Neither implies the other (D-091): somebody may be given
+    // the Billing module and only the disbursement surface inside it.
+    requiredPermission: "billing.view",
+    children: [
+      {
+        key: "billing.quotations",
+        translationKey: "billingQuotations",
+        href: "/billing/quotations",
+        icon: Wallet,
+        implemented: true,
+        requiredPermission: "quotations.view",
+      },
+      {
+        key: "billing.invoices",
+        translationKey: "billingInvoices",
+        href: "/billing/invoices",
+        icon: Wallet,
+        implemented: true,
+        requiredPermission: "invoices.view",
+      },
+      {
+        key: "billing.payments",
+        translationKey: "billingPayments",
+        href: "/billing/payments",
+        icon: Wallet,
+        implemented: true,
+        requiredPermission: "payments.view",
+      },
+      {
+        key: "billing.disbursements",
+        translationKey: "billingDisbursements",
+        href: "/billing/disbursements",
+        icon: Wallet,
+        implemented: true,
+        requiredPermission: "disbursements.view",
+      },
+    ],
   },
   {
     key: "parties",

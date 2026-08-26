@@ -4,29 +4,37 @@ namespace App\Providers;
 
 use App\Listeners\RecordAuthenticationAudit;
 use App\Models\Company;
+use App\Models\Disbursement;
 use App\Models\Document;
 use App\Models\Individual;
+use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\NotaryDeed;
+use App\Models\Payment;
 use App\Models\PpatDeed;
 use App\Models\PpatWarkah;
 use App\Models\ProjectParty;
 use App\Models\Property;
+use App\Models\Quotation;
 use App\Models\ServiceType;
 use App\Models\Task;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
+use App\Policies\DisbursementPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
+use App\Policies\InvoicePolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
 use App\Policies\NotaryDeedPolicy;
+use App\Policies\PaymentPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\PpatDeedPolicy;
 use App\Policies\PpatWarkahPolicy;
 use App\Policies\ProjectPartyPolicy;
 use App\Policies\PropertyPolicy;
+use App\Policies\QuotationPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\ServiceTypePolicy;
 use App\Policies\TaskPolicy;
@@ -156,6 +164,24 @@ class AppServiceProvider extends ServiceProvider
         // `PpatWarkah` so the class-level form `authorize('manage', [PpatWarkah::class,
         // $deed])` resolves here.
         Gate::policy(PpatWarkah::class, PpatWarkahPolicy::class);
+
+        // Billing (M8.2, D-124). Four policies for four surfaces, listed here
+        // with the rest so one file still answers "which policy guards what".
+        //
+        // Two things about them are worth pointing at. **Every ability is Office
+        // scope** — `OWN` and `ASSIGNED` are withheld, because an invoice is the
+        // Office's claim on a client rather than the personal work of whoever
+        // typed it (see BillingVisibility). And **`PaymentPolicy::create` takes
+        // the parent Invoice**, not a Payment, because the question is whether
+        // this actor may record money against *this* bill; callers authorize
+        // with `[Payment::class, $invoice]`.
+        //
+        // `billing.amount.view` is deliberately absent from all four: masking
+        // money is a serialization concern (D-125), never a reach predicate.
+        Gate::policy(Quotation::class, QuotationPolicy::class);
+        Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Disbursement::class, DisbursementPolicy::class);
 
         $this->registerSecurityRateLimiters();
         $this->registerAuditListeners();

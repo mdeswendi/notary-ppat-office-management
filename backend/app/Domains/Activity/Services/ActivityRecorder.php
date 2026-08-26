@@ -46,6 +46,20 @@ class ActivityRecorder
         'npwp',
         'tax_id',
         'password',
+
+        // **Money, added at M8.2.** `billing.amount.view` is a separate gate
+        // (D-125), and the activity feed is read by anyone who can reach the
+        // subject — no billing capability is consulted for it at all. An amount
+        // in a timeline entry would disclose to every colleague exactly what the
+        // masking rule exists to withhold. Billing entries carry a reference and
+        // a title; what it was worth is on the record, behind the gate.
+        'amount',
+        'total',
+        'total_amount',
+        'subtotal',
+        'subtotal_amount',
+        'paid_amount',
+        'unit_amount',
     ];
 
     /**

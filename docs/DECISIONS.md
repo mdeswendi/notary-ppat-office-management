@@ -4936,6 +4936,82 @@ twice alongside the explicit registration and wrote two rows per sign-in. The me
 
 ---
 
+### D-129 — M8.2 builds billing from the verbs, and refuses nine acts the catalogue does not name
+
+The M8.2 brief specified endpoints for `quotations.send`, `.reject`, `.convert` and `.delete`;
+`invoices.send` and `.delete`; `payments.reject`; and `disbursements.delete`. **Verified against the
+live registry, not one of those nine codes exists** — and the same brief forbade adding permissions,
+so its own constraint ruled them out. No route, ability or model method reaches any of them.
+
+**The lifecycles are D-124's, unchanged.** `DRAFT → APPROVED` for a quotation, `DRAFT → ISSUED →
+CANCELLED` for an invoice, `PENDING → VERIFIED` for a payment, and no `status` column at all for a
+disbursement. The brief proposed six, six and three values respectively; the catalogue authorizes
+two, three and two.
+
+**Nothing is lost that the office actually needs, with one exception.** Converting a quotation is
+`POST /api/v1/invoices` carrying `quotation_id` — canonical `invoices.create`, which copies the lines
+as they stand so the bill records what was agreed rather than tracking a live offer. Withdrawing a
+document is `invoices.cancel`, which keeps the number and the figures where an audit can find them.
+The exception is a **draft quotation raised in error, which cannot be removed at all** (O-051).
+
+**`tax` is not a column anywhere**, and this is the ruling that matters most. The brief gave
+`quotations` and `invoices` a `decimal tax`. D-124 section 9.4 forbids it in as many words,
+`CLAUDE.md` section 62 names tax rules among the things not to invent, and O-040 is still open. An
+office showing PPN adds a **line it names and prices itself** — a fact the office asserted, where a
+computed one would be a tax rule this software encoded. `RecalculateBillingTotals` sums lines and
+applies no rate to anything.
+
+**Settlement is computed, never stored.** No `paid_amount`, no `remaining_amount`, and no
+`PARTIALLY_PAID`, `PAID` or `OVERDUE` status. Two independent reasons, either sufficient: nothing
+authorizes setting them, since recording a payment answers to `payments.*` and an issued invoice is
+finalized; and stored they would drift, with `OVERDUE` in particular needing a nightly job and being
+wrong until it ran. **M5.4 settled the same question for Task** — *"`isOverdue()` is computed, never
+stored"* — and `Invoice::scopeWithSettlement()` supplies the aggregate in one query per page.
+
+**Three defects in the brief's migration code were corrected rather than carried.** All eleven
+composite `->nullOnDelete()` calls fail at runtime, because nulling a composite key nulls `office_id`
+too (the trap `create_tasks_table` documents and M8.1 hit); `->unique()` on the reference columns
+would make one Office's `INV-2026-000001` block every other Office's, where D-103 namespaces per
+Office and year; and `$table->check()` does not exist on this Blueprint, so the CHECK constraints are
+raw `ALTER TABLE` guarded on `pgsql` as everywhere else in this project.
+
+**Amounts are `decimal(15, 2)`**, which satisfies the lock's actual requirement: an exact type, never
+a binary float. `numeric` is exact; the lock's phrase "integer minor units" described the property,
+and this preserves it while representing a currency that has a minor unit.
+
+---
+
+### D-130 — Money is masked in the Resource, and the state gate lives in the Action
+
+Two rulings about **where** a refusal belongs, both settled by following M6 and M7 rather than
+inventing a billing-specific convention.
+
+**`billing.amount.view` masks at serialization, never at reach** (D-125). `BillingVisibility` does
+not consult it and no Policy mentions it: folding it in would hide whole invoices from somebody
+entitled to know one exists, when the catalogue's two codes describe seeing a record and seeing its
+values. `MasksBillingAmounts` **omits every monetary key** — not null, not a placeholder — because
+sending a value the client is expected to hide is a disclosure with a request attached. It **fails
+closed**: a controller that forgets to resolve the grant withholds money rather than disclosing it.
+
+One implementation note worth keeping, because it was found by a failing test rather than reasoning:
+Laravel builds a `FormRequest` as a **separate object** from the request a Resource is handed, so a
+flag set on one is unset on the other and the fail-closed default then withholds money from somebody
+who holds the grant. The trait sets it on both.
+
+**State refusals are the Action's 422; capability refusals are the Policy's 403.** M6's
+`NotaryDeedPolicy` draws exactly this line — `update` checks `isReadOnly()` because "this row is
+frozen" makes editing meaningless and `can_update` must say so honestly, while `review`, `approve`
+and `finalize` check capability alone. M8.2 follows it: approving an already-approved quotation,
+issuing an empty invoice, cancelling twice, verifying twice, and paying a cancelled invoice are all
+**422**, because the actor has the authority and the record has the wrong state. Answering 403 would
+tell somebody they may not do a thing they may.
+
+The consequence is that a UI capability flag cannot be built from `can()` alone. `can_issue`,
+`can_cancel`, `can_approve` and `can_verify` each combine capability **and** state in the controller,
+so the interface never offers a control the record would refuse.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
@@ -5012,6 +5088,7 @@ No open item blocks M0. None was closed for the sake of a clean checklist.
 | O-048 | **Calendar is fully canonical and owned by no milestone.** `03_DATABASE_ERD.md` §23 defines `calendar_events` with six event types (`APPOINTMENT`, `SIGNING`, `DEADLINE`, `REMINDER`, `INTERNAL_MEETING`, `OTHER`); the registry carries `calendar.view`, `calendar.view_all`, `calendar.create`, `calendar.update`, `calendar.delete`; `02_MENU_AND_PERMISSIONS.md` gives it a menu destination; ERD §32 places it in batch 7, alongside the audit and activity work M8.1 does build. M5 was "Documents & Tasks" and built tasks. **No milestone from M0 to M8 names Calendar**, and DECISIONS.md has never recorded it. | Open, and outside M8 because M8's subject is Dashboard, Billing and Reports, and `CLAUDE.md` §60 forbids implementing a module merely because it appears in the specification (D-126). **Unlike every other item in this ledger it is blocked on nothing** — not a domain rule, not a catalogue extension, not a missing table. It has a schema, a vocabulary, a full capability family and a destination, and has simply never been assigned. Closing it needs only a decision to assign it. M8 is the last planned milestone, so absent that decision it ships unbuilt. |
 | O-049 | **Billing schema is designed, not transcribed.** `03_DATABASE_ERD.md` defines no `quotations`, `invoices`, `invoice_items`, `payments` or `disbursements` table — the only occurrences of "payment" in the entire ERD are `payment_reference` and `payment_date` inside `ppat_tax_records`, which belongs to the tax surface O-040 refused. §27's numbering table names five sequence codes and neither `INVOICE` nor `QUOTATION` is among them. Meanwhile the catalogue carries **seventeen** billing codes and `02_MENU_AND_PERMISSIONS.md` lines 70–74 name four menu destinations. | Open, and **the inverse of O-036 and O-040** — capabilities without a table, where those are tables without capabilities. M8.2 supplies the schema under D-124, bounded three ways: the lifecycle is read off the catalogue's verbs rather than invented, nothing computes or gates on tax, and the shape is marked as designed in the lock's §9.3 so no future reader mistakes it for canon. **This is the first schema any milestone in this project has designed rather than transcribed** — M1 through M7 all declined to build tables the ERD was silent about. Closing this means adopting the shipped shape into the ERD (including §27's two new sequence codes) so it becomes canon rather than precedent, or amending it before M8.2 builds. |
 | O-050 | **A verified payment has no correction path.** The catalogue gives `payments.view`, `payments.create` and `payments.verify` — **no `payments.update`, no delete, and no reversal verb.** No billing surface has a delete code at all, but the other three each have an `update`; payments alone do not. | Open, and shipped as a stated gap rather than closed with an uncatalogued verb (D-125) — the same disposition M7.3 gave one-way property archiving (O-045). Mitigated, not ignored: **only `VERIFIED` payments count toward an invoice's settled total**, so the verify gate is the control and a mistake caught before verification affects no figure anywhere; a wrong `PENDING` payment stays visible and uncounted rather than hidden. What remains genuinely unfixable is a payment that was verified in error. `payments` accordingly carries no `deleted_at` and no `updated_by`, because inventing the column would imply an act the catalogue does not authorize. Closing this needs a decision about whether the catalogue gains `payments.update` or a reversal capability — the catalogue-extension question O-036, O-040, O-045 and O-047 all wait on. |
+| O-051 | **No billing document can be deleted, and a draft quotation raised in error is permanent.** The catalogue has no `quotations.delete`, `invoices.delete` or `disbursements.delete` — verified against the live registry. M8.2 built the `deleted_at` columns the M8 lock's §9.3 field lists specify, and **nothing sets them**: stored vocabulary with no code path, the D-109 pattern. | Open, and shipped as a stated gap rather than closed with an uncatalogued verb (D-129). Mostly mitigated: an invoice raised in error is **cancelled**, which is better than deletion for a financial record — the number and the figures survive where an audit can find them, and a cancelled invoice is excluded from every outstanding figure. A disbursement can be corrected under `disbursements.update`. What has no remedy is a **draft quotation** nobody wants: it stays `DRAFT` forever, which is at least honest about what happened. Closing this needs a decision about whether the catalogue gains the three delete codes — the catalogue-extension question O-036, O-040, O-045, O-047 and O-050 all wait on. |
 | O-016 | The Laravel skeleton ships `backend/.editorconfig` with `root = true`, which halts the upward search. The repository `.editorconfig` and D-011 therefore do not apply anywhere inside `backend/`. Both agree that PHP uses 4 spaces, so no PHP file is affected. They diverge for JSON and JavaScript: the root file says 2 spaces, the backend file falls through to its own 4-space default. Affects `backend/composer.json`, `backend/package.json`, and `backend/vite.config.js`. | **Resolved 2026-08-09.** `backend/.editorconfig` deleted; the root file now governs `backend/`. Every rule it carried already existed in the root file, except `[compose.yaml] indent_size = 4`, which targets a Laravel Sail file that does not exist — `backend/` contains no YAML at all. Verified with the reference `editorconfig` resolver, not by inspection. No decision was superseded; D-011 gained a scope note instead. |
 
 ---

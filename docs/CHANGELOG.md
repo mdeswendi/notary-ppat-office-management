@@ -5,6 +5,108 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-08-26 — M8.2 Billing and invoices
+
+Branch `feat/m8-dashboard`, from `2d8d331`. **Six migrations (52 → 58), twenty-six routes, no
+permission — the count stays at 177.** Implements D-124 and D-125; adds D-129 and D-130; opens O-051.
+
+### Nine of the brief's endpoints have no capability, so none of them was built
+
+Verified against the live registry: `quotations.send`, `.reject`, `.convert`, `.delete`;
+`invoices.send`, `.delete`; `payments.reject`; `disbursements.delete` — **not one exists**, and the
+brief itself forbade adding permissions. The lifecycles are D-124's, read off the verbs that do:
+
+```text
+Quotation      DRAFT --approve--> APPROVED
+Invoice        DRAFT --issue--> ISSUED --cancel--> CANCELLED
+Payment        PENDING --verify--> VERIFIED
+Disbursement   no lifecycle verb, therefore no status column
+```
+
+**What the office actually needs survives.** Converting is `POST /api/v1/invoices` with a
+`quotation_id` — canonical `invoices.create`, which copies the lines as they stand so the bill
+records what was agreed rather than tracking a live offer. Withdrawing is `cancel`, which keeps the
+number and the figures where an audit can find them. The one real loss is a draft quotation raised in
+error, which cannot be removed at all (O-051).
+
+### There is no `tax` column anywhere, and this is the ruling that matters most
+
+The brief gave `quotations` and `invoices` a `decimal tax`. D-124 §9.4 forbids it in as many words,
+`CLAUDE.md` §62 names tax rules among the things not to invent, and O-040 is still open.
+
+An office showing PPN **adds a line it names and prices itself** — a fact the office asserted, where
+a computed one would be a tax rule this software encoded. The smoke exercised exactly that: a
+quotation with a `Jasa notaris` line and a `PPN 11 persen` line summed to 5,550,000, with
+`RecalculateBillingTotals` applying no rate to anything. A test asserts no billing table carries
+`tax`, `tax_amount`, `tax_rate`, `ppn` or `vat`.
+
+### Settlement is computed, never stored
+
+No `paid_amount`, no `remaining_amount`, and no `PARTIALLY_PAID`, `PAID` or `OVERDUE` status. Two
+independent reasons: nothing authorizes setting them — recording a payment answers to `payments.*`,
+and an issued invoice is finalized — and stored they would drift, with `OVERDUE` needing a nightly
+job and being wrong until it ran. **M5.4 settled the same question for Task**, and
+`Invoice::scopeWithSettlement()` supplies the aggregate in one query per page.
+
+Proven on the probe: a recorded payment left `paid 0.00 / outstanding 5,550,000.00`; verifying it
+moved them to `2,000,000.00 / 3,550,000.00` without writing anything to the invoice.
+
+### Three defects in the brief's migration code, corrected rather than carried
+
+- **All eleven composite `->nullOnDelete()` calls fail at runtime.** Nulling a composite key nulls
+  `office_id` too — the trap `create_tasks_table` documents and M8.1 hit.
+- **`->unique()` on the reference columns is globally unique**, so one Office's `INV-2026-000001`
+  would block every other Office's. D-103 namespaces per Office and year.
+- **`$table->check()` does not exist on this Blueprint** (verified). The CHECK constraints are raw
+  `ALTER TABLE` guarded on `pgsql`, as everywhere else in this project.
+
+`decimal(15, 2)` is kept: `numeric` is exact, which is what the lock's rule actually requires.
+
+### Masking is serialization; state refusals are the Action's
+
+`billing.amount.view` is consulted **only** in the Resource (D-130). No Policy and no visibility class
+mentions it: folding it into reach would hide whole invoices from somebody entitled to know one
+exists. A masked amount is **absent from the payload** — not null, not a placeholder — and the trait
+**fails closed**, so a controller that forgets to resolve the grant withholds money rather than
+disclosing it.
+
+One implementation note found by a failing test rather than by reasoning: Laravel builds a
+`FormRequest` as a **separate object** from the request a Resource is handed, so a flag set on one is
+unset on the other. The trait sets it on both.
+
+**State refusals are 422, capability refusals are 403** — M6's `NotaryDeedPolicy` convention, followed
+rather than reinvented: `update` gates on state so `can_update` is honest, while `approve`, `issue`,
+`cancel` and `verify` check capability alone and the Action answers 422. The consequence is that
+`can_issue`, `can_cancel`, `can_approve` and `can_verify` each combine capability **and** state in the
+controller, so the interface never offers a control the record would refuse.
+
+### Payments still have no correction path, and the frontend says so before the click
+
+O-050 stands. `payments` has no `deleted_at` and no `updated_by`, the model refuses to change the
+amount, invoice, currency or date, and there is no reject route. The verify confirmation says the
+payment cannot be undone **before** it is used.
+
+### Verification
+
+```text
+Migrations   52 -> 58 (7 tables: quotations, quotation_items, invoices, invoice_items,
+             payments, disbursements, billing_reference_counters)
+Routes       221 under /api/v1 (228 total)
+Backend      2930 passed, 8 skipped (was 2876)   Pint clean
+Frontend     207 passed across 21 files (was 198)
+             format:check, lint (0 errors), typecheck, build all clean
+```
+
+**HTTP smoke on a disposable `m82_probe`**, real Sanctum cookie session. The serving process proved
+its own database (O-034): `{"current_database":"m82_probe","migrations":58,…}`. Quote → two typed
+lines → approve → convert (2 lines copied, total preserved) → issue → `PUT` **403** → payment
+`PENDING` → verify → outstanding moved. `DELETE` on quotations and invoices **405**;
+`payments/{id}/reject` **404**. The activity feed carried seven billing rows whose metadata held
+`title` and **no amount**. Probe dropped; the persistent development database stands untouched at
+**42 migrations**.
+
+---
+
 ## 2026-08-26 — M8.1 Dashboard and audit foundation
 
 Branch `feat/m8-dashboard`, from the M8.0 lock. **Two migrations, seven routes, no permission — the

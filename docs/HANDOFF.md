@@ -1,8 +1,8 @@
-# Project Handoff — M0 through M8.1
+# Project Handoff — M0 through M8.2
 
-**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 and M8.1 are on this branch.
+**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 – M8.2 are on this branch.
 **Last accepted merge to `main`:** M7 (`d3bd0b4`), a `--no-ff` merge of `feat/m7-ppat`.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M8.1.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M8.2.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -34,16 +34,16 @@ boundary. Every frontend permission check is presentation.
 
 | | |
 |---|---|
-| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.1 on `feat/m8-dashboard` |
-| Migrations | **52** |
+| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.2 on `feat/m8-dashboard` |
+| Migrations | **58** |
 | Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 37 |
-| API routes | **195** under `/api/v1` (202 total) |
-| Backend tests | **2876 passing, 8 skipped** across 90 files (Pest) |
-| Frontend tests | **198 passing** across 20 files (Vitest + RTL) |
-| Frontend pages | 52 |
-| Decisions recorded | **D-001 … D-128** |
-| Open items | 25 still open (§7) — O-037, **O-044** closed; O-039…O-046 added 2026-08-25; **O-047…O-050** added at M8.0. **D-115 closed at M8.1.** |
+| Models | 43 |
+| API routes | **221** under `/api/v1` (228 total) |
+| Backend tests | **2930 passing, 8 skipped** across 91 files (Pest) |
+| Frontend tests | **207 passing** across 21 files (Vitest + RTL) |
+| Frontend pages | 56 |
+| Decisions recorded | **D-001 … D-130** |
+| Open items | 26 still open (§7) — O-037, **O-044** closed; O-039…O-046 added 2026-08-25; **O-047…O-050** added at M8.0, **O-051** at M8.2. **D-115 closed at M8.1.** |
 
 **The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
 took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
@@ -116,7 +116,9 @@ the single most load-bearing process choice in the project.
 | **M7.4** | Warkah: eleven routes, four of the six codes, deed section and list | `3010a86` |
 | **M7 validation** | Full QA sweep — 84/84 E2E, 60/60 authorization, schema constraints | `2c1e77e` |
 | **M7 merge** | `--no-ff` merge of `feat/m7-ppat`; migrations 42 → 50 | `d3bd0b4` |
-| **M8.0** | Dashboard / Billing / Reports lock — capabilities without a schema, and batch 7 comes due | on branch |
+| **M8.0** | Dashboard / Billing / Reports lock — capabilities without a schema, and batch 7 comes due | `af7d0d6` |
+| **M8.1** | Dashboard + audit & activity foundation; D-115 closes | `2d8d331` |
+| **M8.2** | Billing: seven tables designed, twenty-six routes, no tax anywhere | on branch |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
@@ -353,9 +355,13 @@ not, and belongs with `reports.export` at M8.3.
   table uses** (D-127). Do not "fix" it: `office_id` is the *subject's* Office, the actor may hold
   Data Scope `ALL` and be from elsewhere, and a composite key would make cross-office access — the
   event an auditor most needs — impossible to record.
-- **No billing table or model exists**, and none is transcribable: the ERD defines no billing schema
-  at all (O-049). `backend/app/Models/` holds 37 models and not one of them is a `Quotation`,
-  `Invoice`, `Payment` or `Disbursement`.
+- **Billing schema now exists and was designed, not transcribed** (D-124, O-049). Seven tables, and
+  the ERD still defines none of them — O-049 asks it to adopt the shipped shape so it becomes canon
+  rather than precedent. Read `18_M8_…ARCHITECTURE.md` §9 before changing any of it.
+- **There is no `tax` column anywhere in billing, and none may be added** (D-129). An office showing
+  PPN adds a line it names and prices itself; nothing computes a rate. That is the line keeping O-040
+  intact.
+- **Settlement is computed, never stored.** No `paid_amount`, no `OVERDUE` status — the M5.4 `isOverdue()` precedent.
 
 ---
 
@@ -514,7 +520,7 @@ open question nine (O-039).
 ```text
 M8.0  Architecture lock                                   <- done
 M8.1  Dashboard + audit & activity foundation             <- done, closes D-115
-M8.2  Billing — quotations, invoices, payments, disbursements
+M8.2  Billing — quotations, invoices, payments, disbursements  <- done
 M8.3  Reports — five families, read-only, scoped
 M8.4  M8 quality gate
 ```

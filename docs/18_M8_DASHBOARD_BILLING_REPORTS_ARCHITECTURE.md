@@ -1,6 +1,6 @@
 # M8 — Dashboard, Billing & Reports Architecture
 
-**Status:** `LOCKED — M8.0, amended at M8.1`
+**Status:** `LOCKED — M8.0, amended at M8.1 and M8.2`
 
 Sibling of `12_M2_PARTY_ARCHITECTURE.md` through `17_M7_PPAT_ARCHITECTURE.md`. Where those locked the
 Party, Project, Matter, Document, Notary and PPAT aggregates, this one locks the three surfaces that
@@ -181,6 +181,12 @@ section 7.1.
 **There is no `Activity` model and no `activities` table.** There is no `audit_logs` table. There is
 no `AuditLog` model. No `quotations`, `invoices`, `invoice_items`, `payments` or `disbursements`
 table or model exists. `backend/app/Models/` holds 35 models and none of them is any of these.
+
+> **Amended at M8.1 and M8.2.** Every absence above was the position when this lock was written, and
+> the reasoning stands as the reason each surface was built the way it was. `activities` and
+> `audit_logs` landed at M8.1 (D-123); the six billing models landed at M8.2 (D-129). What remains
+> true, and is the point of O-049, is that **the ERD still defines no billing table** — the schema in
+> section 9.3 is this project's own design, not canon, until the ERD adopts it.
 
 This is stated explicitly because an activity feed is the most natural thing to assume is already
 present by M8 — seven milestones of work have happened and none of it was recorded to a timeline.
@@ -578,6 +584,23 @@ disbursements
   description, incurred_on, invoice_id (nullable),
   created_by, updated_by, created_at, updated_at, deleted_at
 ```
+
+> **Amended at M8.2 — what shipped differs from this list in five places**, each recorded in D-129
+> and each a consequence of applying section 9.2 more strictly than this draft did.
+>
+> - **`invoices` gained `cancellation_reason`** and **lost the `issue_date`** this list implied:
+>   `issued_at` already records when, so a second date could only agree or be wrong.
+> - **`disbursements` gained `client_party_id`**, so a cost can name the client it was carried for
+>   even when no Project or Matter exists yet.
+> - **A seventh table, `billing_reference_counters`**, carries the two sequences — the D-103
+>   allocator pattern, with a `code` discriminator following ERD §27's own shape.
+> - **`payments.method_code` is required**, not optional: a payment whose method nobody recorded is
+>   a reconciliation problem waiting to happen.
+> - **Each timestamp/actor pair carries a CHECK** requiring it to be whole or empty — half an
+>   approval is a row nobody can explain.
+>
+> The M8.2 brief additionally specified a `tax` column, stored `paid_amount` / `remaining_amount`,
+> and six-value status vocabularies. **None was built**, for the reasons sections 9.2 and 9.4 give.
 
 Three notes on shape:
 
