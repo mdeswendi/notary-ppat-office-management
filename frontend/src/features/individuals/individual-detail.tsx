@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import { IdentitySection } from "@/features/individuals/identity-section";
 import { IndividualCompaniesSection } from "@/features/individuals/individual-companies-section";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
 import { useCurrentUser } from "@/features/auth/use-current-user";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { can } from "@/lib/permissions/can";
 import { archiveIndividual, getIndividual, individualQueryKeys } from "@/services/individuals";
 
@@ -99,12 +100,9 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
 
         <div className="flex gap-2">
           <PermissionGuard permission="parties.update">
-            <Button
-              variant="outline"
-              render={<Link href={`/parties/individuals/${individual.id}/edit`} />}
-            >
+            <ButtonLink variant="outline" href={`/parties/individuals/${individual.id}/edit`}>
               {t("editAction")}
-            </Button>
+            </ButtonLink>
           </PermissionGuard>
 
           <PermissionGuard permission="parties.archive">

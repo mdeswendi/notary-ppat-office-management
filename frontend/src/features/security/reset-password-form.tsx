@@ -9,10 +9,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SecurityError, SecurityNotice } from "@/features/security/security-section";
-import { Link } from "@/i18n/navigation";
 import { toApiErrorKey } from "@/lib/api/errors";
 import { getCsrfCookie } from "@/services/auth";
 import { resetPassword } from "@/services/security";
@@ -77,9 +77,9 @@ export function ResetPasswordForm() {
     return (
       <div className="flex flex-col items-start gap-4">
         <SecurityError>{t("resetMissingToken")}</SecurityError>
-        <Button render={<Link href="/login" />} variant="outline">
+        <ButtonLink href="/login" variant="outline">
           {tAuth("signIn")}
-        </Button>
+        </ButtonLink>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export function ResetPasswordForm() {
       <div className="flex flex-col items-start gap-4">
         <SecurityNotice>{t("resetSuccess")}</SecurityNotice>
         <p className="text-muted-foreground text-sm">{t("resetSignInAgain")}</p>
-        <Button render={<Link href="/login" />}>{tAuth("signIn")}</Button>
+        <ButtonLink href="/login">{tAuth("signIn")}</ButtonLink>
       </div>
     );
   }

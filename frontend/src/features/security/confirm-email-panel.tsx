@@ -5,10 +5,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SecurityError, SecurityNotice } from "@/features/security/security-section";
-import { Link } from "@/i18n/navigation";
 import { toApiErrorKey } from "@/lib/api/errors";
 import { authQueryKeys } from "@/services/auth";
 import { profileQueryKeys } from "@/services/profile";
@@ -79,9 +78,9 @@ export function ConfirmEmailPanel() {
       <div className="flex flex-col items-start gap-4">
         <SecurityError>{t(`errors.${errorKey ?? "server"}`)}</SecurityError>
         <p className="text-muted-foreground text-sm">{t("confirmEmailFailedHint")}</p>
-        <Button render={<Link href="/security" />} variant="outline">
+        <ButtonLink href="/security" variant="outline">
           {t("backToSecurity")}
-        </Button>
+        </ButtonLink>
       </div>
     );
   }
@@ -90,7 +89,7 @@ export function ConfirmEmailPanel() {
     <div className="flex flex-col items-start gap-4">
       <SecurityNotice>{t("confirmEmailSuccess", { email: mutation.data.email })}</SecurityNotice>
       <p className="text-muted-foreground text-sm">{t("confirmEmailSessionsRevoked")}</p>
-      <Button render={<Link href="/security" />}>{t("backToSecurity")}</Button>
+      <ButtonLink href="/security">{t("backToSecurity")}</ButtonLink>
     </div>
   );
 }

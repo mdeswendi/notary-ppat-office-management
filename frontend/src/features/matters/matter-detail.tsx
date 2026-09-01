@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
@@ -23,7 +24,6 @@ import { MatterDeedsSection } from "@/features/notary/matter-deeds-section";
 import { PpatMatterDeedsSection } from "@/features/ppat/matter-deeds-section";
 import { MatterPropertiesSection } from "@/features/properties/matter-properties-section";
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
-import { Link } from "@/i18n/navigation";
 import {
   assignMatterPic,
   cancelMatter,
@@ -145,14 +145,14 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
         </div>
 
         {matter.can_update ? (
-          <Button
+          <ButtonLink
             variant="outline"
             className="gap-2"
-            render={<Link href={`${matterBasePath(domain)}/${matter.id}/edit`} />}
+            href={`${matterBasePath(domain)}/${matter.id}/edit`}
           >
             <Pencil aria-hidden="true" />
             {tActions("edit")}
-          </Button>
+          </ButtonLink>
         ) : null}
       </header>
 

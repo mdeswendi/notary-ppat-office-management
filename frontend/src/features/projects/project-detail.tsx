@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
 import { ProjectPartiesSection } from "@/features/projects/project-parties-section";
 import { toProjectErrorKey } from "@/features/projects/project-errors";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import {
   archiveProject,
   changeProjectStatus,
@@ -111,9 +112,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
         <div className="flex flex-wrap gap-2">
           {project.can_update ? (
-            <Button variant="outline" render={<Link href={`/projects/${project.id}/edit`} />}>
+            <ButtonLink variant="outline" href={`/projects/${project.id}/edit`}>
               {t("editAction")}
-            </Button>
+            </ButtonLink>
           ) : null}
 
           {project.can_archive ? <ArchiveButton projectId={project.id} /> : null}

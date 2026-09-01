@@ -4,9 +4,8 @@ import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { PermissionGuard } from "@/components/permission-guard";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { PpatDeedsList } from "@/features/ppat/deeds-list";
-import { Link } from "@/i18n/navigation";
 
 /**
  * The PPAT Deeds produced by one Matter (M7.2, D-121).
@@ -40,15 +39,15 @@ export function PpatMatterDeedsSection({ matterId }: { matterId: string }) {
         </div>
 
         <PermissionGuard permission="ppat.deeds.create">
-          <Button
+          <ButtonLink
             variant="outline"
             size="sm"
             className="gap-2"
-            render={<Link href={`/ppat/deeds/new?matter_id=${matterId}`} />}
+            href={`/ppat/deeds/new?matter_id=${matterId}`}
           >
             <Plus aria-hidden="true" />
             {t("newDeed")}
-          </Button>
+          </ButtonLink>
         </PermissionGuard>
       </div>
 

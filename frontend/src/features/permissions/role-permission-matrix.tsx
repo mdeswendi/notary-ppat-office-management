@@ -7,13 +7,13 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { toPermissionErrorKey } from "@/features/permissions/permission-errors";
-import { Link } from "@/i18n/navigation";
 import { canWithScope } from "@/lib/permissions/can";
 import { cn } from "@/lib/utils";
 import { authQueryKeys } from "@/services/auth";
@@ -367,10 +367,10 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
       )}
 
       <div>
-        <Button variant="ghost" render={<Link href="/settings/roles" />}>
+        <ButtonLink variant="ghost" href="/settings/roles">
           <ArrowLeft aria-hidden="true" />
           {t("backToRoles")}
-        </Button>
+        </ButtonLink>
       </div>
     </div>
   );

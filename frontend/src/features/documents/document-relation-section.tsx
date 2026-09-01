@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentSensitiveBadge, DocumentStatusBadge } from "@/features/documents/document-badges";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
@@ -89,15 +90,10 @@ export function DocumentRelationSection({
 
           {uploadHref ? (
             <PermissionGuard permission="documents.upload">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                render={<Link href={uploadHref} />}
-              >
+              <ButtonLink variant="outline" size="sm" className="gap-2" href={uploadHref}>
                 <Plus aria-hidden="true" className="size-4" />
                 {t("upload")}
-              </Button>
+              </ButtonLink>
             </PermissionGuard>
           ) : null}
         </div>

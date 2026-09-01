@@ -7,12 +7,13 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentSensitiveBadge, DocumentStatusBadge } from "@/features/documents/document-badges";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
 import { DocumentRelationList } from "@/features/documents/document-relation-list";
 import { DocumentVersionList } from "@/features/documents/document-version-list";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import {
   archiveDocument,
   deleteDocument,
@@ -166,14 +167,10 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           ) : null}
 
           {document.can_update ? (
-            <Button
-              variant="outline"
-              className="gap-2"
-              render={<Link href={`/documents/${document.id}/edit`} />}
-            >
+            <ButtonLink variant="outline" className="gap-2" href={`/documents/${document.id}/edit`}>
               <Pencil aria-hidden="true" className="size-4" />
               {tActions("edit")}
-            </Button>
+            </ButtonLink>
           ) : null}
 
           {document.can_verify ? (

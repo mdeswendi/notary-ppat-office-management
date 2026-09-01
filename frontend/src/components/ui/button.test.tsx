@@ -54,22 +54,14 @@ describe("Button", () => {
     expect(screen.getByRole("button", { name: "Hapus tautan" })).toBeInTheDocument();
   });
 
-  it("renders as another element without losing the button role contract", () => {
-    // `render={<Link />}` is how every "go to edit" control is built. If the
-    // slot dropped its props, those links would lose their styling and their
-    // accessible name.
-    //
-    // The href deliberately names no real page: `@next/next/no-html-link-for-pages`
-    // exists to stop application code bypassing `Link`, and it is right to fire
-    // on an app route. Pointing at a non-route keeps the rule enforced
-    // everywhere rather than switching it off here — this test is about the
-    // slot forwarding props, and the destination is incidental to that.
-    render(<Button render={<a href="/example-destination">Buka</a>} />);
-
-    const link = screen.getByRole("link", { name: "Buka" });
-
-    expect(link).toHaveAttribute("href", "/example-destination");
-  });
+  // A "renders as another element" test lived here, building a link the way the
+  // application once did: `<Button render={<a href>} />`. It was removed rather
+  // than kept, because Base UI's Button assumes a real `<button>` — its
+  // `nativeButton` prop defaults to true — so that call emitted a console error
+  // on every run and pinned a pattern the application has since stopped using.
+  // Links that look like buttons are `ButtonLink` now, and what this test was
+  // protecting — the styling and the accessible name surviving the swap — is
+  // covered by `button-link.test.tsx`.
 
   it("submits a form by default and can opt out", async () => {
     // A dialog footer holds a submit and a cancel side by side; if cancel

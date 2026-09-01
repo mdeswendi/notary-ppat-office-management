@@ -5,11 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { Link } from "@/i18n/navigation";
-
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteRoleDialog } from "@/features/roles/delete-role-dialog";
 import { RoleFormDialog } from "@/features/roles/role-form-dialog";
@@ -137,15 +136,15 @@ export function RolesList() {
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <PermissionGuard permission="permissions.view" scope="ALL">
-                        <Button
+                        <ButtonLink
                           variant="ghost"
                           size="sm"
                           aria-label={t("permissionsAria", { name: role.name })}
-                          render={<Link href={`/settings/roles/${role.id}`} />}
+                          href={`/settings/roles/${role.id}`}
                         >
                           <KeyRound aria-hidden="true" />
                           {t("permissions")}
-                        </Button>
+                        </ButtonLink>
                       </PermissionGuard>
                       <PermissionGuard permission="roles.update" scope="ALL">
                         <Button

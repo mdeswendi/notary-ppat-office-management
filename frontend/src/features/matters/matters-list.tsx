@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,10 +133,10 @@ export function MattersList({ domain }: { domain: MatterDomain }) {
         </div>
 
         <PermissionGuard permission={matterCapability(domain, "create")}>
-          <Button render={<Link href={`${basePath}/new`} />} className="gap-2">
+          <ButtonLink href={`${basePath}/new`} className="gap-2">
             <Plus aria-hidden="true" />
             {t("create")}
-          </Button>
+          </ButtonLink>
         </PermissionGuard>
       </div>
 

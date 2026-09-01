@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import { CompanyManagementSection } from "@/features/companies/company-managemen
 import { CompanyShareholdersSection } from "@/features/companies/company-shareholders-section";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { can } from "@/lib/permissions/can";
 import { archiveCompany, companyQueryKeys, getCompany } from "@/services/companies";
 
@@ -93,12 +94,9 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
 
         <div className="flex gap-2">
           <PermissionGuard permission="companies.update">
-            <Button
-              variant="outline"
-              render={<Link href={`/parties/companies/${company.id}/edit`} />}
-            >
+            <ButtonLink variant="outline" href={`/parties/companies/${company.id}/edit`}>
               {t("editAction")}
-            </Button>
+            </ButtonLink>
           </PermissionGuard>
 
           <PermissionGuard permission="companies.archive">

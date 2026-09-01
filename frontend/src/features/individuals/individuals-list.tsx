@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
@@ -76,10 +77,10 @@ export function IndividualsList() {
         </div>
 
         <PermissionGuard permission="parties.create">
-          <Button render={<Link href="/parties/individuals/new" />} className="gap-2">
+          <ButtonLink href="/parties/individuals/new" className="gap-2">
             <Plus aria-hidden="true" />
             {t("create")}
-          </Button>
+          </ButtonLink>
         </PermissionGuard>
       </div>
 

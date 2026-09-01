@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -122,10 +123,10 @@ export function DocumentsList() {
         </div>
 
         <PermissionGuard permission="documents.upload">
-          <Button render={<Link href="/documents/upload" />} className="gap-2">
+          <ButtonLink href="/documents/upload" className="gap-2">
             <Plus aria-hidden="true" />
             {t("upload")}
-          </Button>
+          </ButtonLink>
         </PermissionGuard>
       </div>
 

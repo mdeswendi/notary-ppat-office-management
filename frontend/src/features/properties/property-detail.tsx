@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OwnershipHistory } from "@/features/properties/ownership-history";
 import {
@@ -15,7 +16,6 @@ import {
 } from "@/features/properties/property-badges";
 import { toPropertyErrorKey } from "@/features/properties/property-errors";
 import { PropertiesList } from "@/features/properties/properties-list";
-import { Link } from "@/i18n/navigation";
 import { archiveProperty, getProperty, propertyKeys } from "@/services/properties";
 
 /**
@@ -133,12 +133,9 @@ export function PropertyDetail({ propertyId }: { propertyId: string }) {
 
         <div className="flex flex-wrap gap-2">
           {property.can_update ? (
-            <Button
-              variant="outline"
-              render={<Link href={`/ppat/properties/${property.id}/edit`} />}
-            >
+            <ButtonLink variant="outline" href={`/ppat/properties/${property.id}/edit`}>
               {tActions("edit")}
-            </Button>
+            </ButtonLink>
           ) : null}
 
           {property.can_archive ? (

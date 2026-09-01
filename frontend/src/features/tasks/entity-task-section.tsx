@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskOverdueBadge, TaskPriorityBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
 import { toTaskErrorKey } from "@/features/tasks/task-errors";
@@ -56,15 +57,10 @@ export function EntityTaskSection({
 
         {createHref ? (
           <PermissionGuard permission="tasks.create">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              render={<Link href={createHref} />}
-            >
+            <ButtonLink variant="outline" size="sm" className="gap-2" href={createHref}>
               <Plus aria-hidden="true" className="size-4" />
               {t("newTask")}
-            </Button>
+            </ButtonLink>
           </PermissionGuard>
         ) : null}
       </div>

@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
@@ -85,10 +86,10 @@ export function CompaniesList() {
         </div>
 
         <PermissionGuard permission="companies.create">
-          <Button render={<Link href="/parties/companies/new" />} className="gap-2">
+          <ButtonLink href="/parties/companies/new" className="gap-2">
             <Plus aria-hidden="true" />
             {t("create")}
-          </Button>
+          </ButtonLink>
         </PermissionGuard>
       </div>
 
