@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { hasFieldError, toPropertyErrorKey } from "@/features/properties/property-errors";
 import { useRouter } from "@/i18n/navigation";
 import {
@@ -236,9 +237,8 @@ export function PropertyForm({ property }: { property?: Property }) {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="property_type">{t("propertyType")}</Label>
-            <select
+            <Select
               id="property_type"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               aria-invalid={form.formState.errors.property_type !== undefined}
               {...form.register("property_type")}
             >
@@ -247,7 +247,7 @@ export function PropertyForm({ property }: { property?: Property }) {
                   {t(`propertyTypes.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {/*

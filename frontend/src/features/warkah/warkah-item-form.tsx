@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { hasFieldError, toWarkahErrorKey } from "@/features/warkah/warkah-errors";
 import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
 import { addWarkahItem, warkahKeys } from "@/services/warkah";
@@ -183,9 +184,8 @@ export function WarkahItemForm({ deedId }: { deedId: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="warkah-party">{t("party")}</Label>
-        <select
+        <Select
           id="warkah-party"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={partyId}
           onChange={(event) => setPartyId(event.target.value)}
         >
@@ -195,7 +195,7 @@ export function WarkahItemForm({ deedId }: { deedId: string }) {
               {party.display_name ?? party.id}
             </option>
           ))}
-        </select>
+        </Select>
         <p className="text-muted-foreground text-xs">{t("partyHint")}</p>
       </div>
 

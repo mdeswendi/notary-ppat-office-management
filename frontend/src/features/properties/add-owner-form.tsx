@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { hasFieldError, toPropertyErrorKey } from "@/features/properties/property-errors";
 import { addPropertyOwner, propertyKeys } from "@/services/properties";
 import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
@@ -201,9 +202,8 @@ export function AddOwnerForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="owner-party">{t("ownership.party")}</Label>
-        <select
+        <Select
           id="owner-party"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={partyId}
           onChange={(event) => setPartyId(event.target.value)}
         >
@@ -213,7 +213,7 @@ export function AddOwnerForm({
               {party.display_name ?? party.id}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

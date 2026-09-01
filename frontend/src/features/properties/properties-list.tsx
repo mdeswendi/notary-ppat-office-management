@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PropertyArchivedBadge,
@@ -118,9 +119,8 @@ export function PropertiesList({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="property-type-filter">{t("propertyType")}</Label>
-          <select
+          <Select
             id="property-type-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={propertyType}
             onChange={(event) => {
               setPropertyType(event.target.value as PropertyType | "");
@@ -133,14 +133,13 @@ export function PropertiesList({
                 {t(`propertyTypes.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="property-archived-filter">{t("archivedFilter")}</Label>
-          <select
+          <Select
             id="property-archived-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={archived}
             onChange={(event) => {
               setArchived(event.target.value as "" | "1" | "all");
@@ -150,7 +149,7 @@ export function PropertiesList({
             <option value="">{t("archivedFilters.active")}</option>
             <option value="1">{t("archivedFilters.archived")}</option>
             <option value="all">{t("archivedFilters.all")}</option>
-          </select>
+          </Select>
         </div>
 
         {showCreate ? (

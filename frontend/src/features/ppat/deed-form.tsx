@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { hasFieldError, toPpatErrorKey } from "@/features/ppat/deed-errors";
 import { useRouter } from "@/i18n/navigation";
 import { createPpatDeed, getPpatDeedOptions, ppatDeedKeys } from "@/services/ppat";
@@ -141,9 +142,8 @@ export function PpatDeedForm({ matterId }: { matterId?: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="matter_id">{t("matterLabel")}</Label>
-        <select
+        <Select
           id="matter_id"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           aria-invalid={form.formState.errors.matter_id !== undefined}
           disabled={matterId !== undefined}
           {...form.register("matter_id")}
@@ -154,7 +154,7 @@ export function PpatDeedForm({ matterId }: { matterId?: string }) {
               {matter.matter_number} — {matter.title}
             </option>
           ))}
-        </select>
+        </Select>
         {form.formState.errors.matter_id ? (
           <p role="alert" className="text-destructive text-sm">
             {form.formState.errors.matter_id.message}

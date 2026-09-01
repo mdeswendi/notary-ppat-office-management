@@ -9,6 +9,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import {
@@ -276,9 +277,8 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex min-w-56 flex-col gap-2">
               <Label htmlFor="matter-pic">{t("picLabel")}</Label>
-              <select
+              <Select
                 id="matter-pic"
-                className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
                 value={picValue}
                 onChange={(event) => {
                   setPicTouched(true);
@@ -291,7 +291,7 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
                     {user.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <Button

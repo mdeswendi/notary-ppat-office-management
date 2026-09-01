@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WarkahStatusBadge } from "@/features/warkah/warkah-badges";
 import { toWarkahErrorKey } from "@/features/warkah/warkah-errors";
@@ -94,9 +95,8 @@ export function WarkahList() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="warkah-status-filter">{t("status")}</Label>
-          <select
+          <Select
             id="warkah-status-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={status}
             onChange={(event) => {
               setStatus(event.target.value as WarkahStatus | "");
@@ -109,7 +109,7 @@ export function WarkahList() {
                 {t(`statuses.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <label className="flex items-center gap-2 pb-2 text-sm">

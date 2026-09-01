@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PpatDeedStatusBadge, PpatDeedTypeBadge } from "@/features/ppat/deed-badges";
 import { toPpatErrorKey } from "@/features/ppat/deed-errors";
@@ -124,9 +125,8 @@ export function PpatDeedsList({
         {offersStatusFilter ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="ppat-deed-status-filter">{t("status")}</Label>
-            <select
+            <Select
               id="ppat-deed-status-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={status}
               onChange={(event) => {
                 setStatus(event.target.value as PpatDeedStatus | "");
@@ -139,16 +139,15 @@ export function PpatDeedsList({
                   {t(`deedStatuses.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
 
         {showsMatter ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="ppat-deed-matter-filter">{t("matterLabel")}</Label>
-            <select
+            <Select
               id="ppat-deed-matter-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={matter}
               onChange={(event) => {
                 setMatter(event.target.value);
@@ -161,7 +160,7 @@ export function PpatDeedsList({
                   {option.matter_number} — {option.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
 

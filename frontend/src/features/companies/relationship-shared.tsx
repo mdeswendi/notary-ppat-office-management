@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
 import type { RelationshipCandidate, RelationshipIndividual } from "@/types/company-relationship";
 
@@ -104,19 +105,14 @@ export function CandidateSelect({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{t("personLabel")}</Label>
-      <select
-        id={id}
-        className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
+      <Select id={id} value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">{loading ? t("personLoading") : t("personPlaceholder")}</option>
         {candidates.map((candidate) => (
           <option key={candidate.id} value={candidate.id}>
             {candidate.display_name ?? candidate.id}
           </option>
         ))}
-      </select>
+      </Select>
       {!loading && candidates.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("noCandidates")}</p>
       ) : null}

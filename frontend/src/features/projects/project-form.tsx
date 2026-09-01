@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toProjectErrorKey } from "@/features/projects/project-errors";
 import { useRouter } from "@/i18n/navigation";
 import { createProject, projectQueryKeys, updateProject } from "@/services/projects";
@@ -163,18 +164,14 @@ export function ProjectForm({ project }: { project?: Project }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="priority">{t("priorityLabel")}</Label>
-          <select
-            id="priority"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            {...form.register("priority")}
-          >
+          <Select id="priority" {...form.register("priority")}>
             <option value="">{t("noPriority")}</option>
             {PROJECT_PRIORITIES.map((code) => (
               <option key={code} value={code}>
                 {t(`priorities.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <Field

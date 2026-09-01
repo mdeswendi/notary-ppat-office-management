@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotaryDeedStatusBadge, NotaryDeedTypeBadge } from "@/features/notary/deed-badges";
 import { toNotaryErrorKey } from "@/features/notary/deed-errors";
@@ -123,9 +124,8 @@ export function DeedsList({
         {offersStatusFilter ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="deed-status-filter">{t("status")}</Label>
-            <select
+            <Select
               id="deed-status-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={status}
               onChange={(event) => {
                 setStatus(event.target.value as NotaryDeedStatus | "");
@@ -138,16 +138,15 @@ export function DeedsList({
                   {t(`deedStatuses.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
 
         {showsMatter ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="deed-matter-filter">{t("matterLabel")}</Label>
-            <select
+            <Select
               id="deed-matter-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={matter}
               onChange={(event) => {
                 setMatter(event.target.value);
@@ -160,7 +159,7 @@ export function DeedsList({
                   {option.matter_number} — {option.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
 

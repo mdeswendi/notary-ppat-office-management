@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { hasFieldError, toWarkahErrorKey } from "@/features/warkah/warkah-errors";
 import { Link } from "@/i18n/navigation";
 import { documentQueryKeys, getDocuments } from "@/services/documents";
@@ -191,9 +192,8 @@ export function WarkahItemDocuments({ deedId, item }: { deedId: string; item: Wa
 
           <div className="flex flex-col gap-2">
             <Label htmlFor={`doc-${item.id}`}>{t("document")}</Label>
-            <select
+            <Select
               id={`doc-${item.id}`}
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={documentId}
               onChange={(event) => setDocumentId(event.target.value)}
             >
@@ -203,7 +203,7 @@ export function WarkahItemDocuments({ deedId, item }: { deedId: string; item: Wa
                   {document.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex gap-2">

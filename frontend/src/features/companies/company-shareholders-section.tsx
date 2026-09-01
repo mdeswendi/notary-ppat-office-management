@@ -8,6 +8,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toCompanyErrorKey } from "@/features/companies/company-errors";
 import {
@@ -234,9 +235,8 @@ function AddShareholderForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="shareholder-type">{t("relationshipTypeLabel")}</Label>
-        <select
+        <Select
           id="shareholder-type"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={type}
           onChange={(event) => setType(event.target.value as OwnershipRelationshipType)}
         >
@@ -245,7 +245,7 @@ function AddShareholderForm({
               {t(`types.${code}`)}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-2">

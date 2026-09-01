@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskOverdueBadge, TaskPriorityBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
 import { TaskComments } from "@/features/tasks/task-comments";
@@ -271,9 +272,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
           <div className="flex flex-col gap-2 sm:max-w-56">
             <Label htmlFor="task-status">{t("status")}</Label>
-            <select
+            <Select
               id="task-status"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={
                 TASK_EDITABLE_STATUSES.includes(
                   task.status as (typeof TASK_EDITABLE_STATUSES)[number],
@@ -292,7 +292,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   {t(`statuses.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </section>
       ) : null}
@@ -304,9 +304,8 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
           <div className="flex flex-col gap-2 sm:max-w-72">
             <Label htmlFor="task-assignee">{t("assignedTo")}</Label>
-            <select
+            <Select
               id="task-assignee"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={task.assigned_to?.id ?? ""}
               disabled={assign.isPending}
               onChange={(event) => {
@@ -320,7 +319,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
                   {user.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </section>
       ) : null}

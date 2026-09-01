@@ -10,6 +10,7 @@ import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toTaskErrorKey } from "@/features/tasks/task-errors";
 import { useRouter } from "@/i18n/navigation";
 import { createTask, getTaskOptions, taskQueryKeys } from "@/services/tasks";
@@ -146,17 +147,13 @@ export function TaskForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="priority">{t("priority")}</Label>
-          <select
-            id="priority"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            {...form.register("priority")}
-          >
+          <Select id="priority" {...form.register("priority")}>
             {PROJECT_PRIORITIES.map((code) => (
               <option key={code} value={code}>
                 {t(`priorities.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <Field
@@ -171,18 +168,14 @@ export function TaskForm({
       <PermissionGuard permission="tasks.assign">
         <div className="flex flex-col gap-2">
           <Label htmlFor="assigned_to">{t("assignedTo")}</Label>
-          <select
-            id="assigned_to"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            {...form.register("assigned_to")}
-          >
+          <Select id="assigned_to" {...form.register("assigned_to")}>
             <option value="">{t("unassigned")}</option>
             {(options.data?.assignees ?? []).map((user) => (
               <option key={user.id} value={user.id}>
                 {user.name}
               </option>
             ))}
-          </select>
+          </Select>
           <p className="text-muted-foreground text-xs">{t("assigneeHint")}</p>
         </div>
       </PermissionGuard>

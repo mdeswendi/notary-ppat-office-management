@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { partyDetailHref } from "@/features/parties/party-links";
@@ -113,9 +114,8 @@ export function PartyDirectory() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="party-type-filter">{t("typeFilterLabel")}</Label>
-          <select
+          <Select
             id="party-type-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={partyType}
             onChange={(event) => {
               setPartyType(event.target.value as PartyType | "");
@@ -128,15 +128,14 @@ export function PartyDirectory() {
                 {t(`partyTypes.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {offices.length > 0 ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="party-office-filter">{t("officeFilterLabel")}</Label>
-            <select
+            <Select
               id="party-office-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={officeId}
               onChange={(event) => {
                 setOfficeId(event.target.value);
@@ -149,7 +148,7 @@ export function PartyDirectory() {
                   {office.code} — {office.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
       </div>

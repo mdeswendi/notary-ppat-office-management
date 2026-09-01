@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TaskOverdueBadge, TaskPriorityBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
 import { toTaskErrorKey } from "@/features/tasks/task-errors";
@@ -97,9 +98,8 @@ export function TasksList({
         {offersStatusFilter ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="task-status-filter">{t("status")}</Label>
-            <select
+            <Select
               id="task-status-filter"
-              className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
               value={status}
               onChange={(event) => {
                 setStatus(event.target.value as TaskStatus | "");
@@ -112,15 +112,14 @@ export function TasksList({
                   {t(`statuses.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : null}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="task-priority-filter">{t("priority")}</Label>
-          <select
+          <Select
             id="task-priority-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={priority}
             onChange={(event) => {
               setPriority(event.target.value as ProjectPriority | "");
@@ -133,7 +132,7 @@ export function TasksList({
                 {t(`priorities.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <PermissionGuard permission="tasks.create">

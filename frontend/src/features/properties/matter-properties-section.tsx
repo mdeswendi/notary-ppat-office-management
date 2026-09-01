@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PropertyRoleBadge, PropertyTypeBadge } from "@/features/properties/property-badges";
 import { hasFieldError, toPropertyErrorKey } from "@/features/properties/property-errors";
@@ -277,9 +278,8 @@ function AttachPropertyForm({ matterId }: { matterId: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="attach-property">{t("title")}</Label>
-        <select
+        <Select
           id="attach-property"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={propertyId}
           onChange={(event) => setPropertyId(event.target.value)}
         >
@@ -289,7 +289,7 @@ function AttachPropertyForm({ matterId }: { matterId: string }) {
               {property.certificate_number} — {property.address}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-2">

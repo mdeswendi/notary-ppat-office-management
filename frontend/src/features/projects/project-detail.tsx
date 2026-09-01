@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentRelationSection } from "@/features/documents/document-relation-section";
 import { ProjectDeedsSection } from "@/features/notary/project-deeds-section";
@@ -299,9 +300,8 @@ function StatusForm({ project }: { project: Project }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="project-status">{t("statusLabel")}</Label>
-        <select
+        <Select
           id="project-status"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={status}
           onChange={(event) => setStatus(event.target.value as ProjectStatus)}
         >
@@ -310,7 +310,7 @@ function StatusForm({ project }: { project: Project }) {
               {t(`statuses.${code}`)}
             </option>
           ))}
-        </select>
+        </Select>
         <p className="text-muted-foreground text-xs">{t("archivedStatusHint")}</p>
       </div>
 

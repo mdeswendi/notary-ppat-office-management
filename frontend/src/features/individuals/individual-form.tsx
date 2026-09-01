@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toIndividualErrorKey } from "@/features/individuals/individual-errors";
 import {
   DuplicateAdvisoryPanel,
@@ -296,11 +297,7 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
       {!isEdit ? (
         <div className="flex flex-col gap-2">
           <Label htmlFor="office_id">{t("officeLabel")}</Label>
-          <select
-            id="office_id"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-            {...form.register("office_id")}
-          >
+          <Select id="office_id" {...form.register("office_id")}>
             <option value="">
               {options.isPending ? t("officeLoading") : t("officePlaceholder")}
             </option>
@@ -309,7 +306,7 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
                 {office.code} — {office.name}
               </option>
             ))}
-          </select>
+          </Select>
           {form.formState.errors.office_id ? (
             <p className="text-destructive text-sm">{form.formState.errors.office_id.message}</p>
           ) : null}

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MatterPriorityBadge, MatterStatusBadge } from "@/features/matters/matter-badges";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
@@ -95,9 +96,8 @@ export function MattersList({ domain }: { domain: MatterDomain }) {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="matter-status-filter">{t("statusLabel")}</Label>
-          <select
+          <Select
             id="matter-status-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={status}
             onChange={(event) => {
               setStatus(event.target.value as MatterStatus | "");
@@ -110,14 +110,13 @@ export function MattersList({ domain }: { domain: MatterDomain }) {
                 {t(`statuses.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="matter-priority-filter">{t("priorityLabel")}</Label>
-          <select
+          <Select
             id="matter-priority-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={priority}
             onChange={(event) => {
               setPriority(event.target.value as ProjectPriority | "");
@@ -130,7 +129,7 @@ export function MattersList({ domain }: { domain: MatterDomain }) {
                 {t(`priorities.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <PermissionGuard permission={matterCapability(domain, "create")}>

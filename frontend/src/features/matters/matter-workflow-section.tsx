@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import {
@@ -298,9 +299,8 @@ function MoveStage({ domain, matterId }: SectionProps) {
           >
             <div className="flex flex-col gap-2">
               <Label htmlFor="matter-stage-target">{t("targetLabel")}</Label>
-              <select
+              <Select
                 id="matter-stage-target"
-                className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
                 value={target}
                 onChange={(event) => setTarget(event.target.value)}
               >
@@ -311,7 +311,7 @@ function MoveStage({ domain, matterId }: SectionProps) {
                     {locale === "en" ? stage.stage_name_en : stage.stage_name_id}
                   </option>
                 ))}
-              </select>
+              </Select>
 
               {!options.isPending && stages.length === 0 ? (
                 <p className="text-muted-foreground text-xs">{t("noTargets")}</p>

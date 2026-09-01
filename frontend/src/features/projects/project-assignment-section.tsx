@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hasFieldError, toProjectErrorKey } from "@/features/projects/project-errors";
 import { assignProjectPic, getProjectAssigneeOptions, projectQueryKeys } from "@/services/projects";
@@ -105,9 +106,8 @@ function AssignmentForm({ project }: { project: Project }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="project-pic">{t("picLabel")}</Label>
-        <select
+        <Select
           id="project-pic"
-          className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={picUserId}
           aria-invalid={ineligible ? true : undefined}
           aria-describedby={ineligible ? "project-pic-error" : undefined}
@@ -119,7 +119,7 @@ function AssignmentForm({ project }: { project: Project }) {
               {user.name}
             </option>
           ))}
-        </select>
+        </Select>
 
         {ineligible ? (
           <p id="project-pic-error" className="text-destructive text-sm">

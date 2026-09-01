@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentSensitiveBadge, DocumentStatusBadge } from "@/features/documents/document-badges";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
@@ -88,9 +89,8 @@ export function DocumentsList() {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="document-status-filter">{t("statusLabel")}</Label>
-          <select
+          <Select
             id="document-status-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={status}
             onChange={(event) => {
               setStatus(event.target.value as DocumentStatus | "");
@@ -103,14 +103,13 @@ export function DocumentsList() {
                 {t(`statuses.${code}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="document-sensitive-filter">{t("sensitivityLabel")}</Label>
-          <select
+          <Select
             id="document-sensitive-filter"
-            className="border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
             value={sensitive}
             onChange={(event) => {
               setSensitive(event.target.value as "true" | "false" | "");
@@ -120,7 +119,7 @@ export function DocumentsList() {
             <option value="">{t("allSensitivity")}</option>
             <option value="true">{t("sensitiveOnly")}</option>
             <option value="false">{t("ordinaryOnly")}</option>
-          </select>
+          </Select>
         </div>
 
         <PermissionGuard permission="documents.upload">
