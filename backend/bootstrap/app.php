@@ -18,6 +18,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // domain are handled with the session cookie instead of a token, so
         // no first-party bearer token exists. CSRF validation stays on.
         $middleware->statefulApi();
+
+        // There is no guest redirect target, because there is no server-rendered
+        // login page — the SPA owns that screen.
+        //
+        // The framework default is `fn () => route('login')`, and this backend
+        // has no route of that name: the session endpoints are `login.store`,
+        // `login.two-factor`, and `logout`. That callback runs inside the
+        // Authenticate middleware, before AuthenticationException is
+        // constructed, but only for a request that does not expect JSON. So an
+        // unauthenticated call sent without `Accept: application/json` raised
+        // RouteNotFoundException and answered 500, never reaching the renderer
+        // below — while the same call with the header answered 401 correctly.
+        // Returning null leaves the exception intact for that renderer.
+        $middleware->redirectGuestsTo(null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // The API has no login page to redirect to, and the SPA owns that

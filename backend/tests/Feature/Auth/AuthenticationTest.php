@@ -24,6 +24,18 @@ it('rejects an anonymous request to the current user endpoint', function (): voi
         ->assertJson(['message' => 'Unauthenticated.']);
 });
 
+it('rejects an anonymous request that does not ask for json', function (): void {
+    // A protected API URL opened straight in the address bar, which sends an
+    // HTML Accept header and no XMLHttpRequest marker. That path skips the
+    // JSON branch in the Authenticate middleware and used to reach the
+    // framework's default guest redirect, whose route does not exist here — so
+    // it answered 500 and disclosed a stack trace instead of 401. See the
+    // redirectGuestsTo note in bootstrap/app.php.
+    $this->get('/api/v1/me', ['Accept' => 'text/html,application/xhtml+xml'])
+        ->assertUnauthorized()
+        ->assertJson(['message' => 'Unauthenticated.']);
+});
+
 it('logs in with valid credentials', function (): void {
     $user = User::factory()->create([
         'email' => 'user@example.test',
