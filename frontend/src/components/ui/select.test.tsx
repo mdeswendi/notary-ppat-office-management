@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 
 /**
@@ -67,10 +68,34 @@ describe("Select", () => {
       </Select>,
     );
 
-    const select = screen.getByRole("combobox", { name: "Status" });
+    expect(screen.getByRole("combobox", { name: "Status" })).toHaveClass("w-full");
+  });
 
-    expect(select).toHaveClass("w-full");
-    expect(select).toHaveClass("rounded-md");
+  it("is sized exactly like Input, which is what keeps a filter row aligned", () => {
+    // The defect this fixed: a 36px dropdown standing beside a 32px search box
+    // in every filter row, on every list in the product.
+    //
+    // The two are compared rather than measured against a named class, so the
+    // check survives someone rescaling both controls and fails only if they
+    // drift apart again — which is the thing that actually goes wrong.
+    const sizing = (className: string) =>
+      className
+        .split(/\s+/)
+        .filter((token) => /^h-|^rounded-/.test(token))
+        .sort();
+
+    const { unmount } = render(
+      <Select aria-label="Jenis">
+        <option value="a">A</option>
+      </Select>,
+    );
+    const select = sizing(screen.getByRole("combobox", { name: "Jenis" }).className);
+    unmount();
+
+    render(<Input aria-label="Nama" />);
+    const input = sizing(screen.getByRole("textbox", { name: "Nama" }).className);
+
+    expect(select).toEqual(input);
   });
 
   it("passes through the attributes forms set on it", () => {

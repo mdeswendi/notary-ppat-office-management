@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { InvoiceOverdueBadge, InvoiceStatusBadge } from "@/features/billing/billing-badges";
@@ -51,18 +52,14 @@ export function InvoiceList() {
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">{t("status")}</span>
-          <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
-          >
+          <Select value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">{t("allStatuses")}</option>
             {(["DRAFT", "ISSUED", "CANCELLED"] as const).map((value) => (
               <option key={value} value={value}>
                 {t(`invoiceStatuses.${value}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="mt-5 flex items-center gap-2 text-sm">

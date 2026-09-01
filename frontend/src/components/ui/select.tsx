@@ -14,25 +14,27 @@ import { cn } from "@/lib/utils";
  * element is a behavioural change nobody asked for; giving it one class list is
  * not.
  *
- * ## The appearance is the one already in use
+ * ## It matches `Input`, and that is the point
  *
- * Forty-six of those fifty-six carried exactly this class string, copied. The
- * component keeps it, so adopting it changes no pixel on any of them.
+ * Consolidating first exposed a three-way split: forty-six dropdowns at 36px
+ * tall with an 8px radius, two already matching `Input` at 32px and 10px, and
+ * four with no fixed height at all. `Input` itself is 32px.
  *
- * **That is not the same as saying it is right.** Two things were found while
- * consolidating, and both are recorded rather than quietly fixed:
+ * So in every filter row — a search box and a dropdown side by side under
+ * `items-end` — the dropdown stood 4px taller than the box beside it, on every
+ * list in the product. That is the misalignment a reader sees without being able
+ * to name it.
  *
- * 1. `Input` beside it is `h-8` and `rounded-lg`; this is `h-9` and
- *    `rounded-md`. In every filter row the two sit together under `items-end`,
- *    so the dropdown stands 4px taller than the search box next to it.
- * 2. `docs/04_UI_DESIGN_SYSTEM.md` section 8 puts an input at 6–8px radius.
- *    `rounded-md` is 8px and within it; `Input`'s `rounded-lg` is 10px and is
- *    not. So the two controls disagree, and the one that matches the
- *    specification is this one.
+ * This now carries `Input`'s own control appearance: same height, same radius,
+ * same border token, same focus ring, same transparent fill so the two look
+ * identical on a card and on the page. All fifty-two dropdowns are one control.
  *
- * Reconciling them is a visual decision across every form in the product, which
- * is why it is not taken here. It is now a one-line change in this file rather
- * than a forty-six-file change, which was the point of consolidating first.
+ * **One thing is deliberately still open.** `docs/04_UI_DESIGN_SYSTEM.md` section
+ * 8 puts an input at 6–8px radius, and `Input`'s `rounded-lg` is 10px — so the
+ * pair now agree with each other and neither agrees with the specification.
+ * Matching the shipped primitive was the fix for the visible defect; moving both
+ * to 8px is a separate decision about the specification, and it is not taken
+ * here.
  *
  * Presentational. It renders what it is given and decides nothing.
  */
@@ -41,7 +43,7 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
     <select
       data-slot="select"
       className={cn(
-        "border-border bg-background focus-visible:ring-ring h-9 rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none",
+        "border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 h-8 rounded-lg border bg-transparent px-2.5 text-sm transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3",
         className,
       )}
       {...props}

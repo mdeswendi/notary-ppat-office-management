@@ -11,11 +11,11 @@ import { ButtonLink } from "@/components/ui/button-link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { toPermissionErrorKey } from "@/features/permissions/permission-errors";
 import { canWithScope } from "@/lib/permissions/can";
-import { cn } from "@/lib/utils";
 import { authQueryKeys } from "@/services/auth";
 import {
   getPermissionCatalogue,
@@ -340,15 +340,12 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                       <label className="sr-only" htmlFor={`${inputId}-scope`}>
                         {t("scopeLabelFor", { code: permission.code })}
                       </label>
-                      <select
+                      <Select
                         id={`${inputId}-scope`}
                         disabled={!enabled || !canSave}
                         value={scope ?? ""}
                         onChange={(event) => update(permission.code, event.target.value)}
-                        className={cn(
-                          "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-8 w-full rounded-lg border px-2.5 text-sm outline-none focus-visible:ring-3",
-                          "disabled:opacity-50",
-                        )}
+                        className="w-full"
                       >
                         {enabled ? null : <option value="">{t("scopeNone")}</option>}
                         {permission.allowed_scopes.map((allowed) => (
@@ -356,7 +353,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                             {t(`scopes.${allowed}`)}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   </li>
                 );

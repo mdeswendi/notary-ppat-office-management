@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AUDIT_EVENTS } from "@/features/reports/report-definitions";
 import { useCurrentUser } from "@/features/auth/use-current-user";
@@ -225,10 +226,9 @@ function ReportFilters({
 
       {definition.filters.includes("status") && definition.statusOptions ? (
         <Field label={t("filters.status")}>
-          <select
+          <Select
             value={filters.status ?? ""}
             onChange={(event) => onChange({ status: event.target.value })}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
           >
             <option value="">{t("filters.all")}</option>
             {definition.statusOptions.map((option) => (
@@ -236,21 +236,20 @@ function ReportFilters({
                 {option}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       ) : null}
 
       {definition.filters.includes("domain") ? (
         <Field label={t("filters.domain")}>
-          <select
+          <Select
             value={filters.domain ?? ""}
             onChange={(event) => onChange({ domain: event.target.value })}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
           >
             <option value="">{t("filters.all")}</option>
             <option value="NOTARY">NOTARY</option>
             <option value="PPAT">PPAT</option>
-          </select>
+          </Select>
         </Field>
       ) : null}
 
@@ -268,10 +267,9 @@ function ReportFilters({
 
       {definition.filters.includes("eventType") ? (
         <Field label={t("filters.eventType")}>
-          <select
+          <Select
             value={filters.event_type ?? ""}
             onChange={(event) => onChange({ event_type: event.target.value })}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
           >
             <option value="">{t("filters.all")}</option>
             {AUDIT_EVENTS.map((event) => (
@@ -279,7 +277,7 @@ function ReportFilters({
                 {event}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       ) : null}
 

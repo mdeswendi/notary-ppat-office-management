@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { rejectedFields, toUserErrorKey } from "@/features/users/user-errors";
-import { cn } from "@/lib/utils";
 import { createUser, getUserOffices, updateUser, userQueryKeys } from "@/services/users";
 import type { ManagedUser } from "@/types/user";
 
@@ -249,15 +249,11 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="user-office">{t("officeLabel")}</Label>
-            <select
+            <Select
               id="user-office"
               aria-invalid={fieldError("office_id") ? true : undefined}
               aria-describedby={fieldError("office_id") ? "user-office-error" : undefined}
               disabled={offices.isPending}
-              className={cn(
-                "border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-8 rounded-lg border px-2.5 text-sm outline-none focus-visible:ring-3",
-                "aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:opacity-50",
-              )}
               {...form.register("office_id")}
             >
               <option value="">
@@ -268,7 +264,7 @@ export function UserFormDialog({ user, onClose }: UserFormDialogProps) {
                   {office.code} — {office.name}
                 </option>
               ))}
-            </select>
+            </Select>
             {offices.isError ? (
               <p className="text-destructive text-sm">{t("errors.officesUnavailable")}</p>
             ) : null}
