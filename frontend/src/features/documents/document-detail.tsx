@@ -45,10 +45,11 @@ import {
  * and `VOID` cannot be set by anybody (D-117), so offering a dropdown that
  * silently failed for three of its seven options would be dishonest.
  *
- * **`can_download` is false for every sensitive document**, whatever the actor
- * holds, because no sensitive-download surface ships before an audit store exists
- * (D-115). The interface says so in place of the button rather than leaving
- * somebody to guess why it is missing.
+ * **A sensitive document's download answers to `documents.sensitive.download`**, a
+ * capability separate from the ordinary one. An actor without it sees a sentence in
+ * place of the button rather than being left to guess why it is missing. Until M8.1
+ * that sentence was the only outcome — D-115 refused every sensitive download until
+ * an audit store existed — and it is now one of two.
  */
 export function DocumentDetail({ documentId }: { documentId: string }) {
   const t = useTranslations("documents");

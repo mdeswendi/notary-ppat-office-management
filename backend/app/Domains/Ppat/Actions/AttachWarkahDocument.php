@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  * exist. And attaching confers nothing onward: opening the file still answers to
  * `documents.view` and downloading to `documents.download`, each with its own Data
  * Scope, and a sensitive one still answers to `documents.sensitive.download` — which
- * D-115 leaves authorizing nothing until the audit store exists.
+ * has authorized a real download since M8.1 built the audit store and closed D-115.
  *
  * A Warkah capability is never a way past any of those.
  */

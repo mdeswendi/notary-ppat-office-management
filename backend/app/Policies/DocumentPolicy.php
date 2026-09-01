@@ -40,14 +40,16 @@ use App\Models\User;
  * The sensitivity test is a second condition applied on top of reach, which is
  * what keeps the two independently grantable.
  *
- * ## What M5.1 does not decide
+ * ## The sensitive-download gate is gone
  *
- * `download` is present and **no surface calls it yet.** D-115 rules that no
- * sensitive-download surface ships before an audit store exists, because the
- * capability to read a KTP scan and the record of who read it belong in the same
- * milestone. The ability is written now so the milestone that builds the surface
- * has only to call it — the way M2.1 prepared Party, M3.1 Project, M4.1 Service
- * Type and M4.2 Matter.
+ * From M5.2 until M8.1 `download` ended `return ! $document->is_sensitive`,
+ * refusing every sensitive download whatever the actor held: D-115 ruled that no
+ * such surface ships before an audit store exists, because the capability to read
+ * a KTP scan and the record of who read it belong in the same milestone. **M8.1
+ * built `audit_logs` (D-123), so the gate came out and D-115 closed.**
+ *
+ * `documents.sensitive.download` therefore authorizes something, and the ordinary
+ * and sensitive codes are both checked. {@see download()} carries the detail.
  *
  * There is **no `verify`, `archive` or `delete` transition rule here.** M5
  * authorizes *who* may act and never encodes *which* status may follow which

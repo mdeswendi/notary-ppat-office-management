@@ -225,9 +225,10 @@ export function DeedDetail({ deedId }: { deedId: string }) {
 
         {/*
           The three pairs above are what the record itself preserves. A full event
-          history belongs to the audit store, which does not exist — D-115 rules it
-          required, absent, and not to be improvised, and M5.3, M5.4 and M6.1 each
-          declined to invent one.
+          history belongs to the audit store, which M6.2 shipped without because none
+          existed — D-115 ruled it required, absent, and not to be improvised, and M5.3,
+          M5.4 and M6.1 each declined to invent one. M8.1 has since built it, so this
+          section is unbuilt rather than blocked.
         */}
         <p className="text-muted-foreground text-xs">{t("timelineHint")}</p>
       </section>

@@ -31,8 +31,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Enough to say which file satisfies the line, never a way to read a Document the
  * caller could not open directly. Opening answers to `documents.view` and downloading
  * to `documents.download`, each with its own Data Scope; a sensitive one additionally
- * answers to `documents.sensitive.download`, which D-115 leaves authorizing nothing
- * until the audit store exists.
+ * answers to `documents.sensitive.download`, which has authorized a real download since
+ * M8.1 built the audit store and closed D-115.
  *
  * `is_sensitive` travels so the interface can mark the row without the reader having to
  * open it to find out.

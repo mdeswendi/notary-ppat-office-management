@@ -358,8 +358,8 @@ describe("WarkahSection", () => {
    * **A sensitive document is marked and never offered for download here.** Opening
    * answers to `documents.view` and downloading to `documents.download`, each with its
    * own Data Scope; a sensitive one additionally answers to
-   * `documents.sensitive.download`, which D-115 leaves authorizing nothing until the
-   * audit store exists. A Warkah capability is never a way past any of those.
+   * `documents.sensitive.download`, which has authorized a real download since M8.1
+   * closed D-115. A Warkah capability is never a way past any of those.
    */
   it("marks a sensitive attachment and offers no download", async () => {
     vi.mocked(services.getWarkah).mockResolvedValue(warkah());

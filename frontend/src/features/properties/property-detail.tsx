@@ -33,7 +33,7 @@ import { archiveProperty, getProperty, propertyKeys } from "@/services/propertie
  * Ownership    here, asking its own endpoint under its own capability
  * Matters      here, as the parcel's own list filtered by matter_id
  * Documents    ABSENT — property_documents does not exist (O-046)
- * Timeline     ABSENT — no audit store exists (D-115)
+ * Timeline     ABSENT — never built; see below, the original reason has lapsed
  * ```
  *
  * **Documents**: `DocumentRelationType` carries `party`, `project` and `matter` only
@@ -41,11 +41,14 @@ import { archiveProperty, getProperty, propertyKeys } from "@/services/propertie
  * a case and a migration"*, and M7.3 was scoped without a migration. A section headed
  * "Documents" that could never list one is worse than none.
  *
- * **Timeline**: an activity history belongs to the audit store, which does not exist —
- * D-115 rules it required, absent, and not to be improvised, and M5.3, M5.4, M6.1, M7.1
- * and M7.2 each declined to invent one. What the record itself preserves — who created
- * it, who last corrected it, and the whole chain of title — is shown, and that is the
- * honest subset.
+ * **Timeline**: an activity history belongs to the audit store. M7.3 shipped without one
+ * because none existed — D-115 ruled it required, absent, and not to be improvised, and
+ * M5.3, M5.4, M6.1, M7.1 and M7.2 each declined to invent one. **M8.1 built it, so that
+ * reason has lapsed**: `audit_logs` and `activities` both exist now. The section is
+ * simply unbuilt, and adding it is its own scoped decision, not a consequence of a
+ * missing table. Meanwhile what the record itself preserves — who created it, who last
+ * corrected it, and the whole chain of title — is shown, and that remains an honest
+ * subset rather than a placeholder.
  *
  * ## Every control is gated on a backend-computed flag
  *
@@ -234,10 +237,11 @@ export function PropertyDetail({ propertyId }: { propertyId: string }) {
 
         {/*
           The two stamps above are what the record itself preserves. A full activity
-          history belongs to the audit store, which does not exist — D-115 rules it
-          required, absent, and not to be improvised. The M7.3 brief asked for an
-          activity log on every property and ownership change; a placeholder here would
-          be exactly that improvisation.
+          history belongs to the audit store, which M7.3 shipped without because none
+          existed — D-115 ruled it required, absent, and not to be improvised, and the
+          M7.3 brief's request for an activity log would have been exactly that
+          improvisation. M8.1 has since built the store, so this section is unbuilt
+          rather than blocked.
         */}
         <p className="text-muted-foreground text-xs">{t("recordHint")}</p>
       </section>

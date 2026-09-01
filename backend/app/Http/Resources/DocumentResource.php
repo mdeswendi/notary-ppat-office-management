@@ -33,10 +33,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * reimplementing Data Scope in TypeScript. They are not an authorization surface:
  * every endpoint authorizes again (D-113).
  *
- * **`can_download` is false for every sensitive document**, whatever the actor
- * holds, because D-115 keeps that surface closed until an audit store exists. The
- * flag reports the Policy's real answer rather than the capability, so the
- * interface offers exactly what the endpoint will allow — one truth, not two.
+ * **`can_download` on a sensitive document answers to `documents.sensitive.download`**,
+ * a capability separate from the ordinary `documents.download` and never implied by
+ * it. Until M8.1 the flag was false for every sensitive document whatever the actor
+ * held, because D-115 kept that surface closed until an audit store existed; M8.1
+ * built one and closed D-115, so the flag now reports the actor's real reach. It
+ * still reports the Policy's answer rather than the bare capability, so the interface
+ * offers exactly what the endpoint will allow — one truth, not two.
  *
  * @mixin Document
  */

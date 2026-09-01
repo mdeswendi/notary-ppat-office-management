@@ -163,8 +163,9 @@ describe("PropertyDetail", () => {
 
   /**
    * **No Documents section and no Timeline section.** `property_documents` does not
-   * exist (O-046) and no audit store exists (D-115). Two headings that could never show
-   * anything are worse than their absence.
+   * exist (O-046), so that heading could never show anything. Timeline is unbuilt for a
+   * reason that has since lapsed — M7.3 had no audit store, and M8.1 built one — so this
+   * pins current behaviour, not a permanent ruling.
    */
   it("shows no documents or activity-timeline section", async () => {
     vi.mocked(services.getProperty).mockResolvedValue(property());

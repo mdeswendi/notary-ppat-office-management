@@ -88,10 +88,12 @@ export type DocumentRelations = {
  * the interface asks the same question the backend will ask. They are not an
  * authorization surface: every endpoint authorizes again (D-113).
  *
- * **`can_download` is false for every sensitive document**, whatever the actor
- * holds, because no sensitive-download surface ships before an audit store exists
- * (D-115). The flag reports the endpoint's real answer, so the interface never
- * offers a button that would 403.
+ * **`can_download` on a sensitive document answers to `documents.sensitive.download`**,
+ * a separate capability the ordinary `documents.download` never implies. Until M8.1
+ * the flag was false for every sensitive document whatever the actor held (D-115);
+ * the audit store that gate waited for now exists, so the flag reports the actor's
+ * real reach. Either way it reports the endpoint's real answer, so the interface
+ * never offers a button that would 403.
  */
 export type Document = {
   id: string;

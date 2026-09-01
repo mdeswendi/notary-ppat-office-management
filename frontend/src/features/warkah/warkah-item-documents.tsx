@@ -36,8 +36,8 @@ import type { WarkahItem } from "@/types/warkah";
  *
  * Attaching confers nothing onward: opening the file still answers to `documents.view`
  * and downloading to `documents.download`, each with its own Data Scope. A sensitive one
- * additionally answers to `documents.sensitive.download`, which D-115 leaves authorizing
- * nothing until the audit store exists. **A Warkah capability is never a way past any of
+ * additionally answers to `documents.sensitive.download`, which has authorized a real
+ * download since M8.1 closed D-115. **A Warkah capability is never a way past any of
  * those**, which is why each row links to the document surface rather than offering a
  * download here.
  *
@@ -122,8 +122,8 @@ export function WarkahItemDocuments({ deedId, item }: { deedId: string; item: Wa
                 {/*
                   A link to the document surface, never a download here. Opening and
                   downloading are their own capabilities with their own Data Scopes,
-                  and a sensitive file additionally answers to a code D-115 leaves
-                  authorizing nothing.
+                  and a sensitive file additionally answers to
+                  `documents.sensitive.download`.
                 */}
                 <Link
                   href={`/documents/${document.id}`}

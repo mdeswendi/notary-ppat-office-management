@@ -22,10 +22,17 @@ use Illuminate\Support\Facades\DB;
  * require: half of an act is a row nobody can explain.
  *
  * **No `reason` is accepted.** The brief asked for an optional one on this endpoint
- * and on approve and finalize. There is nowhere to put it — `ppat_deeds` has no
- * reason column, the ERD gives it none, and no audit store exists (D-115). A field
- * accepted and silently discarded is worse than one never offered, because it looks
- * like a record somebody could later retrieve.
+ * and on approve and finalize. There is nowhere on the record to put it: `ppat_deeds`
+ * has no reason column and the ERD gives it none. A field accepted and silently
+ * discarded is worse than one never offered, because it looks like a record somebody
+ * could later retrieve.
+ *
+ * **One of the three original premises has since lapsed.** M7.2 also argued that no
+ * audit store existed (D-115); M8.1 built one, and an audit row carries a `reason`
+ * field. So a reviewer's reason now has somewhere it *could* live. Whether review
+ * should write one is a decision nobody has taken — recorded here so a future reader
+ * finds the open question rather than a settled-looking argument that has quietly
+ * lost a leg.
  */
 class ReviewPpatDeed
 {

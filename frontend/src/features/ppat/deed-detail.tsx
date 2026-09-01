@@ -233,11 +233,12 @@ export function PpatDeedDetail({ deedId }: { deedId: string }) {
 
         {/*
           The three pairs above are what the record itself preserves. A full event
-          history belongs to the audit store, which does not exist — D-115 rules it
-          required, absent, and not to be improvised, and M5.3, M5.4, M6.1 and M7.1
-          each declined to invent one. The M7.2 brief asked for an activity log on
-          status changes; a placeholder here would be exactly the improvisation D-115
-          forbids, so the record's own stamps are what this page shows.
+          history belongs to the audit store, which M7.2 shipped without because none
+          existed — D-115 ruled it required, absent, and not to be improvised, and M5.3,
+          M5.4, M6.1 and M7.1 each declined to invent one. The M7.2 brief asked for an
+          activity log on status changes, which would have been exactly that
+          improvisation. M8.1 has since built the store, so this section is unbuilt
+          rather than blocked.
         */}
         <p className="text-muted-foreground text-xs">{t("timelineHint")}</p>
       </section>
