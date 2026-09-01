@@ -14,6 +14,15 @@ const localeLabelKeys = {
 } as const;
 
 /**
+ * What the control shows. The full language name stays as the accessible name,
+ * so nothing is lost to a screen reader — see the note on sizing below.
+ */
+const localeCodes = {
+  id: "ID",
+  en: "EN",
+} as const;
+
+/**
  * Choose the interface language.
  *
  * The locale lives in the URL and nowhere else — no cookie, no `localStorage`,
@@ -32,6 +41,17 @@ const localeLabelKeys = {
  * Selecting the language already displayed is not always a no-op: somebody may
  * have typed `/en/...` while their stored preference is still `id`. Choosing EN
  * then genuinely records EN.
+ *
+ * ## It shows codes, not names
+ *
+ * It used to render "Bahasa Indonesia" and "English" as two full-width bordered
+ * buttons, which made the heaviest thing in the header a control an office
+ * touches perhaps twice a year. It is a two-position segment now.
+ *
+ * **The names are not lost.** Each option carries the full language name as its
+ * `aria-label`, so a screen reader still hears "Bahasa Indonesia" rather than
+ * the letters I and D — a two-letter code is exactly the kind of label that is
+ * legible to the eye and useless to the ear.
  */
 export function LocaleSwitcher() {
   const t = useTranslations("common");
@@ -45,14 +65,14 @@ export function LocaleSwitcher() {
 
   return (
     <nav aria-label={t("language")}>
-      <ul className="flex items-center gap-2">
+      <ul className="border-border bg-background inline-flex items-center rounded-md border p-0.5">
         {routing.locales.map((locale) => {
           const isActive = locale === activeLocale;
           const className = cn(
-            "rounded-md border px-3 py-1.5 text-sm transition-colors",
+            "block rounded-[0.3rem] px-2 py-1 text-xs font-medium transition-colors",
             isActive
-              ? "border-foreground text-foreground font-medium"
-              : "border-border text-muted-foreground hover:text-foreground hover:border-foreground",
+              ? "bg-secondary text-secondary-foreground"
+              : "text-muted-foreground hover:text-foreground",
             preference.isPending && "opacity-60",
           );
 
@@ -62,22 +82,24 @@ export function LocaleSwitcher() {
                 <button
                   type="button"
                   lang={locale}
+                  aria-label={t(localeLabelKeys[locale])}
                   aria-current={isActive ? "true" : undefined}
                   disabled={preference.isPending}
                   onClick={() => preference.mutate(locale)}
                   className={className}
                 >
-                  {t(localeLabelKeys[locale])}
+                  {localeCodes[locale]}
                 </button>
               ) : (
                 <Link
                   href={pathname}
                   locale={locale}
                   hrefLang={locale}
+                  aria-label={t(localeLabelKeys[locale])}
                   aria-current={isActive ? "true" : undefined}
                   className={className}
                 >
-                  {t(localeLabelKeys[locale])}
+                  {localeCodes[locale]}
                 </Link>
               )}
             </li>

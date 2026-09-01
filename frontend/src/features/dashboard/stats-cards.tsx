@@ -18,6 +18,17 @@ import type { DashboardStats, ScopedCount } from "@/types/dashboard";
  *
  * When every figure is `null` the row disappears entirely, which is what D-122
  * means by an actor holding nothing seeing a Dashboard with no panels.
+ *
+ * ## The row has no fixed column count, and cannot have one
+ *
+ * It used to be `xl:grid-cols-4` for a list of **five** cards, so a reader who
+ * could see all five got four across and the fifth stranded on its own row
+ * beside three empty slots — the hole in the middle of the Dashboard.
+ *
+ * A fixed five would only move the problem: the count is whatever the caller's
+ * capabilities allow, anywhere from one to five, so any fixed number is wrong
+ * for some reader. `auto-fit` lays out as many tracks as fit and stretches the
+ * ones it has, which is right for every count.
  */
 const CARDS: ReadonlyArray<{ key: keyof DashboardStats; label: string }> = [
   { key: "active_projects", label: "activeProjects" },
@@ -37,7 +48,11 @@ export function StatsCards() {
 
   if (query.isPending) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy="true" aria-live="polite">
+      <div
+        className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4"
+        aria-busy="true"
+        aria-live="polite"
+      >
         <span className="sr-only">{t("loading")}</span>
         {Array.from({ length: 4 }, (_, index) => (
           <Skeleton key={index} className="h-24 w-full" />
@@ -57,7 +72,7 @@ export function StatsCards() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4">
       {visible.map(({ key, label }) => (
         <StatCard key={key} label={t(label)} value={query.data[key]} />
       ))}
