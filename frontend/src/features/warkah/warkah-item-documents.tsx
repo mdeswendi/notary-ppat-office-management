@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -132,11 +133,7 @@ export function WarkahItemDocuments({ deedId, item }: { deedId: string; item: Wa
                   {document.title}
                 </Link>
 
-                {document.is_sensitive ? (
-                  <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-                    {t("sensitive")}
-                  </span>
-                ) : null}
+                {document.is_sensitive ? <Badge>{t("sensitive")}</Badge> : null}
               </div>
 
               {item.can_upload ? (

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RelationshipPeriod } from "@/features/companies/relationship-shared";
@@ -225,11 +226,7 @@ function CompanyName({ company }: { company: IndividualCompanySummary | null }) 
         <span className="font-medium">{name}</span>
       )}
 
-      {company.is_archived ? (
-        <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-          {t("archivedCompany")}
-        </span>
-      ) : null}
+      {company.is_archived ? <Badge>{t("archivedCompany")}</Badge> : null}
     </span>
   );
 }

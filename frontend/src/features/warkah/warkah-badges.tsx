@@ -3,6 +3,7 @@
 import { Check, Circle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { WarkahStatus } from "@/types/warkah";
 
 /**
@@ -16,28 +17,25 @@ import type { WarkahStatus } from "@/types/warkah";
  * emphasis, because a verified bundle is the state an office is working toward.
  */
 
-const STATUS_TINT: Record<WarkahStatus, string> = {
-  INCOMPLETE: "border-border text-foreground",
-  UNDER_REVIEW: "border-ppat/40 text-ppat",
-  COMPLETE: "border-ppat bg-ppat/5 text-ppat",
+const STATUS_TONE: Record<WarkahStatus, BadgeTone> = {
+  INCOMPLETE: "neutral",
+  UNDER_REVIEW: "ppat",
+  COMPLETE: "ppatStrong",
 
   // Storable, reached by nothing. Rendered muted so a bundle carrying one — written
   // directly to the database, or by a milestone that answers open question eight —
   // still reads correctly.
-  FINALIZED: "border-border text-muted-foreground",
-  ARCHIVED: "border-border text-muted-foreground",
+  FINALIZED: "muted",
+  ARCHIVED: "muted",
 };
 
 export function WarkahStatusBadge({ status }: { status: WarkahStatus }) {
   const t = useTranslations("warkah");
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
-      aria-label={`${t("status")}: ${t(`statuses.${status}`)}`}
-    >
+    <Badge tone={STATUS_TONE[status]} aria-label={`${t("status")}: ${t(`statuses.${status}`)}`}>
       {t(`statuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -60,18 +58,18 @@ export function WarkahItemCollectedBadge({ hasDocument }: { hasDocument: boolean
 
   if (hasDocument) {
     return (
-      <span className="border-ppat/40 text-ppat inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+      <Badge tone="ppat" withIcon>
         <Check aria-hidden="true" className="size-3" />
         {t("collected")}
-      </span>
+      </Badge>
     );
   }
 
   return (
-    <span className="border-border text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+    <Badge withIcon>
       <Circle aria-hidden="true" className="size-3" />
       {t("notCollected")}
-    </span>
+    </Badge>
   );
 }
 
@@ -90,12 +88,5 @@ export function WarkahRequirementBadge({ code }: { code: string | null }) {
     return null;
   }
 
-  return (
-    <span
-      className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs"
-      aria-label={`${t("requirementCode")}: ${code}`}
-    >
-      {code}
-    </span>
-  );
+  return <Badge aria-label={`${t("requirementCode")}: ${code}`}>{code}</Badge>;
 }

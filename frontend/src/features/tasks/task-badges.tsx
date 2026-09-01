@@ -3,6 +3,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { TaskPriority, TaskStatus } from "@/types/task";
 
 /**
@@ -22,24 +23,21 @@ import type { TaskPriority, TaskStatus } from "@/types/task";
  * something the product can actually do.
  */
 
-const STATUS_TINT: Record<TaskStatus, string> = {
-  OPEN: "border-border text-foreground",
-  IN_PROGRESS: "border-primary/40 text-primary",
-  WAITING: "border-border text-muted-foreground",
-  COMPLETED: "border-primary/30 text-primary",
-  CANCELLED: "border-border text-muted-foreground",
+const STATUS_TONE: Record<TaskStatus, BadgeTone> = {
+  OPEN: "neutral",
+  IN_PROGRESS: "primary",
+  WAITING: "muted",
+  COMPLETED: "primarySubtle",
+  CANCELLED: "muted",
 };
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
   const t = useTranslations("tasks");
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
-      aria-label={`${t("status")}: ${t(`statuses.${status}`)}`}
-    >
+    <Badge tone={STATUS_TONE[status]} aria-label={`${t("status")}: ${t(`statuses.${status}`)}`}>
       {t(`statuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -57,16 +55,12 @@ export function TaskPriorityBadge({ priority }: { priority: TaskPriority | null 
   }
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${
-        priority === "URGENT"
-          ? "border-destructive/40 text-destructive"
-          : "border-border text-muted-foreground"
-      }`}
+    <Badge
+      tone={priority === "URGENT" ? "destructive" : "muted"}
       aria-label={`${t("priority")}: ${t(`priorities.${priority}`)}`}
     >
       {t(`priorities.${priority}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -89,9 +83,9 @@ export function TaskOverdueBadge({ isOverdue }: { isOverdue: boolean }) {
   }
 
   return (
-    <span className="border-destructive/40 text-destructive inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+    <Badge tone="destructive" withIcon>
       <AlertTriangle aria-hidden="true" className="size-3" />
       {t("overdue")}
-    </span>
+    </Badge>
   );
 }

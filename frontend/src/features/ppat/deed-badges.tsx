@@ -3,6 +3,7 @@
 import { Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { PpatDeedStatus } from "@/types/ppat";
 
 /**
@@ -28,25 +29,22 @@ import type { PpatDeedStatus } from "@/types/ppat";
  * state belongs. What the interface does not do is offer a control claiming to set one.
  */
 
-const STATUS_TINT: Record<PpatDeedStatus, string> = {
-  DRAFT: "border-border text-foreground",
-  UNDER_REVIEW: "border-ppat/40 text-ppat",
-  APPROVED: "border-ppat/40 text-ppat",
-  FINALIZED: "border-ppat bg-ppat/5 text-ppat",
-  VOID: "border-border text-muted-foreground",
-  SUPERSEDED: "border-border text-muted-foreground",
+const STATUS_TONE: Record<PpatDeedStatus, BadgeTone> = {
+  DRAFT: "neutral",
+  UNDER_REVIEW: "ppat",
+  APPROVED: "ppat",
+  FINALIZED: "ppatStrong",
+  VOID: "muted",
+  SUPERSEDED: "muted",
 };
 
 export function PpatDeedStatusBadge({ status }: { status: PpatDeedStatus }) {
   const t = useTranslations("ppat");
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
-      aria-label={`${t("status")}: ${t(`deedStatuses.${status}`)}`}
-    >
+    <Badge tone={STATUS_TONE[status]} aria-label={`${t("status")}: ${t(`deedStatuses.${status}`)}`}>
       {t(`deedStatuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -67,14 +65,7 @@ export function PpatDeedTypeBadge({ code }: { code: string | null }) {
     return <span className="text-muted-foreground text-sm">—</span>;
   }
 
-  return (
-    <span
-      className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs"
-      aria-label={`${t("deedType")}: ${code}`}
-    >
-      {code}
-    </span>
-  );
+  return <Badge aria-label={`${t("deedType")}: ${code}`}>{code}</Badge>;
 }
 
 /**
@@ -96,9 +87,9 @@ export function PpatDeedReadOnlyBadge({ isReadOnly }: { isReadOnly: boolean }) {
   }
 
   return (
-    <span className="border-border text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+    <Badge withIcon>
       <Lock aria-hidden="true" className="size-3" />
       {t("readOnly")}
-    </span>
+    </Badge>
   );
 }

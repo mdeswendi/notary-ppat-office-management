@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -237,11 +238,7 @@ function CandidateRow({
         </span>
       ) : null}
       <span className="truncate">{candidate.label}</span>
-      {candidate.domain ? (
-        <span className="border-border text-muted-foreground ml-auto shrink-0 rounded-full border px-2 py-0.5 text-xs">
-          {candidate.domain}
-        </span>
-      ) : null}
+      {candidate.domain ? <Badge className="ml-auto shrink-0">{candidate.domain}</Badge> : null}
     </button>
   );
 }

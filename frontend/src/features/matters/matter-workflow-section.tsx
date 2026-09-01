@@ -6,6 +6,7 @@ import { AlertTriangle, Check, Circle, CircleDot, SkipForward } from "lucide-rea
 import { useLocale, useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -108,11 +109,7 @@ export function MatterWorkflowSection({ domain, matterId }: SectionProps) {
           {t("versionLabel", { version: page.data.workflow?.workflow_version ?? 1 })}
         </p>
 
-        {page.data.workflow?.completed_at ? (
-          <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-            {t("workflowCompleted")}
-          </span>
-        ) : null}
+        {page.data.workflow?.completed_at ? <Badge>{t("workflowCompleted")}</Badge> : null}
 
         {page.meta.can_change_stage && page.data.workflow?.completed_at === null ? (
           <MoveStage domain={domain} matterId={matterId} />

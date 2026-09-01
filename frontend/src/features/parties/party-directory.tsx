@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -285,9 +286,7 @@ function DirectoryRow({ entry, linkable }: { entry: PartyDirectoryEntry; linkabl
         <div className="text-muted-foreground">{secondary ?? "—"}</div>
       </td>
       <td className="px-4 py-3">
-        <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-          {entry.party_type === null ? "—" : t(`partyTypes.${entry.party_type}`)}
-        </span>
+        <Badge>{entry.party_type === null ? "—" : t(`partyTypes.${entry.party_type}`)}</Badge>
       </td>
       <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">
         {entry.primary_phone ?? "—"}

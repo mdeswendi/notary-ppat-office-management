@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { MatterDomain, MatterStatus } from "@/types/matter";
 import type { ProjectPriority } from "@/types/project";
 
@@ -25,14 +26,14 @@ import type { ProjectPriority } from "@/types/project";
  * control that claims to set one.
  */
 
-const STATUS_TINT: Record<MatterStatus, string> = {
-  OPEN: "border-border text-foreground",
-  IN_PROGRESS: "border-primary/40 text-primary",
-  WAITING: "border-border text-muted-foreground",
-  ON_HOLD: "border-border text-muted-foreground",
-  COMPLETED: "border-primary/30 text-primary",
-  CANCELLED: "border-border text-muted-foreground",
-  ARCHIVED: "border-border text-muted-foreground",
+const STATUS_TONE: Record<MatterStatus, BadgeTone> = {
+  OPEN: "neutral",
+  IN_PROGRESS: "primary",
+  WAITING: "muted",
+  ON_HOLD: "muted",
+  COMPLETED: "primarySubtle",
+  CANCELLED: "muted",
+  ARCHIVED: "muted",
 };
 
 export function MatterStatusBadge({ status }: { status: MatterStatus | null }) {
@@ -43,12 +44,12 @@ export function MatterStatusBadge({ status }: { status: MatterStatus | null }) {
   }
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
+    <Badge
+      tone={STATUS_TONE[status]}
       aria-label={`${t("statusLabel")}: ${t(`statuses.${status}`)}`}
     >
       {t(`statuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -59,11 +60,7 @@ export function MatterPriorityBadge({ priority }: { priority: ProjectPriority | 
     return <span className="text-muted-foreground text-sm">—</span>;
   }
 
-  return (
-    <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-      {t(`priorities.${priority}`)}
-    </span>
-  );
+  return <Badge>{t(`priorities.${priority}`)}</Badge>;
 }
 
 /**
@@ -72,18 +69,22 @@ export function MatterPriorityBadge({ priority }: { priority: ProjectPriority | 
  * Each surface already lives under its own address, so this appears only where
  * naming the domain adds something — a detail header. The accent is used lightly
  * (CLAUDE.md section 42): a badge, never a whole screen tinted by domain.
+ *
+ * **The tones are carried over unchanged, and one of them looks wrong.** PPAT
+ * renders neutral here while every other PPAT surface — deeds, Warkah, property
+ * — uses the teal `ppat` accent that section 42 assigns it. Changing it is a
+ * visual decision rather than a consolidation, so this keeps what was there and
+ * leaves the question visible.
  */
 export function MatterDomainBadge({ domain }: { domain: MatterDomain }) {
   const t = useTranslations("matters");
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${
-        domain === "NOTARY" ? "border-primary/40 text-primary" : "border-border text-foreground"
-      }`}
+    <Badge
+      tone={domain === "NOTARY" ? "primary" : "neutral"}
       aria-label={`${t("domainLabel")}: ${t(`domains.${domain}`)}`}
     >
       {t(`domains.${domain}`)}
-    </span>
+    </Badge>
   );
 }

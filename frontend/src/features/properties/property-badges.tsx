@@ -3,6 +3,7 @@
 import { Archive } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import type { PropertyType } from "@/types/property";
 
 /**
@@ -28,12 +29,9 @@ export function PropertyTypeBadge({ type }: { type: PropertyType }) {
   const t = useTranslations("properties");
 
   return (
-    <span
-      className="border-border text-foreground rounded-full border px-2 py-0.5 text-xs"
-      aria-label={`${t("propertyType")}: ${t(`propertyTypes.${type}`)}`}
-    >
+    <Badge tone="neutral" aria-label={`${t("propertyType")}: ${t(`propertyTypes.${type}`)}`}>
       {t(`propertyTypes.${type}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -54,14 +52,7 @@ export function RightTypeBadge({ code }: { code: string | null }) {
     return <span className="text-muted-foreground text-sm">—</span>;
   }
 
-  return (
-    <span
-      className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs"
-      aria-label={`${t("rightType")}: ${code}`}
-    >
-      {code}
-    </span>
-  );
+  return <Badge aria-label={`${t("rightType")}: ${code}`}>{code}</Badge>;
 }
 
 /**
@@ -84,10 +75,10 @@ export function PropertyArchivedBadge({ isArchived }: { isArchived: boolean }) {
   }
 
   return (
-    <span className="border-ppat/40 text-ppat inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+    <Badge tone="ppat" withIcon>
       <Archive aria-hidden="true" className="size-3" />
       {t("archived")}
-    </span>
+    </Badge>
   );
 }
 
@@ -106,12 +97,5 @@ export function PropertyRoleBadge({ code }: { code: string | null }) {
     return <span className="text-muted-foreground text-sm">—</span>;
   }
 
-  return (
-    <span
-      className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs"
-      aria-label={`${t("roleCode")}: ${code}`}
-    >
-      {code}
-    </span>
-  );
+  return <Badge aria-label={`${t("roleCode")}: ${code}`}>{code}</Badge>;
 }

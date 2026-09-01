@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { partyDetailHref } from "@/features/parties/party-links";
 import {
@@ -210,9 +211,7 @@ function CandidateRow({ candidate }: { candidate: DuplicateCandidate }) {
           </Link>
         )}
 
-        <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-          {t(`partyTypes.${candidate.party_type}`)}
-        </span>
+        <Badge>{t(`partyTypes.${candidate.party_type}`)}</Badge>
 
         {candidate.office ? (
           <span className="text-muted-foreground text-xs">

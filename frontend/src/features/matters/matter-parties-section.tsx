@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -117,11 +118,7 @@ export function MatterPartiesSection({ domain, matterId }: SectionProps) {
 }
 
 function Chip({ children }: { children: string }) {
-  return (
-    <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-      {children}
-    </span>
-  );
+  return <Badge>{children}</Badge>;
 }
 
 function ParticipantRow({

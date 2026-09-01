@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -212,13 +213,9 @@ function OwnershipLink({
             )}
 
             {link.is_current ? (
-              <span className="border-ppat/40 text-ppat rounded-full border px-2 py-0.5 text-xs">
-                {t("ownership.current")}
-              </span>
+              <Badge tone="ppat">{t("ownership.current")}</Badge>
             ) : (
-              <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-                {t("ownership.closed")}
-              </span>
+              <Badge>{t("ownership.closed")}</Badge>
             )}
           </div>
 

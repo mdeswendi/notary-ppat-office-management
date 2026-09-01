@@ -3,6 +3,7 @@
 import { Download } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentVersion } from "@/types/document";
 
@@ -73,9 +74,9 @@ export function DocumentVersionList({
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-mono text-xs">v{version.version_number}</span>
                     {version.is_current ? (
-                      <span className="border-primary/30 text-primary ml-2 rounded-full border px-2 py-0.5 text-xs">
+                      <Badge tone="primarySubtle" className="ml-2">
                         {t("currentVersion")}
-                      </span>
+                      </Badge>
                     ) : null}
                   </td>
                   <td className="max-w-xs truncate px-4 py-3">{version.original_filename}</td>

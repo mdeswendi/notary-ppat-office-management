@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { ProjectPriority, ProjectStatus } from "@/types/project";
 
 /**
@@ -16,16 +17,19 @@ import type { ProjectPriority, ProjectStatus } from "@/types/project";
  * dashboard — CLAUDE.md section 39 rules out the traffic-light palette that a
  * status chip usually attracts, and a Project being `CANCELLED` is an ordinary
  * operational fact rather than an error.
+ *
+ * The map names a tone rather than a class list, so what it encodes — in flight
+ * versus settled versus neither — is legible without decoding opacities.
  */
 
-const STATUS_TINT: Record<ProjectStatus, string> = {
-  OPEN: "border-border text-foreground",
-  IN_PROGRESS: "border-primary/40 text-primary",
-  WAITING: "border-border text-muted-foreground",
-  ON_HOLD: "border-border text-muted-foreground",
-  COMPLETED: "border-primary/30 text-primary",
-  CANCELLED: "border-border text-muted-foreground",
-  ARCHIVED: "border-border text-muted-foreground",
+const STATUS_TONE: Record<ProjectStatus, BadgeTone> = {
+  OPEN: "neutral",
+  IN_PROGRESS: "primary",
+  WAITING: "muted",
+  ON_HOLD: "muted",
+  COMPLETED: "primarySubtle",
+  CANCELLED: "muted",
+  ARCHIVED: "muted",
 };
 
 export function ProjectStatusBadge({ status }: { status: ProjectStatus | null }) {
@@ -36,13 +40,13 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus | null })
   }
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
+    <Badge
+      tone={STATUS_TONE[status]}
       // The status is already the text content; this only names what the text is.
       aria-label={`${t("statusLabel")}: ${t(`statuses.${status}`)}`}
     >
       {t(`statuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -53,9 +57,5 @@ export function ProjectPriorityBadge({ priority }: { priority: ProjectPriority |
     return <span className="text-muted-foreground text-sm">—</span>;
   }
 
-  return (
-    <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-      {t(`priorities.${priority}`)}
-    </span>
-  );
+  return <Badge>{t(`priorities.${priority}`)}</Badge>;
 }

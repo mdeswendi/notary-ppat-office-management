@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -46,11 +47,7 @@ export function RelationshipPerson({ individual }: { individual: RelationshipInd
   return (
     <span className="flex flex-wrap items-center gap-2">
       <span className="font-medium">{individual.display_name ?? t("unknownPerson")}</span>
-      {individual.is_archived ? (
-        <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-xs">
-          {t("archivedIndividual")}
-        </span>
-      ) : null}
+      {individual.is_archived ? <Badge>{t("archivedIndividual")}</Badge> : null}
     </span>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { InvoiceStatus, PaymentStatus, QuotationStatus } from "@/types/billing";
 
 /**
@@ -15,30 +17,44 @@ import type { InvoiceStatus, PaymentStatus, QuotationStatus } from "@/types/bill
  * §39 rules out the traffic-light treatment a status chip usually gets: this is a
  * professional office system, not a dashboard toy.
  */
-const QUOTATION_TINT: Record<QuotationStatus, string> = {
-  DRAFT: "border-border text-muted-foreground",
-  APPROVED: "border-primary/30 text-primary",
+const QUOTATION_TONE: Record<QuotationStatus, BadgeTone> = {
+  DRAFT: "muted",
+  APPROVED: "primarySubtle",
 };
 
-const INVOICE_TINT: Record<InvoiceStatus, string> = {
-  DRAFT: "border-border text-muted-foreground",
-  ISSUED: "border-primary/30 text-primary",
-  CANCELLED: "border-border text-muted-foreground line-through",
+const INVOICE_TONE: Record<InvoiceStatus, BadgeTone> = {
+  DRAFT: "muted",
+  ISSUED: "primarySubtle",
+  CANCELLED: "muted",
 };
 
-const PAYMENT_TINT: Record<PaymentStatus, string> = {
-  PENDING: "border-border text-muted-foreground",
-  VERIFIED: "border-primary/30 text-primary",
+const PAYMENT_TONE: Record<PaymentStatus, BadgeTone> = {
+  PENDING: "muted",
+  VERIFIED: "primarySubtle",
 };
 
-function Chip({ label, field, tint }: { label: string; field: string; tint: string }) {
+/**
+ * A billing chip: the shared Badge plus the one thing these rows need.
+ *
+ * `shrink-0` keeps the status readable when a long client name squeezes the row,
+ * which is why these were never plain badges. The strike-through on a cancelled
+ * invoice is a second cue on top of the label, not a replacement for it.
+ */
+function Chip({
+  label,
+  field,
+  tone,
+  className,
+}: {
+  label: string;
+  field: string;
+  tone: BadgeTone;
+  className?: string;
+}) {
   return (
-    <span
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${tint}`}
-      aria-label={`${field}: ${label}`}
-    >
+    <Badge tone={tone} className={cn("shrink-0", className)} aria-label={`${field}: ${label}`}>
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -49,7 +65,7 @@ export function QuotationStatusBadge({ status }: { status: QuotationStatus }) {
     <Chip
       label={t(`quotationStatuses.${status}`)}
       field={t("status")}
-      tint={QUOTATION_TINT[status]}
+      tone={QUOTATION_TONE[status]}
     />
   );
 }
@@ -58,7 +74,12 @@ export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   const t = useTranslations("billing");
 
   return (
-    <Chip label={t(`invoiceStatuses.${status}`)} field={t("status")} tint={INVOICE_TINT[status]} />
+    <Chip
+      label={t(`invoiceStatuses.${status}`)}
+      field={t("status")}
+      tone={INVOICE_TONE[status]}
+      className={status === "CANCELLED" ? "line-through" : undefined}
+    />
   );
 }
 
@@ -66,7 +87,7 @@ export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   const t = useTranslations("billing");
 
   return (
-    <Chip label={t(`paymentStatuses.${status}`)} field={t("status")} tint={PAYMENT_TINT[status]} />
+    <Chip label={t(`paymentStatuses.${status}`)} field={t("status")} tone={PAYMENT_TONE[status]} />
   );
 }
 
@@ -84,7 +105,5 @@ export function InvoiceOverdueBadge({ isOverdue }: { isOverdue: boolean }) {
     return null;
   }
 
-  return (
-    <Chip label={t("overdue")} field={t("status")} tint="border-destructive/40 text-destructive" />
-  );
+  return <Chip label={t("overdue")} field={t("status")} tone="destructive" />;
 }

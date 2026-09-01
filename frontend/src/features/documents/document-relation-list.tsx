@@ -6,6 +6,7 @@ import { Plus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentAttachDialog } from "@/features/documents/document-attach-dialog";
@@ -134,9 +135,7 @@ export function DocumentRelationList({
               key={`${relation.entity_type}-${relation.id}`}
               className="flex flex-wrap items-center gap-3 px-4 py-3"
             >
-              <span className="border-border text-muted-foreground shrink-0 rounded-full border px-2 py-0.5 text-xs">
-                {t(`relations.types.${relation.entity_type}`)}
-              </span>
+              <Badge className="shrink-0">{t(`relations.types.${relation.entity_type}`)}</Badge>
 
               {relation.reference ? (
                 <span className="text-muted-foreground shrink-0 font-mono text-xs">

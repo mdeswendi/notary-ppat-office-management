@@ -3,6 +3,7 @@
 import { Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { DocumentStatus } from "@/types/document";
 
 /**
@@ -25,26 +26,26 @@ import type { DocumentStatus } from "@/types/document";
  * do is offer a control that claims to set one.
  */
 
-const STATUS_TINT: Record<DocumentStatus, string> = {
-  DRAFT: "border-border text-muted-foreground",
-  RECEIVED: "border-border text-foreground",
-  UNDER_REVIEW: "border-primary/40 text-primary",
-  VERIFIED: "border-primary/30 text-primary",
-  FINAL: "border-primary/30 text-primary",
-  ARCHIVED: "border-border text-muted-foreground",
-  VOID: "border-border text-muted-foreground",
+const STATUS_TONE: Record<DocumentStatus, BadgeTone> = {
+  DRAFT: "muted",
+  RECEIVED: "neutral",
+  UNDER_REVIEW: "primary",
+  VERIFIED: "primarySubtle",
+  FINAL: "primarySubtle",
+  ARCHIVED: "muted",
+  VOID: "muted",
 };
 
 export function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
   const t = useTranslations("documents");
 
   return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_TINT[status]}`}
+    <Badge
+      tone={STATUS_TONE[status]}
       aria-label={`${t("statusLabel")}: ${t(`statuses.${status}`)}`}
     >
       {t(`statuses.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
@@ -64,9 +65,9 @@ export function DocumentSensitiveBadge({ isSensitive }: { isSensitive: boolean }
   }
 
   return (
-    <span className="border-border text-muted-foreground inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+    <Badge withIcon>
       <Lock aria-hidden="true" className="size-3" />
       {t("sensitive")}
-    </span>
+    </Badge>
   );
 }
