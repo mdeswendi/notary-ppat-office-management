@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -136,11 +137,8 @@ export function ProfileForm() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("personalTitle")}</h2>
-          <p className="text-muted-foreground text-sm">{t("personalDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={t("personalTitle")} description={t("personalDescription")} />
 
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           {form.formState.errors.root ? (
@@ -208,13 +206,13 @@ export function ProfileForm() {
             </Button>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="border-border bg-card flex flex-col gap-3 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("workTitle")}</h2>
-          <p className="text-muted-foreground text-sm">{t("workDescription")}</p>
-        </div>
+      {/* This section carried `gap-3` where its two siblings carried `gap-4`.
+          Adopting Card normalises it — a 4px change nobody chose, and the kind of
+          drift a shared shell exists to stop. */}
+      <Card>
+        <CardHeader title={t("workTitle")} description={t("workDescription")} />
 
         <dl className="flex flex-col gap-3 text-sm">
           <div className="flex flex-col gap-0.5">
@@ -231,16 +229,10 @@ export function ProfileForm() {
             </dd>
           </div>
         </dl>
-      </section>
+      </Card>
 
-      <section
-        id="preferences"
-        className="border-border bg-card flex scroll-mt-6 flex-col gap-4 rounded-lg border p-5"
-      >
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("languageTitle")}</h2>
-          <p className="text-muted-foreground text-sm">{t("languageDescription")}</p>
-        </div>
+      <Card id="preferences" className="scroll-mt-6">
+        <CardHeader title={t("languageTitle")} description={t("languageDescription")} />
 
         {preference.isError ? (
           <p
@@ -272,7 +264,7 @@ export function ProfileForm() {
         </div>
 
         <p className="text-muted-foreground text-xs">{t("languageHint")}</p>
-      </section>
+      </Card>
     </div>
   );
 }

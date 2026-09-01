@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
+import { Card, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -121,11 +122,8 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("overviewSection")}</h2>
-          <p className="text-muted-foreground text-sm">{t("overviewDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />
 
         <dl className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
@@ -144,27 +142,21 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           <Detail label={t("targetCompletionLabel")} value={project.target_completion_date} />
           <Detail label={t("descriptionLabel")} value={project.description} />
         </dl>
-      </section>
+      </Card>
 
       {project.can_change_status ? (
-        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-base font-medium">{t("statusSection")}</h2>
-            <p className="text-muted-foreground text-sm">{t("statusDescription")}</p>
-          </div>
+        <Card>
+          <CardHeader title={t("statusSection")} description={t("statusDescription")} />
 
           <StatusForm project={project} />
-        </section>
+        </Card>
       ) : null}
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("assignmentSection")}</h2>
-          <p className="text-muted-foreground text-sm">{t("assignmentDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={t("assignmentSection")} description={t("assignmentDescription")} />
 
         <ProjectAssignmentSection project={project} />
-      </section>
+      </Card>
 
       {/*
         Participation (M3.4). Rendered unconditionally rather than behind a
@@ -172,38 +164,35 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         permissions, and the component asks its own endpoint — which returns 403
         for a reader who holds neither, and that is the honest state to show.
       */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{tParties("section")}</h2>
-          <p className="text-muted-foreground text-sm">{tParties("sectionDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={tParties("section")} description={tParties("sectionDescription")} />
 
         <ProjectPartiesSection projectId={project.id} />
-      </section>
+      </Card>
 
       {/* Documents (M5.2, D-117). A section, not a tab — the same pattern this
           page already uses for participation, and the M5 lock's own ruling.
           It answers to `documents.view` and its own endpoint, so a reader who can
           open the Project and not its documents sees the section fail honestly
           rather than see a fabricated empty one. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <DocumentRelationSection
           filter={{ project_id: project.id }}
           uploadHref="/documents/upload"
           attachTo={{ entity_type: "project", entity_id: project.id }}
         />
-      </section>
+      </Card>
 
       {/* Tasks (M5.4, D-119). A section, not a tab — the pattern this page already
           uses for participation and documents. It answers to `tasks.view` and its
           own endpoint, so a reader who can open the Project and not its tasks sees
           the section fail honestly rather than see a fabricated empty one. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <EntityTaskSection
           filter={{ project_id: project.id }}
           createHref={`/tasks/new?project_id=${project.id}`}
         />
-      </section>
+      </Card>
 
       {/* Notarial Deeds (O-037). A section, not a tab, like the four above it, and
           it filters `/notary/deeds?project_id=` rather than calling a nested route
@@ -219,9 +208,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
           PPAT deeds cannot appear: `notary_deeds` rows exist only against NOTARY
           Matters. Their own section is below. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <ProjectDeedsSection projectId={project.id} />
-      </section>
+      </Card>
 
       {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, filtering
           `/ppat/deeds?project_id=` through the same correlated query.
@@ -232,9 +221,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           both to see either half honestly, and would put a "domain" column on a page
           whose two halves already answer different questions. Each section fails on
           its own if its capability is missing. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <PpatProjectDeedsSection projectId={project.id} />
-      </section>
+      </Card>
 
       {/* Which land this engagement is about (M7.3, D-121). The same `?project_id=`
           shape as the two deed sections, correlated one junction further — a Property
@@ -244,9 +233,9 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           It answers to `properties.view` on its own endpoint, so reaching the Project
           confers nothing here (D-100) and a reader who holds one and not the other
           sees an honest failure rather than a fabricated empty section. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <ProjectPropertiesSection projectId={project.id} />
-      </section>
+      </Card>
     </div>
   );
 }

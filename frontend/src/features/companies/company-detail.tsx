@@ -8,6 +8,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
+import { Card, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -105,11 +106,8 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
         </div>
       </div>
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("overviewSection")}</h2>
-          <p className="text-muted-foreground text-sm">{t("overviewDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />
 
         <dl className="grid gap-4 sm:grid-cols-2">
           <Detail label={t("legalNameLabel")} value={company.legal_name} />
@@ -126,16 +124,16 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
           <Detail label={t("provinceLabel")} value={company.province} />
           <Detail label={t("postalCodeLabel")} value={company.postal_code} />
         </dl>
-      </section>
+      </Card>
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <h2 className="text-base font-medium">{t("identitySection")}</h2>
 
         <CompanyIdentitySection
           companyId={company.id}
           canUpdate={can(user, "parties.identity.update")}
         />
-      </section>
+      </Card>
 
       {/*
         Management and Shareholders are rendered only for a holder of that
@@ -145,25 +143,25 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
         not the tab (D-083).
       */}
       {can(user, "companies.management.view") ? (
-        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <Card>
           <h2 className="text-base font-medium">{tRelationships("managementSection")}</h2>
 
           <CompanyManagementSection
             companyId={company.id}
             canUpdate={can(user, "companies.management.update")}
           />
-        </section>
+        </Card>
       ) : null}
 
       {can(user, "companies.shareholders.view") ? (
-        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <Card>
           <h2 className="text-base font-medium">{tRelationships("shareholdersSection")}</h2>
 
           <CompanyShareholdersSection
             companyId={company.id}
             canUpdate={can(user, "companies.shareholders.update")}
           />
-        </section>
+        </Card>
       ) : null}
 
       {/* Documents (M5.3, D-118). A section, not a tab — the pattern this page
@@ -172,13 +170,13 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
           **`company.id` is the Party ULID**, not the Company row's key: M2
           exposes one public identifier for the aggregate (D-078), and
           `party_documents.party_id` references `parties.id`. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <DocumentRelationSection
           filter={{ party_id: company.id }}
           uploadHref="/documents/upload"
           attachTo={{ entity_type: "party", entity_id: company.id }}
         />
-      </section>
+      </Card>
     </div>
   );
 }

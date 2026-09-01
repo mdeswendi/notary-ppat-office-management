@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { Card, CardHeader } from "@/components/ui/card";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { TaskOverdueBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
 import { Link } from "@/i18n/navigation";
@@ -62,16 +63,18 @@ export function MyTasksWidget() {
   const tasks = query.data?.data ?? [];
 
   return (
-    <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-medium">{t("myTasks")}</h2>
-        <Link
-          href="/tasks/my"
-          className="text-muted-foreground text-sm underline-offset-4 hover:underline"
-        >
-          {t("viewAll")}
-        </Link>
-      </div>
+    <Card>
+      <CardHeader
+        title={t("myTasks")}
+        action={
+          <Link
+            href="/tasks/my"
+            className="text-muted-foreground text-sm underline-offset-4 hover:underline"
+          >
+            {t("viewAll")}
+          </Link>
+        }
+      />
 
       {query.isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
@@ -109,6 +112,6 @@ export function MyTasksWidget() {
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

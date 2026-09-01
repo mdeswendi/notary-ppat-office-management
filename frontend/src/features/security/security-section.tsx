@@ -1,12 +1,17 @@
 import type { ReactNode } from "react";
 
+import { Card, CardHeader } from "@/components/ui/card";
+
 /**
  * One bordered block on the Account Security page.
  *
  * Shared so the four concerns — password, email, two-factor, sessions — read as
- * one page rather than four designs. Matches the section shell the profile page
- * already uses, deliberately: this is the same kind of surface, and a person
- * moving between them should not have to relearn the layout.
+ * one page rather than four designs. It now builds on the shared `Card` rather
+ * than restating that shell: the resemblance to the profile page was already
+ * deliberate, and a copy is how two deliberate resemblances drift apart.
+ *
+ * What remains here is what is genuinely its own — `scroll-mt-6`, so an anchored
+ * jump from the account menu does not land the heading under the app header.
  */
 export function SecuritySection({
   title,
@@ -20,17 +25,11 @@ export function SecuritySection({
   id?: string;
 }) {
   return (
-    <section
-      id={id}
-      className="border-border bg-card flex scroll-mt-6 flex-col gap-4 rounded-lg border p-5"
-    >
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-medium">{title}</h2>
-        <p className="text-muted-foreground text-sm">{description}</p>
-      </div>
+    <Card id={id} className="scroll-mt-6">
+      <CardHeader title={title} description={description} />
 
       {children}
-    </section>
+    </Card>
   );
 }
 

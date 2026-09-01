@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -56,11 +57,8 @@ export function DashboardPanel({
   }
 
   return (
-    <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-medium">{title}</h2>
-        {action}
-      </div>
+    <Card>
+      <CardHeader title={title} action={action} />
 
       {isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
@@ -76,6 +74,6 @@ export function DashboardPanel({
       ) : (
         children
       )}
-    </section>
+    </Card>
   );
 }

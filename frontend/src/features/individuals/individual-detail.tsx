@@ -8,6 +8,7 @@ import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
+import { Card, CardHeader } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -111,11 +112,8 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
         </div>
       </div>
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{t("profileSection")}</h2>
-          <p className="text-muted-foreground text-sm">{t("profileDescription")}</p>
-        </div>
+      <Card>
+        <CardHeader title={t("profileSection")} description={t("profileDescription")} />
 
         <dl className="grid gap-4 sm:grid-cols-2">
           <Detail label={t("phoneLabel")} value={individual.primary_phone} />
@@ -129,16 +127,16 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
           <Detail label={t("provinceLabel")} value={individual.province} />
           <Detail label={t("postalCodeLabel")} value={individual.postal_code} />
         </dl>
-      </section>
+      </Card>
 
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <h2 className="text-base font-medium">{t("identitySection")}</h2>
 
         <IdentitySection
           individualId={individual.id}
           canUpdate={can(user, "parties.identity.update")}
         />
-      </section>
+      </Card>
 
       {/*
        * Companies, and only for somebody who may see at least one category.
@@ -147,7 +145,7 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
        * are checked separately because neither implies the other (D-083).
        */}
       {canViewManagement || canViewShareholders ? (
-        <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+        <Card>
           <h2 className="text-base font-medium">{t("companiesSection")}</h2>
 
           <IndividualCompaniesSection
@@ -155,7 +153,7 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
             canViewManagement={canViewManagement}
             canViewShareholders={canViewShareholders}
           />
-        </section>
+        </Card>
       ) : null}
 
       {/* Documents (M5.3, D-118). A section, not a tab — the pattern this page
@@ -166,13 +164,13 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
           `party_documents.party_id` references `parties.id`. Passing the wrong
           one would fail the foreign key rather than fail quietly, but naming it
           here saves the next reader the lookup. */}
-      <section className="border-border bg-card flex flex-col gap-4 rounded-lg border p-5">
+      <Card>
         <DocumentRelationSection
           filter={{ party_id: individual.id }}
           uploadHref="/documents/upload"
           attachTo={{ entity_type: "party", entity_id: individual.id }}
         />
-      </section>
+      </Card>
     </div>
   );
 }
