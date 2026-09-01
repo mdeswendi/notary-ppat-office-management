@@ -139,6 +139,11 @@ it('returns empty roles and permissions for a user with no assignments', functio
                 'name' => $user->name,
                 'email' => $user->email,
                 'preferred_locale' => $user->preferred_locale,
+                'office' => [
+                    'id' => $user->office->id,
+                    'code' => $user->office->code,
+                    'name' => $user->office->name,
+                ],
                 'roles' => [],
                 'permissions' => [],
                 'permission_scopes' => [],

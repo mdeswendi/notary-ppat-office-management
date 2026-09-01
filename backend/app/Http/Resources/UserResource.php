@@ -37,6 +37,17 @@ class UserResource extends JsonResource
      * `roles` remains **presentation only**. Nothing may decide visibility from a
      * role name (D-032, D-045); that is what the permission fields are for.
      *
+     * **`office` is the account's own Office, and it is identity rather than
+     * authority.** The interface needs it to say whose system this is — the header
+     * showed the product's name because the browser had no way to learn the
+     * office's. It is the same `{id, code, name}` shape every other resource
+     * serialises an Office as.
+     *
+     * It grants nothing. Data Scope is resolved server-side per request and
+     * `OFFICE` reach comes from the resolver, never from this field; a browser
+     * rewriting it reaches no other Office's records. `null` where the relation
+     * was not loaded, following the same guard the other resources use.
+     *
      * Still not a security boundary. This describes what the interface should
      * offer; every request is authorized again by a Policy, and a browser
      * editing this payload gains nothing.
@@ -52,6 +63,15 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'preferred_locale' => $this->preferred_locale,
+
+            'office' => $this->relationLoaded('office') && $this->office !== null
+                ? [
+                    'id' => $this->office->id,
+                    'code' => $this->office->code,
+                    'name' => $this->office->name,
+                ]
+                : null,
+
             'roles' => $this->resource->getRoleNames()->sort()->values()->all(),
 
             // Canonical order, so the payload is stable between requests.

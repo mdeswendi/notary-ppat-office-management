@@ -26,11 +26,18 @@ import type { CurrentUser } from "@/types/auth";
  * header was the control an office touches least. The mark anchors the left, and
  * the switcher is a two-letter segment now.
  *
- * **The name is still the product's, not the office's.** Showing *Kantor Notaris
- * & PPAT Mila Widyahastuti* here would be better, and it is not possible yet:
- * `/api/v1/me` carries no office, so the browser has nothing to render. That is a
- * small backend addition rather than a layout question, and it is not smuggled in
- * here.
+ * **It names the office, not the product.** A person opening this every morning
+ * is looking at their own office's system, and *Kantor Notaris & PPAT Mila
+ * Widyahastuti, S.H., M.Kn.* says that where *Notary & PPAT Office Management
+ * System* says only what the software is.
+ *
+ * The name is **read from the account's own Office record**, never written here.
+ * A second office deploying this sees its own name with no code change, and a
+ * hard-coded string would be a lie on the first day that happened.
+ *
+ * The application name remains the fallback, because `office` is genuinely
+ * nullable — the backend sends `null` when the relation was not loaded — and a
+ * blank header would be worse than a generic one.
  */
 export async function AppHeader({ user }: { user: CurrentUser }) {
   const t = await getTranslations("common");
@@ -46,7 +53,9 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
         >
           <Scale className="size-4" />
         </span>
-        <span className="truncate text-sm font-semibold tracking-tight">{t("appName")}</span>
+        <span className="truncate text-sm font-semibold tracking-tight">
+          {user.office?.name ?? t("appName")}
+        </span>
       </div>
 
       <div className="ml-auto flex items-center gap-2">

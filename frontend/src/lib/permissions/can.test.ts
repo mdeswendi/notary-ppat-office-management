@@ -16,6 +16,9 @@ function user(permissions: string[], scopes: CurrentUser["permission_scopes"] = 
     name: "Uji",
     email: "uji@example.test",
     preferred_locale: "id",
+    // Null on purpose: reach is decided by capability and Data Scope, never by
+    // the Office field, and a fixture carrying one would suggest otherwise.
+    office: null,
     roles: [],
     permissions,
     permission_scopes: scopes,

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Office;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -66,6 +67,14 @@ it('returns the current user for a session authenticated request', function (): 
                 'name' => 'Rina',
                 'email' => 'user@example.test',
                 'preferred_locale' => 'id',
+                // The account's own Office, so the interface can name whose
+                // system this is. Identity, never authority — Data Scope is
+                // resolved server-side and this field grants nothing.
+                'office' => [
+                    'id' => $user->office->id,
+                    'code' => $user->office->code,
+                    'name' => $user->office->name,
+                ],
                 // Present since M0.8. Empty here because this user holds no
                 // assignments; AuthorizationTest covers populated cases.
                 'roles' => [],
@@ -75,6 +84,40 @@ it('returns the current user for a session authenticated request', function (): 
                 'permission_scopes' => [],
             ],
         ]);
+});
+
+it('carries the account own Office, so the interface can name the deployment', function (): void {
+    // The header showed the product's name because the browser had no way to
+    // learn the office's. This field is why it can.
+    $office = Office::factory()->create([
+        'code' => 'Pusat',
+        'name' => 'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn.',
+    ]);
+
+    $user = User::factory()->for($office)->create();
+
+    $this->actingAs($user)
+        ->getJson('/api/v1/me')
+        ->assertOk()
+        ->assertJsonPath('data.office.id', $office->id)
+        ->assertJsonPath('data.office.code', 'Pusat')
+        ->assertJsonPath('data.office.name', 'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn.');
+});
+
+it('reports no Office but its own', function (): void {
+    // Identity, not authority. The field names the caller's own deployment and
+    // is not a directory: another Office's name has no business in this payload,
+    // and reach is decided by Data Scope server-side regardless of what the
+    // browser holds.
+    $own = Office::factory()->create(['name' => 'Kantor Sendiri']);
+    Office::factory()->create(['name' => 'Kantor Orang Lain']);
+
+    $user = User::factory()->for($own)->create();
+
+    $response = $this->actingAs($user)->getJson('/api/v1/me')->assertOk();
+
+    expect($response->json('data.office.id'))->toBe($own->id);
+    expect($response->getContent())->not->toContain('Kantor Orang Lain');
 });
 
 it('keeps the session alive across a second request', function (): void {
