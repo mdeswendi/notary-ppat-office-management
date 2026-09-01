@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toPropertyErrorKey } from "@/features/properties/property-errors";
 import { PropertyForm } from "@/features/properties/property-form";
@@ -36,10 +37,7 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("editProperty")}</h1>
-        <p className="text-muted-foreground">{t("editPropertySubtitle")}</p>
-      </div>
+      <PageHeader title={t("editProperty")} description={t("editPropertySubtitle")} />
 
       {query.isPending ? (
         <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">

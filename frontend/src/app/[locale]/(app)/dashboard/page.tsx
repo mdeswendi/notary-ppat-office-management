@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { ActivityWidget } from "@/features/dashboard/activity-widget";
 import { NeedsAttentionWidget } from "@/features/dashboard/needs-attention-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
@@ -41,10 +42,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       <StatsCards />
 

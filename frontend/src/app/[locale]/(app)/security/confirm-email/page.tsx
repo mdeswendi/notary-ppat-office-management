@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmEmailPanel } from "@/features/security/confirm-email-panel";
 
@@ -23,10 +24,7 @@ export default async function ConfirmEmailPage({
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("confirmEmailTitle")}</h1>
-        <p className="text-muted-foreground">{t("confirmEmailSubtitle")}</p>
-      </div>
+      <PageHeader title={t("confirmEmailTitle")} description={t("confirmEmailSubtitle")} />
 
       {/* `useSearchParams` needs a Suspense boundary to keep the rest of the
           route statically renderable. */}

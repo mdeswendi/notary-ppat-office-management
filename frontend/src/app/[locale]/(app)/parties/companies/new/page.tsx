@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { CompanyForm } from "@/features/companies/company-form";
 
 /**
@@ -18,10 +19,7 @@ export default async function NewCompanyPage({ params }: { params: Promise<{ loc
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("createTitle")}</h1>
-        <p className="text-muted-foreground">{t("createDescription")}</p>
-      </div>
+      <PageHeader title={t("createTitle")} description={t("createDescription")} />
 
       <CompanyForm />
     </PageContainer>

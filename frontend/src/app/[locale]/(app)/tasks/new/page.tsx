@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { TaskForm } from "@/features/tasks/task-form";
 
 /**
@@ -28,10 +29,7 @@ export default async function NewTaskPage({
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("newTask")}</h1>
-        <p className="text-muted-foreground">{t("newTaskSubtitle")}</p>
-      </div>
+      <PageHeader title={t("newTask")} description={t("newTaskSubtitle")} />
 
       <TaskForm projectId={projectId} matterId={matterId} />
     </PageContainer>

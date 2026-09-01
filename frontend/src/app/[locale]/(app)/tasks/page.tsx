@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { TasksList } from "@/features/tasks/tasks-list";
 
 /**
@@ -20,10 +21,7 @@ export default async function TasksPage({ params }: { params: Promise<{ locale: 
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("allTasks")}</h1>
-        <p className="text-muted-foreground">{t("allTasksSubtitle")}</p>
-      </div>
+      <PageHeader title={t("allTasks")} description={t("allTasksSubtitle")} />
 
       <TasksList />
     </PageContainer>

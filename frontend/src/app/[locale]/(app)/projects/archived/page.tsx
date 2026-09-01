@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { ArchivedProjectsList } from "@/features/projects/archived-projects-list";
 
 /**
@@ -25,10 +26,7 @@ export default async function ArchivedProjectsPage({
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("archivedTitle")}</h1>
-        <p className="text-muted-foreground">{t("archivedSubtitle")}</p>
-      </div>
+      <PageHeader title={t("archivedTitle")} description={t("archivedSubtitle")} />
 
       <ArchivedProjectsList />
     </PageContainer>

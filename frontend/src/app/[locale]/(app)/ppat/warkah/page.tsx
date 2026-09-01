@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { WarkahList } from "@/features/warkah/warkah-list";
 
 /**
@@ -25,11 +26,8 @@ export default async function WarkahPage({ params }: { params: Promise<{ locale:
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        {/* Indonesian legal terminology, used exactly as written. */}
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      {/* Indonesian legal terminology, used exactly as written. */}
+      <PageHeader title={t("title")} description={t("subtitle")} />
 
       <WarkahList />
     </PageContainer>

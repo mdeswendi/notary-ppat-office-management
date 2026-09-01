@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { PropertyForm } from "@/features/properties/property-form";
 
 /**
@@ -22,10 +23,7 @@ export default async function NewPropertyPage({ params }: { params: Promise<{ lo
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("newProperty")}</h1>
-        <p className="text-muted-foreground">{t("newPropertySubtitle")}</p>
-      </div>
+      <PageHeader title={t("newProperty")} description={t("newPropertySubtitle")} />
 
       <PropertyForm />
     </PageContainer>

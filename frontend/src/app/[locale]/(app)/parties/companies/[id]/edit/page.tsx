@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { CompanyEditForm } from "@/features/companies/company-edit-form";
 
 /**
@@ -25,10 +26,7 @@ export default async function EditCompanyPage({
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("editTitle")}</h1>
-        <p className="text-muted-foreground">{t("editDescription")}</p>
-      </div>
+      <PageHeader title={t("editTitle")} description={t("editDescription")} />
 
       <CompanyEditForm companyId={id} />
     </PageContainer>

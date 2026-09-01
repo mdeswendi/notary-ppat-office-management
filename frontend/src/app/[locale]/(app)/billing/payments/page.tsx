@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { PaymentList } from "@/features/billing/payment-list";
 
 export default async function BillingPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -10,10 +11,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("payments")}</h1>
-        <p className="text-muted-foreground">{t("paymentsSubtitle")}</p>
-      </div>
+      <PageHeader title={t("payments")} description={t("paymentsSubtitle")} />
 
       <PaymentList />
     </PageContainer>

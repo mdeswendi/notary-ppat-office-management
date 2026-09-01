@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 import { MatterForm } from "@/features/matters/matter-form";
 
 /**
@@ -17,10 +18,7 @@ export default async function NewPpatMatterPage({
 
   return (
     <PageContainer>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("createPpatTitle")}</h1>
-        <p className="text-muted-foreground">{t("createSubtitle")}</p>
-      </div>
+      <PageHeader title={t("createPpatTitle")} description={t("createSubtitle")} />
 
       <MatterForm domain="PPAT" />
     </PageContainer>
