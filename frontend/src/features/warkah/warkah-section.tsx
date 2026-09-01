@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -256,7 +257,7 @@ export function WarkahSection({ deedId }: { deedId: string }) {
       {canManage ? <WarkahItemForm deedId={deedId} /> : null}
 
       {items.length === 0 ? (
-        <BaseErrorState
+        <EmptyState
           title={started ? t("emptyTitle") : t("notStartedTitle")}
           description={started ? t("emptyDescription") : t("notStartedDescription")}
         />

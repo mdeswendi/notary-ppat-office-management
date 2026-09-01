@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -101,10 +102,7 @@ export function RolesList() {
       </div>
 
       {roles.length === 0 ? (
-        <div className="border-border bg-card flex flex-col items-start gap-2 rounded-lg border p-6">
-          <h2 className="text-base font-medium">{t("emptyTitle")}</h2>
-          <p className="text-muted-foreground max-w-prose text-sm">{t("emptyDescription")}</p>
-        </div>
+        <EmptyState title={t("emptyTitle")} description={t("emptyDescription")} />
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">

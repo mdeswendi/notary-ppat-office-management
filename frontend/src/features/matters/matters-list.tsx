@@ -6,6 +6,7 @@ import { Plus, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -158,7 +159,7 @@ export function MattersList({ domain }: { domain: MatterDomain }) {
           }
         />
       ) : matters.length === 0 ? (
-        <BaseErrorState
+        <EmptyState
           title={isFiltered(search, status, priority) ? t("noMatchesTitle") : t("emptyTitle")}
           description={
             isFiltered(search, status, priority) ? t("noMatchesDescription") : t("emptyDescription")

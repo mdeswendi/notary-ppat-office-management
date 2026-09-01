@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,7 +143,7 @@ export function WarkahList() {
           }
         />
       ) : bundles.length === 0 ? (
-        <BaseErrorState
+        <EmptyState
           title={
             isFiltered(search, status, incompleteOnly) ? t("noMatchesTitle") : t("listEmptyTitle")
           }

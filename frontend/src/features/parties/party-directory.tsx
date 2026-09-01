@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,7 +174,7 @@ export function PartyDirectory() {
           }
         />
       ) : entries.length === 0 ? (
-        <BaseErrorState
+        <EmptyState
           title={isFiltered(search, partyType, officeId) ? t("noMatchesTitle") : t("emptyTitle")}
           description={
             isFiltered(search, partyType, officeId)

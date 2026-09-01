@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,10 +97,7 @@ export function ArchivedProjectsList() {
           }
         />
       ) : projects.length === 0 ? (
-        <BaseErrorState
-          title={t("archivedEmptyTitle")}
-          description={t("archivedEmptyDescription")}
-        />
+        <EmptyState title={t("archivedEmptyTitle")} description={t("archivedEmptyDescription")} />
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-left text-sm">

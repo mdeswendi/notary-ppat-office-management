@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,7 +126,7 @@ export function OwnershipHistory({
           ) : null}
 
           {links.length === 0 ? (
-            <BaseErrorState
+            <EmptyState
               title={t("ownership.emptyTitle")}
               description={t("ownership.emptyDescription")}
             />

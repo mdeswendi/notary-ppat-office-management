@@ -6,6 +6,7 @@ import { KeyRound, LockKeyhole, Pencil, Plus, Search, ShieldCheck, ShieldOff } f
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,14 +122,10 @@ export function UsersList() {
           ))}
         </div>
       ) : users.length === 0 ? (
-        <div className="border-border bg-card flex flex-col items-start gap-2 rounded-lg border p-6">
-          <h2 className="text-base font-medium">
-            {search ? t("noMatchesTitle") : t("emptyTitle")}
-          </h2>
-          <p className="text-muted-foreground max-w-prose text-sm">
-            {search ? t("noMatchesDescription", { search }) : t("emptyDescription")}
-          </p>
-        </div>
+        <EmptyState
+          title={search ? t("noMatchesTitle") : t("emptyTitle")}
+          description={search ? t("noMatchesDescription", { search }) : t("emptyDescription")}
+        />
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">

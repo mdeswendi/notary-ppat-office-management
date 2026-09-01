@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,7 +115,7 @@ export function MatterPropertiesSection({ matterId }: { matterId: string }) {
       {canManage ? <AttachPropertyForm matterId={matterId} /> : null}
 
       {properties.length === 0 ? (
-        <BaseErrorState
+        <EmptyState
           title={t("matterSectionEmptyTitle")}
           description={t("matterSectionEmptyDescription")}
         />
