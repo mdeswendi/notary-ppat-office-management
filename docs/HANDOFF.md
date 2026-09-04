@@ -403,7 +403,7 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-**Twenty-two of fifty-one** (recounted 2026-09-05 directly from `docs/DECISIONS.md`'s Open Items
+**Twenty-seven of fifty-one** (recounted 2026-09-05 directly from `docs/DECISIONS.md`'s Open Items
 table: 51 entries total, O-001…O-051, 24 resolved and 27 open). Each is recorded there with its
 full reasoning; this is the index — minus the five M7 scope items (**O-039** … **O-043**), which are
 described where they matter, in §8. (This previously said "twenty-five of fifty" — a straight
