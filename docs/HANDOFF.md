@@ -1,8 +1,13 @@
-# Project Handoff — M0 through M8.3
+# Project Handoff — M0 through Baseline Packaging
 
-**Position:** branch `feat/m8-dashboard`. M0–M7 are **merged to `main`** (`d3bd0b4`); M8.0 – M8.3 are on this branch.
-**Last accepted merge to `main`:** M7 (`d3bd0b4`), a `--no-ff` merge of `feat/m7-ppat`.
-**Written:** 2026-08-24, after M5.2; figures refreshed through M8.3.
+**Position:** branch `main`, at commit `0e87b5f`. **M0 through M8 are all merged to `main` and
+feature-complete.** M8 itself merged `--no-ff` at `7d2cc1a`; eleven UI/backend housekeeping commits
+landed directly on `main` after that (§3, §7); a six-commit baseline-recovery pass then merged via
+PR #1 (`chore/repository-baseline` → `main`, merge commit `0e87b5f`, also `--no-ff`).
+**Last accepted merge to `main`:** baseline packaging, PR #1, merge commit `0e87b5f`.
+**Written:** 2026-08-24, after M5.2; figures refreshed through M8.3. **Fully re-verified and
+rewritten 2026-09-05**, after the M8 merge, the post-M8 UI/backend housekeeping pass, and baseline
+packaging — every figure below was recomputed from source and Git, not copied forward.
 
 This is an orientation document for whoever picks the project up next — a person or a new session.
 It is **not** a summary of `CHANGELOG.md`, which already records what each milestone did and why. It
@@ -32,37 +37,56 @@ boundary. Every frontend permission check is presentation.
 
 ## 2. Where we are — by the numbers
 
+Every figure below was recomputed from source and Git on 2026-09-05, at commit `0e87b5f`. Method
+is stated inline for anything that isn't a plain file count, per the rule that a number copied
+forward without re-checking it is a number nobody has actually verified.
+
 | | |
 |---|---|
-| Milestones complete | **M0 – M7 feature-complete and merged to main** · M8.0 – M8.3 on `feat/m8-dashboard` |
-| Migrations | **58** |
-| Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2 |
-| Models | 43 |
-| API routes | **244** under `/api/v1` (251 total) |
-| Backend tests | **2967 passing, 8 skipped** across 92 files (Pest) |
-| Frontend tests | **217 passing** across 22 files (Vitest + RTL) |
-| Frontend pages | 69 |
+| Milestones complete | **M0 – M8, all feature-complete and merged to `main`** · plus a post-M8 UI/backend housekeeping pass and a baseline-recovery packaging PR, both also merged (§3, §7) |
+| Migrations | **58** (`ls backend/database/migrations/*.php \| wc -l`) |
+| Canonical permissions | **177** — unchanged since the catalogue was transcribed at M1.2; confirmed via `PermissionRegistry::all()` |
+| Models | 43 (`find backend/app -path '*/Models/*.php'`) |
+| API routes | **244** under `/api/v1`, **250 total** (`php artisan route:list --json`). The M8.3 changelog entry recorded 251 total; recount today is 250 — corrected here rather than carried forward unverified. |
+| Backend tests | **2969 passing, 8 skipped, 8957 assertions**, across **91** `*Test.php` files under `backend/tests/` (Pest, in-memory SQLite) |
+| Frontend tests | **249 passing** across **28** files (Vitest + RTL) |
+| Frontend pages | 69 (`find frontend/src/app -name page.tsx`) |
 | Decisions recorded | **D-001 … D-132** |
-| Open items | 26 still open (§7) — O-037, **O-044** closed; O-039…O-046 added 2026-08-25; **O-047…O-050** added at M8.0, **O-051** at M8.2. **D-115 closed at M8.1.** |
+| Open items | **27 still open** (§7) — recount of `docs/DECISIONS.md`'s Open Items table (51 entries total, O-001…O-051; 24 resolved, 27 open). The previous count here said 26; O-015's status text ("remains open") was being missed by a plain grep for the word "Open" — corrected. |
 
-**The persistent development database stands at 42 migrations**, applied in **two** runs: batches 1–11
-took it to 22 (through M1), and a single batch 12 applied twenty more at once, bringing it through
-M6.3. It does **not** carry M7.1 — `properties` and the seven `ppat_*` tables are absent from it.
+**The persistent development database now stands at all 58 migrations, fully caught up** —
+verified read-only via `php artisan migrate:status` against the configured `notary_ppat_office`
+database: every one of the 58 migrations reports `Ran`, none pending. This is a change from the
+last time this document was written, when the same database stood at 42 and was missing M7 and M8
+entirely.
 
-*(This section previously said 22 and "deliberately behind". That was true until batch 12 was applied.
-The figure is corrected rather than the history rewritten, because which milestone a dev database sits
-at is a fact about somebody's machine, not a project invariant.)*
+*(This section previously said 42 and, before that, 22 — both true at the time they were written.
+The figure keeps being corrected rather than the history rewritten, because which milestone a dev
+database sits at is a fact about somebody's machine, not a project invariant. It is not this
+document's job to explain who ran the migration or when — only to state what is true now.)*
 
-**What has not changed is the working rule**: every schema verification runs on a **disposable**
-database created and dropped for the purpose, never against this one. See §6.
+**What has not changed is the working rule**: schema verification for new work still runs on a
+**disposable** database created and dropped for the purpose — see §6. The persistent database
+being caught up does not license migrating it directly for a milestone in progress; disposable
+verification remains the standing rule regardless of what the persistent database happens to hold
+at any given moment.
 
 ### Routes by domain
 
+Recounted from `php artisan route:list --json`, grouped by the first `/api/v1/…` path segment:
+
 ```text
-notary 29      companies 19  ppat 40   projects 15   individuals 14
-users 13       tasks 12      security 12  documents 12  properties 9
-roles 7        profile 2     parties 1    permissions 1  health 1   me 1
+ppat 40          notary 29        reports 23       companies 19     projects 15
+individuals 14   users 13         documents 12     security 12      tasks 12
+invoices 11      properties 9     quotations 8     roles 7          dashboard 6
+disbursements 4  payments 3       profile 2        health 1         audit-logs 1
+me 1             permissions 1    parties 1
 ```
+
+Total: 244, matching the `/api/v1` figure above. The `reports`, `dashboard`, `invoices`,
+`quotations`, `disbursements`, `payments`, and `audit-logs` groups did not exist the last time this
+table was written — they are M8's Dashboard, Billing, and Reports surfaces landing in the count for
+the first time.
 
 `ppat` gained nine at M7.2 — index, store, show, update, options, review, approve, finalize and
 number — three more at M7.3 for the Matter/Property junction, and **eleven at M7.4** for Warkah.
@@ -119,11 +143,77 @@ the single most load-bearing process choice in the project.
 | **M8.0** | Dashboard / Billing / Reports lock — capabilities without a schema, and batch 7 comes due | `af7d0d6` |
 | **M8.1** | Dashboard + audit & activity foundation; D-115 closes | `2d8d331` |
 | **M8.2** | Billing: seven tables designed, twenty-six routes, no tax anywhere | `e3ae655` |
-| **M8.3** | Reports: five families, twenty-three routes, no migration, no statutory return | on branch |
+| **M8.3** | Reports: five families, twenty-three routes, no migration, no statutory return | `616daba` |
+| **M8 merge** | `--no-ff` merge of `feat/m8-dashboard`; **M0–M8 all feature-complete and merged to `main`** | `7d2cc1a` |
+| **Post-M8 housekeeping** | Eleven commits directly on `main`: an auth error-mapping fix, six shared-UI consolidations (`ButtonLink`, `PageHeader`, `Card`, `Badge`, `Select`, an empty-vs-failed list distinction), a doc correction, a dashboard/shell defect repair, a filter-row sizing fix, and naming the office in the header from its own record. Detail in the subsection immediately below. | `d36fedf` … `02e260a` |
+| **Baseline packaging** | PR #1, `chore/repository-baseline` → `main`: unused Laravel Vite/Blade scaffold removed, a sidebar scroll-position fix, `AGENTS.md` added, the office backup/restore runbook added, the end-user manual added, and a review-driven fix removing an obsolete Composer `dev` script. Six commits, merged with a merge commit (two parents), not squashed or rebased. | `0e87b5f` |
 
 M0's history is unusually granular (M0.1 → M0.10) because the environment itself was being
 established. From M1 onward the shape is stable: lock → schema → allocator → management → frontend →
 quality gate.
+
+### Post-M8 housekeeping, in detail
+
+Two batches of work landed on `main` after the M8 merge, neither of which is a milestone and neither
+of which touches the Notary/PPAT domain model, workflow, or authorization surface. Both are
+housekeeping in the sense `CLAUDE.md` §67 describes: small, meaningful, separately reviewable
+changes — not "finished app" in one commit.
+
+**Eleven UI/backend commits, `d36fedf` … `02e260a`** (pre-existing work found already on `main`
+when the baseline-recovery audit below began — not produced by that audit):
+
+- **Shared-component consolidation** — six commits drawing every instance of a UI pattern through
+  one shared component instead of several local variants: `ButtonLink` (a link styled as a button),
+  `PageHeader` (adopted across every page), `Card` (unifying three prior spellings of the section
+  card), `Badge` (every status chip), `Select` (every dropdown), and a distinction between an empty
+  list and a failed request so the two states stop looking identical to the reader.
+- **Visible defect repairs** — `36f8ac4` fixed three visible defects in the shell and dashboard;
+  `7000e98` sized `Select` like `Input` so filter rows line up.
+- **Error-state improvement** — `d36fedf` makes a non-JSON API request answer `401` instead of a
+  raw `500`, so an authentication failure reads as authentication failure rather than a server
+  crash.
+- **Office identity** — `02e260a` names the office in the application header, read from the
+  Office's own record rather than left as a placeholder.
+- **Documentation correction** — `a0cbabf` fixed eleven places still claiming the D-115 sensitive-
+  download gate held, after M8.1 had already closed it (§7).
+
+**Baseline packaging, PR #1, `63525e1` … `9562023`, merged at `0e87b5f`** — a housekeeping and
+baseline-recovery pass, audited, packaged into six commits, and merged as its own PR:
+
+- **`chore(backend): remove unused Laravel Vite and Blade scaffold`** — removed the default
+  `laravel new` Vite/Blade asset pipeline (welcome view, `vite.config.js`, `backend/package.json`,
+  compiled asset entrypoints, the default placeholder Feature test) and the two references to it in
+  `composer.json` and `routes/web.php`. It was never wired to anything — the Next.js frontend is
+  the only frontend this project serves (`CLAUDE.md` §4).
+- **`fix(ui): preserve sidebar scroll position across navigation`** — the sidebar is now `sticky`
+  with its own internal scroll container, so navigating between pages no longer resets a reader
+  scrolled deep in the menu back to the top.
+- **`docs: add Codex repository instructions`** — added `AGENTS.md` as a Codex-facing mirror of
+  `CLAUDE.md` (only the title, one repository-structure line, and §59's heading/first instruction
+  differ; every rule and example is otherwise identical). `CLAUDE.md` §4's expected root structure
+  already anticipated this file.
+- **`docs(ops): add office backup and restore runbook`** — `scripts/backup.ps1`,
+  `scripts/restore.ps1`, `scripts/README.md`. Implements the restore-testing requirement
+  `docs/07_SECURITY_RULES.md` §28 already states in prose: dumps PostgreSQL from the running Docker
+  container, mirrors `backend/storage/app/private` additively (never `/MIR`, so an accidental local
+  deletion is never propagated into the backup), and copies `APP_KEY` alongside it — without the
+  key, the `'encrypted'` `nik`/`npwp` casts on `Individual` and `Company` are permanently
+  unreadable even with the database intact. Restore defaults to a throwaway test database; the
+  production path requires typing `PULIHKAN`. Reviewed statically; never executed as part of this
+  work.
+- **`docs: add end-user manual`** — `user_manual.html`, a standalone, self-contained walkthrough of
+  the product for office staff. Checked twice for real client data, credentials, NIK, NPWP,
+  passwords, tokens, and `APP_KEY` before being committed — none found.
+- **`fix(backend): remove obsolete Composer dev script`** — a review-driven follow-up: the
+  Composer `"dev"` script still invoked `npx concurrently …` after `backend/package.json` (which
+  carried the `concurrently` dependency) had already been deleted by the first commit, so it
+  depended on a global/cached `npx` install and was not reproducible on a fresh clone. Removed
+  outright rather than rewritten — README already documents running the backend and frontend in
+  two separate terminals (§9 below), which is what this script duplicated.
+
+Both batches were verified against the full local quality gate (§9) before merging; the full
+result is not repeated here since it is a point-in-time CI-equivalent record rather than a project
+fact — see the PR #1 description on GitHub for the exact numbers at that commit.
 
 ---
 
@@ -253,7 +343,7 @@ docs/
 ├── 16_M6_NOTARY_ARCHITECTURE.md   │
 ├── 17_M7_PPAT_ARCHITECTURE.md     │ ← read §5 of these two first
 ├── 18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md ┘ ← §5 inverts M6/M7: capabilities, no schema
-├── DECISIONS.md                   ← D-001…D-126 + the Open Items register
+├── DECISIONS.md                   ← D-001…D-132 + the Open Items register (51 items, 27 open)
 ├── CHANGELOG.md                   ← what each milestone did
 └── HANDOFF.md                     ← this file
 ```
@@ -276,10 +366,11 @@ These are standing constraints set during the project. They are not optional.
 ### Database safety
 
 - **Never** run `migrate:fresh`, `db:wipe`, or `docker compose down -v` against persistent data.
-- **Do not migrate the persistent development database.** It stands at 42 migrations (see §2 — the
-  figure is a fact about somebody's machine, not a target). All schema verification runs on a
+- **Do not migrate the persistent development database directly for milestone work.** It stands at
+  all 58 migrations as of 2026-09-05 (see §2 — the figure is a fact about somebody's machine, not a
+  target, and it will drift again). All schema verification for new work still runs on a
   disposable database (`m44_smoke`, `m51_probe`, `m52_probe`, `m71_probe`, `m72_probe`, …), created
-  and dropped within the milestone.
+  and dropped within the milestone — regardless of what the persistent database happens to hold.
 
 ### HTTP smoke testing
 
@@ -312,9 +403,11 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-Twenty-five of fifty. Each is recorded in `DECISIONS.md` with its full reasoning; this is the
-index — minus the five M7 scope items (**O-039** … **O-043**), which are described where they matter,
-in §8.
+**Twenty-two of fifty-one** (recounted 2026-09-05 directly from `docs/DECISIONS.md`'s Open Items
+table: 51 entries total, O-001…O-051, 24 resolved and 27 open). Each is recorded there with its
+full reasoning; this is the index — minus the five M7 scope items (**O-039** … **O-043**), which are
+described where they matter, in §8. (This previously said "twenty-five of fifty" — a straight
+recount, not a change in what's open; the fifty-first item, O-051, is added to the table below.)
 
 | ID | One line | Why it is still open |
 |---|---|---|
@@ -339,6 +432,7 @@ in §8.
 | O-048 | **Calendar is fully canonical and owned by no milestone** | Blocked on nothing but assignment — table, six event types, five codes, a menu entry, and no milestone from M0 to M8 names it |
 | O-049 | Billing has seventeen capabilities and no ERD table at all | M8.2 designs the schema under D-124 — the first this project has designed rather than transcribed; the ERD should adopt it |
 | O-050 | A verified payment has no correction path | No `payments.update`, no delete, no reversal verb; the verify gate is the only control |
+| O-051 | No billing document — quotation, invoice, or disbursement — can be deleted | No catalogue delete code exists for any of the three; the `deleted_at` columns M8.2 built are stored and reached by nothing (same catalogue-extension question O-036/O-040/O-045/O-047/O-050 all wait on) |
 
 **The largest structural gap is closed. `audit_logs` exists as of M8.1** (D-123), transcribed from
 ERD §25, append-only structurally, and queryable by resource. D-115 is **resolved**: the
@@ -366,9 +460,19 @@ not, and belongs with `reports.export` at M8.3.
 
 ---
 
-## 8. What comes next
+## 8. What M6, M7 and M8 built, rulings not to undo, and what comes next
 
-### Remaining in M5
+**M0 through M8 are all complete, feature-complete, and merged to `main`** (§2, §3). Nothing in
+this section describes future milestone work — there is no M9 in the plan (`CLAUDE.md` §2,
+`01_ARCHITECTURE.md` §28 both end at M8) and none is invented here. What follows is kept for two
+reasons: the specific "do not undo this" rulings below remain load-bearing even though the
+milestones that produced them are finished, and the final subsection states honestly what kind of
+work comes after a milestone plan that has run its full course.
+
+### M5, closed out
+
+M5 itself was already complete before M6 started; this is retained only because two of its own
+open questions were answered later, by name, and a reader tracing either forward should land here.
 
 ```text
 M5.5  (absorbed into M5.4 — the identifier stays retired)
@@ -383,18 +487,21 @@ build, and `documents.sensitive.download` now authorizes a real download.
 **The question M5.0 left for M5.4 is answered** (D-119): `created_by` was added, `OWN` is the creator,
 `ASSIGNED` is the assignee, and the two are separate predicates that union when both are held.
 
-### After M5
+### M6 and M7, in retrospect
 
 ```text
-M6  Notary module   — Notarial Deeds, Minuta Akta   ← M6.0 lock accepted; see below
-M7  PPAT module     — PPAT Deeds, Property, Warkah, taxes, registers, reports
-M8  Dashboard, Billing & Reports
+M6  Notary module   — Notarial Deeds, Minuta Akta         completed
+M7  PPAT module     — PPAT Deeds, Property, Warkah        completed (taxes/registers/reports out of scope — see below)
+M8  Dashboard, Billing & Reports                           completed
 ```
 
-Both M6 and M7 are **blocked on domain validation**, not on engineering. The two workflow documents
-are drafts, and four of the seven recommended document junctions
+Both M6 and M7 were **blocked on domain validation** at the engineering level for everything beyond
+the deed record itself — not on engineering capacity. The two workflow documents are still drafts
+today (`08_NOTARY_WORKFLOW.md`, `09_PPAT_WORKFLOW.md` remain `DRAFT — DOMAIN VALIDATION REQUIRED`),
+and four of the seven recommended document junctions
 (`property_documents`, `notary_deed_documents`, `ppat_deed_documents`, `matter_requirement_documents`)
-reference tables those milestones create.
+reference tables those milestones create. Both milestones were completed within that constraint,
+not around it — the domain gaps below are still open (§7), not resolved by M6/M7 shipping.
 
 **M6.0 (D-120) established what that blockage actually costs, and it is less than it sounds.** Five
 of the seven questions in `08_NOTARY_WORKFLOW.md` §6 are rules a deed surface would ordinarily
@@ -443,7 +550,7 @@ and protocol (batch 11, O-042), reports (M8, O-043), and the two Warkah acts who
 question eight (O-041). None of those is a gap to fill on the way past — each needs a domain source
 or a catalogue decision first.
 
-**The next milestone is M8 — Dashboard, Billing & Reports**, now locked at M8.0. See below.
+**M8 — Dashboard, Billing & Reports — followed and is also complete.** See below.
 
 **M7.4 note:** a Warkah reaches a deed through `ppat_warkah.ppat_deed_id` and answers to its own six
 `ppat.warkah.*` codes. `PpatDeedResource` deliberately carries **no** Warkah key — a deed capability
@@ -523,8 +630,17 @@ M8.0  Architecture lock                                   <- done
 M8.1  Dashboard + audit & activity foundation             <- done, closes D-115
 M8.2  Billing — quotations, invoices, payments, disbursements  <- done
 M8.3  Reports — five families, read-only, scoped              <- done
-M8.4  M8 quality gate
+M8.4  M8 quality gate                                      <- see note below
 ```
+
+**On M8.4 specifically:** `docs/CHANGELOG.md`'s last milestone entry is M8.3 (2026-08-26); no
+entry named "M8.4" exists there, and no separate commit in Git history is labelled M8.4. What is
+verifiable is the higher-level fact: M8 merged to `main` `--no-ff` at `7d2cc1a`, and the full local
+quality gate (frontend and backend, §9) has since passed repeatedly against `main` at later commits
+(including at `0e87b5f`, the current HEAD). Whether a discrete "M8.4" quality-gate step happened as
+its own recorded unit or was absorbed into the merge and later verification passes is genuinely not
+answerable from what's in this repository — flagged here as a documentation gap (`CLAUDE.md` §58:
+identify a source conflict, don't silently pick a side) rather than resolved one way or the other.
 
 **M8.1 shipped** two migrations (50 → 52), two models, two enums, three services, seven routes and
 five dashboard widgets, registering **no permission**. What it did differently from its brief, and
@@ -598,10 +714,11 @@ everything else outstanding it is blocked on nothing but assignment (O-048).
 so nothing M8 declines has a later milestone to fall into. At M6 and M7 an open item was a deferral;
 **at M8 it is a statement about what the delivered product does not do.**
 
-### Before the next milestone starts
+### Standing judgement calls, never given an explicit yes or no
 
 Three items from the M5.2 report were never given an explicit yes or no. They are not blockers — M5
-and M6 are merged and green — but each is a judgement somebody should confirm rather than inherit:
+through M8 are all merged and green — but each is a judgement somebody should confirm rather than
+inherit:
 
 1. **`matterReachable()` reads the permission namespace from the Matter's stored `domain` column** —
    one of only two places in the repository that happens (the other is `DocumentRelationController`).
@@ -612,6 +729,37 @@ and M6 are merged and green — but each is a judgement somebody should confirm 
 3. ~~**`documents.sensitive.download` grants nothing** until audit exists.~~ **Closed at M8.1.** The
    audit store exists, the gate came out, and granting the code now has the effect an administrator
    would expect — with every such download recorded (D-115, D-123).
+
+### What comes next
+
+The M0–M8 milestone plan has run its full course. There is no M9, and none is proposed here —
+`CLAUDE.md` §2 names eight milestones and stops, and inventing a ninth to keep this section's shape
+familiar would be exactly the kind of unrequested scope `CLAUDE.md` §60 forbids. What comes next is
+a **different kind of work**, not a continuation of the milestone sequence:
+
+- **An authenticated product-flow audit.** Every milestone brief above was verified with disposable
+  databases, targeted smoke tests, and Pest/Vitest suites — nobody has yet walked the product
+  end-to-end as a signed-in user across a full business day's worth of actions. That is a distinct
+  kind of check the milestone process was never structured to produce.
+- **A safe demo-data strategy.** Nothing in this repository seeds realistic data (§6, §4.6 —
+  neither `activities` nor `audit_logs` is backfilled, and no milestone has shipped a demo seeder).
+  Showing the product to anyone who isn't reading raw API responses needs data that is realistic
+  without being real client information — NIK, NPWP, and real names never belong in a seeder or a
+  demo environment (`CLAUDE.md` §21–22).
+- **UI/UX packaging for Dashboard, Document/Deed Management, and Deed Detail.** These surfaces were
+  built to the letter of their milestone briefs (M8.1, M5.2/M6.2/M7.2, M6.2/M7.2 respectively) but
+  packaging a screen for a brief and packaging it for an office worker to actually use it well are
+  different bars. Closing that gap is presentation work, not a schema or capability change.
+- **Open items close only through explicit, individually-scoped tasks** — never as a side effect of
+  something else. §7 lists 27 of them; none is closed here, and none should be closed anywhere
+  merely because a broader task happened to touch nearby code. This is the same discipline
+  `CLAUDE.md` §67 asks of commits, applied to the open-item ledger.
+- **Domain validation is still required wherever a legal rule is still open.** M6 and M7 shipped
+  everything buildable *without* guessing at Indonesian notarial or PPAT procedure — deed numbering,
+  Repertorium format, Minuta archiving triggers, Warkah composition per deed type, tax gating, and
+  the PPAT monthly reporting obligation are all still unanswered (§7; `08_NOTARY_WORKFLOW.md` §6,
+  `09_PPAT_WORKFLOW.md` §6). Productization work does not change who is allowed to answer those —
+  `CLAUDE.md` §62 still applies: stop, document the gap, ask, never guess.
 
 ---
 
