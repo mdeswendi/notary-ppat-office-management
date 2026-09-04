@@ -13,14 +13,23 @@ import type { CurrentUser } from "@/types/auth";
  * Collapse to a 72px icon rail is described in section 3 but is deliberately
  * not built at M0.9 — with Dashboard as the only destination it would be a
  * toggle plus tooltip machinery around a single row. See the open item.
+ *
+ * The rail is `sticky h-svh` and scrolls its own nav rather than letting the
+ * window scroll it. That is what keeps the menu where the reader left it:
+ * navigation resets the *window* scroll to the top, and while the sidebar rode
+ * along with the document, reaching anything below the fold meant scrolling
+ * down again after every single click. The `<aside>` lives in the `(app)`
+ * layout, so it is never remounted between pages and its own scrollTop simply
+ * survives. `overscroll-contain` stops a scroll that reaches the end of the
+ * menu from continuing into the page behind it.
  */
 export async function AppSidebar({ user }: { user: CurrentUser }) {
   const t = await getTranslations("navigation");
   const tCommon = await getTranslations("common");
 
   return (
-    <aside className="bg-sidebar border-sidebar-border hidden w-64 shrink-0 flex-col border-r lg:flex">
-      <nav aria-label={t("mainLabel")} className="flex-1 p-3">
+    <aside className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r lg:flex">
+      <nav aria-label={t("mainLabel")} className="flex-1 overflow-y-auto overscroll-contain p-3">
         <SidebarNav user={user} />
       </nav>
 

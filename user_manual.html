@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Manual — Notary & PPAT Office Management System</title>
+    <style>
+        /* Reset & base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+            background: #f5f7fa;
+            color: #1e293b;
+            line-height: 1.7;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 50px 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+            border-bottom: 3px solid #1e3a5f;
+            padding-bottom: 12px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #475569;
+            margin-bottom: 32px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            padding-top: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 28px;
+            margin-bottom: 10px;
+        }
+
+        h4 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 20px;
+            margin-bottom: 6px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            font-size: 15px;
+        }
+
+        ul,
+        ol {
+            margin: 10px 0 16px 26px;
+        }
+
+        li {
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        a {
+            color: #1e3a5f;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0 24px;
+            font-size: 14px;
+        }
+
+        th {
+            background: #1e3a5f;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+        }
+
+        td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        /* Code / inline */
+        code {
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #0f172a;
+            font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-green {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-yellow {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        .badge-red {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-purple {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+        .badge-gray {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 4px 16px;
+            margin: 8px 0 16px;
+        }
+
+        .status-grid .label {
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .flow-box {
+            background: #f8fafc;
+            border-left: 4px solid #1e3a5f;
+            padding: 16px 20px;
+            margin: 12px 0 20px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .flow-box code {
+            background: #e2e8f0;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #e2e8f0;
+            margin: 40px 0 24px;
+        }
+
+        .footer-meta {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 14px;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 20px;
+            }
+            .container {
+                box-shadow: none;
+                padding: 30px 40px;
+                border-radius: 0;
+            }
+            h1 {
+                border-bottom-color: #1e3a5f;
+            }
+            th {
+                background: #1e3a5f !important;
+                color: #ffffff !important;
+            }
+            .badge {
+                background: #e2e8f0 !important;
+                color: #1e293b !important;
+            }
+            .badge-blue {
+                background: #dbeafe !important;
+                color: #1e40af !important;
+            }
+            .badge-green {
+                background: #dcfce7 !important;
+                color: #166534 !important;
+            }
+            .badge-yellow {
+                background: #fef9c3 !important;
+                color: #854d0e !important;
+            }
+            .badge-red {
+                background: #fee2e2 !important;
+                color: #991b1b !important;
+            }
+            .badge-purple {
+                background: #ede9fe !important;
+                color: #5b21b6 !important;
+            }
+            .badge-gray {
+                background: #f1f5f9 !important;
+                color: #475569 !important;
+            }
+            .flow-box {
+                background: #f8fafc !important;
+                border-left-color: #1e3a5f !important;
+            }
+            code {
+                background: #f1f5f9 !important;
+            }
+            tr:nth-child(even) td {
+                background: #f8fafc !important;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                padding: 24px 18px;
+            }
+            h1 {
+                font-size: 26px;
+            }
+            h2 {
+                font-size: 20px;
+            }
+            h3 {
+                font-size: 17px;
+            }
+            table {
+                font-size: 13px;
+            }
+            th,
+            td {
+                padding: 6px 10px;
+            }
+            .status-grid {
+                grid-template-columns: 1fr;
+                gap: 2px;
+            }
+            .footer-meta {
+                flex-direction: column;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- HEADER -->
+        <h1>📄 User Manual</h1>
+        <div class="subtitle">Notary &amp; PPAT Office Management System</div>
+        <p style="color:#475569; margin-bottom:32px;">
+            <strong>Versi 1.0</strong> &bull; Agustus 2026
+        </p>
+
+        <!-- DAFTAR ISI -->
+        <h2>Daftar Isi</h2>
+        <ul>
+            <li><a href="#1-pendahuluan">1. Pendahuluan</a></li>
+            <li><a href="#2-login-dasbor">2. Login &amp; Dasbor</a></li>
+            <li><a href="#3-proyek">3. Proyek</a></li>
+            <li><a href="#4-notaris">4. Modul Notaris</a></li>
+            <li><a href="#5-ppat">5. Modul PPAT</a></li>
+            <li><a href="#6-dokumen">6. Dokumen</a></li>
+            <li><a href="#7-tugas">7. Tugas</a></li>
+            <li><a href="#8-penagihan">8. Penagihan</a></li>
+            <li><a href="#9-laporan">9. Laporan</a></li>
+            <li><a href="#10-pengaturan">10. Pengaturan</a></li>
+            <li><a href="#11-panduan-cepat">11. Panduan Cepat</a></li>
+        </ul>
+
+        <hr>
+
+        <!-- 1. PENDAHULUAN -->
+        <h2 id="1-pendahuluan">1. Pendahuluan</h2>
+
+        <h3>1.1 Tentang Aplikasi</h3>
+        <p><strong>Notary &amp; PPAT Office Management System</strong> adalah aplikasi manajemen kantor terintegrasi untuk Notaris dan PPAT. Aplikasi ini mendukung:</p>
+        <ul>
+            <li>Dua domain hukum dalam satu sistem (Notaris &amp; PPAT)</li>
+            <li>Bilingual: <strong>Bahasa Indonesia</strong> dan <strong>English</strong></li>
+            <li>Manajemen klien, proyek, pekerjaan, akta, dokumen, tugas, dan penagihan</li>
+        </ul>
+
+        <h3>1.2 Akses Aplikasi</h3>
+        <ul>
+            <li><strong>URL:</strong> <code>https://app.kantor-notaris-ppat.com</code> (sesuai environment)</li>
+            <li><strong>Browser:</strong> Chrome, Firefox, Edge (versi terbaru)</li>
+            <li><strong>Login:</strong> Email + Password</li>
+        </ul>
+
+        <h3>1.3 Bahasa</h3>
+        <p>Ganti bahasa di pojok kanan atas:</p>
+        <ul>
+            <li>Klik <strong>ID</strong> &rarr; Bahasa Indonesia</li>
+            <li>Klik <strong>EN</strong> &rarr; English</li>
+        </ul>
+
+        <hr>
+
+        <!-- 2. LOGIN & DASBOR -->
+        <h2 id="2-login-dasbor">2. Login &amp; Dasbor</h2>
+
+        <h3>2.1 Login</h3>
+        <ol>
+            <li>Buka halaman login.</li>
+            <li>Masukkan <strong>Email</strong> dan <strong>Kata Sandi</strong>.</li>
+            <li>Centang <strong>Ingat saya</strong> (opsional).</li>
+            <li>Klik <strong>Masuk</strong>.</li>
+        </ol>
+
+        <h3>2.2 Dasbor</h3>
+        <p>Dasbor adalah halaman utama setelah login. Tampilan berbeda berdasarkan peran:</p>
+
+        <h4>Untuk Staf:</h4>
+        <ul>
+            <li><strong>Statistik:</strong> Proyek aktif, Pekerjaan aktif, Perlu review, Tugas terlambat</li>
+            <li><strong>Tugas Saya:</strong> Hari ini, Terlambat, Mendatang</li>
+            <li><strong>Perlu Perhatian:</strong> Pekerjaan yang terhambat</li>
+            <li><strong>Beban Kerja:</strong> Per staf</li>
+            <li><strong>Aktivitas Terbaru:</strong> Log aktivitas kantor</li>
+        </ul>
+
+        <h4>Untuk Pimpinan:</h4>
+        <ul>
+            <li>Tambahan <strong>Menunggu Review Saya</strong> dan <strong>Menunggu Persetujuan Saya</strong></li>
+            <li><strong>Jadwal Penandatanganan Minggu Ini</strong></li>
+        </ul>
+
+        <hr>
+
+        <!-- 3. PROYEK -->
+        <h2 id="3-proyek">3. Proyek</h2>
+
+        <h3>3.1 Apa itu Proyek?</h3>
+        <p>Proyek adalah <strong>induk dari satu transaksi atau kebutuhan klien</strong>. Satu proyek dapat memiliki beberapa pekerjaan (Matter), baik Notaris maupun PPAT.</p>
+        <p><strong>Contoh:</strong> Akuisisi Tanah PT ABC &rarr; berisi Akta Perubahan (Notaris) dan AJB + APHT (PPAT).</p>
+
+        <h3>3.2 Membuat Proyek</h3>
+        <ol>
+            <li>Buka menu <strong>Proyek</strong> &rarr; <strong>Semua Proyek</strong>.</li>
+            <li>Klik <strong>+ Proyek Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Judul Proyek</strong> (wajib)</li>
+                    <li><strong>Klien Utama</strong> (pilih dari daftar)</li>
+                    <li><strong>Deskripsi</strong> (opsional)</li>
+                    <li><strong>PIC</strong> (penanggung jawab)</li>
+                    <li><strong>Target Selesai</strong></li>
+                </ul>
+            </li>
+            <li>Tambahkan pihak terkait (opsional).</li>
+            <li>Klik <strong>Buat Proyek</strong>.</li>
+        </ol>
+
+        <h3>3.3 Detail Proyek</h3>
+        <p>Klik salah satu proyek untuk melihat detail. Tersedia tab:</p>
+        <ul>
+            <li><strong>Ikhtisar</strong> — ringkasan proyek, progress, daftar pekerjaan</li>
+            <li><strong>Pekerjaan</strong> — semua Matter dalam proyek</li>
+            <li><strong>Para Pihak</strong> — semua pihak terkait</li>
+            <li><strong>Dokumen</strong> — semua dokumen proyek</li>
+            <li><strong>Tugas</strong> — tugas terkait</li>
+            <li><strong>Penagihan</strong> — quotation &amp; invoice proyek</li>
+            <li><strong>Linimasa</strong> — aktivitas proyek</li>
+        </ul>
+
+        <hr>
+
+        <!-- 4. NOTARIS -->
+        <h2 id="4-notaris">4. Modul Notaris</h2>
+
+        <h3>4.1 Pekerjaan Notaris</h3>
+        <p><strong>Apa itu Pekerjaan Notaris?</strong><br>
+        Pekerjaan Notaris (Notary Matter) adalah unit pekerjaan di domain Notaris. Contoh: Pendirian PT, Akta Perubahan, Perjanjian, Legalisasi, Waarmerking.</p>
+
+        <h4>Membuat Pekerjaan Notaris:</h4>
+        <ol>
+            <li>Buka menu <strong>Notaris</strong> &rarr; <strong>Pekerjaan Notaris</strong>.</li>
+            <li>Klik <strong>+ Pekerjaan Notaris Baru</strong>.</li>
+            <li>Pilih:
+                <ul>
+                    <li><strong>Proyek</strong> (induk)</li>
+                    <li><strong>Jenis Layanan</strong> (misal: Akta Perubahan PT)</li>
+                    <li><strong>Judul</strong> (deskriptif)</li>
+                    <li><strong>PIC</strong> (penanggung jawab)</li>
+                </ul>
+            </li>
+            <li>Pilih <strong>Para Pihak</strong> (klien, direktur, komisaris, dll).</li>
+            <li>Klik <strong>Buat</strong>.</li>
+        </ol>
+
+        <h3>4.2 Akta Notaris</h3>
+        <p><strong>Apa itu Akta Notaris?</strong><br>
+        Akta Notaris (Notarial Deed) adalah akta yang dibuat oleh Notaris. Satu Pekerjaan Notaris dapat memiliki satu atau lebih Akta Notaris.</p>
+
+        <h4>Membuat Akta Notaris:</h4>
+        <ol>
+            <li>Buka detail Pekerjaan Notaris.</li>
+            <li>Di tab <strong>Akta</strong>, klik <strong>+ Akta Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Nomor Akta</strong> (diisi user, format bebas sesuai aturan kantor)</li>
+                    <li><strong>Tanggal Akta</strong></li>
+                    <li><strong>Jenis Akta</strong> (Pendirian PT, Perubahan, Perjanjian, dll)</li>
+                    <li><strong>Judul</strong></li>
+                </ul>
+            </li>
+            <li>Upload <strong>Draft Akta</strong> (dokumen draft).</li>
+            <li>Klik <strong>Simpan Draf</strong>.</li>
+        </ol>
+
+        <h4>Status Akta Notaris:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-gray">DRAFT</span></td><td>Draf awal, masih bisa diedit</td></tr>
+                <tr><td><span class="badge badge-blue">UNDER_REVIEW</span></td><td>Diajukan untuk review</td></tr>
+                <tr><td><span class="badge badge-purple">APPROVED</span></td><td>Disetujui oleh Notaris/Principal</td></tr>
+                <tr><td><span class="badge badge-green">FINALIZED</span></td><td>Difinalisasi, nomor akta terkunci</td></tr>
+                <tr><td><span class="badge badge-red">VOID</span></td><td>Batal</td></tr>
+                <tr><td><span class="badge badge-yellow">SUPERSEDED</span></td><td>Diganti oleh akta lain</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Alur Pekerjaan Akta:</h4>
+        <div class="flow-box">
+            <strong>DRAFT</strong> → upload draft &nbsp;→&nbsp;
+            <strong>Review</strong> → klik <strong>Ajukan Review</strong> &nbsp;→&nbsp;
+            <strong>Approve</strong> → klik <strong>Setujui</strong> (hanya Principal/Notaris) &nbsp;→&nbsp;
+            <strong>Finalisasi</strong> → klik <strong>Finalisasi</strong> (nomor akta terkunci) &nbsp;→&nbsp;
+            <strong>Nomor Akta</strong> → klik <strong>Beri Nomor</strong> (isi nomor akta resmi)
+        </div>
+        <p><strong>Catatan:</strong> Hanya status DRAFT dan UNDER_REVIEW yang bisa diedit. Setelah FINALIZED, akta terkunci.</p>
+
+        <h3>4.3 Minuta Akta</h3>
+        <p><strong>Apa itu Minuta Akta?</strong><br>
+        Minuta Akta adalah salinan asli akta yang disimpan dalam protokol Notaris. Setiap akta yang sudah difinalisasi harus memiliki Minuta.</p>
+
+        <h4>Menambahkan Minuta:</h4>
+        <ol>
+            <li>Buka detail Akta Notaris.</li>
+            <li>Di tab <strong>Minuta</strong>, klik <strong>Attach Minuta</strong>.</li>
+            <li>Pilih dokumen Minuta (sudah diupload di modul Dokumen).</li>
+            <li>Isi metadata (opsional):
+                <ul>
+                    <li><strong>Lokasi Arsip Fisik</strong></li>
+                    <li><strong>Nomor Jilid</strong></li>
+                    <li><strong>Nomor Bundel</strong></li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong>.</li>
+        </ol>
+
+        <h3>4.4 Repertorium / Buku Daftar Akta</h3>
+        <p><strong>Apa itu Repertorium?</strong><br>
+        Repertorium adalah buku daftar akta Notaris yang wajib dibuat. Setiap akta yang difinalisasi secara otomatis masuk ke Repertorium.</p>
+        <p><strong>Melihat Repertorium:</strong></p>
+        <ul>
+            <li>Buka menu <strong>Notaris</strong> &rarr; <strong>Repertorium</strong>.</li>
+            <li>Tampilkan daftar akta per periode.</li>
+            <li>Status: DRAFT, FINALIZED, LOCKED.</li>
+        </ul>
+        <h4>Finalisasi Repertorium:</h4>
+        <ol>
+            <li>Pilih periode (tahun/bulan).</li>
+            <li>Klik <strong>Finalisasi</strong>.</li>
+            <li>Setelah finalisasi, data tidak bisa diubah.</li>
+        </ol>
+
+        <h3>4.5 Legalisasi &amp; Waarmerking</h3>
+        <p><strong>Legalisasi</strong> dan <strong>Waarmerking</strong> adalah layanan Notaris yang tidak menghasilkan akta. Keduanya dikelola sebagai <strong>Pekerjaan Notaris</strong> dengan jenis layanan terkait.</p>
+        <h4>Proses:</h4>
+        <ol>
+            <li>Buat Pekerjaan Notaris dengan jenis layanan <strong>Legalisasi</strong> atau <strong>Waarmerking</strong>.</li>
+            <li>Upload dokumen yang akan dilegalisasi/diwaarmerking.</li>
+            <li>Proses selesai setelah dokumen diverifikasi.</li>
+        </ol>
+
+        <hr>
+
+        <!-- 5. PPAT -->
+        <h2 id="5-ppat">5. Modul PPAT</h2>
+
+        <h3>5.1 Pekerjaan PPAT</h3>
+        <p><strong>Apa itu Pekerjaan PPAT?</strong><br>
+        Pekerjaan PPAT (PPAT Matter) adalah unit pekerjaan di domain PPAT. Contoh: AJB, APHT, Hibah, Tukar Menukar, Pembagian Hak Bersama.</p>
+
+        <h4>Membuat Pekerjaan PPAT:</h4>
+        <ol>
+            <li>Buka menu <strong>PPAT</strong> &rarr; <strong>Pekerjaan PPAT</strong>.</li>
+            <li>Klik <strong>+ Pekerjaan PPAT Baru</strong>.</li>
+            <li>Pilih:
+                <ul>
+                    <li><strong>Proyek</strong> (induk)</li>
+                    <li><strong>Jenis Layanan</strong> (AJB, APHT, Hibah, dll)</li>
+                    <li><strong>Judul</strong></li>
+                    <li><strong>PIC</strong></li>
+                </ul>
+            </li>
+            <li>Pilih <strong>Para Pihak</strong> (penjual, pembeli, dll).</li>
+            <li>Klik <strong>Buat</strong>.</li>
+        </ol>
+
+        <h3>5.2 Properti / Objek Tanah</h3>
+        <p><strong>Apa itu Properti?</strong><br>
+        Properti adalah objek tanah/properti yang menjadi objek transaksi PPAT. Satu Properti dapat muncul di beberapa transaksi (riwayat kepemilikan).</p>
+
+        <h4>Membuat Properti:</h4>
+        <ol>
+            <li>Buka menu <strong>PPAT</strong> &rarr; <strong>Objek Tanah &amp; Properti</strong>.</li>
+            <li>Klik <strong>+ Properti Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Nomor Properti</strong> (otomatis: PROP-XXXXXX)</li>
+                    <li><strong>Jenis Properti</strong> (Tanah, Tanah+Bangunan, Unit Apartemen)</li>
+                    <li><strong>Jenis Hak</strong> (Hak Milik, HGB, HGU, Hak Pakai)</li>
+                    <li><strong>Nomor Sertipikat</strong> (wajib)</li>
+                    <li><strong>Luas Tanah</strong> (m²)</li>
+                    <li><strong>Alamat</strong> (lengkap)</li>
+                    <li><strong>Pemilik Saat Ini</strong> (pilih dari daftar pihak)</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong>.</li>
+        </ol>
+
+        <h4>Menambahkan Pemilik Baru (Histori):</h4>
+        <ol>
+            <li>Buka detail Properti.</li>
+            <li>Di tab <strong>Kepemilikan</strong>, klik <strong>+ Tambah Pemilik</strong>.</li>
+            <li>Pilih <strong>Pihak</strong>, masukkan <strong>Persentase</strong>, dan tanggal <strong>Berlaku Sejak</strong>.</li>
+            <li>Klik <strong>Simpan</strong>.</li>
+            <li>Jika ada pemilik baru, secara otomatis pemilik lama menjadi <em>non-current</em>.</li>
+        </ol>
+
+        <h3>5.3 Akta PPAT</h3>
+        <p><strong>Apa itu Akta PPAT?</strong><br>
+        Akta PPAT (PPAT Deed) adalah akta yang dibuat oleh PPAT. Jenis: AJB, APHT, Hibah, dll.</p>
+
+        <h4>Membuat Akta PPAT:</h4>
+        <ol>
+            <li>Buka detail Pekerjaan PPAT.</li>
+            <li>Di tab <strong>Akta</strong>, klik <strong>+ Akta PPAT Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Nomor Akta</strong> (diisi user)</li>
+                    <li><strong>Tanggal Akta</strong></li>
+                    <li><strong>Jenis Akta</strong> (AJB, APHT, Hibah, dll)</li>
+                    <li><strong>Judul</strong></li>
+                </ul>
+            </li>
+            <li>Pilih <strong>Properti</strong> yang terkait.</li>
+            <li>Upload <strong>Draft Akta</strong>.</li>
+            <li>Klik <strong>Simpan Draf</strong>.</li>
+        </ol>
+        <p><strong>Alur Status:</strong> Sama dengan Akta Notaris (DRAFT &rarr; UNDER_REVIEW &rarr; APPROVED &rarr; FINALIZED).</p>
+
+        <h3>5.4 Warkah</h3>
+        <p><strong>Apa itu Warkah?</strong><br>
+        Warkah adalah kumpulan dokumen pendukung pembuatan Akta PPAT. Warkah terdiri dari beberapa item persyaratan (KTP, NPWP, Sertipikat, PBB, dll).</p>
+
+        <h4>Mengelola Warkah:</h4>
+        <ol>
+            <li>Buka detail Akta PPAT.</li>
+            <li>Di tab <strong>Warkah</strong>, lihat daftar item:
+                <ul>
+                    <li><span class="badge badge-red">MISSING</span> — Belum Ada</li>
+                    <li><span class="badge badge-yellow">RECEIVED</span> — Sudah Diterima</li>
+                    <li><span class="badge badge-blue">UNDER_REVIEW</span> — Sedang Review</li>
+                    <li><span class="badge badge-green">VERIFIED</span> — Terverifikasi</li>
+                    <li><span class="badge badge-red">REJECTED</span> — Ditolak</li>
+                    <li><span class="badge badge-gray">NOT_APPLICABLE</span> — Tidak Berlaku</li>
+                </ul>
+            </li>
+            <li><strong>Menambah Item:</strong> klik <strong>+ Tambah Item</strong> → isi data → Simpan.</li>
+            <li><strong>Melampirkan Dokumen:</strong> klik item → <strong>Lampirkan Dokumen</strong> → pilih dokumen.</li>
+            <li><strong>Mengubah Status Item:</strong> klik item → ubah status.</li>
+            <li><strong>Kelengkapan Warkah:</strong> otomatis terhitung sebagai persentase item VERIFIED atau NOT_APPLICABLE. 100% bukan berarti legal complete — final verifikasi tetap diperlukan.</li>
+        </ol>
+
+        <h4>Status Warkah:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-red">INCOMPLETE</span></td><td>Belum lengkap, masih ada item MISSING</td></tr>
+                <tr><td><span class="badge badge-blue">UNDER_REVIEW</span></td><td>Sedang dalam review</td></tr>
+                <tr><td><span class="badge badge-green">COMPLETE</span></td><td>Semua item terverifikasi</td></tr>
+                <tr><td><span class="badge badge-purple">FINALIZED</span></td><td>Difinalisasi (tidak bisa diubah)</td></tr>
+                <tr><td><span class="badge badge-gray">ARCHIVED</span></td><td>Diarsipkan</td></tr>
+            </tbody>
+        </table>
+
+        <h3>5.5 Buku Daftar Akta PPAT</h3>
+        <p>Sama seperti Repertorium Notaris, Akta PPAT yang difinalisasi secara otomatis masuk ke Buku Daftar Akta PPAT.</p>
+        <p><strong>Melihat Buku Daftar:</strong></p>
+        <ul>
+            <li>Buka menu <strong>PPAT</strong> &rarr; <strong>Buku Daftar Akta</strong>.</li>
+            <li>Filter berdasarkan tahun/bulan.</li>
+        </ul>
+
+        <hr>
+
+        <!-- 6. DOKUMEN -->
+        <h2 id="6-dokumen">6. Dokumen</h2>
+
+        <h3>6.1 Pusat Dokumen</h3>
+        <p>Semua dokumen yang diupload tersimpan di <strong>Pusat Dokumen</strong>.</p>
+
+        <h4>Mengupload Dokumen:</h4>
+        <ol>
+            <li>Buka menu <strong>Dokumen</strong> &rarr; <strong>Semua Dokumen</strong>.</li>
+            <li>Klik <strong>+ Upload Dokumen</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Judul</strong> (wajib)</li>
+                    <li><strong>Jenis Dokumen</strong> (KTP, NPWP, Akta, Sertipikat, dll)</li>
+                    <li><strong>File</strong> (PDF, JPG, PNG, DOCX)</li>
+                    <li><strong>Relasi</strong> (ke Proyek, Pekerjaan, Pihak, Properti, Akta) — opsional</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Upload</strong>.</li>
+        </ol>
+
+        <h4>Versi Dokumen:</h4>
+        <ul>
+            <li>Setiap upload baru = versi baru.</li>
+            <li>Tidak ada overwrite — histori lengkap.</li>
+        </ul>
+
+        <h4>Status Dokumen:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-gray">DRAFT</span></td><td>Draf, belum final</td></tr>
+                <tr><td><span class="badge badge-yellow">RECEIVED</span></td><td>Dokumen diterima</td></tr>
+                <tr><td><span class="badge badge-blue">UNDER_REVIEW</span></td><td>Sedang direview</td></tr>
+                <tr><td><span class="badge badge-green">VERIFIED</span></td><td>Terverifikasi</td></tr>
+                <tr><td><span class="badge badge-purple">FINAL</span></td><td>Final</td></tr>
+                <tr><td><span class="badge badge-gray">ARCHIVED</span></td><td>Diarsipkan</td></tr>
+                <tr><td><span class="badge badge-red">VOID</span></td><td>Batal</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Dokumen Sensitif:</h4>
+        <ul>
+            <li>Dokumen dengan <strong>is_sensitive = true</strong> (NIK, NPWP, akta, dll).</li>
+            <li>Hanya user dengan permission <code>documents.sensitive.view</code> dan <code>documents.sensitive.download</code> yang bisa melihat/mengunduh.</li>
+        </ul>
+
+        <h3>6.2 Melampirkan Dokumen ke Entitas</h3>
+        <p>Dokumen dapat dilampirkan ke:</p>
+        <ul>
+            <li><strong>Proyek</strong> → di tab Dokumen</li>
+            <li><strong>Pekerjaan</strong> → di tab Dokumen</li>
+            <li><strong>Pihak</strong> → di halaman detail pihak</li>
+            <li><strong>Properti</strong> → di tab Dokumen</li>
+            <li><strong>Akta</strong> → di tab Dokumen</li>
+        </ul>
+        <p>Cara: buka detail entitas → tab Dokumen → <strong>Lampirkan Dokumen</strong> → pilih dokumen.</p>
+
+        <hr>
+
+        <!-- 7. TUGAS -->
+        <h2 id="7-tugas">7. Tugas</h2>
+
+        <h3>7.1 Apa itu Tugas?</h3>
+        <p>Tugas adalah pekerjaan operasional yang harus dilakukan staf. Tugas dapat berdiri sendiri atau terikat ke Proyek/Pekerjaan.</p>
+
+        <h3>7.2 Melihat Tugas</h3>
+        <ul>
+            <li><strong>Tugas Saya:</strong> <code>/tasks/my</code> — tugas yang ditugaskan ke Anda</li>
+            <li><strong>Semua Tugas:</strong> <code>/tasks</code> — semua tugas kantor (tergantung permission)</li>
+            <li><strong>Tugas Selesai:</strong> <code>/tasks/completed</code></li>
+        </ul>
+
+        <h3>7.3 Membuat Tugas</h3>
+        <ol>
+            <li>Buka menu <strong>Tugas</strong> → <strong>Tugas Saya</strong> (atau Semua Tugas).</li>
+            <li>Klik <strong>+ Tugas Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Judul</strong> (wajib)</li>
+                    <li><strong>Deskripsi</strong> (opsional)</li>
+                    <li><strong>Proyek</strong> (opsional)</li>
+                    <li><strong>Pekerjaan</strong> (opsional)</li>
+                    <li><strong>Ditugaskan Ke</strong> (wajib)</li>
+                    <li><strong>Prioritas</strong> (Rendah, Normal, Tinggi, Urgent)</li>
+                    <li><strong>Jatuh Tempo</strong> (opsional)</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Buat</strong>.</li>
+        </ol>
+
+        <h3>7.4 Mengelola Tugas</h3>
+        <ul>
+            <li><strong>Ubah Status:</strong> OPEN → IN_PROGRESS → WAITING → COMPLETED</li>
+            <li><strong>Assign:</strong> ubah penanggung jawab</li>
+            <li><strong>Complete:</strong> klik <strong>Selesai</strong> (otomatis set completed_at, completed_by)</li>
+            <li><strong>Reopen:</strong> jika tugas perlu dibuka kembali</li>
+        </ul>
+        <p><strong>Kolom di Tugas Saya:</strong> Status, Prioritas, Jatuh Tempo, Terlambat (indikator merah)</p>
+
+        <hr>
+
+        <!-- 8. PENAGIHAN -->
+        <h2 id="8-penagihan">8. Penagihan</h2>
+
+        <h3>8.1 Penawaran (Quotation)</h3>
+        <p><strong>Apa itu Penawaran?</strong><br>Penawaran biaya yang diberikan ke klien sebelum pekerjaan dimulai.</p>
+
+        <h4>Membuat Penawaran:</h4>
+        <ol>
+            <li>Buka menu <strong>Penagihan</strong> → <strong>Penawaran</strong>.</li>
+            <li>Klik <strong>+ Penawaran Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Klien</strong> (pilih dari daftar pihak)</li>
+                    <li><strong>Proyek/Pekerjaan</strong> (opsional)</li>
+                    <li><strong>Judul</strong></li>
+                    <li><strong>Item Penawaran</strong> (deskripsi, quantity, unit_price → total)</li>
+                    <li><strong>Berlaku Sampai</strong> (tanggal)</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong> (status DRAFT).</li>
+        </ol>
+
+        <h4>Status Penawaran:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-gray">DRAFT</span></td><td>Draf, belum dikirim</td></tr>
+                <tr><td><span class="badge badge-purple">APPROVED</span></td><td>Disetujui (setara SENT di brief)</td></tr>
+                <tr><td><span class="badge badge-green">CONVERTED</span></td><td>Dikonversi ke Invoice</td></tr>
+                <tr><td><span class="badge badge-red">CANCELLED</span></td><td>Dibatalkan</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Mengirim Penawaran:</h4>
+        <ul>
+            <li>Edit → ubah status ke <strong>APPROVED</strong>.</li>
+            <li>(Fase berikutnya: email otomatis)</li>
+        </ul>
+
+        <h4>Mengonversi ke Invoice:</h4>
+        <ol>
+            <li>Buka penawaran yang sudah APPROVED.</li>
+            <li>Klik <strong>Konversi ke Tagihan</strong>.</li>
+            <li>Isi tanggal terbit &amp; jatuh tempo.</li>
+            <li>Item penawaran otomatis tercopy ke invoice.</li>
+        </ol>
+
+        <h3>8.2 Tagihan (Invoice)</h3>
+        <p><strong>Apa itu Invoice?</strong><br>Tagihan yang dikirim ke klien. Bisa dibuat dari Penawaran atau langsung.</p>
+
+        <h4>Membuat Invoice (dari Penawaran):</h4>
+        <ol>
+            <li>Buka Penawaran → <strong>Konversi ke Tagihan</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Tanggal Terbit</strong></li>
+                    <li><strong>Tanggal Jatuh Tempo</strong></li>
+                </ul>
+            </li>
+            <li>Klik <strong>Buat Tagihan</strong>.</li>
+        </ol>
+
+        <h4>Membuat Invoice (langsung):</h4>
+        <ol>
+            <li>Buka menu <strong>Penagihan</strong> → <strong>Tagihan</strong>.</li>
+            <li>Klik <strong>+ Tagihan Baru</strong>.</li>
+            <li>Isi semua data (klien, proyek, item, tanggal).</li>
+            <li>Klik <strong>Simpan</strong> (status DRAFT).</li>
+        </ol>
+
+        <h4>Status Tagihan:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-gray">DRAFT</span></td><td>Draf, belum dikirim</td></tr>
+                <tr><td><span class="badge badge-blue">ISSUED</span></td><td>Dikirim ke klien</td></tr>
+                <tr><td><span class="badge badge-yellow">PARTIALLY_PAID</span></td><td>Dibayar sebagian</td></tr>
+                <tr><td><span class="badge badge-green">PAID</span></td><td>Lunas</td></tr>
+                <tr><td><span class="badge badge-red">OVERDUE</span></td><td>Jatuh tempo (otomatis)</td></tr>
+                <tr><td><span class="badge badge-red">CANCELLED</span></td><td>Dibatalkan</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Mengirim Tagihan:</h4>
+        <ul>
+            <li>Edit → ubah status ke <strong>ISSUED</strong>.</li>
+        </ul>
+
+        <h4>Melihat Pembayaran:</h4>
+        <ul>
+            <li>Di detail Invoice, tab <strong>Pembayaran</strong>.</li>
+        </ul>
+
+        <h3>8.3 Pembayaran (Payment)</h3>
+
+        <h4>Mencatat Pembayaran:</h4>
+        <ol>
+            <li>Buka detail Invoice.</li>
+            <li>Di tab <strong>Pembayaran</strong>, klik <strong>+ Catat Pembayaran</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Jumlah</strong> (wajib)</li>
+                    <li><strong>Metode</strong> (Tunai, Transfer Bank, Kartu, Lainnya)</li>
+                    <li><strong>Tanggal Pembayaran</strong></li>
+                    <li><strong>Nomor Referensi</strong> (opsional)</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong> (status RECEIVED).</li>
+        </ol>
+
+        <h4>Status Pembayaran:</h4>
+        <table>
+            <thead><tr><th>Status</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><span class="badge badge-yellow">RECEIVED</span></td><td>Diterima, menunggu verifikasi</td></tr>
+                <tr><td><span class="badge badge-green">VERIFIED</span></td><td>Terverifikasi (tidak bisa diubah)</td></tr>
+                <tr><td><span class="badge badge-red">REJECTED</span></td><td>Ditolak</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Verifikasi Pembayaran:</h4>
+        <ul>
+            <li>Buka detail Payment.</li>
+            <li>Klik <strong>Verifikasi</strong>.</li>
+            <li>Invoice akan otomatis update (PAID jika lunas, PARTIALLY_PAID jika sebagian).</li>
+        </ul>
+
+        <h3>8.4 Biaya Pihak Ketiga (Disbursement)</h3>
+        <p><strong>Apa itu Disbursement?</strong><br>Biaya yang dikeluarkan untuk pihak ketiga (misal: biaya notaris/PPAT, biaya pertanahan).</p>
+
+        <h4>Mencatat Disbursement:</h4>
+        <ol>
+            <li>Buka menu <strong>Penagihan</strong> → <strong>Biaya Pihak Ketiga</strong>.</li>
+            <li>Klik <strong>+ Biaya Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Pekerjaan</strong> (terkait)</li>
+                    <li><strong>Pihak</strong> (penerima)</li>
+                    <li><strong>Deskripsi</strong></li>
+                    <li><strong>Jumlah</strong></li>
+                    <li><strong>Tanggal Transaksi</strong></li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong>.</li>
+        </ol>
+
+        <hr>
+
+        <!-- 9. LAPORAN -->
+        <h2 id="9-laporan">9. Laporan</h2>
+
+        <h3>9.1 Laporan Operasional</h3>
+        <ul>
+            <li><strong>Pekerjaan</strong> — by domain, status, PIC, periode</li>
+            <li><strong>Tugas</strong> — by status, assignee, periode</li>
+            <li><strong>Dokumen</strong> — by type, status, uploader, periode</li>
+        </ul>
+        <p><strong>Cara:</strong></p>
+        <ol>
+            <li>Buka menu <strong>Laporan</strong> → <strong>Operasional</strong>.</li>
+            <li>Pilih jenis laporan.</li>
+            <li>Filter sesuai kebutuhan.</li>
+            <li>Klik <strong>Ekspor CSV</strong> untuk download.</li>
+        </ol>
+
+        <h3>9.2 Laporan Notaris</h3>
+        <ul>
+            <li><strong>Akta Notaris</strong> — by type, status, matter, periode</li>
+            <li><strong>Ringkasan Notaris</strong> — total akta, by status, by type, bulan ini</li>
+        </ul>
+
+        <h3>9.3 Laporan PPAT</h3>
+        <ul>
+            <li><strong>Akta PPAT</strong> — by type, status, matter, periode</li>
+            <li><strong>Properti</strong> — by type, right_type, status</li>
+            <li><strong>Warkah</strong> — by status, completeness</li>
+            <li><strong>Ringkasan PPAT</strong> — total akta, by status, by type, bulan ini</li>
+        </ul>
+
+        <h3>9.4 Laporan Keuangan</h3>
+        <ul>
+            <li><strong>Tagihan</strong> — by status, klien, periode</li>
+            <li><strong>Pembayaran</strong> — by status, klien, periode</li>
+            <li><strong>Pendapatan</strong> — by periode, domain, jenis layanan</li>
+        </ul>
+        <p><strong>Catatan:</strong> Nilai uang di-mask jika user tidak punya permission <code>billing.amount.view</code>.</p>
+
+        <h3>9.5 Laporan Audit</h3>
+        <ul>
+            <li><strong>Aktivitas</strong> — filter by user, event type, date range, auditable type</li>
+            <li><strong>Jejak Audit</strong> — histori perubahan untuk satu record tertentu</li>
+        </ul>
+
+        <hr>
+
+        <!-- 10. PENGATURAN -->
+        <h2 id="10-pengaturan">10. Pengaturan</h2>
+
+        <h3>10.1 Profil Kantor</h3>
+        <ul>
+            <li>Nama Kantor, Alamat, NPWP, Telepon, Email</li>
+            <li>Zona Waktu (default: Asia/Jakarta)</li>
+            <li>Bahasa Default (ID/EN)</li>
+        </ul>
+
+        <h3>10.2 Manajemen Pengguna</h3>
+        <h4>Membuat Pengguna Baru:</h4>
+        <ol>
+            <li>Buka menu <strong>Pengaturan</strong> → <strong>Pengguna</strong>.</li>
+            <li>Klik <strong>+ Pengguna Baru</strong>.</li>
+            <li>Isi:
+                <ul>
+                    <li><strong>Nama</strong>, <strong>Email</strong>, <strong>Telepon</strong></li>
+                    <li><strong>Peran</strong> (pilih dari daftar)</li>
+                    <li><strong>Bahasa</strong> (ID/EN)</li>
+                </ul>
+            </li>
+            <li>Klik <strong>Simpan</strong>.</li>
+            <li>User akan menerima email undangan (setup password).</li>
+        </ol>
+
+        <h3>10.3 Peran &amp; Hak Akses</h3>
+        <h4>Peran Default:</h4>
+        <table>
+            <thead><tr><th>Peran</th><th>Deskripsi</th></tr></thead>
+            <tbody>
+                <tr><td><strong>SUPER_ADMIN</strong></td><td>Akses penuh sistem</td></tr>
+                <tr><td><strong>PRINCIPAL</strong></td><td>Notaris/PPAT pemegang jabatan — approve akta</td></tr>
+                <tr><td><strong>OFFICE_MANAGER</strong></td><td>Mengelola operasional kantor</td></tr>
+                <tr><td><strong>NOTARY_STAFF</strong></td><td>Menangani operasional Notaris</td></tr>
+                <tr><td><strong>PPAT_STAFF</strong></td><td>Menangani operasional PPAT</td></tr>
+                <tr><td><strong>FRONT_OFFICE</strong></td><td>Intake klien, input data awal</td></tr>
+                <tr><td><strong>FINANCE</strong></td><td>Fokus pada penagihan &amp; keuangan</td></tr>
+                <tr><td><strong>ARCHIVE_STAFF</strong></td><td>Fokus pada arsip dokumen &amp; warkah</td></tr>
+                <tr><td><strong>AUDITOR</strong></td><td>View-only, tidak bisa mengubah data</td></tr>
+            </tbody>
+        </table>
+
+        <h4>Mengelola Hak Akses:</h4>
+        <ul>
+            <li>Setiap peran memiliki daftar permission.</li>
+            <li>Administrator dapat menambah/mengurangi permission per peran.</li>
+            <li><strong>Tidak disarankan</strong> memberikan SUPER_ADMIN ke user operasional.</li>
+        </ul>
+
+        <h3>10.4 Log Audit</h3>
+        <ul>
+            <li>Semua aktivitas tercatat di <strong>Log Audit</strong>.</li>
+            <li>Hanya user dengan permission <code>audit.view</code> yang bisa melihat.</li>
+            <li>Log tidak bisa diedit/dihapus.</li>
+        </ul>
+
+        <hr>
+
+        <!-- 11. PANDUAN CEPAT -->
+        <h2 id="11-panduan-cepat">11. Panduan Cepat</h2>
+
+        <h3>11.1 Alur Kerja Staf</h3>
+        <table>
+            <thead><tr><th>Langkah</th><th>Aksi</th></tr></thead>
+            <tbody>
+                <tr><td>1. Login</td><td>Email + Password</td></tr>
+                <tr><td>2. Cek Dasbor</td><td>Tugas hari ini, perlu perhatian</td></tr>
+                <tr><td>3. Buka Task</td><td>Kerjakan tugas yang di-assign</td></tr>
+                <tr><td>4. Upload Dokumen</td><td>Upload ke Matter/Project/Deed</td></tr>
+                <tr><td>5. Update Status</td><td>Ubah status tugas/pekerjaan</td></tr>
+                <tr><td>6. Review Akta</td><td>Jika ada akta masuk</td></tr>
+            </tbody>
+        </table>
+
+        <h3>11.2 Alur Akta Notaris</h3>
+        <table>
+            <thead><tr><th>Langkah</th><th>Pelaku</th><th>Status</th></tr></thead>
+            <tbody>
+                <tr><td>1. Buat Pekerjaan Notaris</td><td>Staff</td><td>-</td></tr>
+                <tr><td>2. Buat Akta Notaris</td><td>Staff</td><td>DRAFT</td></tr>
+                <tr><td>3. Upload Draft</td><td>Staff</td><td>DRAFT</td></tr>
+                <tr><td>4. Ajukan Review</td><td>Staff</td><td>UNDER_REVIEW</td></tr>
+                <tr><td>5. Review &amp; Approve</td><td>Principal</td><td>APPROVED</td></tr>
+                <tr><td>6. Upload Final</td><td>Staff</td><td>APPROVED</td></tr>
+                <tr><td>7. Finalisasi</td><td>Staff/Principal</td><td>FINALIZED</td></tr>
+                <tr><td>8. Beri Nomor Akta</td><td>Staff</td><td>FINALIZED</td></tr>
+                <tr><td>9. Attach Minuta</td><td>Staff</td><td>FINALIZED</td></tr>
+            </tbody>
+        </table>
+
+        <h3>11.3 Alur Akta PPAT</h3>
+        <table>
+            <thead><tr><th>Langkah</th><th>Pelaku</th><th>Status</th></tr></thead>
+            <tbody>
+                <tr><td>1. Buat Pekerjaan PPAT</td><td>Staff</td><td>-</td></tr>
+                <tr><td>2. Buat Properti</td><td>Staff</td><td>-</td></tr>
+                <tr><td>3. Attach Properti ke Matter</td><td>Staff</td><td>-</td></tr>
+                <tr><td>4. Buat Akta PPAT</td><td>Staff</td><td>DRAFT</td></tr>
+                <tr><td>5. Upload Draft</td><td>Staff</td><td>DRAFT</td></tr>
+                <tr><td>6. Ajukan Review</td><td>Staff</td><td>UNDER_REVIEW</td></tr>
+                <tr><td>7. Review &amp; Approve</td><td>Principal</td><td>APPROVED</td></tr>
+                <tr><td>8. Upload Final</td><td>Staff</td><td>APPROVED</td></tr>
+                <tr><td>9. Finalisasi</td><td>Staff/Principal</td><td>FINALIZED</td></tr>
+                <tr><td>10. Beri Nomor Akta</td><td>Staff</td><td>FINALIZED</td></tr>
+                <tr><td>11. Isi Warkah</td><td>Staff</td><td>INCOMPLETE</td></tr>
+                <tr><td>12. Upload Dokumen Warkah</td><td>Staff</td><td>INCOMPLETE → UNDER_REVIEW</td></tr>
+                <tr><td>13. Verifikasi Warkah</td><td>Principal</td><td>COMPLETE → FINALIZED</td></tr>
+            </tbody>
+        </table>
+
+        <h3>11.4 Keyboard Shortcuts</h3>
+        <table>
+            <thead><tr><th>Shortcut</th><th>Fungsi</th></tr></thead>
+            <tbody>
+                <tr><td><code>Ctrl/Cmd + K</code></td><td>Buka Global Search</td></tr>
+                <tr><td><code>Ctrl/Cmd + N</code></td><td>Quick Create</td></tr>
+                <tr><td><code>Esc</code></td><td>Tutup modal/drawer</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <!-- FOOTER -->
+        <div class="footer-meta">
+            <span><strong>Notary &amp; PPAT Office Management System</strong> &bull; Versi 1.0</span>
+            <span>Agustus 2026</span>
+        </div>
+
+    </div>
+
+</body>
+</html>
