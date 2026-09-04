@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { PaymentStatusBadge } from "@/features/billing/billing-badges";
-import { Link } from "@/i18n/navigation";
 import { billingQueryKeys, getPayments, verifyPayment } from "@/services/billing";
 
 /**
@@ -80,12 +79,7 @@ export function PaymentList() {
               <tr key={payment.id}>
                 <td className="px-3 py-2">
                   {payment.invoice ? (
-                    <Link
-                      href={`/billing/invoices/${payment.invoice.id}`}
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {payment.invoice.reference}
-                    </Link>
+                    <span className="font-medium">{payment.invoice.reference}</span>
                   ) : (
                     "—"
                   )}
