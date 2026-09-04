@@ -3,19 +3,31 @@
 Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bilingual
 (Indonesia / Inggris) dengan frontend Next.js dan backend Laravel.
 
-> **Status: M5 — Documents & Tasks, baru dimulai (M5.0 architecture lock).**
-> M0 sampai M4 sudah di-merge ke `main`.
+> **Status: M0–M8 selesai, seluruhnya sudah di-merge ke `main`.** Milestone plan ini
+> ([CLAUDE.md](CLAUDE.md) §2) berhenti di M8 — tidak ada M9. Bukan berarti aplikasi ini
+> "production ready": lihat "Keterbatasan yang sengaja masih terbuka" di bawah, dan baca
+> [docs/HANDOFF.md](docs/HANDOFF.md) sebelum mengasumsikan apa pun tentang status proyek.
 >
-> **Sudah ada:** autentikasi sesi dan otorisasi berbasis Data Scope, manajemen Pengguna dan
-> Peran, Party (Perorangan & Perusahaan), Proyek beserta Pihak Terkait, Jenis Layanan,
-> Pekerjaan (Matter) Notaris dan PPAT beserta para pihaknya, serta mesin alur kerja
-> (template, tahapan, instansiasi, dan riwayat perpindahan tahap).
+> **Sudah ada:** autentikasi sesi dan otorisasi berbasis Data Scope; manajemen Pengguna dan
+> Peran; Party (Perorangan & Perusahaan); Proyek beserta Pihak Terkait; Jenis Layanan;
+> Pekerjaan (Matter) Notaris dan PPAT beserta para pihaknya; mesin alur kerja (template,
+> tahapan, instansiasi, riwayat perpindahan tahap); Dokumen dan Tugas (dengan storage privat
+> dan versioning); Akta Notaris dan Minuta Akta; Akta PPAT, Properti (dengan riwayat
+> kepemilikan), dan Warkah; Dashboard; Billing (Quotation, Invoice, Payment, Disbursement);
+> serta Reports (operasional, Notaris, PPAT, finansial, audit).
 >
-> **Belum ada:** Dokumen, Tugas, Akta Notaris, Akta PPAT, Warkah, Properti, Billing, dan
-> Reports. M5 mengerjakan Dokumen dan Tugas; sisanya mulai M6.
+> **Belum ada, dan sengaja belum dikerjakan:** pajak PPAT (`ppat.taxes.*` tidak ada di
+> katalog permission), Register dan Protocol Notaris/PPAT, kewajiban pelaporan bulanan PPAT,
+> serta Calendar (kanonik di skema tetapi tidak dimiliki milestone mana pun). Setiap item
+> tercatat sebagai open item di [docs/DECISIONS.md](docs/DECISIONS.md) dan
+> [docs/HANDOFF.md](docs/HANDOFF.md) §7 — bukan diam-diam terlewat.
 >
 > **Mesin alur kerja sengaja dikirim kosong.** Tidak ada template Notaris/PPAT bawaan: isi
 > alur kerja menunggu validasi domain, bukan menunggu pengembangan (D-104).
+>
+> **Aturan hukum yang belum divalidasi domain tidak boleh dikarang.** `08_NOTARY_WORKFLOW.md`
+> dan `09_PPAT_WORKFLOW.md` masih berstatus `DRAFT — DOMAIN VALIDATION REQUIRED` dan tidak
+> boleh dipakai untuk mengimplementasikan alur kerja hukum (`CLAUDE.md` §58, §62).
 
 ## Arsitektur
 
@@ -294,10 +306,16 @@ Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
 | [docs/13_M3_PROJECT_ARCHITECTURE.md](docs/13_M3_PROJECT_ARCHITECTURE.md) | Architecture lock M3 — Project |
 | [docs/14_M4_MATTER_ARCHITECTURE.md](docs/14_M4_MATTER_ARCHITECTURE.md) | Architecture lock M4 — Matter & Workflow |
 | [docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md](docs/15_M5_DOCUMENT_TASK_ARCHITECTURE.md) | Architecture lock M5 — Document & Task |
-| [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan |
+| [docs/16_M6_NOTARY_ARCHITECTURE.md](docs/16_M6_NOTARY_ARCHITECTURE.md) | Architecture lock M6 — Notary |
+| [docs/17_M7_PPAT_ARCHITECTURE.md](docs/17_M7_PPAT_ARCHITECTURE.md) | Architecture lock M7 — PPAT |
+| [docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md](docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md) | Architecture lock M8 — Dashboard, Billing & Reports |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi, plus register open item |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan per milestone |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | **Orientasi status proyek saat ini** — baca ini dulu untuk tahu posisi aktual, bukan dokumen ini |
+| [scripts/README.md](scripts/README.md) | Panduan operasional backup & pemulihan data untuk PC kantor (Bahasa Indonesia) |
+| [user_manual.html](user_manual.html) | Manual pengguna akhir untuk staf kantor |
 
-Empat berkas `12_`, `13_`, `14_`, dan `15_` adalah **architecture lock** per milestone: masing-masing
+Tujuh berkas `12_` sampai `18_` adalah **architecture lock** per milestone: masing-masing
 mencatat apa yang boleh dibangun domainnya, apa yang tidak, dan pernyataan mana yang disalin dari
 sumber kanonik alih-alih diputuskan setempat. Baca lock domain yang sedang dikerjakan sebelum
 mengubahnya (`CLAUDE.md` §58).
@@ -308,18 +326,22 @@ divalidasi oleh sumber domain.
 ## Milestone
 
 ```text
-M0   Foundation                  selesai
-M1   Identity & Access Management selesai
-M2   Party / Individual / Company selesai
-M3   Project Management           selesai
-M4   Matter & Workflow Engine     selesai, sudah di-merge ke main
-M5   Documents & Tasks           sedang berjalan (M5.0 architecture lock)
-M6   Notary Module
-M7   PPAT Module
-M8   Dashboard, Billing & Reports
+M0   Foundation                    selesai
+M1   Identity & Access Management  selesai
+M2   Party / Individual / Company  selesai
+M3   Project Management            selesai
+M4   Matter & Workflow Engine      selesai
+M5   Documents & Tasks             selesai
+M6   Notary Module                 selesai
+M7   PPAT Module                   selesai
+M8   Dashboard, Billing & Reports  selesai
 ```
 
-Urutan ini mengikuti [docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) dan `CLAUDE.md` §2.
+Seluruh milestone M0–M8 sudah di-merge ke `main`. Urutan ini mengikuti
+[docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) dan `CLAUDE.md` §2, yang berhenti di M8 —
+tidak ada M9 dalam rencana ini. Untuk status terkini secara rinci (angka aktual, apa yang masih
+terbuka, dan apa yang dikerjakan berikutnya di luar rencana milestone ini), baca
+[docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Lisensi
 
