@@ -8,7 +8,6 @@ import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { InvoiceOverdueBadge, InvoiceStatusBadge } from "@/features/billing/billing-badges";
-import { Link } from "@/i18n/navigation";
 import { billingQueryKeys, getInvoices } from "@/services/billing";
 
 /**
@@ -102,12 +101,7 @@ export function InvoiceList() {
               {invoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td className="px-3 py-2">
-                    <Link
-                      href={`/billing/invoices/${invoice.id}`}
-                      className="underline-offset-4 hover:underline"
-                    >
-                      {invoice.invoice_number}
-                    </Link>
+                    <span className="font-medium">{invoice.invoice_number}</span>
                     <div className="text-muted-foreground truncate text-xs">{invoice.title}</div>
                   </td>
 

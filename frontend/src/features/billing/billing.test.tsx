@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AmountField } from "@/features/billing/amount-field";
 import { InvoiceList } from "@/features/billing/invoice-list";
 import { PaymentList } from "@/features/billing/payment-list";
+import { QuotationList } from "@/features/billing/quotation-list";
 import { renderWithProviders } from "@/test/render";
-import type { Invoice, Payment } from "@/types/billing";
+import type { Invoice, Payment, Quotation } from "@/types/billing";
 
 vi.mock("@/services/billing", () => ({
   billingQueryKeys: {
@@ -46,6 +47,26 @@ function invoice(overrides: Partial<Invoice> = {}): Invoice {
     amounts_visible: true,
     total_amount: "7500000.00",
     outstanding_amount: "7500000.00",
+    created_at: null,
+    updated_at: null,
+    ...overrides,
+  };
+}
+
+function quotation(overrides: Partial<Quotation> = {}): Quotation {
+  return {
+    id: "quo1",
+    quotation_number: "QUO-2026-000001",
+    title: "Jasa AJB",
+    description: null,
+    status: "DRAFT",
+    currency: "IDR",
+    valid_until: "2026-09-01",
+    approved_at: null,
+    notes: null,
+    amounts_visible: true,
+    total_amount: "5000000.00",
+    invoices_count: 0,
     created_at: null,
     updated_at: null,
     ...overrides,
@@ -112,7 +133,37 @@ describe("AmountField", () => {
   });
 });
 
+/**
+ * The detail pages these numbers used to link to (billing/quotations/[id],
+ * billing/invoices/[id]) are not built — the audit that found the two dead
+ * links recorded them as a 404 on every click. The number stays the row's
+ * identifier; it must simply never be a link into a page that doesn't exist.
+ */
+describe("QuotationList", () => {
+  it("shows the quotation number and title as plain text, not a link", async () => {
+    vi.mocked(services.getQuotations).mockResolvedValue({ data: [quotation()] });
+
+    renderWithProviders(<QuotationList />);
+
+    expect(await screen.findByText("QUO-2026-000001")).toBeInTheDocument();
+    expect(screen.getByText("Jasa AJB")).toBeInTheDocument();
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+});
+
 describe("InvoiceList", () => {
+  it("shows the invoice number and title as plain text, not a link", async () => {
+    vi.mocked(services.getInvoices).mockResolvedValue({ data: [invoice()] });
+
+    renderWithProviders(<InvoiceList />);
+
+    expect(await screen.findByText("INV-2026-000001")).toBeInTheDocument();
+    expect(screen.getByText("Jasa AJB")).toBeInTheDocument();
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("shows the record and its lateness while withholding the money", async () => {
     vi.mocked(services.getInvoices).mockResolvedValue({
       data: [
@@ -149,6 +200,23 @@ describe("InvoiceList", () => {
 });
 
 describe("PaymentList", () => {
+  it("shows the paid invoice's reference as plain text, not a link", async () => {
+    vi.mocked(services.getPayments).mockResolvedValue({
+      data: [
+        payment({
+          invoice: { id: "inv1", reference: "INV-2026-000001" },
+          capabilities: { can_verify: false },
+        }),
+      ],
+    });
+
+    renderWithProviders(<PaymentList />);
+
+    expect(await screen.findByText("INV-2026-000001")).toBeInTheDocument();
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
   it("offers verify only where the server says it would succeed", async () => {
     vi.mocked(services.getPayments).mockResolvedValue({
       data: [

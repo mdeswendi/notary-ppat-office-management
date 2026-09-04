@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { QuotationStatusBadge } from "@/features/billing/billing-badges";
-import { Link } from "@/i18n/navigation";
 import { billingQueryKeys, getQuotations } from "@/services/billing";
 
 /**
@@ -66,12 +65,7 @@ export function QuotationList() {
           {quotations.map((quotation) => (
             <tr key={quotation.id}>
               <td className="px-3 py-2">
-                <Link
-                  href={`/billing/quotations/${quotation.id}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {quotation.quotation_number}
-                </Link>
+                <span className="font-medium">{quotation.quotation_number}</span>
                 <div className="text-muted-foreground truncate text-xs">{quotation.title}</div>
               </td>
 
