@@ -11,6 +11,7 @@ use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
 use App\Domains\Demo\Exceptions\DemoPrimaryActorPasswordInvalid;
 use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
 use App\Domains\Matter\Enums\MatterDomain;
+use App\Domains\Notary\Actions\FileMinuta;
 use App\Domains\Notary\Actions\FinalizeNotaryDeed;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Task\Actions\CreateTask;
@@ -21,6 +22,7 @@ use App\Models\DocumentVersion;
 use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\NotaryDeed;
+use App\Models\NotaryMinuta;
 use App\Models\Office;
 use App\Models\Organization;
 use App\Models\Party;
@@ -173,6 +175,7 @@ function demoEntityCounts(): array
         'documents' => Document::query()->count(),
         'tasks' => Task::query()->count(),
         'notary_deeds' => NotaryDeed::query()->count(),
+        'notary_minuta' => DB::table('notary_minuta')->count(),
     ];
 }
 
@@ -399,9 +402,12 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and($result->parties)->toBe(9)
             ->and($result->projects)->toBe(3)
             ->and($result->matters)->toBe(3)
-            ->and($result->documents)->toBe(6)
+            // 6 ordinary demo Documents plus one filed as the Minuta's own
+            // record — see createNotaryMinuta().
+            ->and($result->documents)->toBe(7)
             ->and($result->tasks)->toBe(6)
-            ->and($result->notaryDeeds)->toBe(4);
+            ->and($result->notaryDeeds)->toBe(4)
+            ->and($result->notaryMinutas)->toBe(1);
 
         expect(Organization::query()->count())->toBe(1)
             ->and(Office::query()->count())->toBe(1)
@@ -411,9 +417,10 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and(Company::query()->count())->toBe(3)
             ->and(Project::query()->count())->toBe(3)
             ->and(Matter::query()->count())->toBe(3)
-            ->and(Document::query()->count())->toBe(6)
+            ->and(Document::query()->count())->toBe(7)
             ->and(Task::query()->count())->toBe(6)
-            ->and(NotaryDeed::query()->count())->toBe(4);
+            ->and(NotaryDeed::query()->count())->toBe(4)
+            ->and(DB::table('notary_minuta')->count())->toBe(1);
     });
 
     it('refuses a second run, throwing before any write, and changes nothing', function () {
@@ -577,14 +584,13 @@ describe('DemoDataSeeder — orchestration', function () {
         }
     });
 
-    it('creates no Minuta, Workflow, PPAT, or Billing entity', function () {
-        // notary_deeds is deliberately absent from this list — see the
-        // "DemoDataSeeder — Notary Deeds" describe block below for what it
-        // contains and does not contain.
+    it('creates no Workflow, PPAT, or Billing entity', function () {
+        // notary_deeds and notary_minuta are deliberately absent from this
+        // list — see the "DemoDataSeeder — Notary Deeds" and "— Notary
+        // Minuta" describe blocks below for what each contains and does not.
         app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach ([
-            'notary_minuta',
             'ppat_deeds', 'properties', 'property_owners', 'ppat_warkah', 'ppat_warkah_items',
             'matter_workflows', 'matter_stage_instances', 'workflow_templates',
             'quotations', 'invoices', 'payments', 'disbursements',
@@ -634,7 +640,7 @@ describe('DemoDataSeeder — primary actor login credentials', function () {
         $result = app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         expect(array_keys(get_object_vars($result)))->toBe([
-            'officeCode', 'users', 'parties', 'projects', 'matters', 'documents', 'tasks', 'notaryDeeds',
+            'officeCode', 'users', 'parties', 'projects', 'matters', 'documents', 'tasks', 'notaryDeeds', 'notaryMinutas',
         ]);
 
         foreach (get_object_vars($result) as $value) {
@@ -1277,7 +1283,213 @@ describe('DemoDataSeeder — Dashboard task assignments (Task 3B)', function () 
         app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach ([
-            'notary_minuta',
+            'ppat_deeds', 'properties', 'property_owners', 'ppat_warkah', 'ppat_warkah_items',
+            'matter_workflows', 'matter_stage_instances', 'workflow_templates',
+            'quotations', 'invoices', 'payments', 'disbursements',
+        ] as $table) {
+            expect(DB::table($table)->count())->toBe(0);
+        }
+    });
+});
+
+describe('DemoDataSeeder — Notary Minuta (Task 3C)', function () {
+    beforeEach(function () {
+        Storage::fake('local_demo');
+        Storage::fake('local');
+        bootstrapLoginReadyRole();
+    });
+
+    it('files exactly one Notary Minuta, against Akta Notaris Demo 4 and no other deed', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+        $others = NotaryDeed::query()->where('id', '!=', $finalized->getKey())->pluck('id');
+
+        expect(NotaryMinuta::query()->count())->toBe(1);
+
+        $minuta = NotaryMinuta::query()->firstOrFail();
+
+        expect($minuta->notary_deed_id)->toBe($finalized->getKey())
+            ->and(NotaryMinuta::query()->whereIn('notary_deed_id', $others)->count())->toBe(0);
+    });
+
+    it('leaves the FINALIZED deed exactly as it was — no number, date, type, or status change', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+
+        expect($finalized->status)->toBe(NotaryDeedStatus::FINALIZED)
+            ->and($finalized->isReadOnly())->toBeTrue()
+            ->and($finalized->deed_number)->toBeNull()
+            ->and($finalized->deed_date)->toBeNull()
+            ->and($finalized->deed_type_code)->toBeNull();
+    });
+
+    it('was filed through FileMinuta, never a direct model write — every system field bears its mark', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+        $minuta = NotaryMinuta::query()->firstOrFail();
+
+        // office_id and notary_deed_id are decided by FileMinuta itself, never
+        // accepted from a caller (see its own docblock) — proof this went
+        // through the Action rather than a hand-filled row.
+        expect($minuta->office_id)->toBe($office->getKey())
+            ->and($minuta->office_id)->toBe($finalized->office_id)
+            ->and($minuta->notary_deed_id)->toBe($finalized->getKey())
+            ->and($minuta->document_id)->not->toBeNull()
+            // No shelf metadata is invented — FileMinuta's own default for an
+            // empty $attributes array.
+            ->and($minuta->archive_location)->toBeNull()
+            ->and($minuta->volume_number)->toBeNull()
+            ->and($minuta->bundle_number)->toBeNull()
+            // Canonical columns nothing in M6 writes — proof no code path
+            // other than FileMinuta (which never touches them) could have
+            // produced this row.
+            ->and($minuta->release_status)->toBeNull()
+            ->and($minuta->archived_at)->toBeNull()
+            ->and($minuta->archived_by)->toBeNull();
+    });
+
+    it('lets the primary actor file and view the Minuta under the real NotaryDeedPolicy', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+
+        $policy = app(NotaryDeedPolicy::class);
+
+        expect($policy->createMinuta($actor, $finalized))->toBeTrue()
+            ->and($policy->viewMinuta($actor, $finalized))->toBeTrue();
+    });
+
+    it('refuses a role-less supporting user under the same real Policy', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $supportingUser = User::query()->where('email', '!=', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+
+        expect($supportingUser->roles()->count())->toBe(0);
+
+        $policy = app(NotaryDeedPolicy::class);
+
+        expect($policy->createMinuta($supportingUser, $finalized))->toBeFalse()
+            ->and($policy->viewMinuta($supportingUser, $finalized))->toBeFalse();
+    });
+
+    it('stores the Minuta filing Document on local_demo, never on local, and never under a public-looking path', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $minuta = NotaryMinuta::query()->with('document.currentVersion')->firstOrFail();
+        $document = $minuta->document;
+
+        expect($document)->not->toBeNull();
+
+        $version = DocumentVersion::query()->findOrFail($document->current_version_id);
+
+        expect($version->storage_disk)->toBe(DemoDataSeeder::DEMO_DISK)
+            ->and($version->storage_path)->not->toContain('public/')
+            ->and($version->storage_path)->not->toContain('uploads/')
+            ->and(Storage::disk('local_demo')->exists($version->storage_path))->toBeTrue()
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
+    });
+
+    it('uploads a real, valid PDF — never plain text wearing a .pdf extension', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $minuta = NotaryMinuta::query()->with('document.currentVersion')->firstOrFail();
+        $version = DocumentVersion::query()->findOrFail($minuta->document->current_version_id);
+
+        // mime_type is recorded from the file's actual bytes at upload time
+        // (DocumentStorage::store() calls getMimeType(), never trusting the
+        // filename) — a renamed .txt would have recorded text/plain here.
+        expect($version->mime_type)->toBe('application/pdf');
+
+        $bytes = Storage::disk('local_demo')->get($version->storage_path);
+
+        expect(substr($bytes, 0, 5))->toBe('%PDF-')
+            ->and($bytes)->toContain('%%EOF');
+    });
+
+    it('carries a plain-text demo marker inside the PDF body, and no sensitive or legal-looking data', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $minuta = NotaryMinuta::query()->with('document.currentVersion')->firstOrFail();
+        $version = DocumentVersion::query()->findOrFail($minuta->document->current_version_id);
+
+        $bytes = Storage::disk('local_demo')->get($version->storage_path);
+
+        expect($bytes)->toContain('DOKUMEN DEMO')
+            ->toContain('BUKAN DOKUMEN HUKUM');
+
+        foreach (['NIK', 'NPWP', 'nomor akta', 'repertorium', str_repeat('3', 16)] as $needle) {
+            expect(strtoupper($bytes))->not->toContain(strtoupper($needle));
+        }
+    });
+
+    it('returns everything the frontend Minuta section needs from the real endpoint, and nothing it should not', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $finalized = NotaryDeed::query()->where('title', 'Akta Notaris Demo 4')->firstOrFail();
+
+        $response = $this->actingAs($actor)
+            ->getJson("/api/v1/notary/deeds/{$finalized->getKey()}/minuta")
+            ->assertOk();
+
+        $response
+            ->assertJsonPath('data.notary_deed_id', $finalized->getKey())
+            ->assertJsonPath('data.document.title', 'Minuta Akta Demo 4')
+            ->assertJsonPath('data.archive_location', null)
+            ->assertJsonPath('data.release_status', null)
+            ->assertJsonPath('data.can_update', true);
+
+        $document = $response->json('data.document');
+
+        // The Document stub is deliberately minimal (NotaryMinutaResource's
+        // own contract) — proof no storage internals ever reach the payload.
+        expect(array_keys($document))->toBe(['id', 'document_number', 'title', 'status', 'is_sensitive']);
+
+        $flat = json_encode($response->json());
+
+        expect($flat)->not->toContain('storage_path')
+            ->and($flat)->not->toContain('checksum')
+            ->and($flat)->not->toContain('local_demo');
+    });
+
+    it('records no Activity for the Minuta filing, because FileMinuta writes none', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $minuta = NotaryMinuta::query()->firstOrFail();
+
+        expect(Activity::query()->where('subject_id', $minuta->getKey())->count())->toBe(0);
+    });
+
+    it('leaves no orphaned file and rolls back the whole dataset when filing the Minuta fails', function () {
+        // FileMinuta is the last of the two Actions createNotaryMinuta()
+        // calls, so failing it exercises the full chain being rolled back —
+        // including the Document and its file that UploadDocument had
+        // already written just before it, inside the same outer transaction.
+        $this->mock(FileMinuta::class, function ($mock) {
+            $mock->shouldReceive('handle')->andThrow(new RuntimeException('simulated mid-run failure'));
+        });
+
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))->toThrow(RuntimeException::class);
+
+        expect(Organization::query()->count())->toBe(0)
+            ->and(Office::query()->count())->toBe(0)
+            ->and(NotaryDeed::query()->count())->toBe(0)
+            ->and(NotaryMinuta::query()->count())->toBe(0)
+            ->and(Document::query()->count())->toBe(0)
+            ->and(Task::query()->count())->toBe(0)
+            ->and(Storage::disk('local_demo')->allFiles())->toBe([]);
+    });
+
+    it('creates no Workflow, PPAT, or Billing entity as a side effect of filing the Minuta', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        foreach ([
             'ppat_deeds', 'properties', 'property_owners', 'ppat_warkah', 'ppat_warkah_items',
             'matter_workflows', 'matter_stage_instances', 'workflow_templates',
             'quotations', 'invoices', 'payments', 'disbursements',

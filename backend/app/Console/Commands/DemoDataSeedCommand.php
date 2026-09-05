@@ -119,6 +119,7 @@ class DemoDataSeedCommand extends Command
             ['Documents', $result->documents],
             ['Tasks', $result->tasks],
             ['Notary Deeds', $result->notaryDeeds],
+            ['Notary Minuta', $result->notaryMinutas],
         ]);
         $this->newLine();
         $this->info('Demo dataset created.');
