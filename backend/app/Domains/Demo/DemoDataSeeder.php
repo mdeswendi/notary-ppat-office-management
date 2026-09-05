@@ -51,6 +51,7 @@ use App\Policies\NotaryDeedPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -262,7 +263,7 @@ class DemoDataSeeder
 
         $documents = $this->createDocuments($actor, $projects, $matters);
         $notaryDeeds = $this->createNotaryDeeds($actor, $matters, $documents);
-        $tasks = $this->createTasks($actor, $projects, $matters);
+        $tasks = $this->createTasks($actor, $projects, $matters, $users);
 
         return new DemoSeedResult(
             officeCode: self::OFFICE_CODE,
@@ -626,28 +627,120 @@ class DemoDataSeeder
     }
 
     /**
+     * Six Tasks, one per canonical status with `OPEN` repeated, and —
+     * unlike before — every one **assigned at creation** (Task 3B).
+     *
+     * **Why this changed.** `DashboardAggregator::tasks()` ("My Tasks") reads
+     * only rows where `assigned_to` is the signed-in actor, and
+     * `::workload()` sums `task_count`/`matter_count` per user and drops
+     * anyone whose total is zero. Every Task this class created before Task
+     * 3B left `assigned_to` `null` — nobody's own, on purpose, but the
+     * accidental effect was that both panels rendered their empty state
+     * regardless of how many Tasks existed. `CreateTask`'s own `$assignee`
+     * parameter is the fix: it is the same parameter a real Controller
+     * already resolves and passes, so assigning here is not a new capability
+     * this class reaches for, only a use of one it always had available.
+     *
+     * **Three of the primary actor's Tasks are also given `due_at`**, at the
+     * same offsets `DashboardTest::"buckets the actor own work by when it is
+     * due"` already uses — `now() + 2 hours` for "today", `now() - 1 day` for
+     * "overdue", `now() + 3 days` for "upcoming" — computed at seed time
+     * against {@see Date::now()}, never a hardcoded calendar date that would
+     * go stale. **The "today" Task legitimately also appears in "upcoming"**:
+     * the aggregator's upcoming query is `whereBetween(due_at, [now, now +
+     * 7 days])`, which a few hours from now satisfies just as well as three
+     * days from now does. That overlap is not worked around here — the
+     * official Dashboard test accepts it (`upcoming` count 2, not 1, for the
+     * identical three-Task shape), so reproducing it is reproducing shipped
+     * behaviour, not a bug.
+     *
+     * **Only three of the four supporting users become assignees, and only
+     * one of those three ever shows up in Workload.** A `COMPLETED` and a
+     * `CANCELLED` Task are handed to two of them so every canonical status
+     * stays represented, but `TaskStatus::openValues()` excludes both from
+     * every Dashboard task/workload query — by the aggregator's own
+     * definition, settled work is not "load," so those two users
+     * legitimately do not appear as Workload rows. The fourth supporting
+     * user gets an ordinary `OPEN` Task instead, specifically so Workload has
+     * a second row beyond the primary actor. Six Tasks cannot stretch
+     * further than that while still covering five statuses and three due-date
+     * buckets: a third Workload row would need a fourth active-status Task,
+     * and the two settled ones are not optional (D-119's ladder must stay
+     * represented). This is a recorded trade-off, not an oversight.
+     *
+     * **`Matter.pic_user_id` is deliberately left untouched** (still `null`,
+     * per {@see createMatters()}). `workload()`'s exclusion is `$tasks === 0
+     * && $matters === 0`; giving the primary actor and the fourth supporting
+     * user a Task each already clears that bar without reaching for a second
+     * Action this dataset has no other reason to call.
+     *
      * @param  array<int, Project>  $projects
      * @param  array<int, Matter>  $matters
+     * @param  array<int, User>  $users
      * @return array<int, Task>
      */
-    private function createTasks(User $actor, array $projects, array $matters): array
+    private function createTasks(User $actor, array $projects, array $matters, array $users): array
     {
-        $open1 = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 1'], $projects[0]);
-        $open2 = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 2'], null, $matters[0]);
+        $now = Date::now();
 
-        $inProgress = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 3'], $projects[1]);
-        $inProgress = $this->updateTask->handle($actor, $inProgress, ['status' => 'IN_PROGRESS']);
+        $today = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 1', 'due_at' => $now->copy()->addHours(2)],
+            $projects[0],
+            null,
+            $actor,
+        );
 
-        $waiting = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 4'], null, $matters[1]);
-        $waiting = $this->updateTask->handle($actor, $waiting, ['status' => 'WAITING']);
+        $overdue = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 2', 'due_at' => $now->copy()->subDay()],
+            null,
+            $matters[0],
+            $actor,
+        );
+        $overdue = $this->updateTask->handle($actor, $overdue, ['status' => 'IN_PROGRESS']);
 
-        $completed = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 5'], $projects[2]);
+        $upcoming = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 3', 'due_at' => $now->copy()->addDays(3)],
+            $projects[1],
+            null,
+            $actor,
+        );
+        $upcoming = $this->updateTask->handle($actor, $upcoming, ['status' => 'WAITING']);
+
+        // Excluded from every Dashboard task/workload query once settled —
+        // see the method docblock. due_at is irrelevant to a COMPLETED Task
+        // for the same reason, so none is set.
+        $completed = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 4'],
+            $projects[2],
+            null,
+            $users[1],
+        );
         $completed = $this->completeTask->handle($actor, $completed);
 
-        $cancelled = $this->createTask->handle($actor, ['title' => 'Tugas Administratif Demo 6'], null, $matters[2]);
+        $cancelled = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 5'],
+            null,
+            $matters[2],
+            $users[2],
+        );
         $cancelled = $this->cancelTask->handle($actor, $cancelled);
 
-        return [$open1, $open2, $inProgress, $waiting, $completed, $cancelled];
+        // The second Workload row: an ordinary OPEN Task for the one
+        // supporting user whose work stays "live" rather than settled.
+        $openSupporting = $this->createTask->handle(
+            $actor,
+            ['title' => 'Tugas Administratif Demo 6', 'due_at' => $now->copy()->addDays(5)],
+            null,
+            $matters[0],
+            $users[3],
+        );
+
+        return [$today, $overdue, $upcoming, $completed, $cancelled, $openSupporting];
     }
 
     private function cleanupDemoDisk(): void
