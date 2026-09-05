@@ -13,7 +13,7 @@ use ReflectionMethod;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    Storage::fake(DocumentStorage::DISK);
+    Storage::fake('local');
 });
 
 /*
@@ -248,6 +248,33 @@ it('issues no URL of any kind', function (): void {
     foreach (['->url(', '->temporaryUrl(', 'URL::signedRoute', 'Storage::url'] as $forbidden) {
         expect($executable)->not->toContain($forbidden);
     }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Disk is a constructor parameter, not a constant (demo tooling isolation)
+|--------------------------------------------------------------------------
+*/
+
+it('defaults to the local disk when constructed with no argument, unchanged from before', function (): void {
+    expect(app(DocumentStorage::class)->diskName())->toBe('local')
+        ->and((new DocumentStorage)->diskName())->toBe('local');
+});
+
+it('stores to whatever disk it was constructed with, and never touches local instead', function (): void {
+    Storage::fake('local_demo');
+
+    $document = Document::factory()->create();
+    $demoStorage = new DocumentStorage('local_demo');
+
+    $metadata = $demoStorage->store(
+        UploadedFile::fake()->createWithContent('dokumen-demo.pdf', 'isi demo'),
+        $document,
+    );
+
+    expect($metadata['storage_disk'])->toBe('local_demo')
+        ->and(Storage::disk('local_demo')->exists($metadata['storage_path']))->toBeTrue()
+        ->and(Storage::disk('local')->exists($metadata['storage_path']))->toBeFalse();
 });
 
 it('keeps the private disk unserved over HTTP', function (): void {

@@ -54,12 +54,35 @@ use RuntimeException;
  * SHA-256, computed from **the bytes actually written** rather than from the
  * upload before it lands. Hashing the source would attest to something other than
  * what is stored, which is precisely the case a checksum exists to catch.
+ *
+ * ## The disk is a constructor parameter, not a constant
+ *
+ * Every real document goes through the default — `app(DocumentStorage::class)`
+ * resolves this with no disk argument, so production behaviour is exactly what
+ * it was when `DISK` was a class constant. The parameter exists for exactly one
+ * other caller: local demo tooling, which constructs its own
+ * `new DocumentStorage('local_demo')` so demo files land on a disk that is never
+ * `storage/app/private` and is never read by anything that serves a real
+ * document. Nothing in this class decides which disk that is beyond taking
+ * whatever it is handed.
  */
 class DocumentStorage
 {
-    public const DISK = 'local';
-
     public const ROOT = 'documents';
+
+    public function __construct(
+        private readonly string $disk = 'local',
+    ) {}
+
+    /**
+     * The disk this instance stores to and reads from — never a credential or a
+     * path, just the configured disk name a caller may need to clean up after
+     * itself (see {@see delete()}).
+     */
+    public function diskName(): string
+    {
+        return $this->disk;
+    }
 
     /**
      * Store an uploaded file and return the metadata a version row needs.
@@ -97,7 +120,7 @@ class DocumentStorage
         }
 
         return [
-            'storage_disk' => self::DISK,
+            'storage_disk' => $this->disk,
             'storage_path' => $path,
             'original_filename' => $file->getClientOriginalName(),
             'stored_filename' => $storedFilename,
@@ -186,7 +209,7 @@ class DocumentStorage
 
     private function disk(): Filesystem
     {
-        return Storage::disk(self::DISK);
+        return Storage::disk($this->disk);
     }
 
     /**

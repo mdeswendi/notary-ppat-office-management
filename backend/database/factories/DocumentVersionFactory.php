@@ -47,7 +47,7 @@ class DocumentVersionFactory extends Factory
             // duplicate, which is the point.
             'version_number' => 1,
 
-            'storage_disk' => DocumentStorage::DISK,
+            'storage_disk' => 'local',
 
             'storage_path' => fn (array $attributes): string => sprintf(
                 '%s/%s/%s/%s/%s.pdf',
