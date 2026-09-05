@@ -19,6 +19,10 @@ use App\Domains\Matter\Actions\AddMatterParty;
 use App\Domains\Matter\Actions\CompleteMatter;
 use App\Domains\Matter\Actions\CreateMatter;
 use App\Domains\Matter\Enums\MatterDomain;
+use App\Domains\Notary\Actions\ApproveNotaryDeed;
+use App\Domains\Notary\Actions\CreateNotaryDeed;
+use App\Domains\Notary\Actions\FinalizeNotaryDeed;
+use App\Domains\Notary\Actions\ReviewNotaryDeed;
 use App\Domains\Party\Actions\CreateCompany;
 use App\Domains\Party\Actions\CreateIndividual;
 use App\Domains\Party\Enums\CompanyEntityType;
@@ -32,6 +36,7 @@ use App\Models\Company;
 use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Matter;
+use App\Models\NotaryDeed;
 use App\Models\Office;
 use App\Models\Organization;
 use App\Models\Party;
@@ -42,6 +47,7 @@ use App\Policies\CompanyPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\MatterPolicy;
+use App\Policies\NotaryDeedPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use Illuminate\Http\UploadedFile;
@@ -85,10 +91,14 @@ use Throwable;
  *
  * **No legal numbering is invented.** `project_number`, `matter_number` and
  * `document_number` all come from the same allocators production uploads and
- * creates use — this class supplies no number itself, anywhere. Deed, Warkah,
- * Property, Workflow, Quotation, Invoice and Payment entities are entirely out
- * of scope for this dataset; see the class this ships alongside,
- * `DemoDataSeedCommand`, for what is and is not built.
+ * creates use — this class supplies no number itself, anywhere.
+ * `notary_deeds.deed_number` is no exception: {@see createNotaryDeeds()}
+ * never calls `RecordNotaryDeedNumber`, so it stays `null` on every deed this
+ * class creates, including the `FINALIZED` one (D-120 permits this
+ * explicitly). Warkah, Property, Workflow, PPAT Deed, Quotation, Invoice and
+ * Payment entities remain entirely out of scope for this dataset; see the
+ * class this ships alongside, `DemoDataSeedCommand`, for what is and is not
+ * built.
  *
  * **Organization and Office are the one exception to "through an Action."**
  * No `CreateOrganization` or `CreateOffice` Action exists anywhere in this
@@ -150,6 +160,7 @@ class DemoDataSeeder
         private readonly MatterPolicy $matterPolicy,
         private readonly DocumentPolicy $documentPolicy,
         private readonly TaskPolicy $taskPolicy,
+        private readonly NotaryDeedPolicy $notaryDeedPolicy,
         private readonly CreateIndividual $createIndividual,
         private readonly CreateCompany $createCompany,
         private readonly CreateProject $createProject,
@@ -165,6 +176,10 @@ class DemoDataSeeder
         private readonly CompleteTask $completeTask,
         private readonly CancelTask $cancelTask,
         private readonly UpdateTask $updateTask,
+        private readonly CreateNotaryDeed $createNotaryDeed,
+        private readonly ReviewNotaryDeed $reviewNotaryDeed,
+        private readonly ApproveNotaryDeed $approveNotaryDeed,
+        private readonly FinalizeNotaryDeed $finalizeNotaryDeed,
     ) {}
 
     /**
@@ -246,6 +261,7 @@ class DemoDataSeeder
         $this->linkMatterParties($actor, $matters, $parties);
 
         $documents = $this->createDocuments($actor, $projects, $matters);
+        $notaryDeeds = $this->createNotaryDeeds($actor, $matters, $documents);
         $tasks = $this->createTasks($actor, $projects, $matters);
 
         return new DemoSeedResult(
@@ -256,6 +272,7 @@ class DemoDataSeeder
             matters: count($matters),
             documents: count($documents),
             tasks: count($tasks),
+            notaryDeeds: count($notaryDeeds),
         );
     }
 
@@ -309,8 +326,8 @@ class DemoDataSeeder
      * and only to that one user — then proves the assignment is not merely
      * cosmetic by calling the exact Policy classes a real Controller would:
      * {@see IndividualPolicy}, {@see CompanyPolicy}, {@see ProjectPolicy},
-     * {@see MatterPolicy} for both domains, {@see DocumentPolicy}, and
-     * {@see TaskPolicy}.
+     * {@see MatterPolicy} for both domains, {@see DocumentPolicy},
+     * {@see TaskPolicy}, and {@see NotaryDeedPolicy}.
      *
      * **Never creates a Role, never grants a permission.** Both come only
      * from `permissions:sync` and `app:bootstrap` (or equivalent manual Role
@@ -354,6 +371,7 @@ class DemoDataSeeder
             'PPAT Matters' => fn (): bool => $this->matterPolicy->viewAny($actor, MatterDomain::PPAT),
             'Documents' => fn (): bool => $this->documentPolicy->viewAny($actor),
             'Tasks' => fn (): bool => $this->taskPolicy->viewAny($actor),
+            'Notary Deeds' => fn (): bool => $this->notaryDeedPolicy->viewAny($actor),
         ];
 
         foreach ($surfaces as $surface => $isReachable) {
@@ -541,6 +559,70 @@ class DemoDataSeeder
         }
 
         return $documents;
+    }
+
+    /**
+     * Four Notarial Deeds, distributed across the two NOTARY Matters {@see
+     * createMatters()} already built — never a Matter created for this
+     * purpose alone, since `Matter::notaryDeeds()` is an official `hasMany`
+     * relation and nothing about the domain caps one Matter to one Deed.
+     *
+     * Entirely through the same four lifecycle Actions a real Controller
+     * calls ({@see CreateNotaryDeed}, {@see ReviewNotaryDeed}, {@see
+     * ApproveNotaryDeed}, {@see FinalizeNotaryDeed}) — never `RecordNotaryDeedNumber`,
+     * so `deed_number` stays `null` on every one of the four, exactly as a
+     * deed with no number assigned yet already is (D-120: numbering is its
+     * own capability, never implied by any lifecycle act, and a deed may be
+     * `FINALIZED` with none). `deed_type_code` and `deed_date` are likewise
+     * never set: M6 seeds no deed-type catalogue at all — `NotaryDeedFactory`
+     * and `NotaryDeedManagementTest` both leave `deed_type_code` `null` for
+     * the same reason — and a fabricated execution date would be exactly the
+     * invented legal fact `CLAUDE.md` §62 forbids.
+     *
+     * One reachable status each — `DRAFT`, `UNDER_REVIEW`, `APPROVED`,
+     * `FINALIZED` — simply by stopping the lifecycle calls at a different
+     * point per deed. `VOID` and `SUPERSEDED` are not attempted: no Action
+     * produces either (D-120).
+     *
+     * **The fourth deed's `final_document_id` is set at creation, not after.**
+     * `UpdateNotaryDeed` — the only other Action that could reach that
+     * column — refuses once a deed is `FINALIZED` (`isEditable()` is false),
+     * so attaching the Document has to happen while the attributes are still
+     * writable. `final_document_id` is a fillable column `CreateNotaryDeed`
+     * already accepts via its `$attributes` array — precisely what
+     * `StoreNotaryDeedRequest::deedAttributes()` forwards from a real
+     * request — not a pivot and not a direct column write. The Document
+     * chosen ({@see createDocuments()}'s sixth, already linked to the same
+     * Matter) satisfies the composite foreign key requiring the Document and
+     * the Deed to share one Office.
+     *
+     * @param  array<int, Matter>  $matters
+     * @param  array<int, Document>  $documents
+     * @return array<int, NotaryDeed>
+     */
+    private function createNotaryDeeds(User $actor, array $matters, array $documents): array
+    {
+        $notary1 = $matters[0];
+        $notary2 = $matters[2];
+
+        $draft = $this->createNotaryDeed->handle($actor, $notary1, ['title' => 'Akta Notaris Demo 1']);
+
+        $underReview = $this->createNotaryDeed->handle($actor, $notary1, ['title' => 'Akta Notaris Demo 2']);
+        $underReview = $this->reviewNotaryDeed->handle($actor, $underReview);
+
+        $approved = $this->createNotaryDeed->handle($actor, $notary2, ['title' => 'Akta Notaris Demo 3']);
+        $approved = $this->reviewNotaryDeed->handle($actor, $approved);
+        $approved = $this->approveNotaryDeed->handle($actor, $approved);
+
+        $finalized = $this->createNotaryDeed->handle($actor, $notary2, [
+            'title' => 'Akta Notaris Demo 4',
+            'final_document_id' => $documents[5]->getKey(),
+        ]);
+        $finalized = $this->reviewNotaryDeed->handle($actor, $finalized);
+        $finalized = $this->approveNotaryDeed->handle($actor, $finalized);
+        $finalized = $this->finalizeNotaryDeed->handle($actor, $finalized);
+
+        return [$draft, $underReview, $approved, $finalized];
     }
 
     /**

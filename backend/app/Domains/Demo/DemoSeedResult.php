@@ -18,5 +18,6 @@ final class DemoSeedResult
         public readonly int $matters,
         public readonly int $documents,
         public readonly int $tasks,
+        public readonly int $notaryDeeds,
     ) {}
 }

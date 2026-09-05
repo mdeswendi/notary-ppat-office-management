@@ -10,12 +10,16 @@ use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
 use App\Domains\Demo\Exceptions\DemoPrimaryActorPasswordInvalid;
 use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
 use App\Domains\Matter\Enums\MatterDomain;
+use App\Domains\Notary\Actions\FinalizeNotaryDeed;
+use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Task\Actions\CreateTask;
+use App\Models\Activity;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Individual;
 use App\Models\Matter;
+use App\Models\NotaryDeed;
 use App\Models\Office;
 use App\Models\Organization;
 use App\Models\Party;
@@ -26,6 +30,7 @@ use App\Policies\CompanyPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\MatterPolicy;
+use App\Policies\NotaryDeedPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use Illuminate\Console\Command;
@@ -164,7 +169,23 @@ function demoEntityCounts(): array
         'matters' => Matter::query()->count(),
         'documents' => Document::query()->count(),
         'tasks' => Task::query()->count(),
+        'notary_deeds' => NotaryDeed::query()->count(),
     ];
+}
+
+/**
+ * Seeds the dataset and returns every Notary Deed keyed by its own title —
+ * titles are unique per run ('Akta Notaris Demo 1'..'4'), so this avoids
+ * relying on creation-timestamp ordering, which SQLite can tie within a
+ * single fast test.
+ *
+ * @return array<string, NotaryDeed>
+ */
+function seedNotaryDeedsByTitle(): array
+{
+    app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+    return NotaryDeed::query()->get()->keyBy('title')->all();
 }
 
 describe('DemoDataSeedCommand — guard boundary', function () {
@@ -376,7 +397,8 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and($result->projects)->toBe(3)
             ->and($result->matters)->toBe(3)
             ->and($result->documents)->toBe(6)
-            ->and($result->tasks)->toBe(6);
+            ->and($result->tasks)->toBe(6)
+            ->and($result->notaryDeeds)->toBe(4);
 
         expect(Organization::query()->count())->toBe(1)
             ->and(Office::query()->count())->toBe(1)
@@ -387,7 +409,8 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and(Project::query()->count())->toBe(3)
             ->and(Matter::query()->count())->toBe(3)
             ->and(Document::query()->count())->toBe(6)
-            ->and(Task::query()->count())->toBe(6);
+            ->and(Task::query()->count())->toBe(6)
+            ->and(NotaryDeed::query()->count())->toBe(4);
     });
 
     it('refuses a second run, throwing before any write, and changes nothing', function () {
@@ -404,7 +427,7 @@ describe('DemoDataSeeder — orchestration', function () {
     it('leaves no partial dataset, and no orphaned demo files, when orchestration fails midway', function () {
         // CreateTask is the last kind of record the seeder writes, so
         // failing it exercises the full chain of prior work being rolled
-        // back — Projects, Matters and Documents included.
+        // back — Projects, Matters, Documents and Notary Deeds included.
         $this->mock(CreateTask::class, function ($mock) {
             $mock->shouldReceive('handle')->andThrow(new RuntimeException('simulated mid-run failure'));
         });
@@ -418,10 +441,30 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and(Project::query()->count())->toBe(0)
             ->and(Matter::query()->count())->toBe(0)
             ->and(Document::query()->count())->toBe(0)
+            ->and(NotaryDeed::query()->count())->toBe(0)
+            ->and(Activity::query()->count())->toBe(0)
             // The six documents already uploaded before CreateTask ran had
             // their rows rolled back by the transaction; the cleanup path
             // must also have cleared the disk those rows pointed at.
             ->and(Storage::disk('local_demo')->allFiles())->toBe([]);
+    });
+
+    it('leaves no partial dataset when a Notary Deed lifecycle Action fails midway', function () {
+        // FinalizeNotaryDeed is the last of the four deed-lifecycle Actions
+        // this class calls, so failing it exercises the full chain being
+        // rolled back — the three earlier deeds (DRAFT, UNDER_REVIEW,
+        // APPROVED) included, not only the one being finalized.
+        $this->mock(FinalizeNotaryDeed::class, function ($mock) {
+            $mock->shouldReceive('handle')->andThrow(new RuntimeException('simulated mid-run failure'));
+        });
+
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))->toThrow(RuntimeException::class);
+
+        expect(Organization::query()->count())->toBe(0)
+            ->and(Office::query()->count())->toBe(0)
+            ->and(Matter::query()->count())->toBe(0)
+            ->and(NotaryDeed::query()->count())->toBe(0)
+            ->and(Task::query()->count())->toBe(0);
     });
 
     it('never sets nik, npwp, or tax_id on any created party', function () {
@@ -531,11 +574,14 @@ describe('DemoDataSeeder — orchestration', function () {
         }
     });
 
-    it('creates no Deed, Workflow, PPAT, or Billing entity', function () {
+    it('creates no Minuta, Workflow, PPAT, or Billing entity', function () {
+        // notary_deeds is deliberately absent from this list — see the
+        // "DemoDataSeeder — Notary Deeds" describe block below for what it
+        // contains and does not contain.
         app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach ([
-            'notary_deeds', 'notary_minuta',
+            'notary_minuta',
             'ppat_deeds', 'properties', 'property_owners', 'ppat_warkah', 'ppat_warkah_items',
             'matter_workflows', 'matter_stage_instances', 'workflow_templates',
             'quotations', 'invoices', 'payments', 'disbursements',
@@ -585,7 +631,7 @@ describe('DemoDataSeeder — primary actor login credentials', function () {
         $result = app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         expect(array_keys(get_object_vars($result)))->toBe([
-            'officeCode', 'users', 'parties', 'projects', 'matters', 'documents', 'tasks',
+            'officeCode', 'users', 'parties', 'projects', 'matters', 'documents', 'tasks', 'notaryDeeds',
         ]);
 
         foreach (get_object_vars($result) as $value) {
@@ -717,6 +763,252 @@ describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
             ->and(app(MatterPolicy::class)->viewAny($actor, MatterDomain::NOTARY))->toBeTrue()
             ->and(app(MatterPolicy::class)->viewAny($actor, MatterDomain::PPAT))->toBeTrue()
             ->and(app(DocumentPolicy::class)->viewAny($actor))->toBeTrue()
-            ->and(app(TaskPolicy::class)->viewAny($actor))->toBeTrue();
+            ->and(app(TaskPolicy::class)->viewAny($actor))->toBeTrue()
+            ->and(app(NotaryDeedPolicy::class)->viewAny($actor))->toBeTrue();
+    });
+});
+
+describe('DemoDataSeeder — Notary Deeds (Task 3A)', function () {
+    beforeEach(function () {
+        Storage::fake('local_demo');
+        Storage::fake('local');
+        bootstrapLoginReadyRole();
+    });
+
+    it('creates exactly one deed per target status — DRAFT, UNDER_REVIEW, APPROVED, FINALIZED', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        expect($deeds)->toHaveCount(4);
+
+        $statuses = collect($deeds)->map(fn (NotaryDeed $deed) => $deed->status->value)->sort()->values()->all();
+
+        expect($statuses)->toBe(['APPROVED', 'DRAFT', 'FINALIZED', 'UNDER_REVIEW']);
+    });
+
+    it('never reaches VOID or SUPERSEDED, which no Action produces', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        foreach ($deeds as $deed) {
+            expect($deed->status)->not->toBe(NotaryDeedStatus::VOID)
+                ->and($deed->status)->not->toBe(NotaryDeedStatus::SUPERSEDED);
+        }
+    });
+
+    it('never sets deed_number, deed_date, or deed_type_code on any deed', function () {
+        // deed_number: only RecordNotaryDeedNumber writes it, and this class
+        // never calls that Action — a FINALIZED deed with none is explicitly
+        // permitted (D-120). deed_date and deed_type_code: no canonical value
+        // exists for either (M6 seeds no deed-type catalogue), so both stay
+        // null exactly as NotaryDeedFactory's own definition leaves them.
+        $deeds = seedNotaryDeedsByTitle();
+
+        foreach ($deeds as $deed) {
+            expect($deed->deed_number)->toBeNull()
+                ->and($deed->deed_date)->toBeNull()
+                ->and($deed->deed_type_code)->toBeNull();
+        }
+    });
+
+    it('keeps every deed in the demo office, with a valid NOTARY Matter parent', function () {
+        $deeds = seedNotaryDeedsByTitle();
+        $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
+
+        foreach ($deeds as $deed) {
+            expect($deed->office_id)->toBe($office->getKey());
+
+            $matter = Matter::query()->find($deed->matter_id);
+
+            expect($matter)->not->toBeNull()
+                ->and($matter->office_id)->toBe($office->getKey())
+                ->and($matter->domain)->toBe(MatterDomain::NOTARY);
+        }
+    });
+
+    it('leaves no orphaned deed — every matter_id resolves to a Matter that still exists', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        foreach ($deeds as $deed) {
+            expect($deed->matter_id)->not->toBeNull();
+            expect(Matter::query()->whereKey($deed->matter_id)->exists())->toBeTrue();
+        }
+    });
+
+    it('distributes the four deeds across the two existing NOTARY Matters rather than creating a new one', function () {
+        seedNotaryDeedsByTitle();
+
+        // Task 2 already creates exactly two NOTARY Matters (one PPAT). If
+        // this method needed a Matter of its own, that count would be three.
+        expect(Matter::query()->where('domain', MatterDomain::NOTARY->value)->count())->toBe(2)
+            ->and(Matter::query()->count())->toBe(3);
+
+        foreach (Matter::query()->where('domain', MatterDomain::NOTARY->value)->get() as $matter) {
+            expect($matter->notaryDeeds()->count())->toBeGreaterThan(0);
+        }
+    });
+
+    it('gives every Matter linked to a deed at least one demo Party, transitively satisfying appearing-party data', function () {
+        // NotaryDeed itself carries no appearing-party column (M6.1) — a
+        // deed's participants are its parent Matter's, exactly as
+        // NotaryDeedVisibility's OWN/ASSIGNED predicates already resolve
+        // through the Matter rather than the deed. Task 2's
+        // linkMatterParties() already attaches one Party to every Matter;
+        // this proves that holds for the two Matters these deeds use.
+        $deeds = seedNotaryDeedsByTitle();
+
+        $matterIds = collect($deeds)->map(fn (NotaryDeed $deed) => $deed->matter_id)->unique();
+
+        foreach ($matterIds as $matterId) {
+            expect(DB::table('matter_parties')->where('matter_id', $matterId)->exists())->toBeTrue();
+        }
+    });
+
+    it('writes each act-pair together and only up to the deed\'s own status — never ahead of it', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        $draft = $deeds['Akta Notaris Demo 1'];
+        $underReview = $deeds['Akta Notaris Demo 2'];
+        $approved = $deeds['Akta Notaris Demo 3'];
+        $finalized = $deeds['Akta Notaris Demo 4'];
+
+        expect($draft->status)->toBe(NotaryDeedStatus::DRAFT)
+            ->and($draft->reviewed_at)->toBeNull()->and($draft->reviewed_by)->toBeNull()
+            ->and($draft->approved_at)->toBeNull()->and($draft->approved_by)->toBeNull()
+            ->and($draft->finalized_at)->toBeNull()->and($draft->finalized_by)->toBeNull();
+
+        expect($underReview->status)->toBe(NotaryDeedStatus::UNDER_REVIEW)
+            ->and($underReview->reviewed_at)->not->toBeNull()->and($underReview->reviewed_by)->not->toBeNull()
+            ->and($underReview->approved_at)->toBeNull()->and($underReview->approved_by)->toBeNull()
+            ->and($underReview->finalized_at)->toBeNull()->and($underReview->finalized_by)->toBeNull();
+
+        expect($approved->status)->toBe(NotaryDeedStatus::APPROVED)
+            ->and($approved->reviewed_at)->not->toBeNull()->and($approved->reviewed_by)->not->toBeNull()
+            ->and($approved->approved_at)->not->toBeNull()->and($approved->approved_by)->not->toBeNull()
+            ->and($approved->finalized_at)->toBeNull()->and($approved->finalized_by)->toBeNull();
+
+        expect($finalized->status)->toBe(NotaryDeedStatus::FINALIZED)
+            ->and($finalized->reviewed_at)->not->toBeNull()->and($finalized->reviewed_by)->not->toBeNull()
+            ->and($finalized->approved_at)->not->toBeNull()->and($finalized->approved_by)->not->toBeNull()
+            ->and($finalized->finalized_at)->not->toBeNull()->and($finalized->finalized_by)->not->toBeNull();
+
+        // Every actor recorded is the one primary actor this dataset ever
+        // authorizes to act — never one of the four role-less supporting
+        // users, which would be a sign the wrong actor reached an Action.
+        $primaryActor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        foreach ([$underReview->reviewed_by, $approved->reviewed_by, $approved->approved_by,
+            $finalized->reviewed_by, $finalized->approved_by, $finalized->finalized_by] as $actorId) {
+            expect($actorId)->toBe($primaryActor->getKey());
+        }
+    });
+
+    it('attaches a demo Document to the FINALIZED deed, on the demo disk and never public', function () {
+        $deeds = seedNotaryDeedsByTitle();
+        $finalized = $deeds['Akta Notaris Demo 4'];
+
+        expect($finalized->final_document_id)->not->toBeNull()
+            ->and($finalized->draft_document_id)->toBeNull()
+            ->and($finalized->minuta_document_id)->toBeNull();
+
+        $document = Document::query()->findOrFail($finalized->final_document_id);
+
+        expect($document->office_id)->toBe($finalized->office_id)
+            // The same Document Task 2 already links (via matter_documents)
+            // to this deed's own Matter — not an arbitrary one — so the
+            // narrative stays coherent.
+            ->and($document->matters()->whereKey($finalized->matter_id)->exists())->toBeTrue();
+
+        $version = DocumentVersion::query()->findOrFail($document->current_version_id);
+
+        expect($version->storage_disk)->toBe(DemoDataSeeder::DEMO_DISK)
+            ->and($version->storage_path)->not->toContain('public/')
+            ->and(Storage::disk('local_demo')->exists($version->storage_path))->toBeTrue()
+            ->and(Storage::disk('local')->allFiles())->toBe([]);
+    });
+
+    it('never attaches a Document to the three deeds that do not need one for the detail screenshot', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        foreach (['Akta Notaris Demo 1', 'Akta Notaris Demo 2', 'Akta Notaris Demo 3'] as $title) {
+            $deed = $deeds[$title];
+
+            expect($deed->draft_document_id)->toBeNull()
+                ->and($deed->final_document_id)->toBeNull()
+                ->and($deed->minuta_document_id)->toBeNull();
+        }
+    });
+
+    it('records exactly the activity timeline each deed\'s lifecycle actually went through', function () {
+        $deeds = seedNotaryDeedsByTitle();
+
+        $expected = [
+            'Akta Notaris Demo 1' => ['DEED_CREATED'],
+            'Akta Notaris Demo 2' => ['DEED_CREATED', 'DEED_REVIEWED'],
+            'Akta Notaris Demo 3' => ['DEED_CREATED', 'DEED_REVIEWED', 'DEED_APPROVED'],
+            'Akta Notaris Demo 4' => ['DEED_CREATED', 'DEED_REVIEWED', 'DEED_APPROVED', 'DEED_FINALIZED'],
+        ];
+
+        foreach ($expected as $title => $types) {
+            $deed = $deeds[$title];
+
+            $recorded = Activity::query()
+                ->forSubject(NotaryDeed::class, $deed->getKey())
+                ->orderBy('created_at')
+                ->pluck('activity_type')
+                ->map(fn ($type) => $type->value)
+                ->all();
+
+            expect($recorded)->toBe($types);
+        }
+    });
+
+    it('lets the primary actor create, review, approve, and finalize under the real Policy', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $notaryMatter = Matter::query()->where('domain', MatterDomain::NOTARY->value)->firstOrFail();
+        $draftDeed = NotaryDeed::query()->where('title', 'Akta Notaris Demo 1')->firstOrFail();
+        $underReviewDeed = NotaryDeed::query()->where('title', 'Akta Notaris Demo 2')->firstOrFail();
+        $approvedDeed = NotaryDeed::query()->where('title', 'Akta Notaris Demo 3')->firstOrFail();
+
+        $policy = app(NotaryDeedPolicy::class);
+
+        expect($policy->viewAny($actor))->toBeTrue()
+            ->and($policy->create($actor, $notaryMatter))->toBeTrue()
+            ->and($policy->review($actor, $draftDeed))->toBeTrue()
+            ->and($policy->approve($actor, $underReviewDeed))->toBeTrue()
+            ->and($policy->finalize($actor, $approvedDeed))->toBeTrue();
+    });
+
+    it('refuses a role-less supporting user under the same real Policy that authorized the primary actor', function () {
+        // Confirms the seeded dataset is not "authorized because nobody
+        // checks" — a different, unprivileged user in the very same office
+        // is refused by the production Policy the same way a real Controller
+        // would refuse them, even though DemoDataSeeder itself never calls
+        // this Policy for its own Actions (CLAUDE.md §35 — the Action trusts
+        // its caller already authorized).
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $supportingUser = User::query()->where('email', '!=', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $notaryMatter = Matter::query()->where('domain', MatterDomain::NOTARY->value)->firstOrFail();
+        $draftDeed = NotaryDeed::query()->where('title', 'Akta Notaris Demo 1')->firstOrFail();
+
+        expect($supportingUser->roles()->count())->toBe(0);
+
+        $policy = app(NotaryDeedPolicy::class);
+
+        expect($policy->viewAny($supportingUser))->toBeFalse()
+            ->and($policy->create($supportingUser, $notaryMatter))->toBeFalse()
+            ->and($policy->review($supportingUser, $draftDeed))->toBeFalse();
+    });
+
+    it('never displays a deed number, plaintext password, hash, or storage path in the command class source', function () {
+        // The command never reads notary_deeds.deed_number at all — this
+        // dataset never assigns one, and the summary table only ever prints
+        // DemoSeedResult's plain counts.
+        $source = file_get_contents(app_path('Console/Commands/DemoDataSeedCommand.php'));
+
+        expect($source)->not->toContain('deed_number')
+            ->and($source)->not->toContain('storage_path')
+            ->and($source)->not->toContain('local_demo');
     });
 });
