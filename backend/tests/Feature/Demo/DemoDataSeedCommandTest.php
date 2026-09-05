@@ -5,6 +5,7 @@ use App\Domains\Authorization\DefaultRoleRegistry;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Authorization\PermissionRegistry;
 use App\Domains\Authorization\SyncCanonicalPermissions;
+use App\Domains\Dashboard\Services\DashboardAggregator;
 use App\Domains\Demo\DemoDataSeeder;
 use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
 use App\Domains\Demo\Exceptions\DemoPrimaryActorPasswordInvalid;
@@ -34,7 +35,9 @@ use App\Policies\NotaryDeedPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use Illuminate\Console\Command;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -1010,5 +1013,276 @@ describe('DemoDataSeeder — Notary Deeds (Task 3A)', function () {
         expect($source)->not->toContain('deed_number')
             ->and($source)->not->toContain('storage_path')
             ->and($source)->not->toContain('local_demo');
+    });
+});
+
+describe('DemoDataSeeder — Dashboard task assignments (Task 3B)', function () {
+    beforeEach(function () {
+        Storage::fake('local_demo');
+        Storage::fake('local');
+        bootstrapLoginReadyRole();
+
+        // A fixed instant, exactly like TaskManagementTest's own beforeEach —
+        // due_at is computed relative to Date::now() at seed time, so freezing
+        // it here makes the today/overdue/upcoming assertions deterministic
+        // regardless of when the suite happens to run.
+        Date::setTestNow('2026-09-05 09:00:00');
+    });
+
+    afterEach(function () {
+        // Never leave the test clock running for a later test in this file
+        // or another file in the same process.
+        Date::setTestNow();
+    });
+
+    it('keeps exactly six Tasks, none orphaned, every one assigned inside the demo office', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
+        $tasks = Task::query()->get();
+
+        expect($tasks)->toHaveCount(6);
+
+        foreach ($tasks as $task) {
+            expect($task->office_id)->toBe($office->getKey())
+                ->and($task->assigned_to)->not->toBeNull();
+
+            $assignee = User::query()->find($task->assigned_to);
+
+            expect($assignee)->not->toBeNull()
+                ->and($assignee->office_id)->toBe($office->getKey());
+        }
+    });
+
+    it('represents all five canonical Task statuses, with OPEN repeated', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $statuses = Task::query()->pluck('status')->map(fn ($status) => $status->value)->sort()->values();
+
+        expect($statuses->all())->toBe(['CANCELLED', 'COMPLETED', 'IN_PROGRESS', 'OPEN', 'OPEN', 'WAITING']);
+    });
+
+    it('writes assigned_to and assigned_by together, and completed_at/completed_by together, never half a pair', function () {
+        // The pairing invariant Task's own model guard enforces — proof that
+        // every assignment and every completion went through the real
+        // Actions (CreateTask's $assignee parameter, CompleteTask), never a
+        // direct column write that could leave one side null.
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $primaryActor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        foreach (Task::query()->get() as $task) {
+            expect($task->assigned_by)->toBe($primaryActor->getKey());
+        }
+
+        $completed = Task::query()->where('title', 'Tugas Administratif Demo 4')->firstOrFail();
+
+        expect($completed->status->value)->toBe('COMPLETED')
+            ->and($completed->completed_at)->not->toBeNull()
+            ->and($completed->completed_by)->toBe($primaryActor->getKey());
+
+        foreach (Task::query()->where('id', '!=', $completed->getKey())->get() as $task) {
+            expect($task->completed_at)->toBeNull()
+                ->and($task->completed_by)->toBeNull();
+        }
+    });
+
+    it('fills today, overdue, and upcoming for the primary actor through the real DashboardAggregator', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        $buckets = app(DashboardAggregator::class)->tasks($actor);
+
+        expect($buckets)->not->toBeNull()
+            ->and($buckets['overdue'])->toHaveCount(1)
+            ->and($buckets['overdue']->first()->title)->toBe('Tugas Administratif Demo 2')
+            ->and($buckets['today'])->toHaveCount(1)
+            ->and($buckets['today']->first()->title)->toBe('Tugas Administratif Demo 1')
+            // "upcoming" is whereBetween(due_at, [now, now + 7 days]) in the
+            // aggregator itself, which the "today" Task (due a couple of
+            // hours from now) also satisfies — the exact overlap
+            // DashboardTest's own "buckets the actor own work by when it is
+            // due" test accepts (its "upcoming" count is 2, not 1, for the
+            // same three-Task shape). Reproducing it here is reproducing
+            // shipped behaviour, not a bug this seeder introduces.
+            ->and($buckets['upcoming'])->toHaveCount(2)
+            ->and($buckets['upcoming']->pluck('title')->sort()->values()->all())
+            ->toBe(['Tugas Administratif Demo 1', 'Tugas Administratif Demo 3']);
+
+        $total = $buckets['today']->count() + $buckets['overdue']->count() + $buckets['upcoming']->count();
+
+        expect($total)->toBeGreaterThan(0);
+    });
+
+    it('makes Workload non-empty and gives it more than one row through the real DashboardAggregator', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        $workload = app(DashboardAggregator::class)->workload($actor);
+
+        expect($workload)->not->toBeNull()
+            ->and($workload)->not->toBe([])
+            ->and(count($workload))->toBeGreaterThan(1);
+    });
+
+    it('reports the primary actor task_count as exactly the three active Tasks assigned to them', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        $workload = app(DashboardAggregator::class)->workload($actor);
+        $row = collect($workload)->firstWhere('user_id', $actor->getKey());
+
+        expect($row)->not->toBeNull()
+            ->and($row['task_count'])->toBe(3)
+            // Matter.pic_user_id is deliberately left null throughout this
+            // dataset (see createMatters()) — Task assignment alone is what
+            // clears workload()'s exclusion, not a Matter PIC.
+            ->and($row['matter_count'])->toBe(0);
+    });
+
+    it('excludes the COMPLETED and CANCELLED Task assignees from Workload, because settled work is not load', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $completedAssignee = User::query()->findOrFail(
+            Task::query()->where('title', 'Tugas Administratif Demo 4')->value('assigned_to')
+        );
+        $cancelledAssignee = User::query()->findOrFail(
+            Task::query()->where('title', 'Tugas Administratif Demo 5')->value('assigned_to')
+        );
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $userIds = collect(app(DashboardAggregator::class)->workload($actor))->pluck('user_id');
+
+        expect($userIds)->not->toContain($completedAssignee->getKey())
+            ->and($userIds)->not->toContain($cancelledAssignee->getKey());
+    });
+
+    it('lets a role-less supporting user be an assignee without granting them any role or permission', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $primaryActor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        $assigneeIds = Task::query()->pluck('assigned_to')->unique();
+
+        foreach ($assigneeIds as $assigneeId) {
+            $assignee = User::query()->findOrFail($assigneeId);
+
+            if ($assignee->getKey() === $primaryActor->getKey()) {
+                continue;
+            }
+
+            // A supporting user is a legitimate assignee — the composite
+            // foreign key requires only that they share the Task's Office,
+            // never a role. Confirms assignment granted them nothing extra.
+            expect($assignee->roles()->count())->toBe(0);
+        }
+    });
+
+    it('refuses a cross-office assignee at the database level, confirming why every demo Task assignee shares one Office', function () {
+        // Not a DemoDataSeeder behaviour — this proves the production
+        // constraint (`tasks_assigned_to_office_foreign`) that makes an
+        // out-of-office assignee structurally unrepresentable, which is
+        // exactly why this seeder never needs to guard against it itself.
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $primaryActor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $matter = Matter::query()->where('office_id', $primaryActor->office_id)->firstOrFail();
+
+        $otherOrganization = new Organization;
+        $otherOrganization->name = 'Kantor Lain (Uji Lintas Office)';
+        $otherOrganization->save();
+
+        $otherOffice = new Office;
+        $otherOffice->organization_id = $otherOrganization->getKey();
+        $otherOffice->code = 'LAIN-01';
+        $otherOffice->name = 'Kantor Lain';
+        $otherOffice->save();
+
+        $outsider = User::factory()->for($otherOffice)->create();
+
+        expect(fn () => app(CreateTask::class)->handle(
+            $primaryActor,
+            ['title' => 'Percobaan Lintas Office'],
+            null,
+            $matter,
+            $outsider,
+        ))->toThrow(QueryException::class);
+
+        expect(Task::query()->where('title', 'Percobaan Lintas Office')->exists())->toBeFalse();
+    });
+
+    it('touches no Matter PIC — Workload is filled by Task assignment alone', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        expect(Matter::query()->whereNotNull('pic_user_id')->count())->toBe(0);
+    });
+
+    /**
+     * Calendar-boundary determinism. The describe block's own `beforeEach`
+     * already froze the clock to 09:00 — every case here overrides that to a
+     * different hour on the same date, specifically the three hours a
+     * `now() + N hours` offset would have handled differently: just after
+     * midnight (nothing to roll back onto), midday (the ordinary case), and
+     * just before midnight (where `now() + 2 hours` used to roll onto
+     * tomorrow and empty the "today" bucket). The describe block's own
+     * `afterEach` still resets the clock after each of these, pass or fail,
+     * so overriding it here needs no extra teardown of its own.
+     */
+    it('keeps overdue, today, and upcoming non-empty no matter what hour demo:seed runs', function (string $frozenAt) {
+        Date::setTestNow($frozenAt);
+
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $buckets = app(DashboardAggregator::class)->tasks($actor);
+
+        expect($buckets)->not->toBeNull();
+
+        expect($buckets['overdue'])->not->toBeEmpty()
+            ->and($buckets['overdue']->pluck('title')->all())->toContain('Tugas Administratif Demo 2');
+
+        expect($buckets['today'])->not->toBeEmpty()
+            ->and($buckets['today']->pluck('title')->all())->toContain('Tugas Administratif Demo 1');
+
+        // "upcoming" is whereBetween(due_at, [now, now + 7 days]) in the real
+        // aggregator, which the "today" Task (the last instant of today, always
+        // later than whatever moment "now" is) also satisfies at every one of
+        // these three hours — the same overlap DashboardTest's own official
+        // test accepts. Two names, not just a non-empty check, so the
+        // assertion fails loudly if either due date ever drifted out of range.
+        expect($buckets['upcoming'])->not->toBeEmpty()
+            ->and($buckets['upcoming']->count())->toBeGreaterThanOrEqual(2)
+            ->and($buckets['upcoming']->pluck('title')->all())
+            ->toContain('Tugas Administratif Demo 1', 'Tugas Administratif Demo 3');
+
+        // Nothing about which hour the seed ran at may change the shape of
+        // the dataset itself.
+        expect(Task::query()->count())->toBe(6);
+
+        $statuses = Task::query()->pluck('status')->map(fn ($status) => $status->value)->sort()->values();
+        expect($statuses->all())->toBe(['CANCELLED', 'COMPLETED', 'IN_PROGRESS', 'OPEN', 'OPEN', 'WAITING']);
+
+        $workload = app(DashboardAggregator::class)->workload($actor);
+        expect(count($workload))->toBeGreaterThanOrEqual(2);
+    })->with([
+        'awal hari (00:05)' => '2026-09-05 00:05:00',
+        'tengah hari (12:00)' => '2026-09-05 12:00:00',
+        'menjelang akhir hari (23:30)' => '2026-09-05 23:30:00',
+    ]);
+
+    it('creates no Workflow, PPAT, or Billing entity as a side effect of this change', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        foreach ([
+            'notary_minuta',
+            'ppat_deeds', 'properties', 'property_owners', 'ppat_warkah', 'ppat_warkah_items',
+            'matter_workflows', 'matter_stage_instances', 'workflow_templates',
+            'quotations', 'invoices', 'payments', 'disbursements',
+        ] as $table) {
+            expect(DB::table($table)->count())->toBe(0);
+        }
     });
 });
