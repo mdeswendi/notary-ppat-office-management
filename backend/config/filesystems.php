@@ -58,6 +58,21 @@ return [
             'report' => false,
         ],
 
+        /*
+         * Local demo tooling only (App\Domains\Demo\DemoDataSeeder). Same shape
+         * as `local` — private, unserved, never a public URL — but a different
+         * root, so a demo run can never write into, read from, or collide with
+         * a real document on `local`. Nothing outside demo tooling reads this
+         * disk, and no real Document ever names it.
+         */
+        'local_demo' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private_demo'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

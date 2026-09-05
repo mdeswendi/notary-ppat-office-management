@@ -148,7 +148,7 @@ class UploadDocument
         } catch (Throwable $exception) {
             if ($storedPath !== null) {
                 try {
-                    $this->storage->delete(DocumentStorage::DISK, $storedPath);
+                    $this->storage->delete($this->storage->diskName(), $storedPath);
                 } catch (Throwable) {
                     // Deliberately swallowed. The caller needs the original
                     // failure, not a cleanup failure that replaced it.
