@@ -641,18 +641,43 @@ class DemoDataSeeder
      * already resolves and passes, so assigning here is not a new capability
      * this class reaches for, only a use of one it always had available.
      *
-     * **Three of the primary actor's Tasks are also given `due_at`**, at the
-     * same offsets `DashboardTest::"buckets the actor own work by when it is
-     * due"` already uses — `now() + 2 hours` for "today", `now() - 1 day` for
-     * "overdue", `now() + 3 days` for "upcoming" — computed at seed time
-     * against {@see Date::now()}, never a hardcoded calendar date that would
-     * go stale. **The "today" Task legitimately also appears in "upcoming"**:
-     * the aggregator's upcoming query is `whereBetween(due_at, [now, now +
-     * 7 days])`, which a few hours from now satisfies just as well as three
-     * days from now does. That overlap is not worked around here — the
-     * official Dashboard test accepts it (`upcoming` count 2, not 1, for the
-     * identical three-Task shape), so reproducing it is reproducing shipped
-     * behaviour, not a bug.
+     * **Three of the primary actor's Tasks are also given `due_at`, pinned to
+     * calendar boundaries rather than an offset from the exact second `Date::
+     * now()` returns** — a fix over this method's first version, which used
+     * `now() + 2 hours` for "today" and broke whenever `demo:seed` ran after
+     * ~22:00: two hours later rolls onto tomorrow's calendar date, so
+     * `whereDate(due_at, today)` stopped matching and the "today" bucket went
+     * empty depending on the clock at the moment the operator happened to run
+     * the command. The three due dates now are:
+     *
+     *   - **overdue** — yesterday's calendar date at a fixed hour
+     *     (`subDay()->setTime(8, 0)`). Always strictly before `now`, at every
+     *     hour `now` itself could be, including just after midnight.
+     *   - **today** — the last instant of today (`endOfDay()`,
+     *     `23:59:59.999999`). Always still ahead of `now` — including when
+     *     `demo:seed` runs at 23:30 — and always on today's calendar date, so
+     *     `whereDate(due_at, today)` matches regardless of what time it is
+     *     when the command runs.
+     *   - **upcoming** — three calendar days ahead at a fixed hour
+     *     (`addDays(3)->setTime(8, 0)`). However late or early `now` is today,
+     *     three full days ahead always lands inside the aggregator's `[now,
+     *     now + 7 days]` window.
+     *
+     * **The "today" Task legitimately also appears in "upcoming"**: the
+     * aggregator's upcoming query is `whereBetween(due_at, [now, now + 7
+     * days])`, and the last instant of today is later than `now` by
+     * definition (right up to the moment `now` itself becomes that instant),
+     * so it satisfies both queries at once, at any hour. That overlap is not
+     * worked around here — the official Dashboard test accepts it (`upcoming`
+     * count 2, not 1, for the identical three-Task shape), so reproducing it
+     * is reproducing shipped behaviour, not a bug. What changed is only that
+     * the "today" Task no longer *disappears* from its own bucket depending
+     * on the clock.
+     *
+     * Every offset is built from `{@see Date::now()}->copy()`, never `$now`
+     * itself, so chaining a mutating call (`subDay()`, `addDays()`,
+     * `setTime()`, `endOfDay()`) on the result can never retroactively change
+     * `$now` or any other Task's already-computed due date.
      *
      * **Only three of the four supporting users become assignees, and only
      * one of those three ever shows up in Workload.** A `COMPLETED` and a
@@ -685,7 +710,7 @@ class DemoDataSeeder
 
         $today = $this->createTask->handle(
             $actor,
-            ['title' => 'Tugas Administratif Demo 1', 'due_at' => $now->copy()->addHours(2)],
+            ['title' => 'Tugas Administratif Demo 1', 'due_at' => $now->copy()->endOfDay()],
             $projects[0],
             null,
             $actor,
@@ -693,7 +718,7 @@ class DemoDataSeeder
 
         $overdue = $this->createTask->handle(
             $actor,
-            ['title' => 'Tugas Administratif Demo 2', 'due_at' => $now->copy()->subDay()],
+            ['title' => 'Tugas Administratif Demo 2', 'due_at' => $now->copy()->subDay()->setTime(8, 0)],
             null,
             $matters[0],
             $actor,
@@ -702,7 +727,7 @@ class DemoDataSeeder
 
         $upcoming = $this->createTask->handle(
             $actor,
-            ['title' => 'Tugas Administratif Demo 3', 'due_at' => $now->copy()->addDays(3)],
+            ['title' => 'Tugas Administratif Demo 3', 'due_at' => $now->copy()->addDays(3)->setTime(8, 0)],
             $projects[1],
             null,
             $actor,
@@ -734,7 +759,7 @@ class DemoDataSeeder
         // supporting user whose work stays "live" rather than settled.
         $openSupporting = $this->createTask->handle(
             $actor,
-            ['title' => 'Tugas Administratif Demo 6', 'due_at' => $now->copy()->addDays(5)],
+            ['title' => 'Tugas Administratif Demo 6', 'due_at' => $now->copy()->addDays(5)->setTime(8, 0)],
             null,
             $matters[0],
             $users[3],

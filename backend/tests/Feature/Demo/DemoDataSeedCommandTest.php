@@ -1220,6 +1220,59 @@ describe('DemoDataSeeder — Dashboard task assignments (Task 3B)', function () 
         expect(Matter::query()->whereNotNull('pic_user_id')->count())->toBe(0);
     });
 
+    /**
+     * Calendar-boundary determinism. The describe block's own `beforeEach`
+     * already froze the clock to 09:00 — every case here overrides that to a
+     * different hour on the same date, specifically the three hours a
+     * `now() + N hours` offset would have handled differently: just after
+     * midnight (nothing to roll back onto), midday (the ordinary case), and
+     * just before midnight (where `now() + 2 hours` used to roll onto
+     * tomorrow and empty the "today" bucket). The describe block's own
+     * `afterEach` still resets the clock after each of these, pass or fail,
+     * so overriding it here needs no extra teardown of its own.
+     */
+    it('keeps overdue, today, and upcoming non-empty no matter what hour demo:seed runs', function (string $frozenAt) {
+        Date::setTestNow($frozenAt);
+
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+        $buckets = app(DashboardAggregator::class)->tasks($actor);
+
+        expect($buckets)->not->toBeNull();
+
+        expect($buckets['overdue'])->not->toBeEmpty()
+            ->and($buckets['overdue']->pluck('title')->all())->toContain('Tugas Administratif Demo 2');
+
+        expect($buckets['today'])->not->toBeEmpty()
+            ->and($buckets['today']->pluck('title')->all())->toContain('Tugas Administratif Demo 1');
+
+        // "upcoming" is whereBetween(due_at, [now, now + 7 days]) in the real
+        // aggregator, which the "today" Task (the last instant of today, always
+        // later than whatever moment "now" is) also satisfies at every one of
+        // these three hours — the same overlap DashboardTest's own official
+        // test accepts. Two names, not just a non-empty check, so the
+        // assertion fails loudly if either due date ever drifted out of range.
+        expect($buckets['upcoming'])->not->toBeEmpty()
+            ->and($buckets['upcoming']->count())->toBeGreaterThanOrEqual(2)
+            ->and($buckets['upcoming']->pluck('title')->all())
+            ->toContain('Tugas Administratif Demo 1', 'Tugas Administratif Demo 3');
+
+        // Nothing about which hour the seed ran at may change the shape of
+        // the dataset itself.
+        expect(Task::query()->count())->toBe(6);
+
+        $statuses = Task::query()->pluck('status')->map(fn ($status) => $status->value)->sort()->values();
+        expect($statuses->all())->toBe(['CANCELLED', 'COMPLETED', 'IN_PROGRESS', 'OPEN', 'OPEN', 'WAITING']);
+
+        $workload = app(DashboardAggregator::class)->workload($actor);
+        expect(count($workload))->toBeGreaterThanOrEqual(2);
+    })->with([
+        'awal hari (00:05)' => '2026-09-05 00:05:00',
+        'tengah hari (12:00)' => '2026-09-05 12:00:00',
+        'menjelang akhir hari (23:30)' => '2026-09-05 23:30:00',
+    ]);
+
     it('creates no Workflow, PPAT, or Billing entity as a side effect of this change', function () {
         app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
