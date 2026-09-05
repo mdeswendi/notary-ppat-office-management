@@ -2,6 +2,7 @@
 
 namespace App\Domains\Demo;
 
+use App\Console\Commands\DemoDataSeedCommand;
 use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Authorization\Actions\ReplaceUserRoles;
 use App\Domains\Authorization\DefaultRoleRegistry;
@@ -103,10 +104,15 @@ use Throwable;
  * the five users — then proves the assignment actually works by calling the
  * same Policy classes a real Controller would. It never creates a Role or
  * grants a permission; see that method's docblock for what happens when
- * neither is in place yet. This closes how far "authorization-capable" goes:
- * it says nothing about whether anyone can *authenticate* as that user — see
- * {@see createUsers()} for why the password stays exactly as unknown as it
- * was before.
+ * neither is in place yet.
+ *
+ * **The primary actor is also the only one who can be logged into.** {@see
+ * seed()} takes that actor's password as an explicit parameter — this class
+ * never prompts, reads console input, or reads config/environment for it;
+ * {@see DemoDataSeedCommand} is the one place that
+ * collects and validates it, the same separation the guard already has (see
+ * above). The other four users keep the unknown, unprinted `Str::random(32)`
+ * password this dataset has always given them — see {@see createUsers()}.
  */
 class DemoDataSeeder
 {
@@ -119,6 +125,15 @@ class DemoDataSeeder
     public const OFFICE_CODE = 'DEMO-01';
 
     public const ORGANIZATION_NAME = 'Kantor Notaris & PPAT Demo';
+
+    /**
+     * The one demo user {@see makeActorAuthorizationCapable()} assigns
+     * `SUPER_ADMIN` to, and the one whose password {@see seed()} accepts as
+     * a parameter rather than generating. Named here once so the command's
+     * prompt text and this class's user list can never name two different
+     * accounts by accident.
+     */
+    public const PRIMARY_ACTOR_EMAIL = 'notaris.demo@example.test';
 
     /**
      * Never `local`. Demo documents must not be reachable through, or mixed
@@ -153,18 +168,38 @@ class DemoDataSeeder
     ) {}
 
     /**
+     * Whether the marker Office already exists — the same check {@see seed()}
+     * makes internally, exposed so a caller (`DemoDataSeedCommand`) can avoid
+     * doing anything else, including prompting for a password, when a dataset
+     * is already there. Read-only: nothing is written by calling this.
+     */
+    public function alreadySeeded(): bool
+    {
+        return Office::query()->where('code', self::OFFICE_CODE)->exists();
+    }
+
+    /**
+     * @param  string  $primaryActorPassword  Plaintext, held only for the
+     *                                        duration of this call and the
+     *                                        one `CreateUser::handle()` call
+     *                                        it is passed to, which hashes it
+     *                                        immediately via the model's
+     *                                        `hashed` cast. Never logged,
+     *                                        never echoed, never written to
+     *                                        {@see DemoSeedResult}.
+     *
      * @throws DemoDatasetAlreadyExists when the marker Office already exists —
      *                                  nothing is read or written beyond that
      *                                  one check
      */
-    public function seed(): DemoSeedResult
+    public function seed(string $primaryActorPassword): DemoSeedResult
     {
-        if (Office::query()->where('code', self::OFFICE_CODE)->exists()) {
+        if ($this->alreadySeeded()) {
             throw DemoDatasetAlreadyExists::markedBy(self::OFFICE_CODE);
         }
 
         try {
-            return DB::transaction(fn (): DemoSeedResult => $this->build());
+            return DB::transaction(fn (): DemoSeedResult => $this->build($primaryActorPassword));
         } catch (Throwable $e) {
             // The transaction above already rolled back every row. Files
             // written to the demo disk during this run are not covered by
@@ -179,7 +214,7 @@ class DemoDataSeeder
         }
     }
 
-    private function build(): DemoSeedResult
+    private function build(string $primaryActorPassword): DemoSeedResult
     {
         // Direct model construction, deliberately — see the class docblock.
         // `BootstrapDeploymentCommand::handle()` (app/Console/Commands/
@@ -197,7 +232,7 @@ class DemoDataSeeder
         $office->name = 'Kantor Notaris & PPAT Demo — Kantor Pusat';
         $office->save();
 
-        $users = $this->createUsers($office);
+        $users = $this->createUsers($office, $primaryActorPassword);
         $actor = $users[0];
 
         $this->makeActorAuthorizationCapable($actor);
@@ -227,7 +262,7 @@ class DemoDataSeeder
     /**
      * @return array<int, User>
      */
-    private function createUsers(Office $office): array
+    private function createUsers(Office $office, string $primaryActorPassword): array
     {
         // CreateUser itself grants no role to any of these five (see its own
         // docblock) — none of the Actions this class calls checks a
@@ -238,18 +273,18 @@ class DemoDataSeeder
         // deliberately distinct step, since "was this User created" and "can
         // this User pass an authorization check" are different questions.
         //
-        // The password is `Str::random(32)` for all five, including the one
-        // that later becomes authorization-capable — generated, never
-        // printed, logged, or otherwise recoverable. That is unchanged by
-        // this class assigning a role: a role decides what an already
-        // authenticated actor may do, not how anyone would authenticate as
-        // them. No user this command creates can currently be logged into.
+        // Only the first (self::PRIMARY_ACTOR_EMAIL) gets the operator-chosen
+        // password `seed()` was called with — hashed immediately by the
+        // model's `hashed` cast, same as any other user creation. The other
+        // four keep `Str::random(32)`: generated, never printed, logged, or
+        // otherwise recoverable, exactly as before — nothing about this
+        // dataset needs more than one account anyone can actually sign into.
         $people = [
-            ['name' => 'Notaris Demo', 'email' => 'notaris.demo@example.test'],
-            ['name' => 'PPAT Staff Demo', 'email' => 'ppat.staff.demo@example.test'],
-            ['name' => 'Staf Administrasi Demo', 'email' => 'admin.staff.demo@example.test'],
-            ['name' => 'Petugas Arsip Demo', 'email' => 'arsip.demo@example.test'],
-            ['name' => 'Front Office Demo', 'email' => 'frontoffice.demo@example.test'],
+            ['name' => 'Notaris Demo', 'email' => self::PRIMARY_ACTOR_EMAIL, 'password' => $primaryActorPassword],
+            ['name' => 'PPAT Staff Demo', 'email' => 'ppat.staff.demo@example.test', 'password' => null],
+            ['name' => 'Staf Administrasi Demo', 'email' => 'admin.staff.demo@example.test', 'password' => null],
+            ['name' => 'Petugas Arsip Demo', 'email' => 'arsip.demo@example.test', 'password' => null],
+            ['name' => 'Front Office Demo', 'email' => 'frontoffice.demo@example.test', 'password' => null],
         ];
 
         return array_map(
@@ -258,13 +293,12 @@ class DemoDataSeeder
                 'email' => $person['email'],
                 'phone' => null,
                 'office_id' => $office->getKey(),
-                // Random per run, never reused, never logged, never printed —
-                // hashed immediately by the model's `hashed` cast. A fixed or
-                // guessable password would be a credential left in source for
-                // no reason this dataset needs; see the comment above this
-                // method for why that holds even for the user that later
-                // becomes authorization-capable.
-                'password' => Str::random(32),
+                // A `null` here means "not the primary actor" — fall back to
+                // a fresh random password per run, never reused, never
+                // logged, never printed. A fixed or guessable password would
+                // be a credential left in source for no reason these four
+                // need.
+                'password' => $person['password'] ?? Str::random(32),
             ]),
             $people,
         );
@@ -293,10 +327,11 @@ class DemoDataSeeder
      * rolls every write in this run back, exactly as any other mid-run
      * failure does.
      *
-     * This says nothing about whether anyone can *authenticate* as this
-     * actor — see the comment inside {@see createUsers()}. Authorization
-     * readiness and login readiness are different questions; this method
-     * answers only the first.
+     * This method itself still says nothing about whether anyone can
+     * *authenticate* as this actor — authorization readiness and login
+     * readiness are different questions, and this one answers only the
+     * first. Login readiness for the same actor is what {@see seed()}'s
+     * `$primaryActorPassword` parameter is for; see {@see createUsers()}.
      */
     private function makeActorAuthorizationCapable(User $actor): void
     {

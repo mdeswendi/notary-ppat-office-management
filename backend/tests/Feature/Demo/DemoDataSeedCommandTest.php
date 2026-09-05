@@ -1,11 +1,13 @@
 <?php
 
+use App\Console\Commands\DemoDataSeedCommand;
 use App\Domains\Authorization\DefaultRoleRegistry;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Authorization\PermissionRegistry;
 use App\Domains\Authorization\SyncCanonicalPermissions;
 use App\Domains\Demo\DemoDataSeeder;
 use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
+use App\Domains\Demo\Exceptions\DemoPrimaryActorPasswordInvalid;
 use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Domains\Task\Actions\CreateTask;
@@ -29,12 +31,42 @@ use App\Policies\TaskPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
+
+/**
+ * A password that satisfies PasswordRules::forNewPassword() in the test
+ * environment — Password::default()'s minimum length, with `.uncompromised()`
+ * skipped by that class itself (`app()->runningUnitTests()`), exactly as it
+ * is for every other test in this codebase that sets a password.
+ */
+const DEMO_PRIMARY_PASSWORD = 'CorrectHorseBatteryStaple123!';
+
+/**
+ * Invokes `DemoDataSeedCommand::collectPrimaryActorPassword()` directly via
+ * Reflection — the "unit-level command interaction test" the task called
+ * for. This method never touches `$this->input`/`$this->output`,
+ * `DemoEnvironmentGuard`, or the database on its success path (it is a pure
+ * function of `$interactive` and `$ask`), so a bare `new DemoDataSeedCommand`
+ * with no console or Artisan machinery attached is enough to exercise it —
+ * entirely independent of the guard that makes a full end-to-end
+ * `demo:seed` prompt impossible to drive in this suite (see the file-level
+ * docblock above).
+ *
+ * @param  Closure(string): string  $ask
+ */
+function collectPrimaryActorPassword(bool $interactive, Closure $ask): string
+{
+    $method = new ReflectionMethod(DemoDataSeedCommand::class, 'collectPrimaryActorPassword');
+    $method->setAccessible(true);
+
+    return $method->invoke(new DemoDataSeedCommand, $interactive, $ask);
+}
 
 /**
  * `phpunit.xml` fixes APP_ENV=testing and a SQLite `:memory:` connection for
@@ -59,6 +91,18 @@ uses(RefreshDatabase::class);
  * mapping *through* `demo:seed` on a second real run: reaching the seeder at
  * all requires clearing the guard first, and nothing here is allowed to fake
  * being `local` against a database named exactly `notary_ppat_demo` to do it.
+ *
+ * The same limitation applies to the primary demo user's password prompt
+ * (`DemoDataSeedCommand::collectPrimaryActorPassword()`): no test here can
+ * drive it *through* `$this->artisan('demo:seed')->expectsQuestion(...)`,
+ * because the guard refuses before the prompt is ever reached. That method
+ * is deliberately written as a pure function of an `$interactive` flag and
+ * an `$ask` closure for exactly this reason — the `collectPrimaryActorPassword()`
+ * helper function below calls it directly via Reflection, with a bare
+ * `DemoDataSeedCommand` instance and no console attached, which is what the
+ * task that introduced it called a "unit-level command interaction test."
+ * The guard itself is never touched, weakened, or bypassed to make this
+ * possible — this method simply never depended on it in the first place.
  */
 beforeEach(function (): void {
     expect(DB::connection()->getDatabaseName())->not->toBe('notary_ppat_office');
@@ -152,6 +196,159 @@ describe('DemoDataSeedCommand — guard boundary', function () {
             ->assertExitCode(Command::FAILURE)
             ->expectsOutputToContain('Demo tooling only runs in that environment.');
     });
+
+    it('exits non-zero under --no-interaction without ever prompting', function () {
+        // The guard rejects first regardless (see the file docblock above),
+        // so this cannot isolate "refused because non-interactive" from
+        // "refused because the wrong environment" the way a bootstrapped
+        // local/notary_ppat_demo run could. What it does prove: the full
+        // pipeline exits cleanly under --no-interaction rather than hanging
+        // on a prompt or crashing, and — because no expectsQuestion() is
+        // queued here — that no prompt is attempted along the way (Laravel's
+        // console test double throws if an unexpected question is asked).
+        // collectPrimaryActorPassword()'s own non-interactive behaviour is
+        // proven directly, and independently of the guard, in the
+        // "primary actor password" describe block below.
+        $this->artisan('demo:seed', ['--no-interaction' => true])
+            ->assertExitCode(Command::FAILURE);
+
+        expect(Organization::query()->count())->toBe(0)
+            ->and(Office::query()->count())->toBe(0)
+            ->and(User::query()->count())->toBe(0);
+    });
+});
+
+describe('DemoDataSeedCommand — primary actor password (unit-level)', function () {
+    it('never asks a question when the run is not interactive', function () {
+        $asked = [];
+
+        $password = null;
+        $thrown = null;
+
+        try {
+            $password = collectPrimaryActorPassword(
+                interactive: false,
+                ask: function (string $question) use (&$asked): string {
+                    $asked[] = $question;
+
+                    throw new LogicException('the ask closure must never be called when not interactive');
+                },
+            );
+        } catch (DemoPrimaryActorPasswordInvalid $e) {
+            $thrown = $e;
+        }
+
+        expect($password)->toBeNull()
+            ->and($asked)->toBe([])
+            ->and($thrown)->not->toBeNull()
+            ->and($thrown->getMessage())->toContain('not interactive');
+    });
+
+    it('accepts a matching, policy-valid password typed twice', function () {
+        $password = collectPrimaryActorPassword(
+            interactive: true,
+            ask: fn (string $question): string => DEMO_PRIMARY_PASSWORD,
+        );
+
+        expect($password)->toBe(DEMO_PRIMARY_PASSWORD);
+    });
+
+    it('refuses two different answers, and never echoes either of them', function () {
+        $answers = [DEMO_PRIMARY_PASSWORD, 'CompletelyDifferentPassword987!'];
+        $call = 0;
+
+        $thrown = null;
+
+        try {
+            collectPrimaryActorPassword(
+                interactive: true,
+                ask: function () use (&$call, $answers): string {
+                    return $answers[$call++];
+                },
+            );
+        } catch (DemoPrimaryActorPasswordInvalid $e) {
+            $thrown = $e;
+        }
+
+        expect($thrown)->not->toBeNull()
+            ->and($thrown->getMessage())->not->toContain(DEMO_PRIMARY_PASSWORD)
+            ->and($thrown->getMessage())->not->toContain('CompletelyDifferentPassword987!');
+    });
+
+    it('refuses an empty password', function () {
+        $thrown = null;
+
+        try {
+            collectPrimaryActorPassword(interactive: true, ask: fn (): string => '');
+        } catch (DemoPrimaryActorPasswordInvalid $e) {
+            $thrown = $e;
+        }
+
+        expect($thrown)->not->toBeNull();
+    });
+
+    it('refuses a password that fails the shared password policy', function () {
+        // Password::default()'s minimum length is the one rule active in
+        // this environment (PasswordRules skips .uncompromised() under
+        // app()->runningUnitTests()) — a one-character answer fails it, and
+        // matches itself, so this isolates the policy check from the
+        // confirmation check.
+        $thrown = null;
+
+        try {
+            collectPrimaryActorPassword(interactive: true, ask: fn (): string => 'x');
+        } catch (DemoPrimaryActorPasswordInvalid $e) {
+            $thrown = $e;
+        }
+
+        expect($thrown)->not->toBeNull()
+            ->and($thrown->getMessage())->not->toContain('x');
+    });
+
+    it('refuses when the prompt is cancelled or unavailable, without an uncaught exception', function () {
+        $thrown = null;
+
+        try {
+            collectPrimaryActorPassword(
+                interactive: true,
+                ask: fn (): string => throw new RuntimeException('simulated: input stream closed'),
+            );
+        } catch (DemoPrimaryActorPasswordInvalid $e) {
+            $thrown = $e;
+        }
+
+        expect($thrown)->not->toBeNull()
+            ->and($thrown->getMessage())->not->toContain('simulated');
+    });
+
+    it('never carries a password or its confirmation in any of its exception messages', function () {
+        // Source-level guard: DemoPrimaryActorPasswordInvalid's factories
+        // must never accept, interpolate, or forward a password value.
+        $source = file_get_contents(app_path('Domains/Demo/Exceptions/DemoPrimaryActorPasswordInvalid.php'));
+
+        expect($source)->not->toContain('$password')
+            ->and($source)->not->toContain('$confirmation');
+    });
+
+    it('never passes the password or its confirmation to a console output call', function () {
+        // Source-level guard covering the paths a unit test cannot reach
+        // (the guard blocks a real run before the command's own success or
+        // error output is ever printed — see the file docblock above).
+        $source = file_get_contents(app_path('Console/Commands/DemoDataSeedCommand.php'));
+        $lines = explode("\n", $source);
+        $offenders = [];
+
+        foreach ($lines as $number => $line) {
+            $isOutputCall = preg_match('/\$this->(info|error|line|warn|comment|table|newLine|alert)\s*\(/', $line);
+            $namesPassword = str_contains($line, '$password') || str_contains($line, '$confirmation');
+
+            if ($isOutputCall && $namesPassword) {
+                $offenders[] = ($number + 1).': '.trim($line);
+            }
+        }
+
+        expect($offenders)->toBe([]);
+    });
 });
 
 describe('DemoDataSeeder — orchestration', function () {
@@ -171,7 +368,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('creates the minimum dataset on a first run', function () {
-        $result = app(DemoDataSeeder::class)->seed();
+        $result = app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         expect($result->officeCode)->toBe(DemoDataSeeder::OFFICE_CODE)
             ->and($result->users)->toBe(5)
@@ -194,11 +391,11 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('refuses a second run, throwing before any write, and changes nothing', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $before = demoEntityCounts();
 
-        expect(fn () => app(DemoDataSeeder::class)->seed())
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))
             ->toThrow(DemoDatasetAlreadyExists::class);
 
         expect(demoEntityCounts())->toBe($before);
@@ -212,7 +409,7 @@ describe('DemoDataSeeder — orchestration', function () {
             $mock->shouldReceive('handle')->andThrow(new RuntimeException('simulated mid-run failure'));
         });
 
-        expect(fn () => app(DemoDataSeeder::class)->seed())->toThrow(RuntimeException::class);
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))->toThrow(RuntimeException::class);
 
         expect(Organization::query()->count())->toBe(0)
             ->and(Office::query()->count())->toBe(0)
@@ -228,7 +425,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('never sets nik, npwp, or tax_id on any created party', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         expect(Individual::query()->whereNotNull('nik')->count())->toBe(0)
             ->and(Individual::query()->whereNotNull('npwp')->count())->toBe(0)
@@ -236,7 +433,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('allocates project, matter, and document numbers rather than hardcoding them', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $projectNumbers = Project::query()->pluck('project_number');
         $matterNumbers = Matter::query()->pluck('matter_number');
@@ -261,7 +458,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('keeps every relation valid and inside the demo office', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
 
@@ -280,7 +477,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('only reaches matter, document, and task statuses achievable through real lifecycle actions', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $matterStatuses = Matter::query()->pluck('status')->map(fn ($s) => $s->value)->unique()->sort()->values();
         $documentStatuses = Document::query()->pluck('status')->map(fn ($s) => $s->value)->unique()->sort()->values();
@@ -300,7 +497,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('gives every document a valid current version', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach (Document::query()->get() as $document) {
             expect($document->current_version_id)->not->toBeNull();
@@ -313,7 +510,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('never writes a storage path that looks public', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach (DocumentVersion::query()->pluck('storage_path') as $path) {
             expect($path)->not->toContain('public/')
@@ -322,7 +519,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('stores every demo document on the local_demo disk, never on local', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $disks = DocumentVersion::query()->pluck('storage_disk')->unique();
 
@@ -335,7 +532,7 @@ describe('DemoDataSeeder — orchestration', function () {
     });
 
     it('creates no Deed, Workflow, PPAT, or Billing entity', function () {
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         foreach ([
             'notary_deeds', 'notary_minuta',
@@ -344,6 +541,57 @@ describe('DemoDataSeeder — orchestration', function () {
             'quotations', 'invoices', 'payments', 'disbursements',
         ] as $table) {
             expect(DB::table($table)->count())->toBe(0);
+        }
+    });
+});
+
+describe('DemoDataSeeder — primary actor login credentials', function () {
+    beforeEach(function () {
+        Storage::fake('local_demo');
+        Storage::fake('local');
+        bootstrapLoginReadyRole();
+    });
+
+    it('stores the primary actor password as a hash, never as plaintext', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        expect($actor->password)->not->toBe(DEMO_PRIMARY_PASSWORD)
+            ->and($actor->password)->not->toContain(DEMO_PRIMARY_PASSWORD);
+    });
+
+    it('hashes the primary actor password so it verifies against the password given', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $actor = User::query()->where('email', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->firstOrFail();
+
+        expect(Hash::check(DEMO_PRIMARY_PASSWORD, $actor->password))->toBeTrue();
+    });
+
+    it('never lets a supporting user authenticate with the primary actor password', function () {
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        $others = User::query()->where('email', '!=', DemoDataSeeder::PRIMARY_ACTOR_EMAIL)->get();
+
+        expect($others)->toHaveCount(4);
+
+        foreach ($others as $other) {
+            expect(Hash::check(DEMO_PRIMARY_PASSWORD, $other->password))->toBeFalse();
+        }
+    });
+
+    it('never writes the password anywhere on DemoSeedResult', function () {
+        $result = app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
+
+        expect(array_keys(get_object_vars($result)))->toBe([
+            'officeCode', 'users', 'parties', 'projects', 'matters', 'documents', 'tasks',
+        ]);
+
+        foreach (get_object_vars($result) as $value) {
+            if (is_string($value)) {
+                expect($value)->not->toBe(DEMO_PRIMARY_PASSWORD);
+            }
         }
     });
 });
@@ -386,7 +634,7 @@ describe('DemoDataSeeder — Organization/Office construction', function () {
         Storage::fake('local_demo');
         Storage::fake('local');
 
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
         $organization = Organization::query()->findOrFail($office->organization_id);
@@ -411,7 +659,7 @@ describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
 
         $before = demoEntityCounts();
 
-        expect(fn () => app(DemoDataSeeder::class)->seed())
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))
             ->toThrow(DemoRolePrerequisiteMissing::class, 'no "SUPER_ADMIN" role exists yet');
 
         // The failure happens after Organization, Office and Users are
@@ -431,7 +679,7 @@ describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
 
         $before = demoEntityCounts();
 
-        expect(fn () => app(DemoDataSeeder::class)->seed())
+        expect(fn () => app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD))
             ->toThrow(DemoRolePrerequisiteMissing::class, 'does not currently grant access to');
 
         expect(demoEntityCounts())->toBe($before);
@@ -440,7 +688,7 @@ describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
     it('assigns SUPER_ADMIN to exactly the primary actor, and to no one else', function () {
         bootstrapLoginReadyRole();
 
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $actor = User::query()->where('email', 'notaris.demo@example.test')->firstOrFail();
         $others = User::query()->where('email', '!=', 'notaris.demo@example.test')->get();
@@ -456,7 +704,7 @@ describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
     it('makes the primary actor pass every real Policy check the main surfaces require', function () {
         bootstrapLoginReadyRole();
 
-        app(DemoDataSeeder::class)->seed();
+        app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 
         $actor = User::query()->where('email', 'notaris.demo@example.test')->firstOrFail();
 
