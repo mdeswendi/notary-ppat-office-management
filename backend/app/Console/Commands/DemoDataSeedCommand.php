@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domains\Demo\DemoDataSeeder;
 use App\Domains\Demo\DemoEnvironmentGuard;
 use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
+use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
 use App\Domains\Demo\Exceptions\UnsafeDemoEnvironment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -25,10 +26,14 @@ use Illuminate\Support\Facades\DB;
  * every time, regardless of what state the target database happens to be in.
  *
  * Refuse-not-overwrite: a dataset that already exists (the seeder's own
- * marker check) is reported and left untouched, exiting successfully — the
- * same disposition `app:bootstrap` takes for an already-initialized
- * deployment (D-058). Nothing here builds a `demo:reset`; removing an
- * existing dataset is its own, separately-scoped decision.
+ * marker check) is reported and left untouched, exiting with a **non-zero**
+ * status — nothing was done, and a caller (a script, CI, an operator relying
+ * on `$?`) must be able to tell that apart from a run that actually seeded
+ * anything. Nothing here builds a `demo:reset`; removing an existing dataset
+ * is its own, separately-scoped decision.
+ *
+ * The seeder's own role prerequisite (see {@see DemoDataSeeder::seed()}) is
+ * refused the same way: reported, left untouched, non-zero exit.
  */
 class DemoDataSeedCommand extends Command
 {
@@ -55,9 +60,13 @@ class DemoDataSeedCommand extends Command
         try {
             $result = $seeder->seed();
         } catch (DemoDatasetAlreadyExists $e) {
-            $this->info($e->getMessage());
+            $this->error($e->getMessage());
 
-            return self::SUCCESS;
+            return self::FAILURE;
+        } catch (DemoRolePrerequisiteMissing $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
         }
 
         $this->newLine();

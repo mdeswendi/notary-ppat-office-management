@@ -3,7 +3,11 @@
 namespace App\Domains\Demo;
 
 use App\Domains\Audit\Services\EventRecorder;
+use App\Domains\Authorization\Actions\ReplaceUserRoles;
+use App\Domains\Authorization\DefaultRoleRegistry;
+use App\Domains\Authorization\PermissionRegistry;
 use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
+use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
 use App\Domains\Document\Actions\ArchiveDocument;
 use App\Domains\Document\Actions\UploadDocument;
 use App\Domains\Document\Actions\VerifyDocument;
@@ -33,10 +37,17 @@ use App\Models\Party;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Policies\CompanyPolicy;
+use App\Policies\DocumentPolicy;
+use App\Policies\IndividualPolicy;
+use App\Policies\MatterPolicy;
+use App\Policies\ProjectPolicy;
+use App\Policies\TaskPolicy;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use Throwable;
 
 /**
@@ -77,6 +88,25 @@ use Throwable;
  * Property, Workflow, Quotation, Invoice and Payment entities are entirely out
  * of scope for this dataset; see the class this ships alongside,
  * `DemoDataSeedCommand`, for what is and is not built.
+ *
+ * **Organization and Office are the one exception to "through an Action."**
+ * No `CreateOrganization` or `CreateOffice` Action exists anywhere in this
+ * codebase — there is nothing to call. `BootstrapDeploymentCommand` (D-034)
+ * constructs both directly with `new Organization`/`new Office`, and
+ * {@see build()} follows that exact precedent rather than inventing a second
+ * pattern for one dataset. A test asserts direct construction of either model
+ * appears nowhere else in `app/`.
+ *
+ * **Exactly one demo user is made authorization-capable, not five.** After
+ * {@see createUsers()} returns, {@see makeActorAuthorizationCapable()} assigns
+ * the canonical `SUPER_ADMIN` role — and only that role, to only the first of
+ * the five users — then proves the assignment actually works by calling the
+ * same Policy classes a real Controller would. It never creates a Role or
+ * grants a permission; see that method's docblock for what happens when
+ * neither is in place yet. This closes how far "authorization-capable" goes:
+ * it says nothing about whether anyone can *authenticate* as that user — see
+ * {@see createUsers()} for why the password stays exactly as unknown as it
+ * was before.
  */
 class DemoDataSeeder
 {
@@ -98,6 +128,13 @@ class DemoDataSeeder
 
     public function __construct(
         private readonly CreateUser $createUser,
+        private readonly ReplaceUserRoles $replaceUserRoles,
+        private readonly IndividualPolicy $individualPolicy,
+        private readonly CompanyPolicy $companyPolicy,
+        private readonly ProjectPolicy $projectPolicy,
+        private readonly MatterPolicy $matterPolicy,
+        private readonly DocumentPolicy $documentPolicy,
+        private readonly TaskPolicy $taskPolicy,
         private readonly CreateIndividual $createIndividual,
         private readonly CreateCompany $createCompany,
         private readonly CreateProject $createProject,
@@ -144,6 +181,12 @@ class DemoDataSeeder
 
     private function build(): DemoSeedResult
     {
+        // Direct model construction, deliberately — see the class docblock.
+        // `BootstrapDeploymentCommand::handle()` (app/Console/Commands/
+        // BootstrapDeploymentCommand.php) is the only other place in this
+        // codebase that builds an Organization or an Office at all, and it
+        // does so the same way, for the same reason: neither model has a
+        // `Create*` Action to call.
         $organization = new Organization;
         $organization->name = self::ORGANIZATION_NAME;
         $organization->save();
@@ -156,6 +199,8 @@ class DemoDataSeeder
 
         $users = $this->createUsers($office);
         $actor = $users[0];
+
+        $this->makeActorAuthorizationCapable($actor);
 
         $parties = $this->createParties($actor, $office);
 
@@ -184,14 +229,21 @@ class DemoDataSeeder
      */
     private function createUsers(Office $office): array
     {
-        // No role is assigned to any of these (CreateUser grants none — see
-        // its own docblock). None of the Actions this class calls checks a
-        // permission or a role; every one authorizes nothing itself and
-        // trusts that its caller already did (`CLAUDE.md` §35 — that caller
-        // is ordinarily a Controller, and here it is this class, calling
-        // Actions directly the same way a test in this codebase already does
-        // for `CreateMatter`). Role-readiness for an actual login session is
-        // therefore explicitly out of scope for this dataset.
+        // CreateUser itself grants no role to any of these five (see its own
+        // docblock) — none of the Actions this class calls checks a
+        // permission or a role internally, every one authorizes nothing
+        // itself and trusts that its caller already did (CLAUDE.md §35).
+        // makeActorAuthorizationCapable() assigns a role to the first of
+        // these five separately, right after this method returns — a
+        // deliberately distinct step, since "was this User created" and "can
+        // this User pass an authorization check" are different questions.
+        //
+        // The password is `Str::random(32)` for all five, including the one
+        // that later becomes authorization-capable — generated, never
+        // printed, logged, or otherwise recoverable. That is unchanged by
+        // this class assigning a role: a role decides what an already
+        // authenticated actor may do, not how anyone would authenticate as
+        // them. No user this command creates can currently be logged into.
         $people = [
             ['name' => 'Notaris Demo', 'email' => 'notaris.demo@example.test'],
             ['name' => 'PPAT Staff Demo', 'email' => 'ppat.staff.demo@example.test'],
@@ -207,14 +259,73 @@ class DemoDataSeeder
                 'phone' => null,
                 'office_id' => $office->getKey(),
                 // Random per run, never reused, never logged, never printed —
-                // hashed immediately by the model's `hashed` cast. Nothing in
-                // this dataset is meant to be logged into; a fixed or
+                // hashed immediately by the model's `hashed` cast. A fixed or
                 // guessable password would be a credential left in source for
-                // no reason this dataset needs.
+                // no reason this dataset needs; see the comment above this
+                // method for why that holds even for the user that later
+                // becomes authorization-capable.
                 'password' => Str::random(32),
             ]),
             $people,
         );
+    }
+
+    /**
+     * Assigns the canonical `SUPER_ADMIN` role to the primary demo actor —
+     * and only to that one user — then proves the assignment is not merely
+     * cosmetic by calling the exact Policy classes a real Controller would:
+     * {@see IndividualPolicy}, {@see CompanyPolicy}, {@see ProjectPolicy},
+     * {@see MatterPolicy} for both domains, {@see DocumentPolicy}, and
+     * {@see TaskPolicy}.
+     *
+     * **Never creates a Role, never grants a permission.** Both come only
+     * from `permissions:sync` and `app:bootstrap` (or equivalent manual Role
+     * Management configuration) — deliberately outside this class's reach
+     * (`CLAUDE.md` §24; D-045, D-057 forbid inventing authorization state
+     * silently). `SUPER_ADMIN` is the one canonical role D-057 guarantees
+     * holds every permission at `ALL` scope the moment a deployment has been
+     * bootstrapped — the other eight default roles are created empty and
+     * configured by hand, so none of them is a reliable target here.
+     *
+     * If the role does not exist yet, or exists but cannot pass one of the
+     * checks below, this throws {@see DemoRolePrerequisiteMissing} rather
+     * than fabricating the missing configuration — the caller's transaction
+     * rolls every write in this run back, exactly as any other mid-run
+     * failure does.
+     *
+     * This says nothing about whether anyone can *authenticate* as this
+     * actor — see the comment inside {@see createUsers()}. Authorization
+     * readiness and login readiness are different questions; this method
+     * answers only the first.
+     */
+    private function makeActorAuthorizationCapable(User $actor): void
+    {
+        $role = Role::query()
+            ->where('name', DefaultRoleRegistry::ADMINISTRATOR)
+            ->where('guard_name', PermissionRegistry::GUARD)
+            ->first();
+
+        if ($role === null) {
+            throw DemoRolePrerequisiteMissing::roleNotFound(DefaultRoleRegistry::ADMINISTRATOR);
+        }
+
+        $this->replaceUserRoles->handle($actor, [$role]);
+
+        $surfaces = [
+            'Parties (Individual)' => fn (): bool => $this->individualPolicy->viewAny($actor),
+            'Parties (Company)' => fn (): bool => $this->companyPolicy->viewAny($actor),
+            'Projects' => fn (): bool => $this->projectPolicy->viewAny($actor),
+            'Notary Matters' => fn (): bool => $this->matterPolicy->viewAny($actor, MatterDomain::NOTARY),
+            'PPAT Matters' => fn (): bool => $this->matterPolicy->viewAny($actor, MatterDomain::PPAT),
+            'Documents' => fn (): bool => $this->documentPolicy->viewAny($actor),
+            'Tasks' => fn (): bool => $this->taskPolicy->viewAny($actor),
+        ];
+
+        foreach ($surfaces as $surface => $isReachable) {
+            if (! $isReachable()) {
+                throw DemoRolePrerequisiteMissing::policyUnreachable(DefaultRoleRegistry::ADMINISTRATOR, $surface);
+            }
+        }
     }
 
     /**

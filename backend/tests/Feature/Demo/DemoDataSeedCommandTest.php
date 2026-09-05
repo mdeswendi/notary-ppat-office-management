@@ -1,7 +1,13 @@
 <?php
 
+use App\Domains\Authorization\DefaultRoleRegistry;
+use App\Domains\Authorization\Enums\DataScope;
+use App\Domains\Authorization\PermissionRegistry;
+use App\Domains\Authorization\SyncCanonicalPermissions;
 use App\Domains\Demo\DemoDataSeeder;
 use App\Domains\Demo\Exceptions\DemoDatasetAlreadyExists;
+use App\Domains\Demo\Exceptions\DemoRolePrerequisiteMissing;
+use App\Domains\Matter\Enums\MatterDomain;
 use App\Domains\Task\Actions\CreateTask;
 use App\Models\Company;
 use App\Models\Document;
@@ -14,10 +20,19 @@ use App\Models\Party;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Policies\CompanyPolicy;
+use App\Policies\DocumentPolicy;
+use App\Policies\IndividualPolicy;
+use App\Policies\MatterPolicy;
+use App\Policies\ProjectPolicy;
+use App\Policies\TaskPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -34,10 +49,79 @@ uses(RefreshDatabase::class);
  * This file proves two different things: that the command actually calls
  * that guard before anything else, and that the orchestration behind it is
  * correct once a caller (never this suite, via the command) gets past it.
+ *
+ * One consequence of the guard rejecting unconditionally in this environment:
+ * this suite can prove `DemoDataSeedCommand` maps `DemoDatasetAlreadyExists`
+ * to a non-zero exit (the fix this file's rerun-idempotency tests were
+ * revised for) only at the point the guard cannot intercept — calling
+ * `DemoDataSeeder::seed()` directly, the same way the marker-ordering test
+ * below already had to. There is no way, in this suite, to also observe that
+ * mapping *through* `demo:seed` on a second real run: reaching the seeder at
+ * all requires clearing the guard first, and nothing here is allowed to fake
+ * being `local` against a database named exactly `notary_ppat_demo` to do it.
  */
 beforeEach(function (): void {
     expect(DB::connection()->getDatabaseName())->not->toBe('notary_ppat_office');
 });
+
+/**
+ * Grants `SUPER_ADMIN` every canonical permission at `ALL` scope — the exact
+ * shape `BootstrapDeploymentCommand::grantEverything()` produces on a real
+ * deployment (app/Console/Commands/BootstrapDeploymentCommand.php) — without
+ * running `permissions:sync` or `app:bootstrap` as a side-effecting command
+ * against any persistent database. `SyncCanonicalPermissions::handle()` is
+ * the same in-process service `app:bootstrap` calls internally; calling it
+ * here, against this test's own throwaway SQLite `:memory:` connection, is
+ * no different from any other test in this codebase fabricating its own
+ * fixture state.
+ */
+function bootstrapLoginReadyRole(): Role
+{
+    app(SyncCanonicalPermissions::class)->handle();
+
+    $role = Role::create(['name' => DefaultRoleRegistry::ADMINISTRATOR, 'guard_name' => PermissionRegistry::GUARD]);
+
+    $permissions = Permission::query()
+        ->where('guard_name', PermissionRegistry::GUARD)
+        ->whereIn('name', PermissionRegistry::all())
+        ->get();
+
+    $role->syncPermissions($permissions);
+
+    $now = now();
+
+    DB::table('role_permission_scopes')->insert(
+        $permissions->map(fn (Permission $permission): array => [
+            'id' => (string) Str::ulid(),
+            'role_id' => $role->getKey(),
+            'permission_id' => $permission->getKey(),
+            'scope' => DataScope::ALL->value,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all()
+    );
+
+    return $role;
+}
+
+/**
+ * @return array<string, int>
+ */
+function demoEntityCounts(): array
+{
+    return [
+        'organizations' => Organization::query()->count(),
+        'offices' => Office::query()->count(),
+        'users' => User::query()->count(),
+        'parties' => Party::query()->count(),
+        'individuals' => Individual::query()->count(),
+        'companies' => Company::query()->count(),
+        'projects' => Project::query()->count(),
+        'matters' => Matter::query()->count(),
+        'documents' => Document::query()->count(),
+        'tasks' => Task::query()->count(),
+    ];
+}
 
 describe('DemoDataSeedCommand — guard boundary', function () {
     it('refuses before any write when the environment is not local', function () {
@@ -78,6 +162,12 @@ describe('DemoDataSeeder — orchestration', function () {
         // nothing this suite runs ever writes a real file anywhere on disk.
         Storage::fake('local_demo');
         Storage::fake('local');
+
+        // The seeder now refuses to run at all unless SUPER_ADMIN already
+        // holds a usable grant for every surface its primary actor needs
+        // (see DemoRolePrerequisiteMissing — a separate describe block below
+        // covers what happens without this).
+        bootstrapLoginReadyRole();
     });
 
     it('creates the minimum dataset on a first run', function () {
@@ -103,33 +193,15 @@ describe('DemoDataSeeder — orchestration', function () {
             ->and(Task::query()->count())->toBe(6);
     });
 
-    it('refuses a second run and changes nothing', function () {
+    it('refuses a second run, throwing before any write, and changes nothing', function () {
         app(DemoDataSeeder::class)->seed();
 
-        $before = [
-            'organizations' => Organization::query()->count(),
-            'offices' => Office::query()->count(),
-            'users' => User::query()->count(),
-            'parties' => Party::query()->count(),
-            'projects' => Project::query()->count(),
-            'matters' => Matter::query()->count(),
-            'documents' => Document::query()->count(),
-            'tasks' => Task::query()->count(),
-        ];
+        $before = demoEntityCounts();
 
         expect(fn () => app(DemoDataSeeder::class)->seed())
             ->toThrow(DemoDatasetAlreadyExists::class);
 
-        expect([
-            'organizations' => Organization::query()->count(),
-            'offices' => Office::query()->count(),
-            'users' => User::query()->count(),
-            'parties' => Party::query()->count(),
-            'projects' => Project::query()->count(),
-            'matters' => Matter::query()->count(),
-            'documents' => Document::query()->count(),
-            'tasks' => Task::query()->count(),
-        ])->toBe($before);
+        expect(demoEntityCounts())->toBe($before);
     });
 
     it('leaves no partial dataset, and no orphaned demo files, when orchestration fails midway', function () {
@@ -273,5 +345,130 @@ describe('DemoDataSeeder — orchestration', function () {
         ] as $table) {
             expect(DB::table($table)->count())->toBe(0);
         }
+    });
+});
+
+describe('DemoDataSeeder — Organization/Office construction', function () {
+    it('constructs Organization and Office directly only in the two reviewed precedents', function (): void {
+        // No `CreateOrganization` or `CreateOffice` Action exists anywhere in
+        // this codebase — there is nothing to call. `BootstrapDeploymentCommand`
+        // (D-034) is the original, already-reviewed precedent for constructing
+        // both directly with `new Organization`/`new Office`; DemoDataSeeder
+        // follows it deliberately rather than inventing a second pattern. This
+        // is a source-level guard, so the invariant survives whatever gets
+        // written next — comments are stripped first since prose is not code.
+        $allowed = [
+            'Console'.DIRECTORY_SEPARATOR.'Commands'.DIRECTORY_SEPARATOR.'BootstrapDeploymentCommand.php',
+            'Domains'.DIRECTORY_SEPARATOR.'Demo'.DIRECTORY_SEPARATOR.'DemoDataSeeder.php',
+        ];
+
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(app_path()));
+        $offenders = [];
+
+        foreach ($files as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $relative = str_replace(app_path().DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $code = preg_replace('#/\*.*?\*/|//[^\n]*#s', '', file_get_contents($file->getPathname()));
+
+            if (preg_match('/\bnew\s+(Organization|Office)\b/', $code) && ! in_array($relative, $allowed, true)) {
+                $offenders[] = $relative;
+            }
+        }
+
+        expect($offenders)->toBe([]);
+    });
+
+    it('gives the demo Organization and Office the same required fields BootstrapDeploymentCommand gives them', function (): void {
+        bootstrapLoginReadyRole();
+        Storage::fake('local_demo');
+        Storage::fake('local');
+
+        app(DemoDataSeeder::class)->seed();
+
+        $office = Office::query()->where('code', DemoDataSeeder::OFFICE_CODE)->firstOrFail();
+        $organization = Organization::query()->findOrFail($office->organization_id);
+
+        expect($organization->name)->toBe(DemoDataSeeder::ORGANIZATION_NAME)
+            ->and($office->organization_id)->toBe($organization->getKey())
+            ->and($office->code)->toBe(DemoDataSeeder::OFFICE_CODE)
+            ->and($office->name)->not->toBeEmpty();
+    });
+});
+
+describe('DemoDataSeeder — role prerequisite (D-045, D-057)', function () {
+    beforeEach(function () {
+        Storage::fake('local_demo');
+        Storage::fake('local');
+    });
+
+    it('refuses when no SUPER_ADMIN role exists yet, and leaves nothing behind', function () {
+        // Deliberately no bootstrapLoginReadyRole() call — this is a database
+        // that has never been through permissions:sync or app:bootstrap.
+        expect(Role::query()->where('name', DefaultRoleRegistry::ADMINISTRATOR)->exists())->toBeFalse();
+
+        $before = demoEntityCounts();
+
+        expect(fn () => app(DemoDataSeeder::class)->seed())
+            ->toThrow(DemoRolePrerequisiteMissing::class, 'no "SUPER_ADMIN" role exists yet');
+
+        // The failure happens after Organization, Office and Users are
+        // written (makeActorAuthorizationCapable() runs right after
+        // createUsers()) but the whole run is one transaction, so every one
+        // of those writes must be rolled back along with it — this is the
+        // same rollback guarantee already proven for a CreateTask failure
+        // above, exercised here for a different failure point.
+        expect(demoEntityCounts())->toBe($before);
+    });
+
+    it('refuses when SUPER_ADMIN exists but grants nothing usable, and leaves nothing behind', function () {
+        // A role that exists only by name — no permissions:sync ran, so no
+        // Permission row exists for it to hold. This is what an office would
+        // see if someone created the role by hand without ever configuring it.
+        Role::create(['name' => DefaultRoleRegistry::ADMINISTRATOR, 'guard_name' => PermissionRegistry::GUARD]);
+
+        $before = demoEntityCounts();
+
+        expect(fn () => app(DemoDataSeeder::class)->seed())
+            ->toThrow(DemoRolePrerequisiteMissing::class, 'does not currently grant access to');
+
+        expect(demoEntityCounts())->toBe($before);
+    });
+
+    it('assigns SUPER_ADMIN to exactly the primary actor, and to no one else', function () {
+        bootstrapLoginReadyRole();
+
+        app(DemoDataSeeder::class)->seed();
+
+        $actor = User::query()->where('email', 'notaris.demo@example.test')->firstOrFail();
+        $others = User::query()->where('email', '!=', 'notaris.demo@example.test')->get();
+
+        expect($actor->roles()->where('name', DefaultRoleRegistry::ADMINISTRATOR)->exists())->toBeTrue()
+            ->and($others)->toHaveCount(4);
+
+        foreach ($others as $other) {
+            expect($other->roles()->count())->toBe(0);
+        }
+    });
+
+    it('makes the primary actor pass every real Policy check the main surfaces require', function () {
+        bootstrapLoginReadyRole();
+
+        app(DemoDataSeeder::class)->seed();
+
+        $actor = User::query()->where('email', 'notaris.demo@example.test')->firstOrFail();
+
+        // The same Policy classes DemoDataSeeder itself calls, and the same
+        // ones a real Controller resolves from the container — not a
+        // reimplementation of the check, the check itself.
+        expect(app(IndividualPolicy::class)->viewAny($actor))->toBeTrue()
+            ->and(app(CompanyPolicy::class)->viewAny($actor))->toBeTrue()
+            ->and(app(ProjectPolicy::class)->viewAny($actor))->toBeTrue()
+            ->and(app(MatterPolicy::class)->viewAny($actor, MatterDomain::NOTARY))->toBeTrue()
+            ->and(app(MatterPolicy::class)->viewAny($actor, MatterDomain::PPAT))->toBeTrue()
+            ->and(app(DocumentPolicy::class)->viewAny($actor))->toBeTrue()
+            ->and(app(TaskPolicy::class)->viewAny($actor))->toBeTrue();
     });
 });
