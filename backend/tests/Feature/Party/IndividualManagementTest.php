@@ -38,9 +38,21 @@ function partyActor(string $permission, DataScope $scope = DataScope::OFFICE): a
  */
 function makeIndividualIn(Office $office, array $attributes = []): Individual
 {
-    return Individual::factory()
+    $individual = Individual::factory()
         ->for(Party::factory()->individual()->for($office), 'party')
         ->create($attributes);
+
+    // The factory builds the Party and the Individual from two independent
+    // Faker calls, so their names can disagree. `CreateIndividual::handle()`
+    // never allows that (D-079: `display_name = trim(full_name)`, written in
+    // the same transaction) — this mirrors it so the fixture matches what the
+    // product would have written, the same reasoning `makeCompanyIn()` already
+    // applies via `preferredDisplayName()`. Without this, `PartyDirectoryTest`
+    // could see a Party `display_name` the caller never pinned, drawn straight
+    // from Faker's `en_US` name list.
+    $individual->party->forceFill(['display_name' => trim((string) $individual->full_name)])->save();
+
+    return $individual->fresh(['party']);
 }
 
 /*
