@@ -28,6 +28,14 @@ import type { CurrentUser } from "@/types/auth";
  *
  * The built-in close button is suppressed in favour of a translated one — the
  * vendored primitive hardcodes an English "Close" label.
+ *
+ * `nav` is the only child given `flex-1 overflow-y-auto`, the same pairing
+ * `AppSidebar` already uses. `SheetContent` is `fixed inset-y-0 h-full flex
+ * flex-col` — a genuinely bounded height, not one the content grows to fit —
+ * so this is the one child that should absorb the remainder of that height
+ * and scroll, while the header and close control stay put above it. Without
+ * it, a list taller than the sheet had nothing to shrink or scroll, and the
+ * bottom of the menu was simply unreachable below `lg`.
  */
 export function MobileNav({ user }: { user: CurrentUser }) {
   const t = useTranslations("navigation");
@@ -65,7 +73,7 @@ export function MobileNav({ user }: { user: CurrentUser }) {
 
         <Separator />
 
-        <nav aria-label={t("mainLabel")} className="p-3">
+        <nav aria-label={t("mainLabel")} className="flex-1 overflow-y-auto overscroll-contain p-3">
           <SidebarNav user={user} onNavigate={() => setOpen(false)} />
         </nav>
       </SheetContent>

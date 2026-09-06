@@ -132,7 +132,7 @@ function Filed({ deedId, minuta }: { deedId: string; minuta: NotaryMinuta }) {
             {minuta.document ? (
               <Link
                 href={`/documents/${minuta.document.id}`}
-                className="underline-offset-4 hover:underline"
+                className="text-primary focus-visible:ring-ring rounded-sm underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
               >
                 {minuta.document.title}
               </Link>
