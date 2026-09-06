@@ -1552,7 +1552,7 @@
     "documentSlots": {
       "draft": "Draft",
       "final": "Final",
-      "minuta": "Minuta Akta"
+      "minuta": "Minuta Document"
     },
     "validation": {
       "titleRequired": "Title is required.",
