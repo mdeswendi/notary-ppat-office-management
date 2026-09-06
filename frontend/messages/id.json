@@ -1552,7 +1552,7 @@
     "documentSlots": {
       "draft": "Konsep",
       "final": "Final",
-      "minuta": "Minuta Akta"
+      "minuta": "Dokumen Minuta pada Akta"
     },
     "validation": {
       "titleRequired": "Judul wajib diisi.",

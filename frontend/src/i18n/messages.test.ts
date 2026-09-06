@@ -31,3 +31,34 @@ describe("actions message catalog", () => {
     expect(Object.keys(id.actions).sort()).toEqual(Object.keys(en.actions).sort());
   });
 });
+
+/**
+ * `notary.documentSlots.minuta` (the deed's own document pointer, one of three
+ * slots on `DeedDocuments`) and `notary.minuta.title` (the Minuta Akta filing
+ * section) used to share the literal string "Minuta Akta" in both locales.
+ * The two answer different questions — the Minuta consistency audit found
+ * that `notary_deeds.minuta_document_id` and `notary_minuta.document_id` are
+ * deliberately independent columns (a deed may carry one, the other, both or
+ * neither) — so an identical label made an ordinary, expected difference read
+ * as a contradiction on the Deed Detail page. This file reads the real
+ * catalog rather than the `next-intl` mock so a future edit that reintroduces
+ * the collision fails here.
+ */
+describe("notary Minuta label collision", () => {
+  it("keeps the canonical legal term for the filing section title in both locales", () => {
+    // "Minuta Akta" is preserved untranslated per docs/05_I18N_LEGAL_TERMINOLOGY.md
+    // — it is never the label this task is allowed to change.
+    expect(id.notary.minuta.title).toBe("Minuta Akta");
+    expect(en.notary.minuta.title).toBe("Minuta Akta");
+  });
+
+  it("gives the deed's own document slot a label distinct from the filing title", () => {
+    expect(id.notary.documentSlots.minuta).toBe("Dokumen Minuta pada Akta");
+    expect(en.notary.documentSlots.minuta).toBe("Minuta Document");
+  });
+
+  it("never lets the two Minuta labels collide again, in either locale", () => {
+    expect(id.notary.documentSlots.minuta).not.toBe(id.notary.minuta.title);
+    expect(en.notary.documentSlots.minuta).not.toBe(en.notary.minuta.title);
+  });
+});

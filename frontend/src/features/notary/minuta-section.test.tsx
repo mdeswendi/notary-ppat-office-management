@@ -125,26 +125,31 @@ describe("MinutaSection", () => {
   });
 
   /**
-   * The runtime finding this pins: the link was clickable but carried no colour
-   * and no focus ring, so nothing distinguished it from plain text until a mouse
-   * happened to hover it — a keyboard user got no affordance at all. `text-primary`
-   * is the colour `buttonVariants`' own `link` variant uses for the same purpose;
-   * the focus ring recipe matches `sidebar-nav.tsx`'s links rather than inventing
-   * a third one.
+   * The runtime finding this pins: `text-primary` alone was not enough — a
+   * Phase 5B runtime recheck found the Notary domain's navy primary
+   * (`#172554`) too close to body text (`#0F172A`) to read as a distinct
+   * colour, so a link relying on colour plus hover-only underline gave a
+   * keyboard user no signal at all and a sighted user a weak one. The fix
+   * does not depend on colour: a permanent underline plus `font-medium`
+   * carries the affordance on its own, with `text-primary` and the focus
+   * ring kept as secondary signals rather than the load-bearing one.
    */
-  it("gives the document link a visible colour and a focus-visible ring", async () => {
+  it("gives the document link a permanent, colour-independent affordance and a focus-visible ring", async () => {
     vi.mocked(services.getMinuta).mockResolvedValue(minuta());
 
     renderSection();
 
     const link = await screen.findByRole("link", { name: "Pindaian Minuta" });
 
-    expect(link).toHaveClass("text-primary");
+    expect(link).toHaveClass("font-medium");
+    expect(link).toHaveClass("underline");
+    expect(link).toHaveClass("underline-offset-4");
     expect(link).toHaveClass("focus-visible:ring-2");
     expect(link).toHaveClass("focus-visible:outline-none");
-    // The destination and the hover affordance are unchanged by the fix.
+    // Retained as a secondary signal, not the load-bearing one.
+    expect(link).toHaveClass("text-primary");
+    // The destination is unchanged by the fix.
     expect(link).toHaveAttribute("href", "/documents/01DOC");
-    expect(link).toHaveClass("hover:underline");
   });
 
   /**
