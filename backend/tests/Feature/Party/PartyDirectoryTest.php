@@ -1,12 +1,62 @@
 <?php
 
 use App\Domains\Authorization\Enums\DataScope;
+use App\Domains\Party\MaskedIdentifier;
 use App\Models\Office;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
+
+/**
+ * Every string key appearing anywhere in a decoded JSON structure, at any
+ * depth — what a security assertion should scan, in place of the raw
+ * serialized body a bare substring check used to scan instead.
+ *
+ * @param  array<array-key, mixed>  $data
+ * @return list<string>
+ */
+function collectJsonKeys(array $data): array
+{
+    $keys = [];
+
+    foreach ($data as $key => $value) {
+        if (is_string($key)) {
+            $keys[] = $key;
+        }
+
+        if (is_array($value)) {
+            $keys = [...$keys, ...collectJsonKeys($value)];
+        }
+    }
+
+    return $keys;
+}
+
+/**
+ * Every scalar leaf value appearing anywhere in a decoded JSON structure, at
+ * any depth.
+ *
+ * @param  array<array-key, mixed>  $data
+ * @return list<mixed>
+ */
+function collectJsonValues(array $data): array
+{
+    $values = [];
+
+    foreach ($data as $value) {
+        if (is_array($value)) {
+            $values = [...$values, ...collectJsonValues($value)];
+
+            continue;
+        }
+
+        $values[] = $value;
+    }
+
+    return $values;
+}
 
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -264,34 +314,101 @@ it("keeps the fixture individual's two names in sync even without an explicit fu
     expect($individual->party->display_name)->toBe($individual->full_name);
 });
 
-it('carries no sensitive identity or fingerprint in the directory', function (): void {
+it('carries no sensitive identity key or value in the directory', function (): void {
+    // Three rounds of flakiness (Individual.full_name, then Party.display_name,
+    // then Office.name — each an ordinary Faker `en_US` name/city draw that
+    // coincidentally contains "nik") proved a bare substring check against the
+    // whole serialized body cannot tell a real leak from an unrelated word. The
+    // actual security contract is narrower and is checked directly: the
+    // forbidden *keys* below must never be serialized at any depth, and the
+    // forbidden *values* (the fixture's own sensitive identifiers, plus what
+    // `MaskedIdentifier` would produce for them) must never appear as a leaf
+    // value anywhere in the response tree. Office name is deliberately left to
+    // the factory default (unpinned) here — proof the assertion no longer
+    // depends on avoiding any particular word.
     [$actor, $office] = directoryActor([
         'parties.view' => DataScope::OFFICE,
         'companies.view' => DataScope::OFFICE,
     ]);
 
-    // `full_name`/`legal_name` are pinned rather than left to the factory
-    // default. Both default to `fake()->name()`/`fake()->company()`, and the
-    // `en_US` locale occasionally draws a name containing "nik" (Monika,
-    // Nikita, Annika, a "Nikolaus"-surnamed company) — coincidentally
-    // tripping the forbidden-substring check below for a reason that has
-    // nothing to do with a real NIK leak. Pinning `full_name`/`legal_name` is
-    // only sufficient because `makeIndividualIn()`/`makeCompanyIn()` now
-    // synchronize `Party.display_name` from them (the two tests directly
-    // above pin this down) — that field, not `full_name`, is what the
-    // directory response actually serializes.
+    $individualNik = '3174012345678901';
+    $individualNpwp = '091234567890123';
+    $companyTaxId = '091234567890123';
+
     makeIndividualIn($office, [
         'full_name' => 'Individu Uji',
-        'nik' => '3174012345678901',
-        'npwp' => '091234567890123',
+        'nik' => $individualNik,
+        'npwp' => $individualNpwp,
     ]);
-    makeCompanyIn($office, ['legal_name' => 'Perusahaan Uji', 'tax_id' => '091234567890123']);
+    makeCompanyIn($office, ['legal_name' => 'Perusahaan Uji', 'tax_id' => $companyTaxId]);
 
-    $body = $this->actingAs($actor)->getJson('/api/v1/parties')->assertOk()->getContent();
+    $decoded = $this->actingAs($actor)->getJson('/api/v1/parties')->assertOk()->json();
 
-    foreach (['3174012345678901', '091234567890123', 'nik', 'npwp', 'tax_id',
-        'fingerprint', 'masked', '*****'] as $forbidden) {
-        expect($body)->not->toContain($forbidden);
+    // The exact key family the identity surfaces use (D-082/D-086):
+    // IndividualIdentityResource/CompanyIdentityResource for the masked pair,
+    // the `Individual`/`Company` model columns for the raw value and the
+    // blind fingerprint. `PartyDirectoryResource` must expose none of them.
+    $forbiddenKeys = [
+        'nik', 'npwp', 'tax_id',
+        'nik_masked', 'npwp_masked', 'tax_id_masked',
+        'nik_fingerprint', 'npwp_fingerprint', 'tax_id_fingerprint',
+    ];
+    $keys = collectJsonKeys($decoded);
+
+    foreach ($forbiddenKeys as $forbidden) {
+        expect($keys)->not->toContain($forbidden);
+    }
+
+    // The exact values a leak would actually carry — the raw identifiers this
+    // test just fixtured, and their masked form (`MaskedIdentifier::mask()`,
+    // e.g. "3174012345678901" -> "************8901"), never a free-standing
+    // run of asterisks that could coincide with unrelated formatting.
+    $forbiddenValues = [
+        $individualNik,
+        $individualNpwp,
+        $companyTaxId,
+        MaskedIdentifier::mask($individualNik),
+        MaskedIdentifier::mask($individualNpwp),
+        MaskedIdentifier::mask($companyTaxId),
+    ];
+    $values = collectJsonValues($decoded);
+
+    foreach ($forbiddenValues as $forbidden) {
+        expect($values)->not->toContain($forbidden);
+    }
+});
+
+it('does not fail merely because a legitimate display value happens to contain "nik"', function (): void {
+    // The false positive this pins down directly: Faker's `en_US` name and
+    // city pools can draw "Monika", "Nikita", "Annika" or a "Nikolaus"-rooted
+    // word for a full name, a legal name, or an office name, with nothing
+    // sensitive involved. These are set deliberately (and are obviously
+    // synthetic, not a real person's name) to prove the security assertion
+    // above no longer confuses that letter run with a leak — the request
+    // succeeds, the legitimate text is untouched, and no sensitive key or
+    // value rides along with it.
+    [$actor, $office] = directoryActor([
+        'parties.view' => DataScope::OFFICE,
+        'companies.view' => DataScope::OFFICE,
+    ]);
+
+    $office->forceFill(['name' => 'Kantor Nikolaus Uji'])->save();
+
+    makeIndividualIn($office, ['full_name' => 'Nikita Uji']);
+    makeCompanyIn($office, ['legal_name' => 'PT Annika Uji']);
+
+    $response = $this->actingAs($actor)->getJson('/api/v1/parties')->assertOk();
+    $body = $response->getContent();
+
+    expect($body)->toContain('Nikita Uji')
+        ->and($body)->toContain('PT Annika Uji')
+        ->and($body)->toContain('Kantor Nikolaus Uji');
+
+    $keys = collectJsonKeys($response->json());
+
+    foreach (['nik', 'npwp', 'tax_id', 'nik_masked', 'npwp_masked', 'tax_id_masked',
+        'nik_fingerprint', 'npwp_fingerprint', 'tax_id_fingerprint'] as $forbidden) {
+        expect($keys)->not->toContain($forbidden);
     }
 });
 
