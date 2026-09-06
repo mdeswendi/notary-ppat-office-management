@@ -235,6 +235,35 @@ it('paginates the directory', function (): void {
         ->and($response->json('data'))->toHaveCount(2);
 });
 
+it("synchronizes the fixture individual's display name with its full name", function (): void {
+    // The root cause behind the flakiness below, isolated: `makeIndividualIn()`
+    // used to build the Party and the Individual from two independent Faker
+    // calls, so a pinned `full_name` never reached `Party.display_name` — the
+    // field `PartyDirectoryResource` actually serializes. `CreateIndividual`
+    // never allows that gap in production (D-079); the fixture now matches it.
+    [$actor, $office] = directoryActor(['parties.view' => DataScope::OFFICE]);
+
+    $individual = makeIndividualIn($office, ['full_name' => 'Individu Uji']);
+
+    expect($individual->full_name)->toBe('Individu Uji')
+        ->and($individual->party->display_name)->toBe('Individu Uji');
+
+    $response = $this->actingAs($actor)->getJson('/api/v1/parties')->assertOk();
+
+    expect($response->json('data.0.display_name'))->toBe('Individu Uji');
+});
+
+it("keeps the fixture individual's two names in sync even without an explicit full_name", function (): void {
+    // The same guarantee must hold when the caller does not pin a name either
+    // — `display_name` always follows whatever `full_name` the factory drew,
+    // never a second, independent Faker call on the Party side.
+    [, $office] = directoryActor(['parties.view' => DataScope::OFFICE]);
+
+    $individual = makeIndividualIn($office);
+
+    expect($individual->party->display_name)->toBe($individual->full_name);
+});
+
 it('carries no sensitive identity or fingerprint in the directory', function (): void {
     [$actor, $office] = directoryActor([
         'parties.view' => DataScope::OFFICE,
@@ -246,7 +275,11 @@ it('carries no sensitive identity or fingerprint in the directory', function ():
     // `en_US` locale occasionally draws a name containing "nik" (Monika,
     // Nikita, Annika, a "Nikolaus"-surnamed company) — coincidentally
     // tripping the forbidden-substring check below for a reason that has
-    // nothing to do with a real NIK leak. Pinned values can never do that.
+    // nothing to do with a real NIK leak. Pinning `full_name`/`legal_name` is
+    // only sufficient because `makeIndividualIn()`/`makeCompanyIn()` now
+    // synchronize `Party.display_name` from them (the two tests directly
+    // above pin this down) — that field, not `full_name`, is what the
+    // directory response actually serializes.
     makeIndividualIn($office, [
         'full_name' => 'Individu Uji',
         'nik' => '3174012345678901',
