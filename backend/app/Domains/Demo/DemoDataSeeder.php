@@ -21,6 +21,7 @@ use App\Domains\Matter\Actions\CreateMatter;
 use App\Domains\Matter\Enums\MatterDomain;
 use App\Domains\Notary\Actions\ApproveNotaryDeed;
 use App\Domains\Notary\Actions\CreateNotaryDeed;
+use App\Domains\Notary\Actions\FileMinuta;
 use App\Domains\Notary\Actions\FinalizeNotaryDeed;
 use App\Domains\Notary\Actions\ReviewNotaryDeed;
 use App\Domains\Party\Actions\CreateCompany;
@@ -37,6 +38,7 @@ use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Matter;
 use App\Models\NotaryDeed;
+use App\Models\NotaryMinuta;
 use App\Models\Office;
 use App\Models\Organization;
 use App\Models\Party;
@@ -152,6 +154,13 @@ class DemoDataSeeder
      */
     public const DEMO_DISK = 'local_demo';
 
+    /**
+     * A real, minimal, hand-built PDF committed to the repository — see
+     * {@see createNotaryMinuta()}. Relative to `base_path()` (the `backend/`
+     * root), never an absolute path this class stores or exposes anywhere.
+     */
+    private const MINUTA_ASSET_PATH = 'resources/demo/minuta-demo.pdf';
+
     public function __construct(
         private readonly CreateUser $createUser,
         private readonly ReplaceUserRoles $replaceUserRoles,
@@ -181,6 +190,7 @@ class DemoDataSeeder
         private readonly ReviewNotaryDeed $reviewNotaryDeed,
         private readonly ApproveNotaryDeed $approveNotaryDeed,
         private readonly FinalizeNotaryDeed $finalizeNotaryDeed,
+        private readonly FileMinuta $fileMinuta,
     ) {}
 
     /**
@@ -263,6 +273,7 @@ class DemoDataSeeder
 
         $documents = $this->createDocuments($actor, $projects, $matters);
         $notaryDeeds = $this->createNotaryDeeds($actor, $matters, $documents);
+        $notaryMinuta = $this->createNotaryMinuta($actor, $notaryDeeds);
         $tasks = $this->createTasks($actor, $projects, $matters, $users);
 
         return new DemoSeedResult(
@@ -271,9 +282,13 @@ class DemoDataSeeder
             parties: count($parties),
             projects: count($projects),
             matters: count($matters),
-            documents: count($documents),
+            // The Minuta's own filing Document is not part of $documents —
+            // see createNotaryMinuta() — so it is counted here explicitly
+            // rather than silently missing from what this dataset reports.
+            documents: count($documents) + 1,
             tasks: count($tasks),
             notaryDeeds: count($notaryDeeds),
+            notaryMinutas: 1,
         );
     }
 
@@ -624,6 +639,90 @@ class DemoDataSeeder
         $finalized = $this->finalizeNotaryDeed->handle($actor, $finalized);
 
         return [$draft, $underReview, $approved, $finalized];
+    }
+
+    /**
+     * One Minuta Akta, filed against the FINALIZED deed — "Akta Notaris Demo
+     * 4", the fourth element {@see createNotaryDeeds()} returns — so the
+     * Notary Deed Detail screenshot's Minuta section shows a real filing
+     * instead of the "nothing filed yet" prompt (Task 3C).
+     *
+     * **Through the same two production Actions a real Controller calls**:
+     * {@see UploadDocument} to file the record the Minuta points at — a
+     * Minuta's `document_id` names a Document that already exists
+     * ({@see NotaryMinutaController::store()} resolves one from the request
+     * rather than accepting an upload directly), never a new upload endpoint
+     * of its own — then {@see FileMinuta} itself.
+     *
+     * **A Minuta may be filed against a deed in any status** — `FileMinuta`
+     * requires none, per its own docblock ("when an office files the
+     * original" is an open domain question this class does not answer
+     * either). Filing does not touch the deed's own `status` or
+     * `is_read_only` at all.
+     *
+     * **The uploaded file is a real, hand-built, minimal PDF**
+     * (`resources/demo/minuta-demo.pdf`, self::MINUTA_ASSET_PATH) — not
+     * `UploadedFile::fake()`, which this class uses for the six ordinary
+     * demo Documents but was asked not to reuse here. `getMimeType()` reads
+     * the file's actual bytes (confirmed `application/pdf`, not inferred
+     * from the name), so this is never plain text wearing a `.pdf`
+     * extension. The asset carries no personal data and no `/Info`
+     * dictionary of any kind — just three lines of plain body text stating
+     * it is a demo file.
+     *
+     * `new UploadedFile(...)` — the real constructor, not the `::fake()`
+     * factory — is the documented way to wrap a file that already exists on
+     * disk as an `UploadedFile` instance outside an HTTP request; `$test:
+     * true` only tells Symfony's base class to skip the `is_uploaded_file()`
+     * check that a real HTTP upload would otherwise satisfy on its own.
+     *
+     * **No shelf metadata is invented.** `archive_location`, `volume_number`
+     * and `bundle_number` describe a physical filing cabinet no canonical
+     * document specifies for this office, so all three are left `null` —
+     * `FileMinuta`'s own default for an empty `$attributes` array.
+     *
+     * **The primary actor's `notary.minuta.create` reach is verified here**,
+     * against the one deed this method actually uses — `viewAny()`-style
+     * verification isn't possible earlier in {@see
+     * makeActorAuthorizationCapable()} because every `NotaryDeedPolicy`
+     * ability beyond `viewAny()` takes a record, and no deed exists yet at
+     * that point in {@see build()}.
+     *
+     * @param  array<int, NotaryDeed>  $notaryDeeds  exactly {@see
+     *                                               createNotaryDeeds()}'s
+     *                                               return shape: [DRAFT,
+     *                                               UNDER_REVIEW, APPROVED,
+     *                                               FINALIZED]
+     *
+     * @throws DemoRolePrerequisiteMissing if the primary actor cannot reach
+     *                                     `notary.minuta.create` on this deed
+     */
+    private function createNotaryMinuta(User $actor, array $notaryDeeds): NotaryMinuta
+    {
+        $finalizedDeed = $notaryDeeds[3];
+
+        if (! $this->notaryDeedPolicy->createMinuta($actor, $finalizedDeed)) {
+            throw DemoRolePrerequisiteMissing::policyUnreachable(DefaultRoleRegistry::ADMINISTRATOR, 'Notary Minuta');
+        }
+
+        $uploader = new UploadDocument($this->documentAllocator, new DocumentStorage(self::DEMO_DISK), $this->events);
+
+        $file = new UploadedFile(
+            base_path(self::MINUTA_ASSET_PATH),
+            'minuta-demo.pdf',
+            'application/pdf',
+            null,
+            true,
+        );
+
+        $document = $uploader->handle(
+            $actor,
+            $file,
+            ['title' => 'Minuta Akta Demo 4'],
+            ['matter_id' => $finalizedDeed->matter_id],
+        );
+
+        return $this->fileMinuta->handle($actor, $finalizedDeed, $document, []);
     }
 
     /**
