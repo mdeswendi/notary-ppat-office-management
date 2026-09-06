@@ -241,8 +241,18 @@ it('carries no sensitive identity or fingerprint in the directory', function ():
         'companies.view' => DataScope::OFFICE,
     ]);
 
-    makeIndividualIn($office, ['nik' => '3174012345678901', 'npwp' => '091234567890123']);
-    makeCompanyIn($office, ['tax_id' => '091234567890123']);
+    // `full_name`/`legal_name` are pinned rather than left to the factory
+    // default. Both default to `fake()->name()`/`fake()->company()`, and the
+    // `en_US` locale occasionally draws a name containing "nik" (Monika,
+    // Nikita, Annika, a "Nikolaus"-surnamed company) — coincidentally
+    // tripping the forbidden-substring check below for a reason that has
+    // nothing to do with a real NIK leak. Pinned values can never do that.
+    makeIndividualIn($office, [
+        'full_name' => 'Individu Uji',
+        'nik' => '3174012345678901',
+        'npwp' => '091234567890123',
+    ]);
+    makeCompanyIn($office, ['legal_name' => 'Perusahaan Uji', 'tax_id' => '091234567890123']);
 
     $body = $this->actingAs($actor)->getJson('/api/v1/parties')->assertOk()->getContent();
 
