@@ -1480,7 +1480,8 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "delete": "Delete",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "edit": "Edit"
   },
   "status": {},
   "validation": {

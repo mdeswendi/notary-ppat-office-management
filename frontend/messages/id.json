@@ -1480,7 +1480,8 @@
     "saving": "Menyimpan...",
     "cancel": "Batal",
     "delete": "Hapus",
-    "deleting": "Menghapus..."
+    "deleting": "Menghapus...",
+    "edit": "Ubah"
   },
   "status": {},
   "validation": {

@@ -125,6 +125,29 @@ describe("MinutaSection", () => {
   });
 
   /**
+   * The runtime finding this pins: the link was clickable but carried no colour
+   * and no focus ring, so nothing distinguished it from plain text until a mouse
+   * happened to hover it — a keyboard user got no affordance at all. `text-primary`
+   * is the colour `buttonVariants`' own `link` variant uses for the same purpose;
+   * the focus ring recipe matches `sidebar-nav.tsx`'s links rather than inventing
+   * a third one.
+   */
+  it("gives the document link a visible colour and a focus-visible ring", async () => {
+    vi.mocked(services.getMinuta).mockResolvedValue(minuta());
+
+    renderSection();
+
+    const link = await screen.findByRole("link", { name: "Pindaian Minuta" });
+
+    expect(link).toHaveClass("text-primary");
+    expect(link).toHaveClass("focus-visible:ring-2");
+    expect(link).toHaveClass("focus-visible:outline-none");
+    // The destination and the hover affordance are unchanged by the fix.
+    expect(link).toHaveAttribute("href", "/documents/01DOC");
+    expect(link).toHaveClass("hover:underline");
+  });
+
+  /**
    * The canonical columns nothing writes are rendered as unset rather than hidden, so
    * a reader can see the field exists and is empty rather than wondering whether it
    * was dropped (D-120).
