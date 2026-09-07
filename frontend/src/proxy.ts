@@ -16,5 +16,5 @@ export default createMiddleware(routing);
 export const config = {
   // Skip Next.js internals and any path carrying a file extension, so only
   // application routes are given a locale prefix.
-  matcher: "/((?!api|_next|_vercel|.*\\..*).*)",
+  matcher: "/((?!api|backend|_next|_vercel|.*\\..*).*)",
 };
