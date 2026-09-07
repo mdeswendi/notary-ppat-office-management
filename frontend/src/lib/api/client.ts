@@ -14,6 +14,8 @@ import axios from "axios";
  * cookie value is never logged.
  */
 export const apiClient = axios.create({
+  // Set NEXT_PUBLIC_API_URL=/backend in Vercel staging so browser requests
+  // remain same-origin; local development keeps its direct API URL.
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
   withCredentials: true,
   withXSRFToken: true,
