@@ -29,14 +29,14 @@ export function BaseErrorState({ title, description, action, className }: BaseEr
     <div
       role="alert"
       className={cn(
-        "border-border bg-card flex flex-col items-start gap-3 rounded-lg border p-6",
+        "border-border bg-card flex min-w-0 flex-col items-start gap-3 rounded-lg border p-4 sm:p-6",
         className,
       )}
     >
       <TriangleAlert aria-hidden="true" className="text-destructive size-5 shrink-0" />
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-medium">{title}</h2>
-        <p className="text-muted-foreground max-w-prose text-sm">{description}</p>
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-base font-medium break-words">{title}</h2>
+        <p className="text-muted-foreground max-w-prose text-sm break-words">{description}</p>
       </div>
       {action ? <div className="pt-1">{action}</div> : null}
     </div>
