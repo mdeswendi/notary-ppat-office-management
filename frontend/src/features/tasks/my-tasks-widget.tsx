@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { DateText } from "@/components/i18n/date-text";
 import { Card, CardHeader } from "@/components/ui/card";
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { TaskOverdueBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
@@ -106,7 +107,7 @@ export function MyTasksWidget() {
               <TaskStatusBadge status={task.status} />
 
               <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap">
-                {task.due_at?.slice(0, 10) ?? "—"}
+                <DateText value={task.due_at} />
               </span>
             </li>
           ))}

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -204,7 +205,7 @@ export function WarkahList() {
                     {warkah.items_count ?? 0}
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap lg:table-cell">
-                    {warkah.verified_at?.slice(0, 10) ?? "—"}
+                    <DateText value={warkah.verified_at} />
                   </td>
                 </tr>
               ))}

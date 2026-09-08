@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,7 +133,7 @@ export function ArchivedProjectsList() {
                     <ProjectStatusBadge status={project.status} />
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">
-                    {project.archived_at?.slice(0, 10) ?? "—"}
+                    <DateText value={project.archived_at} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     {project.can_restore ? <RestoreButton projectId={project.id} /> : null}

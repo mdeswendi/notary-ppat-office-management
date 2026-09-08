@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -229,7 +230,7 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           <Detail label={t("expiryDateLabel")} value={document.expiry_date ?? "—"} />
           <Detail label={t("uploadedByLabel")} value={document.created_by?.name ?? "—"} />
           <Detail label={t("officeLabel")} value={document.office?.name ?? "—"} />
-          <Detail label={t("archivedAtLabel")} value={document.archived_at?.slice(0, 10) ?? "—"} />
+          <Detail label={t("archivedAtLabel")} value={<DateText value={document.archived_at} />} />
           {document.notes ? (
             <div className="flex flex-col gap-1 sm:col-span-2">
               <dt className="text-sm font-medium">{t("notesLabel")}</dt>
@@ -261,7 +262,7 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
       <dt className="text-sm font-medium">{label}</dt>

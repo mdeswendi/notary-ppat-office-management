@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -217,10 +218,10 @@ export function TaskDetail({ taskId }: { taskId: string }) {
         <h2 className="text-lg font-semibold">{t("detail")}</h2>
 
         <dl className="border-border grid gap-x-8 gap-y-3 rounded-lg border p-4 sm:grid-cols-2">
-          <Detail label={t("dueDate")} value={task.due_at?.slice(0, 10) ?? "—"} />
+          <Detail label={t("dueDate")} value={<DateText value={task.due_at} />} />
           <Detail label={t("assignedTo")} value={task.assigned_to?.name ?? t("unassigned")} />
           <Detail label={t("createdBy")} value={task.created_by?.name ?? "—"} />
-          <Detail label={t("completedAt")} value={task.completed_at?.slice(0, 10) ?? "—"} />
+          <Detail label={t("completedAt")} value={<DateText value={task.completed_at} />} />
 
           {task.project ? (
             <div className="flex flex-col gap-1">
@@ -329,7 +330,7 @@ export function TaskDetail({ taskId }: { taskId: string }) {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
       <dt className="text-sm font-medium">{label}</dt>

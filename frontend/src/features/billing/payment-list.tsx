@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
@@ -85,7 +86,9 @@ export function PaymentList() {
                   )}
                 </td>
 
-                <td className="px-3 py-2 tabular-nums">{payment.paid_at ?? "—"}</td>
+                <td className="px-3 py-2">
+                  <DateText value={payment.paid_at} />
+                </td>
 
                 <td className="px-3 py-2">{t(`methods.${payment.method_code}`)}</td>
 

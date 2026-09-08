@@ -70,18 +70,16 @@ export function MatterPriorityBadge({ priority }: { priority: ProjectPriority | 
  * naming the domain adds something — a detail header. The accent is used lightly
  * (AGENTS.md section 42): a badge, never a whole screen tinted by domain.
  *
- * **The tones are carried over unchanged, and one of them looks wrong.** PPAT
- * renders neutral here while every other PPAT surface — deeds, Warkah, property
- * — uses the teal `ppat` accent that section 42 assigns it. Changing it is a
- * visual decision rather than a consolidation, so this keeps what was there and
- * leaves the question visible.
+ * Notary uses the primary navy and PPAT uses the restrained teal assigned by
+ * section 42. This keeps the detail header consistent with the deed, Warkah and
+ * property surfaces without tinting the whole page.
  */
 export function MatterDomainBadge({ domain }: { domain: MatterDomain }) {
   const t = useTranslations("matters");
 
   return (
     <Badge
-      tone={domain === "NOTARY" ? "primary" : "neutral"}
+      tone={domain === "NOTARY" ? "primary" : "ppat"}
       aria-label={`${t("domainLabel")}: ${t(`domains.${domain}`)}`}
     >
       {t(`domains.${domain}`)}

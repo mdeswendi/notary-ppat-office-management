@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { DateText } from "@/components/i18n/date-text";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -209,7 +210,7 @@ export function DocumentsList() {
                     {document.created_by?.name ?? "—"}
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap lg:table-cell">
-                    {formatDate(document.created_at)}
+                    <DateText value={document.created_at} />
                   </td>
                 </tr>
               ))}
@@ -256,15 +257,4 @@ export function DocumentsList() {
 
 function isFiltered(search: string, status: string, sensitive: string): boolean {
   return search !== "" || status !== "" || sensitive !== "";
-}
-
-/**
- * Dates are rendered from the ISO string the API sends, sliced rather than parsed.
- *
- * `new Date(...).toLocaleDateString()` renders in the *browser's* timezone, which
- * silently shifts a date by a day either side of midnight — and would then differ
- * between two people looking at the same record.
- */
-function formatDate(value: string | null): string {
-  return value === null ? "—" : value.slice(0, 10);
 }
