@@ -110,7 +110,7 @@ export function ArchivedProjectsList() {
                 <th scope="col" className="px-4 py-3 font-medium">
                   {t("titleLabel")}
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="hidden px-4 py-3 font-medium sm:table-cell">
                   {t("statusLabel")}
                 </th>
                 <th scope="col" className="hidden px-4 py-3 font-medium lg:table-cell">
@@ -128,7 +128,7 @@ export function ArchivedProjectsList() {
                     {project.project_number}
                   </td>
                   <td className="px-4 py-3 font-medium">{project.title}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 sm:table-cell">
                     <ProjectStatusBadge status={project.status} />
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 lg:table-cell">
@@ -145,7 +145,10 @@ export function ArchivedProjectsList() {
       )}
 
       {meta && meta.last_page > 1 ? (
-        <nav className="flex items-center justify-between gap-3" aria-label={t("paginationLabel")}>
+        <nav
+          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          aria-label={t("paginationLabel")}
+        >
           <p className="text-muted-foreground text-sm">
             {t("paginationSummary", {
               current: meta.current_page,

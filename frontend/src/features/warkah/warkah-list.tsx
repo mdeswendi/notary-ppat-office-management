@@ -220,7 +220,10 @@ export function WarkahList() {
       <p className="text-muted-foreground text-xs">{t("completenessHint")}</p>
 
       {meta && meta.last_page > 1 ? (
-        <nav className="flex items-center justify-between gap-3" aria-label={t("paginationLabel")}>
+        <nav
+          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          aria-label={t("paginationLabel")}
+        >
           <p className="text-muted-foreground text-sm">
             {t("paginationSummary", {
               current: meta.current_page,

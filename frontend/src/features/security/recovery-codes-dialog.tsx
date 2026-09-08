@@ -46,7 +46,7 @@ export function RecoveryCodesDialog({
           <DialogDescription>{t("recoveryCodesDescription")}</DialogDescription>
         </DialogHeader>
 
-        <ul className="border-border bg-muted/40 grid grid-cols-2 gap-2 rounded-md border p-3 font-mono text-sm">
+        <ul className="border-border bg-muted/40 grid gap-2 rounded-md border p-3 font-mono text-sm sm:grid-cols-2">
           {codes.map((code) => (
             <li key={code} className="tracking-wide select-all">
               {code}
