@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
@@ -188,14 +189,7 @@ export function WarkahSection({ deedId }: { deedId: string }) {
         ) : null}
       </div>
 
-      {actionError ? (
-        <p
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-        >
-          {actionError}
-        </p>
-      ) : null}
+      {actionError ? <InlineAlert>{actionError}</InlineAlert> : null}
 
       {warkah?.verified_at ? (
         <p className="text-muted-foreground border-border rounded-md border px-3 py-2 text-sm">

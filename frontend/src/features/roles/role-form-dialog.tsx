@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -104,12 +105,7 @@ export function RoleFormDialog({ role, onClose }: RoleFormDialogProps) {
 
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           {form.formState.errors.root ? (
-            <p
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {form.formState.errors.root.message}
-            </p>
+            <InlineAlert>{form.formState.errors.root.message}</InlineAlert>
           ) : null}
 
           <div className="flex flex-col gap-2">

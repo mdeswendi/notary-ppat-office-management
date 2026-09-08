@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -83,7 +84,7 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
         ) : null}
       </div>
 
-      {downloadFailed ? <p className="text-destructive text-sm">{t("exportFailed")}</p> : null}
+      {downloadFailed ? <InlineAlert>{t("exportFailed")}</InlineAlert> : null}
 
       {query.isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
@@ -93,7 +94,7 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
           <Skeleton className="h-10 w-full" />
         </div>
       ) : query.isError ? (
-        <p className="text-muted-foreground text-sm">{t("unavailable")}</p>
+        <InlineAlert>{t("unavailable")}</InlineAlert>
       ) : rows.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("noData")}</p>
       ) : (

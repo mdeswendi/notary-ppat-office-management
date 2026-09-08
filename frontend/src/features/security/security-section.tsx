@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Card, CardHeader } from "@/components/ui/card";
 
 /**
@@ -41,20 +42,9 @@ export function SecuritySection({
  * something went right.
  */
 export function SecurityNotice({ children }: { children: ReactNode }) {
-  return (
-    <p role="status" className="border-border bg-muted/40 rounded-md border px-3 py-2 text-sm">
-      {children}
-    </p>
-  );
+  return <InlineAlert tone="success">{children}</InlineAlert>;
 }
 
 export function SecurityError({ children }: { children: ReactNode }) {
-  return (
-    <p
-      role="alert"
-      className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-    >
-      {children}
-    </p>
-  );
+  return <InlineAlert>{children}</InlineAlert>;
 }

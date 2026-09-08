@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -111,14 +112,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      {errorKey ? (
-        <p
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-        >
-          {t(`errors.${errorKey}`)}
-        </p>
-      ) : null}
+      {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("email")}</Label>

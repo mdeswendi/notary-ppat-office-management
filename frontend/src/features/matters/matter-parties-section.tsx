@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -241,14 +242,7 @@ function AddParticipant({ domain, matterId }: SectionProps) {
             <DialogDescription>{t("addDescription")}</DialogDescription>
           </DialogHeader>
 
-          {errorKey ? (
-            <p
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {t(`errors.${errorKey}`)}
-            </p>
-          ) : null}
+          {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
           <form
             noValidate
@@ -360,14 +354,7 @@ function EditParticipant({
             <DialogDescription>{t("editDescription")}</DialogDescription>
           </DialogHeader>
 
-          {errorKey ? (
-            <p
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {t(`errors.${errorKey}`)}
-            </p>
-          ) : null}
+          {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
           <form
             noValidate
@@ -494,14 +481,7 @@ function RemoveParticipant({
             <DialogDescription>{t("removeDescription")}</DialogDescription>
           </DialogHeader>
 
-          {errorKey ? (
-            <p
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {t(`errors.${errorKey}`)}
-            </p>
-          ) : null}
+          {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>

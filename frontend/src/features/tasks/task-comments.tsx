@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,14 +58,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
     <section className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold">{t("comments")}</h2>
 
-      {errorKey ? (
-        <p
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-        >
-          {t(`errors.${errorKey}`)}
-        </p>
-      ) : null}
+      {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
       {query.isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -95,14 +96,7 @@ function AssignmentForm({ project }: { project: Project }) {
         mutation.mutate();
       }}
     >
-      {errorKey ? (
-        <p
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-        >
-          {t(`errors.${errorKey}`)}
-        </p>
-      ) : null}
+      {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="project-pic">{t("picLabel")}</Label>
