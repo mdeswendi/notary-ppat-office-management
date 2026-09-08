@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { DashboardPanel } from "@/features/dashboard/dashboard-panel";
 import { dashboardQueryKeys, getDashboardActivity } from "@/services/dashboard";
@@ -29,10 +29,11 @@ import type { ActivityItem } from "@/types/dashboard";
 export function ActivityWidget() {
   const t = useTranslations("dashboard");
   const types = useTranslations("activity.types");
+  const format = useFormatter();
 
   const query = useQuery({
-    queryKey: dashboardQueryKeys.activity(20),
-    queryFn: () => getDashboardActivity(20),
+    queryKey: dashboardQueryKeys.activity(6),
+    queryFn: () => getDashboardActivity(6),
   });
 
   const items = query.data ?? [];
@@ -40,6 +41,7 @@ export function ActivityWidget() {
   return (
     <DashboardPanel
       title={t("activity")}
+      description={t("activityDescription")}
       isPending={query.isPending}
       isError={query.isError}
       unavailable={false}
@@ -54,9 +56,22 @@ export function ActivityWidget() {
               {describe(item, types)}
             </span>
 
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {item.created_at?.slice(0, 16).replace("T", " ") ?? "—"}
-            </span>
+            {item.created_at ? (
+              <time
+                dateTime={item.created_at}
+                className="text-muted-foreground text-xs tabular-nums"
+              >
+                {format.dateTime(new Date(item.created_at), {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </time>
+            ) : (
+              <span className="text-muted-foreground text-xs">—</span>
+            )}
           </li>
         ))}
       </ol>

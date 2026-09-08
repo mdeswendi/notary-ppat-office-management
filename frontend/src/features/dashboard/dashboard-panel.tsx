@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function DashboardPanel({
   title,
+  description,
   action,
   isPending,
   isError,
@@ -40,6 +41,7 @@ export function DashboardPanel({
   skeletonRows = 3,
 }: {
   title: string;
+  description?: string;
   action?: ReactNode;
   isPending: boolean;
   isError: boolean;
@@ -57,8 +59,8 @@ export function DashboardPanel({
   }
 
   return (
-    <Card>
-      <CardHeader title={title} action={action} />
+    <Card className="p-4 sm:p-5">
+      <CardHeader title={title} description={description} action={action} />
 
       {isPending ? (
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">

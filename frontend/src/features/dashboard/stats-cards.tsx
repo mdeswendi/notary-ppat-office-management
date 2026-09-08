@@ -1,6 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import {
+  BriefcaseBusiness,
+  ClipboardCheck,
+  ClockAlert,
+  FileSignature,
+  FolderKanban,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,12 +38,17 @@ import type { DashboardStats, ScopedCount } from "@/types/dashboard";
  * for some reader. `auto-fit` lays out as many tracks as fit and stretches the
  * ones it has, which is right for every count.
  */
-const CARDS: ReadonlyArray<{ key: keyof DashboardStats; label: string }> = [
-  { key: "active_projects", label: "activeProjects" },
-  { key: "active_matters", label: "activeMatters" },
-  { key: "pending_reviews", label: "pendingReviews" },
-  { key: "overdue_tasks", label: "overdueTasks" },
-  { key: "total_deeds_this_month", label: "totalDeeds" },
+const CARDS: ReadonlyArray<{
+  key: keyof DashboardStats;
+  label: string;
+  icon: LucideIcon;
+  tone: "neutral" | "warning" | "danger";
+}> = [
+  { key: "active_projects", label: "activeProjects", icon: FolderKanban, tone: "neutral" },
+  { key: "active_matters", label: "activeMatters", icon: BriefcaseBusiness, tone: "neutral" },
+  { key: "pending_reviews", label: "pendingReviews", icon: ClipboardCheck, tone: "warning" },
+  { key: "overdue_tasks", label: "overdueTasks", icon: ClockAlert, tone: "danger" },
+  { key: "total_deeds_this_month", label: "totalDeeds", icon: FileSignature, tone: "neutral" },
 ];
 
 export function StatsCards() {
@@ -49,7 +62,7 @@ export function StatsCards() {
   if (query.isPending) {
     return (
       <div
-        className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:gap-4"
         aria-busy="true"
         aria-live="polite"
       >
@@ -72,20 +85,61 @@ export function StatsCards() {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-4">
-      {visible.map(({ key, label }) => (
-        <StatCard key={key} label={t(label)} value={query.data[key]} />
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:gap-4">
+      {visible.map(({ key, label, icon, tone }, index) => (
+        <StatCard
+          key={key}
+          label={t(label)}
+          value={query.data[key]}
+          icon={icon}
+          tone={tone}
+          className={
+            visible.length % 2 === 1 && index === visible.length - 1
+              ? "col-span-2 sm:col-span-1"
+              : undefined
+          }
+        />
       ))}
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: ScopedCount }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  className,
+}: {
+  label: string;
+  value: ScopedCount;
+  icon: LucideIcon;
+  tone: "neutral" | "warning" | "danger";
+  className?: string;
+}) {
+  const iconTone = {
+    neutral: "bg-primary/5 text-primary",
+    warning: "bg-warning/10 text-warning",
+    danger: "bg-destructive/5 text-destructive",
+  }[tone];
+
   return (
-    <div className="border-border bg-card flex flex-col gap-1 rounded-lg border p-5">
-      <span className="text-muted-foreground text-sm">{label}</span>
-      {/* Tabular figures so the row of cards lines up rather than shimmying. */}
-      <span className="text-2xl font-semibold tabular-nums">{value}</span>
+    <div
+      className={`border-border bg-card flex min-h-28 items-start justify-between gap-3 rounded-lg border p-4 sm:p-5 ${className ?? ""}`}
+    >
+      <dl className="flex min-h-full flex-col justify-between gap-3">
+        <dt className="text-muted-foreground text-sm">{label}</dt>
+        {/* Tabular figures so the row of cards lines up rather than shimmying. */}
+        <dd className="text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
+      </dl>
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={`flex size-8 shrink-0 items-center justify-center rounded-md ${iconTone}`}
+          aria-hidden="true"
+        >
+          <Icon className="size-4" />
+        </span>
+      </div>
     </div>
   );
 }

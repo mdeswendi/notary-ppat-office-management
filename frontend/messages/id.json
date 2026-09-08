@@ -111,6 +111,8 @@
     "overdue": "Terlambat",
     "upcoming": "Mendatang",
     "noTasks": "Tidak ada tugas.",
+    "dueDate": "Tenggat {date}",
+    "noDueDate": "Tanpa tenggat",
     "needsAttention": "Perlu Perhatian",
     "nothingNeedsAttention": "Tidak ada yang tertahan.",
     "attention": {
@@ -118,12 +120,15 @@
       "DEED_PENDING_REVIEW": "Akta menunggu review",
       "TASK_OVERDUE": "Tugas terlambat",
       "daysWaiting": "{days} hari",
+      "today": "Hari ini",
       "noAge": "Tanpa tenggat"
     },
     "workload": "Beban Kerja",
+    "workloadDescription": "Bar membandingkan total penugasan dalam daftar ini, bukan kapasitas maksimum.",
     "noWorkload": "Belum ada pekerjaan yang ditugaskan.",
     "workloadCounts": "{matters} pekerjaan · {tasks} tugas",
     "activity": "Aktivitas Terbaru",
+    "activityDescription": "Enam perubahan terbaru yang tercatat.",
     "noActivity": "Belum ada aktivitas. Catatan dimulai sejak fitur ini aktif dan akan terisi seiring pekerjaan berjalan.",
     "systemActor": "Sistem"
   },

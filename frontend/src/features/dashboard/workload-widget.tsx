@@ -32,6 +32,7 @@ export function WorkloadWidget() {
   return (
     <DashboardPanel
       title={t("workload")}
+      description={t("workloadDescription")}
       isPending={query.isPending}
       isError={query.isError}
       unavailable={rows === null}
@@ -44,8 +45,8 @@ export function WorkloadWidget() {
 
           return (
             <li key={row.user_id} className="flex flex-col gap-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="min-w-0 truncate">{row.user_name}</span>
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
+                <span className="min-w-0 font-medium sm:truncate">{row.user_name}</span>
 
                 <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                   {t("workloadCounts", {

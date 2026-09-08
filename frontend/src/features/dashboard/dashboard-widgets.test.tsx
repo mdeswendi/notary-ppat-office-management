@@ -2,7 +2,9 @@ import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ActivityWidget } from "@/features/dashboard/activity-widget";
+import { NeedsAttentionWidget } from "@/features/dashboard/needs-attention-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
+import { TasksWidget } from "@/features/dashboard/tasks-widget";
 import { WorkloadWidget } from "@/features/dashboard/workload-widget";
 import { renderWithProviders } from "@/test/render";
 import type { DashboardStats } from "@/types/dashboard";
@@ -137,6 +139,54 @@ describe("WorkloadWidget", () => {
   });
 });
 
+describe("TasksWidget", () => {
+  it("keeps the full task title and moves a labelled due date into its metadata", async () => {
+    vi.mocked(services.getDashboardTasks).mockResolvedValue({
+      overdue: [
+        {
+          id: "t1",
+          title: "A deliberately long task title that must remain readable on a phone",
+          status: "IN_PROGRESS",
+          priority: "HIGH",
+          due_at: "2026-09-06T00:00:00+00:00",
+          is_overdue: true,
+        },
+      ],
+      today: [],
+      upcoming: [],
+    });
+
+    renderWithProviders(<TasksWidget />);
+
+    expect(
+      await screen.findByRole("link", {
+        name: "A deliberately long task title that must remain readable on a phone",
+      }),
+    ).toHaveAttribute("href", "/tasks/t1");
+    expect(screen.getByText("dashboard.dueDate")).toBeInTheDocument();
+  });
+});
+
+describe("NeedsAttentionWidget", () => {
+  it("calls a zero-day item today instead of saying zero days", async () => {
+    vi.mocked(services.getDashboardNeedsAttention).mockResolvedValue([
+      {
+        type: "TASK_OVERDUE",
+        id: "t1",
+        reference: null,
+        title: "Review signing documents",
+        status: "OPEN",
+        days_waiting: 0,
+      },
+    ]);
+
+    renderWithProviders(<NeedsAttentionWidget />);
+
+    expect(await screen.findByText("dashboard.attention.today")).toBeInTheDocument();
+    expect(screen.queryByText("dashboard.attention.daysWaiting")).not.toBeInTheDocument();
+  });
+});
+
 /**
  * One branch here is deliberately not covered: `ActivityWidget` falls back to the
  * raw event code when the messages do not know a type, and `vitest.setup.tsx`
@@ -173,6 +223,7 @@ describe("ActivityWidget", () => {
     renderWithProviders(<ActivityWidget />);
 
     expect(await screen.findByText("Rina")).toBeInTheDocument();
+    expect(services.getDashboardActivity).toHaveBeenCalledWith(6);
 
     // The row is built from the event's key, never from prose the server chose:
     // picking the language is the client's job in a bilingual product (§6).

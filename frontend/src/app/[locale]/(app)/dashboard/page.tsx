@@ -48,7 +48,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       {/* Two columns on wide screens, stacking on narrow ones. Desktop-first, but
           the office reads this on a laptop and sometimes a tablet (§50). */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
         <TasksWidget />
         <NeedsAttentionWidget />
         <WorkloadWidget />
