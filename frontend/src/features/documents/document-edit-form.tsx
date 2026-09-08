@@ -7,11 +7,13 @@ import { useTranslations } from "next-intl";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toDocumentErrorKey } from "@/features/documents/document-errors";
 import { useRouter } from "@/i18n/navigation";
@@ -227,19 +229,14 @@ export function DocumentEditForm({ documentId }: { documentId: string }) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="notes">{t("notesLabel")}</Label>
-        <textarea
-          id="notes"
-          rows={4}
-          className="border-border bg-background focus-visible:ring-ring rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-          {...form.register("notes")}
-        />
+        <Textarea id="notes" rows={4} {...form.register("notes")} />
       </div>
 
-      <div>
+      <FormActions>
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? tActions("saving") : tActions("save")}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

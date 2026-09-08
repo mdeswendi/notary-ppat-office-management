@@ -7,10 +7,12 @@ import { useLocale, useTranslations } from "next-intl";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { matterBasePath } from "@/features/matters/matter-domain";
 import { toMatterErrorKey } from "@/features/matters/matter-errors";
 import { useRouter } from "@/i18n/navigation";
@@ -256,19 +258,14 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="notes">{t("notesLabel")}</Label>
-        <textarea
-          id="notes"
-          rows={4}
-          className="border-border bg-background focus-visible:ring-ring rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
-          {...form.register("notes")}
-        />
+        <Textarea id="notes" rows={4} {...form.register("notes")} />
       </div>
 
-      <div>
+      <FormActions>
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? tActions("saving") : tActions("save")}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

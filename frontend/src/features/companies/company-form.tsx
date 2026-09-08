@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -392,7 +393,7 @@ export function CompanyForm({ company }: { company?: Company }) {
         </div>
       </fieldset>
 
-      <div>
+      <FormActions>
         {/*
          * Disabled only while a request is in flight — never because a candidate
          * was found.
@@ -404,7 +405,7 @@ export function CompanyForm({ company }: { company?: Company }) {
               ? tActions("saving")
               : tActions("save")}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }
