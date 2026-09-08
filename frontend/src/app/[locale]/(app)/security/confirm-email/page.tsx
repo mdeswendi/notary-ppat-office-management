@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +25,11 @@ export default async function ConfirmEmailPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("confirmEmailTitle")} description={t("confirmEmailSubtitle")} />
+      <PageHeader
+        title={t("confirmEmailTitle")}
+        description={t("confirmEmailSubtitle")}
+        breadcrumb={<PageBackLink href="/security" />}
+      />
 
       {/* `useSearchParams` needs a Suspense boundary to keep the rest of the
           route statically renderable. */}

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { IndividualForm } from "@/features/individuals/individual-form";
@@ -23,7 +24,11 @@ export default async function NewIndividualPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("createTitle")} description={t("createDescription")} />
+      <PageHeader
+        title={t("createTitle")}
+        description={t("createDescription")}
+        breadcrumb={<PageBackLink href="/parties/individuals" />}
+      />
 
       <IndividualForm />
     </PageContainer>

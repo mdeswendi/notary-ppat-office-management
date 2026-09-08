@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { DocumentEditForm } from "@/features/documents/document-edit-form";
@@ -24,7 +25,11 @@ export default async function EditDocumentPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("editTitle")} description={t("editSubtitle")} />
+      <PageHeader
+        title={t("editTitle")}
+        description={t("editSubtitle")}
+        breadcrumb={<PageBackLink href={`/documents/${id}`} />}
+      />
 
       <DocumentEditForm documentId={id} />
     </PageContainer>

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { IndividualEditForm } from "@/features/individuals/individual-edit-form";
@@ -26,7 +27,11 @@ export default async function EditIndividualPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("editTitle")} description={t("editDescription")} />
+      <PageHeader
+        title={t("editTitle")}
+        description={t("editDescription")}
+        breadcrumb={<PageBackLink href={`/parties/individuals/${id}`} />}
+      />
 
       <IndividualEditForm individualId={id} />
     </PageContainer>

@@ -2,6 +2,7 @@
   "common": {
     "appName": "Notary & PPAT Office Management System",
     "officeLabel": "Kantor Notaris & PPAT",
+    "back": "Kembali",
     "foundationNotice": "Fondasi aplikasi siap. Modul bisnis belum tersedia.",
     "loading": "Memuat...",
     "language": "Bahasa",

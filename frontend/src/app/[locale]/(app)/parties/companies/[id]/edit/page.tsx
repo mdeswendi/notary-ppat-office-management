@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompanyEditForm } from "@/features/companies/company-edit-form";
@@ -26,7 +27,11 @@ export default async function EditCompanyPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("editTitle")} description={t("editDescription")} />
+      <PageHeader
+        title={t("editTitle")}
+        description={t("editDescription")}
+        breadcrumb={<PageBackLink href={`/parties/companies/${id}`} />}
+      />
 
       <CompanyEditForm companyId={id} />
     </PageContainer>

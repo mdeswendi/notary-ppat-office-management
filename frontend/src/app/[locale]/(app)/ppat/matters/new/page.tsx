@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { MatterForm } from "@/features/matters/matter-form";
@@ -18,7 +19,11 @@ export default async function NewPpatMatterPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("createPpatTitle")} description={t("createSubtitle")} />
+      <PageHeader
+        title={t("createPpatTitle")}
+        description={t("createSubtitle")}
+        breadcrumb={<PageBackLink href="/ppat/matters" />}
+      />
 
       <MatterForm domain="PPAT" />
     </PageContainer>
