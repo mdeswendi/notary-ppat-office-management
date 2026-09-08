@@ -74,18 +74,15 @@ function TaskBucket({ label, tasks }: { label: string; tasks: DashboardTask[] })
 
       <ul className="divide-border divide-y text-sm">
         {tasks.map((task) => (
-          <li
-            key={task.id}
-            className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
-          >
+          <li key={task.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
             <Link
               href={`/tasks/${task.id}`}
-              className="line-clamp-2 min-w-0 flex-1 font-medium underline-offset-4 hover:underline sm:truncate"
+              className="line-clamp-2 font-medium underline-offset-4 hover:underline"
             >
               {task.title}
             </Link>
 
-            <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:justify-end">
+            <div className="flex flex-wrap items-center gap-1.5">
               <TaskOverdueBadge isOverdue={task.is_overdue} />
               <TaskStatusBadge status={task.status} />
 

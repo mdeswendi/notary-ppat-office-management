@@ -51,7 +51,7 @@
     "mainLabel": "Navigasi utama",
     "openNavigation": "Buka navigasi",
     "closeNavigation": "Tutup navigasi",
-    "dashboard": "Dasbor",
+    "dashboard": "Dashboard",
     "settings": "Pengaturan",
     "settingsUsers": "Pengguna",
     "settingsRoles": "Peran & Hak Akses",
@@ -96,7 +96,7 @@
     "ppatWarkah": "Warkah"
   },
   "dashboard": {
-    "title": "Dasbor",
+    "title": "Dashboard",
     "subtitle": "Ringkasan pekerjaan kantor ini, sebatas yang boleh Anda lihat.",
     "loading": "Memuat…",
     "panelUnavailable": "Panel ini sedang tidak dapat ditampilkan.",
@@ -1480,7 +1480,7 @@
   },
   "actions": {
     "retry": "Coba lagi",
-    "backToDashboard": "Kembali ke Dasbor",
+    "backToDashboard": "Kembali ke Dashboard",
     "save": "Simpan",
     "saving": "Menyimpan...",
     "cancel": "Batal",
