@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useTranslations } from "next-intl";
+import { CalendarDays } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { DashboardPanel } from "@/features/dashboard/dashboard-panel";
 import { TaskOverdueBadge, TaskStatusBadge } from "@/features/tasks/task-badges";
@@ -58,6 +59,9 @@ export function TasksWidget() {
 }
 
 function TaskBucket({ label, tasks }: { label: string; tasks: DashboardTask[] }) {
+  const format = useFormatter();
+  const t = useTranslations("dashboard");
+
   if (tasks.length === 0) {
     return null;
   }
@@ -70,20 +74,31 @@ function TaskBucket({ label, tasks }: { label: string; tasks: DashboardTask[] })
 
       <ul className="divide-border divide-y text-sm">
         {tasks.map((task) => (
-          <li key={task.id} className="flex flex-wrap items-center gap-2 py-2 first:pt-0 last:pb-0">
+          <li key={task.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
             <Link
               href={`/tasks/${task.id}`}
-              className="min-w-0 flex-1 truncate underline-offset-4 hover:underline"
+              className="line-clamp-2 font-medium underline-offset-4 hover:underline"
             >
               {task.title}
             </Link>
 
-            <TaskOverdueBadge isOverdue={task.is_overdue} />
-            <TaskStatusBadge status={task.status} />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <TaskOverdueBadge isOverdue={task.is_overdue} />
+              <TaskStatusBadge status={task.status} />
 
-            <span className="text-muted-foreground shrink-0 text-xs whitespace-nowrap tabular-nums">
-              {task.due_at?.slice(0, 10) ?? "—"}
-            </span>
+              <span className="text-muted-foreground inline-flex items-center gap-1 text-xs whitespace-nowrap tabular-nums">
+                <CalendarDays className="size-3.5" aria-hidden="true" />
+                {task.due_at
+                  ? t("dueDate", {
+                      date: format.dateTime(new Date(task.due_at), {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }),
+                    })
+                  : t("noDueDate")}
+              </span>
+            </div>
           </li>
         ))}
       </ul>

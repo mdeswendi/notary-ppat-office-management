@@ -44,12 +44,12 @@ export function NeedsAttentionWidget() {
             key={`${item.type}-${item.id}`}
             className="flex flex-col gap-1 py-2 first:pt-0 last:pb-0"
           >
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-3">
               <AttentionLink item={item} />
 
               {/* Status is carried as text as well as position, so the panel does
                   not rely on colour alone (AGENTS.md §49). */}
-              <span className="text-muted-foreground shrink-0 text-xs">
+              <span className="text-muted-foreground text-xs sm:text-right">
                 {t(`attention.${item.type}`)}
               </span>
             </div>
@@ -58,7 +58,9 @@ export function NeedsAttentionWidget() {
               {item.reference ? `${item.reference} · ` : ""}
               {item.days_waiting === null
                 ? t("attention.noAge")
-                : t("attention.daysWaiting", { days: item.days_waiting })}
+                : item.days_waiting === 0
+                  ? t("attention.today")
+                  : t("attention.daysWaiting", { days: item.days_waiting })}
             </span>
           </li>
         ))}

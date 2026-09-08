@@ -111,6 +111,8 @@
     "overdue": "Overdue",
     "upcoming": "Upcoming",
     "noTasks": "No tasks.",
+    "dueDate": "Due {date}",
+    "noDueDate": "No due date",
     "needsAttention": "Needs Attention",
     "nothingNeedsAttention": "Nothing is held up.",
     "attention": {
@@ -118,12 +120,15 @@
       "DEED_PENDING_REVIEW": "Deed awaiting review",
       "TASK_OVERDUE": "Task overdue",
       "daysWaiting": "{days} days",
+      "today": "Today",
       "noAge": "No due date"
     },
     "workload": "Workload",
+    "workloadDescription": "Bars compare total assignments in this list, not maximum capacity.",
     "noWorkload": "No work is assigned yet.",
     "workloadCounts": "{matters} matters · {tasks} tasks",
     "activity": "Recent Activity",
+    "activityDescription": "The six most recently recorded changes.",
     "noActivity": "No activity yet. The record starts when this feature was enabled and fills as work happens.",
     "systemActor": "System"
   },

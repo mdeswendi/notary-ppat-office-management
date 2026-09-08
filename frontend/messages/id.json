@@ -51,7 +51,7 @@
     "mainLabel": "Navigasi utama",
     "openNavigation": "Buka navigasi",
     "closeNavigation": "Tutup navigasi",
-    "dashboard": "Dasbor",
+    "dashboard": "Dashboard",
     "settings": "Pengaturan",
     "settingsUsers": "Pengguna",
     "settingsRoles": "Peran & Hak Akses",
@@ -96,7 +96,7 @@
     "ppatWarkah": "Warkah"
   },
   "dashboard": {
-    "title": "Dasbor",
+    "title": "Dashboard",
     "subtitle": "Ringkasan pekerjaan kantor ini, sebatas yang boleh Anda lihat.",
     "loading": "Memuat…",
     "panelUnavailable": "Panel ini sedang tidak dapat ditampilkan.",
@@ -111,6 +111,8 @@
     "overdue": "Terlambat",
     "upcoming": "Mendatang",
     "noTasks": "Tidak ada tugas.",
+    "dueDate": "Tenggat {date}",
+    "noDueDate": "Tanpa tenggat",
     "needsAttention": "Perlu Perhatian",
     "nothingNeedsAttention": "Tidak ada yang tertahan.",
     "attention": {
@@ -118,12 +120,15 @@
       "DEED_PENDING_REVIEW": "Akta menunggu review",
       "TASK_OVERDUE": "Tugas terlambat",
       "daysWaiting": "{days} hari",
+      "today": "Hari ini",
       "noAge": "Tanpa tenggat"
     },
     "workload": "Beban Kerja",
+    "workloadDescription": "Bar membandingkan total penugasan dalam daftar ini, bukan kapasitas maksimum.",
     "noWorkload": "Belum ada pekerjaan yang ditugaskan.",
     "workloadCounts": "{matters} pekerjaan · {tasks} tugas",
     "activity": "Aktivitas Terbaru",
+    "activityDescription": "Enam perubahan terbaru yang tercatat.",
     "noActivity": "Belum ada aktivitas. Catatan dimulai sejak fitur ini aktif dan akan terisi seiring pekerjaan berjalan.",
     "systemActor": "Sistem"
   },
@@ -1475,7 +1480,7 @@
   },
   "actions": {
     "retry": "Coba lagi",
-    "backToDashboard": "Kembali ke Dasbor",
+    "backToDashboard": "Kembali ke Dashboard",
     "save": "Simpan",
     "saving": "Menyimpan...",
     "cancel": "Batal",
