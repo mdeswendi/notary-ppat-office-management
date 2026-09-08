@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toTaskErrorKey } from "@/features/tasks/task-errors";
@@ -112,11 +113,10 @@ export function TaskComments({ taskId }: { taskId: string }) {
         }}
       >
         <Label htmlFor="task-comment">{t("addComment")}</Label>
-        <textarea
+        <Textarea
           id="task-comment"
           rows={3}
           maxLength={5000}
-          className="border-border bg-background focus-visible:ring-ring rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
         />
