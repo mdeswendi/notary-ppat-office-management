@@ -44,12 +44,12 @@ export function EmptyState({ title, description, action, className }: EmptyState
   return (
     <div
       className={cn(
-        "border-border bg-card flex flex-col items-start gap-2 rounded-lg border p-6",
+        "border-border bg-card flex min-w-0 flex-col items-start gap-2 rounded-lg border p-4 sm:p-6",
         className,
       )}
     >
-      <h2 className="text-base font-medium">{title}</h2>
-      <p className="text-muted-foreground max-w-prose text-sm">{description}</p>
+      <h2 className="text-base font-medium break-words">{title}</h2>
+      <p className="text-muted-foreground max-w-prose text-sm break-words">{description}</p>
       {action ? <div className="pt-1">{action}</div> : null}
     </div>
   );

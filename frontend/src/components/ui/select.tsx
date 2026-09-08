@@ -17,8 +17,9 @@ import { cn } from "@/lib/utils";
  * ## It matches `Input`, and that is the point
  *
  * Consolidating first exposed a three-way split: forty-six dropdowns at 36px
- * tall with an 8px radius, two already matching `Input` at 32px and 10px, and
- * four with no fixed height at all. `Input` itself is 32px.
+ * tall with an 8px radius, two matching `Input`, and four with no fixed height
+ * at all. The shared pair is now 40px on narrow touch screens and returns to
+ * the compact 32px office-desktop density from `sm` upward.
  *
  * So in every filter row — a search box and a dropdown side by side under
  * `items-end` — the dropdown stood 4px taller than the box beside it, on every
@@ -43,7 +44,7 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
     <select
       data-slot="select"
       className={cn(
-        "border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 h-8 max-w-full min-w-0 rounded-lg border bg-transparent px-2.5 text-sm transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3",
+        "border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:bg-input/30 h-10 max-w-full min-w-0 rounded-lg border bg-transparent px-2.5 text-base transition-colors outline-none focus-visible:ring-3 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-3 sm:h-8 sm:text-sm",
         className,
       )}
       {...props}
