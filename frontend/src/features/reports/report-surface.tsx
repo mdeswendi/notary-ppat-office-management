@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AUDIT_EVENTS } from "@/features/reports/report-definitions";
@@ -206,19 +208,17 @@ function ReportFilters({
       {definition.filters.includes("dateRange") ? (
         <>
           <Field label={t("filters.dateFrom")}>
-            <input
+            <Input
               type="date"
               value={filters.date_from ?? ""}
               onChange={(event) => onChange({ date_from: event.target.value })}
-              className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
             />
           </Field>
           <Field label={t("filters.dateTo")}>
-            <input
+            <Input
               type="date"
               value={filters.date_to ?? ""}
               onChange={(event) => onChange({ date_to: event.target.value })}
-              className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
             />
           </Field>
         </>
@@ -255,11 +255,10 @@ function ReportFilters({
 
       {definition.filters.includes("type") ? (
         <Field label={t("filters.type")}>
-          <input
+          <Input
             type="text"
             value={filters.type ?? ""}
             onChange={(event) => onChange({ type: event.target.value })}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
             placeholder={t("filters.typePlaceholder")}
           />
         </Field>
@@ -284,23 +283,23 @@ function ReportFilters({
       {definition.filters.includes("completeness") ? (
         <>
           <Field label={t("filters.completenessMin")}>
-            <input
+            <Input
               type="number"
               min={0}
               max={100}
               value={filters.completeness_min ?? ""}
               onChange={(event) => onChange({ completeness_min: event.target.value })}
-              className="border-border bg-background w-24 rounded-md border px-3 py-1.5 text-sm"
+              className="w-24"
             />
           </Field>
           <Field label={t("filters.completenessMax")}>
-            <input
+            <Input
               type="number"
               min={0}
               max={100}
               value={filters.completeness_max ?? ""}
               onChange={(event) => onChange({ completeness_max: event.target.value })}
-              className="border-border bg-background w-24 rounded-md border px-3 py-1.5 text-sm"
+              className="w-24"
             />
           </Field>
         </>
@@ -308,11 +307,9 @@ function ReportFilters({
 
       {definition.filters.includes("overdue") ? (
         <label className="mb-1.5 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={filters.overdue === "true"}
-            onChange={(event) => onChange({ overdue: event.target.checked ? "true" : "" })}
-            className="border-border rounded"
+            onCheckedChange={(checked) => onChange({ overdue: checked === true ? "true" : "" })}
           />
           {t("filters.overdueOnly")}
         </label>

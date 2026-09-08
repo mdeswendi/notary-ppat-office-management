@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { EmptyState } from "@/components/feedback/empty-state";
+import { DateText } from "@/components/i18n/date-text";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -261,7 +262,7 @@ export function DeedsList({
                     <NotaryDeedTypeBadge code={deed.deed_type_code} />
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap md:table-cell">
-                    {deed.deed_date ?? "—"}
+                    <DateText value={deed.deed_date} />
                   </td>
                 </tr>
               ))}

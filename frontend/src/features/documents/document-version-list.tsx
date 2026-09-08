@@ -3,6 +3,7 @@
 import { Download } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { DateText } from "@/components/i18n/date-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DocumentVersion } from "@/types/document";
@@ -87,7 +88,7 @@ export function DocumentVersionList({
                     {version.uploaded_by?.name ?? "—"}
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap lg:table-cell">
-                    {version.uploaded_at?.slice(0, 10) ?? "—"}
+                    <DateText value={version.uploaded_at} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     {version.is_current && canDownload ? (

@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
  *
  * Presentational. It renders what it is given and decides nothing.
  */
-const badgeVariants = cva("rounded-full border px-2 py-0.5 text-xs", {
+const badgeVariants = cva("max-w-full rounded-full border px-2 py-0.5 text-xs whitespace-nowrap", {
   variants: {
     tone: {
       muted: "border-border text-muted-foreground",

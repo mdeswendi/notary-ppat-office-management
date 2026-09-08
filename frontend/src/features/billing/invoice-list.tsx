@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { DateText } from "@/components/i18n/date-text";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
@@ -40,11 +43,10 @@ export function InvoiceList() {
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">{t("search")}</span>
-          <input
+          <Input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="border-border bg-background rounded-md border px-3 py-1.5 text-sm"
             placeholder={t("searchInvoicesPlaceholder")}
           />
         </label>
@@ -62,12 +64,7 @@ export function InvoiceList() {
         </label>
 
         <label className="mt-5 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={overdue}
-            onChange={(event) => setOverdue(event.target.checked)}
-            className="border-border rounded"
-          />
+          <Checkbox checked={overdue} onCheckedChange={(checked) => setOverdue(checked === true)} />
           {t("onlyOverdue")}
         </label>
       </div>
@@ -114,7 +111,9 @@ export function InvoiceList() {
                     </div>
                   </td>
 
-                  <td className="px-3 py-2 tabular-nums">{invoice.due_date ?? "—"}</td>
+                  <td className="px-3 py-2">
+                    <DateText value={invoice.due_date} />
+                  </td>
 
                   <td className="px-3 py-2 text-right">
                     <AmountField
