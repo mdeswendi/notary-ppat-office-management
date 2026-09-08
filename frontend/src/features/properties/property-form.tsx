@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,12 +195,7 @@ export function PropertyForm({ property }: { property?: Property }) {
   return (
     <form onSubmit={onSubmit} noValidate className="flex max-w-3xl flex-col gap-6">
       {form.formState.errors.root ? (
-        <p
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-        >
-          {form.formState.errors.root.message}
-        </p>
+        <InlineAlert>{form.formState.errors.root.message}</InlineAlert>
       ) : null}
 
       <p className="text-muted-foreground text-sm">{t("formHint")}</p>

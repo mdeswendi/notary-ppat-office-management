@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import {
@@ -110,23 +111,9 @@ export function UserSecurityDialog({ user, onClose }: { user: ManagedUser; onClo
           <DialogDescription>{t("description", { name: user.name })}</DialogDescription>
         </DialogHeader>
 
-        {errorKey ? (
-          <p
-            role="alert"
-            className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-          >
-            {tUsers(`errors.${errorKey}`)}
-          </p>
-        ) : null}
+        {errorKey ? <InlineAlert>{tUsers(`errors.${errorKey}`)}</InlineAlert> : null}
 
-        {notice ? (
-          <p
-            role="status"
-            className="border-border bg-muted/40 rounded-md border px-3 py-2 text-sm"
-          >
-            {notice}
-          </p>
-        ) : null}
+        {notice ? <InlineAlert tone="success">{notice}</InlineAlert> : null}
 
         <div className="flex flex-col gap-5">
           <PermissionGuard permission="users.reset_password">

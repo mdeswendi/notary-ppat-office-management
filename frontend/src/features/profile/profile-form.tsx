@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -142,21 +143,11 @@ export function ProfileForm() {
 
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           {form.formState.errors.root ? (
-            <p
-              role="alert"
-              className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-            >
-              {form.formState.errors.root.message}
-            </p>
+            <InlineAlert>{form.formState.errors.root.message}</InlineAlert>
           ) : null}
 
           {saved && !form.formState.isDirty ? (
-            <p
-              role="status"
-              className="border-border bg-muted/40 rounded-md border px-3 py-2 text-sm"
-            >
-              {t("saved")}
-            </p>
+            <InlineAlert tone="success">{t("saved")}</InlineAlert>
           ) : null}
 
           <div className="flex flex-col gap-2">
@@ -234,14 +225,7 @@ export function ProfileForm() {
       <Card id="preferences" className="scroll-mt-6">
         <CardHeader title={t("languageTitle")} description={t("languageDescription")} />
 
-        {preference.isError ? (
-          <p
-            role="alert"
-            className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
-          >
-            {tCommon("languageSaveFailed")}
-          </p>
-        ) : null}
+        {preference.isError ? <InlineAlert>{tCommon("languageSaveFailed")}</InlineAlert> : null}
 
         <div className="flex flex-wrap gap-2">
           {routing.locales.map((locale) => {

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { InlineAlert } from "@/components/feedback/inline-alert";
 import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,7 +52,7 @@ export function PaymentList() {
   }
 
   if (query.isError) {
-    return <p className="text-muted-foreground text-sm">{t("listUnavailable")}</p>;
+    return <InlineAlert>{t("listUnavailable")}</InlineAlert>;
   }
 
   if (payments.length === 0) {
@@ -60,7 +61,7 @@ export function PaymentList() {
 
   return (
     <div className="flex flex-col gap-3">
-      {verify.isError ? <p className="text-destructive text-sm">{t("verifyFailed")}</p> : null}
+      {verify.isError ? <InlineAlert>{t("verifyFailed")}</InlineAlert> : null}
 
       <div className="border-border overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
