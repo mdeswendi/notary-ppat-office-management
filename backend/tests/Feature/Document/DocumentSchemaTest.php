@@ -219,7 +219,7 @@ it('refuses two documents with the same number in one office', function (): void
 */
 
 it('refuses to update an existing version', function (): void {
-    // CLAUDE.md section 19 and the ERD both require that an existing version is
+    // AGENTS.md section 19 and the ERD both require that an existing version is
     // never overwritten: a correction adds a version, and the previous file
     // stays exactly as it was.
     $version = DocumentVersion::factory()->create();
@@ -275,7 +275,7 @@ it('allows the same version number in different documents', function (): void {
 */
 
 it('refuses a storage path inside a public web directory', function (string $path): void {
-    // CLAUDE.md section 19 names both directories explicitly. PostgreSQL has a
+    // AGENTS.md section 19 names both directories explicitly. PostgreSQL has a
     // CHECK; the model guard is what holds on SQLite, where the suite runs.
     DocumentVersion::factory()->create(['storage_path' => $path]);
 })->with([
@@ -518,7 +518,7 @@ it('gives Document a soft-delete lifecycle at M5.2', function (): void {
         ->and(Document::withTrashed()->whereKey($document->getKey())->exists())->toBeTrue()
         // Every version survives, and so does the file it points at. A soft
         // delete that erased bytes would be a hard delete wearing a soft one's
-        // name (CLAUDE.md sections 19 and 30).
+        // name (AGENTS.md sections 19 and 30).
         ->and(DB::table('document_versions')->where('id', $version->getKey())->exists())->toBeTrue();
 });
 
@@ -530,7 +530,7 @@ it('treats archiving as a state rather than a deletion', function (): void {
         ->and($document->fresh()->archived_at)->not->toBeNull()
         ->and($document->fresh()->deleted_at)->toBeNull()
         // Reachable, because somebody must be able to read what the office
-        // archived (CLAUDE.md section 63).
+        // archived (AGENTS.md section 63).
         ->and(Document::query()->whereKey($document->getKey())->exists())->toBeTrue();
 });
 
@@ -564,7 +564,7 @@ it('builds no requirement or template table', function (): void {
 it('adds no gating column to the workflow tables', function (): void {
     // `required_before_stage_code` is the M5.0 gap, recorded rather than guessed
     // (D-115). Gating a stage transition on document completeness is a legal
-    // workflow rule, and CLAUDE.md section 62 forbids inventing one.
+    // workflow rule, and AGENTS.md section 62 forbids inventing one.
     expect(Schema::hasColumn('workflow_stages', 'required_before_stage_code'))->toBeFalse()
         ->and(Schema::hasColumn('documents', 'required_before_stage_code'))->toBeFalse()
         ->and(Schema::hasColumn('documents', 'workflow_stage_id'))->toBeFalse();

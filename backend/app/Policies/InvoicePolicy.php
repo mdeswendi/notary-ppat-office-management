@@ -51,7 +51,7 @@ class InvoicePolicy
      *
      * **`DRAFT` only** — the ruling D-124 section 9.2 makes explicit. Issuing is
      * the finalization act: the invoice has been sent to a client, so
-     * `CLAUDE.md` section 64 applies, its values are preserved, and the only
+     * `AGENTS.md` section 64 applies, its values are preserved, and the only
      * remaining act is `cancel`.
      *
      * The same answer governs the line items. Editing what an issued invoice

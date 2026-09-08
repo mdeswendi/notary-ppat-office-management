@@ -24,7 +24,7 @@ use RuntimeException;
  * prerequisites are met, whether documents are complete, or whether a tax or deed
  * gate is satisfied — every one of those is workflow content that no validated
  * domain source has authored, and inventing one would be exactly the invented
- * legal rule `CLAUDE.md` section 62 forbids.
+ * legal rule `AGENTS.md` section 62 forbids.
  *
  * Two checks and no more:
  *
@@ -54,7 +54,7 @@ use RuntimeException;
  * ## Matter Status is untouched
  *
  * Matter Status and Workflow Stage are separate concepts and must not be merged
- * (`CLAUDE.md` section 18, D-104). Moving a stage never writes `matters.status`,
+ * (`AGENTS.md` section 18, D-104). Moving a stage never writes `matters.status`,
  * and completing a Matter is its own act with its own capability.
  *
  * One transaction: the stage updates and the history row are one change, and a

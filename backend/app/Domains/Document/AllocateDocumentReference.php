@@ -18,7 +18,7 @@ use RuntimeException;
  * **Ordinary office identification and nothing more** — not a deed number, not a
  * repertorium entry, not a minuta or Warkah number, not a land or government
  * registration number. The `DOC` prefix carries no legal meaning, and
- * `CLAUDE.md` section 38 is explicit that internal identifiers and legal deed
+ * `AGENTS.md` section 38 is explicit that internal identifiers and legal deed
  * numbers are different concepts.
  *
  * **Two namespace dimensions: Office + calendar year.** Matter needed a third

@@ -77,7 +77,7 @@ class ProjectPartyController extends Controller
         // ProjectPartyPolicy -> EffectiveAccessResolver -> Data Scope chain the
         // mutation endpoints authorize through, so the flag cannot disagree with
         // what those endpoints would accept. Presentation only; each of them
-        // authorizes again (CLAUDE.md sections 24 and 28).
+        // authorizes again (AGENTS.md sections 24 and 28).
         //
         // Evaluated once for the whole list rather than per row: participation
         // authority is a property of the parent Project, which does not vary

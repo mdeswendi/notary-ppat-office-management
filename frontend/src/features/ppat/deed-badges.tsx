@@ -9,7 +9,7 @@ import type { PpatDeedStatus } from "@/types/ppat";
 /**
  * PPAT Deed status and type, rendered as labelled badges (M7.2, D-121).
  *
- * **Status must not rely on colour alone** (`CLAUDE.md` section 49): every badge
+ * **Status must not rely on colour alone** (`AGENTS.md` section 49): every badge
  * carries its translated text, and the tint is a secondary cue rather than the
  * information itself. A reader who cannot distinguish the tints still reads the
  * status.
@@ -55,7 +55,7 @@ export function PpatDeedStatusBadge({ status }: { status: PpatDeedStatus }) {
  * `03_DATABASE_ERD.md` gives it no vocabulary, M7 seeds no catalogue, and the
  * examples elsewhere in the canonical set are prose. Rendering `AJB` as "Akta Jual
  * Beli" here would require a mapping this milestone has no authority to write — and
- * inventing legal translations is exactly what `CLAUDE.md` section 9 forbids. The
+ * inventing legal translations is exactly what `AGENTS.md` section 9 forbids. The
  * office's own code is shown verbatim.
  */
 export function PpatDeedTypeBadge({ code }: { code: string | null }) {
@@ -77,7 +77,7 @@ export function PpatDeedTypeBadge({ code }: { code: string | null }) {
  *
  * **The server decides this**, not the browser: `is_read_only` folds in both the
  * settled statuses and `locked_at`, so the interface cannot disagree with the backend
- * about what `CLAUDE.md` section 29 means.
+ * about what `AGENTS.md` section 29 means.
  */
 export function PpatDeedReadOnlyBadge({ isReadOnly }: { isReadOnly: boolean }) {
   const t = useTranslations("ppat");

@@ -10,7 +10,7 @@ namespace App\Domains\Ppat\Enums;
  * `03_DATABASE_ERD.md` section 18 gives `ppat_deeds` a `status` column and **no
  * values for it**, where section 17 gives `notary_deeds` six. M7 adopts the same six
  * so the two domains answer the same question the same way, on the authority of
- * `CLAUDE.md` section 29 — which states `DRAFT -> UNDER_REVIEW -> APPROVED ->
+ * `AGENTS.md` section 29 — which states `DRAFT -> UNDER_REVIEW -> APPROVED ->
  * FINALIZED -> LOCKED` as the legal-record lifecycle generally, and section 64 its
  * consequence.
  *
@@ -31,7 +31,7 @@ namespace App\Domains\Ppat\Enums;
  * ```
  *
  * `VOID` and `SUPERSEDED` are the post-finalization correction mechanisms
- * `CLAUDE.md` section 29 requires documented business rules for; open question nine
+ * `AGENTS.md` section 29 requires documented business rules for; open question nine
  * in `09_PPAT_WORKFLOW.md` section 6 asks what they are, and the catalogue contains
  * no `ppat.deeds.void` or `ppat.deeds.lock`. Three sources agree, so the CHECK admits
  * six values and the API will produce four (D-109 pattern, O-039).
@@ -104,7 +104,7 @@ enum PpatDeedStatus: string
      * May the deed be edited?
      *
      * Everything up to and including `APPROVED` — the literal reading of
-     * `CLAUDE.md` section 29, which denies normal updates *once finalized* and says
+     * `AGENTS.md` section 29, which denies normal updates *once finalized* and says
      * nothing about approval. The narrower rule that approval freezes content is the
      * more familiar one and is deliberately not encoded here, because no canonical
      * document states it and it is exactly the kind of approval requirement section

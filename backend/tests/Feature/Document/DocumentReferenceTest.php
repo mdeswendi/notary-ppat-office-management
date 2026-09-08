@@ -120,7 +120,7 @@ it('accepts an Office model or its key', function (): void {
 
 it('allocates in one atomic statement rather than reading then writing', function (): void {
     // `MAX+1`, `COUNT+1`, `latest()+1` and read-then-write are all unsafe under
-    // concurrency (CLAUDE.md section 38), and a transaction alone would not fix a
+    // concurrency (AGENTS.md section 38), and a transaction alone would not fix a
     // SELECT-then-UPDATE: under READ COMMITTED two transactions can both read
     // before either writes.
     $source = file_get_contents(app_path('Domains/Document/AllocateDocumentReference.php'));

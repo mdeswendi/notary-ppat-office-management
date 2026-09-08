@@ -32,7 +32,7 @@ const eslintConfig = defineConfig([
    *
    * Narrowed to these paths rather than switched off globally, and stated rather
    * than scattered as inline disables, so the rule keeps protecting every real
-   * page and component (`CLAUDE.md` section 52: no suppression without a
+   * page and component (`AGENTS.md` section 52: no suppression without a
    * documented reason).
    */
   {

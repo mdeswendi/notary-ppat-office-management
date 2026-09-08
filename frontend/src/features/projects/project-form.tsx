@@ -205,7 +205,7 @@ export function ProjectForm({ project }: { project?: Project }) {
  *
  * Takes the registration and the message rather than the whole form object,
  * which keeps it fully typed — passing `UseFormReturn` through a generic
- * boundary is where an `any` usually creeps in (CLAUDE.md section 53).
+ * boundary is where an `any` usually creeps in (AGENTS.md section 53).
  */
 function Field({
   id,

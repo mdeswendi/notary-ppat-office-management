@@ -168,7 +168,7 @@ class OperationalReportController extends Controller
             'domain' => $matter->domain->value,
             'status' => $matter->status->value,
             // The code, never a picked language: the name is bilingual and the
-            // presentation layer chooses (CLAUDE.md sections 6, 10).
+            // presentation layer chooses (AGENTS.md sections 6, 10).
             'service_type' => $matter->serviceType?->code,
             'project' => $matter->project?->project_number,
             'pic' => $matter->picUser?->name,

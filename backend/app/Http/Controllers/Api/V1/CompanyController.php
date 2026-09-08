@@ -23,7 +23,7 @@ use Illuminate\Http\Response;
 /**
  * Company records.
  *
- * Thin (CLAUDE.md section 35): authorize, take validated input, call an Action,
+ * Thin (AGENTS.md section 35): authorize, take validated input, call an Action,
  * return a Resource. The aggregate rules live in the Actions and the scope rules
  * in {@see PartyVisibility}, where both can be read and tested without HTTP.
  *
@@ -175,7 +175,7 @@ class CompanyController extends Controller
      *
      * Entity types are **codes only**. The interface translates them; the server
      * never sends a display string, because a translated value in the payload is
-     * one the database might end up storing (CLAUDE.md section 12).
+     * one the database might end up storing (AGENTS.md section 12).
      *
      * No relationship categories: those belong to M2.4's forms, and returning
      * them here would advertise a capability this milestone does not have.

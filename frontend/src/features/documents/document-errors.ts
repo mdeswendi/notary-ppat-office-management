@@ -18,7 +18,7 @@ export type DocumentErrorKey =
  *
  * Only the HTTP status is read. The response body never reaches the user, so a
  * Laravel exception or internal payload cannot leak through this path
- * (`CLAUDE.md` sections 32 and 48).
+ * (`AGENTS.md` sections 32 and 48).
  *
  * `403` and `404` are both ordinary outcomes rather than faults. Document access
  * depends on a Data Scope the browser's permission list cannot express (O-026),

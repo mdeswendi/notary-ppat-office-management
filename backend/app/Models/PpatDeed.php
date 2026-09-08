@@ -25,7 +25,7 @@ use RuntimeException;
  * a Notary instrument.
  *
  * **The status vocabulary is a decision, not a transcription.** The ERD gives
- * `ppat_deeds` no status values; M7 adopts Notary six on `CLAUDE.md` section 29
+ * `ppat_deeds` no status values; M7 adopts Notary six on `AGENTS.md` section 29
  * authority. See {@see PpatDeedStatus}.
  *
  * **`office_id` and `matter_id` are immutable.** Office is the security boundary and
@@ -38,7 +38,7 @@ use RuntimeException;
  * make `ppat.deeds.update` a silent superset of four other codes (D-091).
  *
  * **No `SoftDeletes` and no `deleted_at`.** The ERD omits it, section 33 prefers
- * states over destructive deletion for finalized legal records, `CLAUDE.md` section
+ * states over destructive deletion for finalized legal records, `AGENTS.md` section
  * 30 forbids user-facing hard delete of Deeds, and no `ppat.deeds.delete` capability
  * exists.
  */
@@ -148,7 +148,7 @@ class PpatDeed extends Model
     /**
      * Read-only under normal operations.
      *
-     * `CLAUDE.md` sections 29 and 64: once finalized, prevent normal edits, show the
+     * `AGENTS.md` sections 29 and 64: once finalized, prevent normal edits, show the
      * record as locked, and preserve the original values.
      */
     public function isReadOnly(): bool

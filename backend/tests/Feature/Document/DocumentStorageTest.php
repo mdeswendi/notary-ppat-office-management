@@ -40,7 +40,7 @@ it('stores a file under office, year and month on the private disk', function ()
 });
 
 it('never writes into a public web directory', function (): void {
-    // CLAUDE.md section 19. The path is checked here, by a database CHECK on
+    // AGENTS.md section 19. The path is checked here, by a database CHECK on
     // PostgreSQL, and by the model guard on both engines — three places, because
     // this is the rule a legal document system may not get wrong.
     $document = Document::factory()->create();

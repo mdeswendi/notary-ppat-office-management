@@ -300,7 +300,7 @@ class DemoDataSeeder
         // CreateUser itself grants no role to any of these five (see its own
         // docblock) — none of the Actions this class calls checks a
         // permission or a role internally, every one authorizes nothing
-        // itself and trusts that its caller already did (CLAUDE.md §35).
+        // itself and trusts that its caller already did (AGENTS.md §35).
         // makeActorAuthorizationCapable() assigns a role to the first of
         // these five separately, right after this method returns — a
         // deliberately distinct step, since "was this User created" and "can
@@ -348,7 +348,7 @@ class DemoDataSeeder
      * **Never creates a Role, never grants a permission.** Both come only
      * from `permissions:sync` and `app:bootstrap` (or equivalent manual Role
      * Management configuration) — deliberately outside this class's reach
-     * (`CLAUDE.md` §24; D-045, D-057 forbid inventing authorization state
+     * (`AGENTS.md` §24; D-045, D-057 forbid inventing authorization state
      * silently). `SUPER_ADMIN` is the one canonical role D-057 guarantees
      * holds every permission at `ALL` scope the moment a deployment has been
      * bootstrapped — the other eight default roles are created empty and
@@ -474,7 +474,7 @@ class DemoDataSeeder
     private function createMatters(User $actor, array $projects): array
     {
         // service_type_id is null throughout: no canonical service catalogue
-        // exists to choose a value from (CLAUDE.md — do not invent one).
+        // exists to choose a value from (AGENTS.md — do not invent one).
         $notary1 = $this->createMatter->handle(
             $actor,
             $projects[0],
@@ -593,7 +593,7 @@ class DemoDataSeeder
      * never set: M6 seeds no deed-type catalogue at all — `NotaryDeedFactory`
      * and `NotaryDeedManagementTest` both leave `deed_type_code` `null` for
      * the same reason — and a fabricated execution date would be exactly the
-     * invented legal fact `CLAUDE.md` §62 forbids.
+     * invented legal fact `AGENTS.md` §62 forbids.
      *
      * One reachable status each — `DRAFT`, `UNDER_REVIEW`, `APPROVED`,
      * `FINALIZED` — simply by stopping the lifecycle calls at a different

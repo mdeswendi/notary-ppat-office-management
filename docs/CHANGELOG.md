@@ -5,6 +5,18 @@ Records specification changes and milestone results.
 
 ---
 
+## 2026-09-08 — Repository instruction cleanup
+
+- Consolidated repository guidance in the root `AGENTS.md` and removed its redundant mirror.
+- Retained `frontend/AGENTS.md` as the sole Next.js-specific instruction file and removed its
+  redundant pointer after rechecking the current generator behavior.
+- Renamed the continuation document to `PROJECT_STATUS.md` and updated all internal references.
+- Replaced legacy assistant-specific references throughout tracked source comments and documents
+  with neutral references to `AGENTS.md` or a coding assistant.
+- Closed O-015. No application behavior, schema, route, or environment configuration changed.
+
+---
+
 ## 2026-08-26 — M8.3 Reports
 
 Branch `feat/m8-dashboard`, from `e3ae655`. **No migration, twenty-three routes, no permission — the
@@ -15,7 +27,7 @@ nothing to migrate.
 
 `ReportPolicy` guards `App\Domains\Reports\Report` — a **marker class with no table**, because
 `Gate::policy()` maps a class name and the alternatives were a bare `Gate::define` on a permission
-code (which `CLAUDE.md` §24 forbids) or an inline resolver call the D-048 scan would never see.
+code (which `AGENTS.md` §24 forbids) or an inline resolver call the D-048 scan would never see.
 
 It answers one question: may this actor open this family. **Which rows come back is decided by each
 source domain under its own capability** — a Matter report runs through `MatterVisibility` under
@@ -144,7 +156,7 @@ error, which cannot be removed at all (O-051).
 ### There is no `tax` column anywhere, and this is the ruling that matters most
 
 The brief gave `quotations` and `invoices` a `decimal tax`. D-124 §9.4 forbids it in as many words,
-`CLAUDE.md` §62 names tax rules among the things not to invent, and O-040 is still open.
+`AGENTS.md` §62 names tax rules among the things not to invent, and O-040 is still open.
 
 An office showing PPN **adds a line it names and prices itself** — a fact the office asserted, where
 a computed one would be a tax rule this software encoded. The smoke exercised exactly that: a
@@ -233,7 +245,7 @@ ground, and M6 and M7 then built batches 8 and 10 — later batches. The argumen
 three times became the argument for building it.
 
 **Append-only is structural.** No `updated_at`, no `deleted_at`, no soft delete, and the model throws
-on `updating` and `deleting`, so there is no internal method that could perform one — `CLAUDE.md` §31
+on `updating` and `deleting`, so there is no internal method that could perform one — `AGENTS.md` §31
 extended from "no such permission" to "no such code path".
 
 **The gate in `DocumentPolicy::download()` came out exactly as M5.2 said it would.** That method
@@ -286,7 +298,7 @@ render nothing at all for a `null` panel rather than an empty card.
 ### Four things the brief asked for that were built differently, and one that could not be built
 
 - **Workload is not filtered by role name.** The brief specified `NOTARY_STAFF, PPAT_STAFF,
-  OFFICE_MANAGER`; that is the role-name authorization `CLAUDE.md` §24 and D-048 forbid. It lists
+  OFFICE_MANAGER`; that is the role-name authorization `AGENTS.md` §24 and D-048 forbid. It lists
   whoever the actor may read under `users.view` who actually holds live work.
 - **No staleness thresholds.** "Waiting more than 3 days", "pending more than 2 days" and "overdue by
   more than 1 day" are office policy nobody has written down. Everything actually waiting, actually
@@ -371,7 +383,7 @@ ERD §32 puts billing in batch 11 with registers, protocol and taxes — the thr
 declined. Those were declined because **their domain rules are unauthored**: what a protocol period
 is and how it closes, which taxes gate which stage, a register's format and period. Billing has no
 such gap. An office invoicing its own client is commerce, not Indonesian notarial procedure, and
-`CLAUDE.md` §62's list of things not to invent does not include it.
+`AGENTS.md` §62's list of things not to invent does not include it.
 
 **The tax boundary is what keeps that distinction honest** (D-124). No `tax_amount`, no `ppn_rate`,
 no BPHTB, PPh or PNBP field, no calculation deriving one figure from another by a rate. An office
@@ -444,13 +456,13 @@ being filed as one.
 
 `calendar_events` has an ERD field list, six event types, five registered capabilities, a menu
 destination and a batch-7 position. **No milestone from M0 to M8 names it**, and DECISIONS.md had
-never recorded that. It stays outside M8 under `CLAUDE.md` §60, but O-048 records that **unlike every
+never recorded that. It stays outside M8 under `AGENTS.md` §60, but O-048 records that **unlike every
 other item in the ledger it is blocked on nothing** — not a domain rule, not a catalogue extension,
 not a missing table. Only assignment.
 
 ### M8 is the last milestone in the plan
 
-`CLAUDE.md` §2 and `01_ARCHITECTURE.md` §28 both end at M8. Nothing M8 declines has a later milestone
+`AGENTS.md` §2 and `01_ARCHITECTURE.md` §28 both end at M8. Nothing M8 declines has a later milestone
 to fall into. That changes no ruling — scope discipline is not suspended because the calendar is
 running out — but it changes what the ledger means. At M6 and M7 an open item was a deferral. **At M8
 it is a statement about what the delivered product does not do.**
@@ -681,7 +693,7 @@ because that is the choice which ends nobody's recorded ownership. The form offe
 only when there are current holders to supersede. The smoke asserts both paths.
 
 **No sum is validated.** 0–100 per link is arithmetic; whether shares must total 100 is a rule about
-Indonesian co-ownership `CLAUDE.md` §62 forbids inventing. A total of 160% is stored, displayed and
+Indonesian co-ownership `AGENTS.md` §62 forbids inventing. A total of 160% is stored, displayed and
 not judged — the interface says so in words rather than leaving it implied.
 
 ### There is no way to delete a link in a chain of title
@@ -700,7 +712,7 @@ for deeds either (O-039).
 
 The lock recorded *"whether `property_number` is allocated or office-supplied"* as a question
 somebody had to settle explicitly. **The office supplies it**, on three grounds: the ERD gives the
-column no format; `CLAUDE.md` §38 shows `PROP-000001` **without a year**, alone among the internal
+column no format; `AGENTS.md` §38 shows `PROP-000001` **without a year**, alone among the internal
 references it lists, so D-108's Office+year counter does not fit; and an allocator needs a counter
 table, which is a migration this milestone was scoped without.
 
@@ -751,7 +763,7 @@ milestone since M5.2 has made.
 
 **The API root is `/api/v1/properties` and the page is `/ppat/properties`**, deliberately. D-101 says
 the route decides the permission namespace and the canonical family is `properties.*` with no `ppat.`
-prefix, so a `/ppat/properties` endpoint would name a namespace that does not exist; `CLAUDE.md` §16
+prefix, so a `/ppat/properties` endpoint would name a namespace that does not exist; `AGENTS.md` §16
 lists Property among the PPAT-specific concepts, which is where the page and the menu entry belong. A
 page path is not a permission namespace. Recorded in three places so nobody "fixes" one to match the
 other.
@@ -824,7 +836,7 @@ jangan buat."* It is not there. The canonical catalogue of 177 codes has no `ppa
 
 Three further sources agree separately: `ppat_deeds` has no `deleted_at` column (M7.1, matching the
 ERD), `03_DATABASE_ERD.md` §33 prefers states over destructive deletion for finalized legal records,
-and `CLAUDE.md` §30 forbids user-facing hard delete of Deeds. A deed recorded in error is a
+and `AGENTS.md` §30 forbids user-facing hard delete of Deeds. A deed recorded in error is a
 **correction mechanism**, which is open question nine (O-039).
 
 `DELETE /api/v1/ppat/deeds/{id}` answers **405**; `/void` and `/lock` answer **404**. All three are
@@ -840,7 +852,7 @@ configuration, not code.
 
 ### Finalize does four things it was asked to do and refuses three
 
-It sets `FINALIZED` and stamps `finalized_at` / `finalized_by`, inside a transaction (`CLAUDE.md`
+It sets `FINALIZED` and stamps `finalized_at` / `finalized_by`, inside a transaction (`AGENTS.md`
 §37) even though it touches one row, so the milestone that adds register allocation inherits the
 boundary rather than introducing one.
 
@@ -951,7 +963,7 @@ deliberate `CASCADE`s where a row has no meaning apart from its parent.
 
 ### Three enums, not the seven the brief specified
 
-The other four have **no canonical vocabulary**, and inventing one is what `CLAUDE.md` §62 forbids:
+The other four have **no canonical vocabulary**, and inventing one is what `AGENTS.md` §62 forbids:
 
 | Proposed | Reality |
 |---|---|
@@ -1061,7 +1073,7 @@ enshrined the errors:
 
 * **D-121 as briefed** said the PPAT deed ladder *"follows the Notary pattern."* But `ppat_deeds` has
   **no status vocabulary in the ERD** while `notary_deeds` has six. M7 adopts the same six — on
-  `CLAUDE.md` §29's authority — but that is a **decision, not a transcription**, and the lock says so.
+  `AGENTS.md` §29's authority — but that is a **decision, not a transcription**, and the lock says so.
 * **D-122 as briefed** would have made completeness computed and dropped `completeness_percentage`, a
   canonical column. The real issue is the denominator: see below.
 * **D-127 as briefed** — a register entry created on finalization — is exactly what M6 refused twice,
@@ -1114,7 +1126,7 @@ through a `project_id` filter, following O-037 rather than the nested route D-11
 
 ### One question left for M7.1 to answer explicitly
 
-Whether `property_number` is allocated or office-supplied. The ERD gives no format; `CLAUDE.md` §38
+Whether `property_number` is allocated or office-supplied. The ERD gives no format; `AGENTS.md` §38
 names `PROP-000001` as an example internal reference; but D-103's allocator is namespaced by Office
 **and calendar year**, and a land parcel is not a yearly thing. Recorded in the lock's §15 so M7.1
 meets it as a decision rather than a surprise — the same shape as the `created_by` question M5.0 left
@@ -1315,7 +1327,7 @@ capability the catalogue defined and nothing had used. Finalizing also writes no
 creates no register entry.
 
 **An approved deed is still editable.** The brief wanted edits confined to `DRAFT` and `UNDER_REVIEW`.
-`CLAUDE.md` §29 denies normal updates *once finalized* and says nothing about approval; the narrower
+`AGENTS.md` §29 denies normal updates *once finalized* and says nothing about approval; the narrower
 rule is an approval requirement, which §62 forbids inventing. Encoded as M6.1's `isEditable()` had it.
 
 **No parties, tasks or document collection in the deed payload.** Participation answers to
@@ -1459,7 +1471,7 @@ specification that is deliberately empty.
 `08_NOTARY_WORKFLOW.md` §6 lists seven questions requiring domain validation. The M6 brief specified
 an answer to five of them — deed numbering format and allocator, auto-created Repertorium entries,
 a Minuta archive lifecycle, post-finalization correction through lock/void/supersede, and approval
-restricted to named roles. `CLAUDE.md` §62 names four of those five explicitly as things not to
+restricted to named roles. `AGENTS.md` §62 names four of those five explicitly as things not to
 invent and prescribes **STOP / DOCUMENT THE GAP / ASK FOR DOMAIN SPECIFICATION**.
 
 The approval question is blocked twice: even with a validated domain source, *"default hanya
@@ -1486,7 +1498,7 @@ path**: the D-109 pattern for Matter's unreachable statuses, and the D-102 patte
 `matters.deleted_at`.
 
 The lifecycle that *is* built — `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED` — is not a guess:
-`CLAUDE.md` §29 states it verbatim as the legal-record lifecycle and §64 states its consequence.
+`AGENTS.md` §29 states it verbatim as the legal-record lifecycle and §64 states its consequence.
 
 ### Three of the brief's structures are not canonical
 
@@ -1495,7 +1507,7 @@ The lifecycle that *is* built — `DRAFT → UNDER_REVIEW → APPROVED → FINAL
   deeds**, no status vocabulary. §32 places it in batch 11, later than PPAT deeds. M6 is batch 9.
 * **Registers are batch 11 too**, and the Repertorium procedure is open question two.
 * **`notary_deeds` gets no `deleted_at` and no soft delete** — the ERD omits it, §33 prefers states
-  over deletion for finalized legal records, `CLAUDE.md` §30 forbids user-facing hard delete of
+  over deletion for finalized legal records, `AGENTS.md` §30 forbids user-facing hard delete of
   finalized Deeds, and no `notary.deeds.delete` capability exists.
 
 ### Decomposition
@@ -1673,7 +1685,7 @@ evidence that stands in for it.
 
 ### The rule this produced
 
-`CLAUDE.md` §52 gains one: **run the gate after the last edit, and report only what
+`AGENTS.md` §52 gains one: **run the gate after the last edit, and report only what
 that run said.** A green run is evidence about the tree that produced it and
 nothing later — if a file is touched afterwards, the gate has not been run.
 
@@ -1853,7 +1865,7 @@ M5.1 withheld `SoftDeletes` while `deleted_at` sat unused, so "invisible because
 confused with "invisible because out of scope" (D-102). M5.2 ships `DELETE`, so the lifecycle exists.
 
 **The bytes, the checksum and every version row survive** — a delete that erased files would be a hard
-delete wearing a soft one's name (`CLAUDE.md` §19, §30). There is **no restore endpoint**: reading
+delete wearing a soft one's name (`AGENTS.md` §19, §30). There is **no restore endpoint**: reading
 `documents.delete` as *"may also undelete"* would make one capability do two jobs.
 
 ### Two things that are invisible until they are a defect
@@ -2096,7 +2108,7 @@ Scope, and no distinction between `documents.download` and `documents.sensitive.
 holds the string holds the file: forwarded in a chat, pasted into a ticket, sitting in a browser
 history.
 
-`CLAUDE.md` §21 requires sensitive files be *"authorization protected"* and *"unavailable through
+`AGENTS.md` §21 requires sensitive files be *"authorization protected"* and *"unavailable through
 predictable public URLs"*; §54 forbids exposing private document URLs. A URL that authorizes by
 possession fails both however unguessable it is.
 
@@ -2171,7 +2183,7 @@ sensitive-download surface ships before it exists.
 
 ### Also corrected
 
-`CLAUDE.md` §58 and the README documentation table gained `15_`; the README's status header still
+`AGENTS.md` §58 and the README documentation table gained `15_`; the README's status header still
 said M4 was *"selesai di branch dan menunggu penerimaan"* after the merge, and its bootstrap
 paragraph still said **173** permissions rather than 177.
 
@@ -2221,8 +2233,8 @@ through M4.8, what does not until M5, and that the workflow engine ships deliber
 The milestone list marked M1–M3 complete and M4 delivered-pending-acceptance.
 
 **6. `README.md`'s documentation table omitted the three architecture locks.** `12_`, `13_` and
-`14_` were missing while `CLAUDE.md` §58 lists all fourteen files — the same gap O-003 closed for
-`CLAUDE.md` at M0, left open in the README. Added, with a sentence on what a lock is for.
+`14_` were missing while `AGENTS.md` §58 lists all fourteen files — the same gap O-003 closed for
+`AGENTS.md` at M0, left open in the README. Added, with a sentence on what a lock is for.
 
 **7. The M4 unresolved-items table asked the wrong question.** Its third column read *"Blocks
 M4.1?"* and it closed with *"None blocks M4.1"* — written at M4.0 and asking about a milestone
@@ -2435,7 +2447,7 @@ the foreign key alone would identify the iteration and the number would be redun
 only makes sense if the id says which template and the number says which iteration of it.
 
 What preserves the old iteration is not an old row but M4.7's snapshot — `stage_code` plus both
-snapshot names on every stage instance. `CLAUDE.md` §18 requires that editing a template never
+snapshot names on every stage instance. `AGENTS.md` §18 requires that editing a template never
 retroactively change a running Matter, and a snapshot guarantees that where a surviving row would
 not, since nothing stops an administrator editing that too.
 
@@ -2675,7 +2687,7 @@ a group either, so the default is applied per route.)
 **A Matter of the other domain answers 404, not 403.** Resolution is domain-constrained before
 authorization is consulted, so a Notary address handed a PPAT id behaves as though nothing is
 there. A 403 would confirm that a record exists in a domain the caller never named, making the
-paired endpoints an existence oracle across the boundary `CLAUDE.md` §16 draws.
+paired endpoints an existence oracle across the boundary `AGENTS.md` §16 draws.
 
 ### The Office comes from the Project, never from the actor
 
@@ -2710,7 +2722,7 @@ Project. So `OPEN → COMPLETED` and `OPEN → CANCELLED` are the only reachable
 nothing in the product can set them.
 
 Inventing a `matters.change_status` code to close the gap would be inventing an authorization
-surface the registry does not define — `CLAUDE.md` §62 in the small. The gap is recorded instead,
+surface the registry does not define — `AGENTS.md` §62 in the small. The gap is recorded instead,
 and M4.7 is where intermediate states properly come from. A test asserts **no status or stage route
 exists**.
 
@@ -2867,7 +2879,7 @@ said should happen rather than what it warned against, so the guard now checks t
 gained no `domain` dimension instead.
 
 **`04_UI_DESIGN_SYSTEM.md` showed five-digit references** — `N-2026-00312` and `P-2026-00128` —
-contradicting the locked six-digit minimum in `03_DATABASE_ERD.md` §27 and `CLAUDE.md` §38.
+contradicting the locked six-digit minimum in `03_DATABASE_ERD.md` §27 and `AGENTS.md` §38.
 Corrected to `N-2026-000312` and `P-2026-000128`. Mockup text only; no UI was redesigned.
 
 ### Verification
@@ -3119,7 +3131,7 @@ built it, and it costs one index today against a second migration later.
 canonical code that could authorize one. The ERD lists `is_active` and no `deleted_at`, and the
 `offices` migration set the precedent in the same words. It is also the only choice that survives
 M4.2: a Matter referencing a deleted Service Type would lose the classification a historical record
-depends on (`CLAUDE.md` section 63). **Inactive means unavailable for new selection, never erased
+depends on (`AGENTS.md` section 63). **Inactive means unavailable for new selection, never erased
 from history**, which is why the future Matter foreign key must be restrictive and never
 `SET NULL`.
 
@@ -3272,7 +3284,7 @@ never synonyms for soft deletion.** No transition matrix is invented (D-091's re
 across).
 
 **Matter reference** *(D-103)*: `N-YYYY-NNNNNN` and `P-YYYY-NNNNNN`, both transcribed from
-`CLAUDE.md` section 38, allocated per **Office + calendar year + domain** — three components,
+`AGENTS.md` section 38, allocated per **Office + calendar year + domain** — three components,
 because a shared counter would make the two prefixes compete for one value. A **dedicated**
 allocator: `13_M3_PROJECT_ARCHITECTURE.md` section 9 refused to generalize the Project one into
 anything Matter-shaped, and M4 honours that refusal rather than reversing it by extending the same
@@ -3978,10 +3990,10 @@ Eight decisions, **D-087 through D-094**, plus a new architecture lock at
 ### The conflict this milestone had to resolve first
 
 The milestone was proposed as "Project / Matter". Three canonical sources —
-`00_PROJECT_OVERVIEW.md` section 19, `CLAUDE.md` section 2, and the `DECISIONS.md` milestone
+`00_PROJECT_OVERVIEW.md` section 19, `AGENTS.md` section 2, and the `DECISIONS.md` milestone
 register — all read **M3 — Project Management** and **M4 — Matter & Workflow Engine**.
 
-Discovery reported the discrepancy instead of choosing (`CLAUDE.md` section 58), and the
+Discovery reported the discrepancy instead of choosing (`AGENTS.md` section 58), and the
 ruling is that the roadmap wins: **M3 implements Project only.** M3.0 documents the
 Project → Matter boundary, because an aggregate edge cannot be described without naming what
 attaches to it, and builds none of the other side (D-087).
@@ -4130,7 +4142,7 @@ supports these fields and does not.
 
 This one is deliberately **not** fixed here. `gender` and `marital_status` carry legal weight
 in Indonesian notarial practice, so deciding whether and how they appear is domain
-specification, not a decision a quality gate may take (CLAUDE.md §62). Recorded as **O-033**.
+specification, not a decision a quality gate may take (AGENTS.md §62). Recorded as **O-033**.
 
 ### Verification
 
@@ -4781,7 +4793,7 @@ writing migrations.
 ### The decision that shapes the rest
 
 **One Party aggregate. "Client" is a word, not a table** (D-078). A `clients` table would
-freeze a role into a master record, which CLAUDE.md section 17 already refuses for Party
+freeze a role into a master record, which AGENTS.md section 17 already refuses for Party
 roles — the same person is a seller in one matter and a director in another. Subtypes take
 `party_id` as both primary key and foreign key, so "exactly one subtype per Party" and "no
 orphan subtype" are enforced by the schema rather than by convention. `party_type` is
@@ -4855,7 +4867,7 @@ at **171**. An audit milestone: no new product capability, no M2, no merge to `m
 Three defects, all of the same shape — a claim the repository made about itself that had
 quietly stopped being true (D-077):
 
-**1. The documented quality gate was weaker than CI.** `CLAUDE.md` §51/§52 listed three
+**1. The documented quality gate was weaker than CI.** `AGENTS.md` §51/§52 listed three
 frontend commands; `.github/workflows/quality.yml` enforces four. That gap produced the red
 run on `c231eda` in M1.9. `README.md` had all four all along, which is the point worth
 naming: one document being right is no help when another is the one being followed.
@@ -4921,9 +4933,10 @@ The fixture was fixed; the model was not touched.
 ### Open items
 
 O-023 resolved. O-015 remains open but its disposition was **wrong** and is corrected:
-`frontend/AGENTS.md` and `frontend/CLAUDE.md` are regenerated by `next dev` — verified in
-`generate-agent-files.js` — so deleting them produces a recurring dirty tree, not a tidier
-repository. O-029 remains open and deliberately unclaimed. O-004, O-010, O-017, O-018,
+The two frontend instruction files were retained at the time because `next dev` was believed to
+regenerate both. A later source re-check found that the managed `frontend/AGENTS.md` file is
+sufficient; O-015 records the correction. O-029 remains open and deliberately unclaimed. O-004,
+O-010, O-017, O-018,
 O-021, O-022, O-024, O-025 remain accepted deferrals, each re-verified against the
 repository rather than carried forward on trust.
 
@@ -5482,7 +5495,7 @@ Two answers to one question, and the idiomatic one was wrong. Nothing had exploi
 `RolePolicy`'s abilities are named `viewAny`, `view`, `create`, `update`, `delete`
 precisely so the callback could not answer them — but one `middleware('can:users.create')`
 would have bypassed canonical-registry validation, Data Scope, DENY overrides, and the
-exclusion of direct grants, all at once. `CLAUDE.md` section 24 was actively recommending
+exclusion of direct grants, all at once. `AGENTS.md` section 24 was actively recommending
 that form.
 
 ### The fix
@@ -5500,7 +5513,7 @@ ability is not a permission code.
 
 ### Documentation corrected
 
-`CLAUDE.md` section 24 recommended `$user->can('ppat.matters.create')` as the preferred
+`AGENTS.md` section 24 recommended `$user->can('ppat.matters.create')` as the preferred
 backend check. It now shows that form as unsafe alongside the role-name check it always
 warned about, and requires a Policy delegating to the resolver. `07_SECURITY_RULES.md`
 section 9 gained the same boundary. Recorded as **D-048**.
@@ -6180,7 +6193,7 @@ so the correction had to land before the package is installed.
 ### Cause
 
 The Laravel scaffold created `users.id` as an auto-incrementing bigint. The canonical key
-strategy for our own domain tables is ULID — `CLAUDE.md` section 11,
+strategy for our own domain tables is ULID — `AGENTS.md` section 11,
 `03_DATABASE_ERD.md` section 2, `06_API_CONVENTIONS.md` section 14. `users` is listed as a
 core table in the ERD, so the section 45 exemption for third-party package tables does not
 apply. The documents agree with each other; only the scaffold disagreed.
@@ -6296,7 +6309,7 @@ authenticated shell remains M0.9.
 
 ```text
 src/app/globals.css              semantic tokens from 04_UI_DESIGN_SYSTEM sections 5-8
-src/config/navigation.ts         menu config, per CLAUDE.md section 47
+src/config/navigation.ts         menu config, per AGENTS.md section 47
 src/components/layout/           AppShell, AppSidebar, AppHeader, PageContainer
 src/components/feedback/         LoadingSkeleton, BaseErrorState
 src/components/ui/               shadcn Button, Skeleton, Separator
@@ -6854,8 +6867,8 @@ One correction to scaffold output: `frontend/.gitignore` ships `.env*`, which wo
 excluded `.env.example` from version control. Added `!.env.example` so the placeholder file
 stays tracked.
 
-`frontend/AGENTS.md` and `frontend/CLAUDE.md` are standard scaffold output and were kept. See
-O-015.
+The scaffold's two frontend instruction files were kept at the time. A later cleanup retained only
+`frontend/AGENTS.md`; see O-015.
 
 ### Changed
 
@@ -7099,7 +7112,7 @@ Resolves O-007. Records D-012.
 Commit history:
 
 ```text
-3874e77  docs: add Claude coding instructions
+3874e77  docs: add coding-assistant instructions
 8c94dde  docs: add canonical specification set
 eb00d82  chore: initialize repository structure and tooling
 ```
@@ -7183,7 +7196,7 @@ Resolves O-001, O-002, O-003. Records D-009 and D-010 in `DECISIONS.md`.
 
 ### Changed
 
-**`CLAUDE.md`** — O-002, O-003
+**`AGENTS.md`** — O-002, O-003
 
 - section 3: added explicit versions — Next.js 16.x, Node.js >= 20.9, Laravel 13.x,
   PHP >= 8.3; added Database subsection (PostgreSQL 18.x, latest supported minor) and
@@ -7284,7 +7297,7 @@ Sections 1–13, 16, 17, 23–29, 31, 32, 34–37 unchanged.
 - `00_PROJECT_OVERVIEW.md`, `01_ARCHITECTURE.md`, `05_I18N_LEGAL_TERMINOLOGY.md`,
   `06_API_CONVENTIONS.md`, `07_SECURITY_RULES.md` — no instruction to modify.
   `05_I18N_LEGAL_TERMINOLOGY.md` already conformed to D-002.
-- `CLAUDE.md` — no instruction to modify. See Open Items O-002 and O-003 in `DECISIONS.md`.
+- `AGENTS.md` — no instruction to modify. See Open Items O-002 and O-003 in `DECISIONS.md`.
 
 ### Not done
 
@@ -7303,4 +7316,4 @@ Sections 1–13, 16, 17, 23–29, 31, 32, 34–37 unchanged.
   `²` restored. Symbols that could not be determined at the time were replaced with a
   neutral ASCII marker and reported rather than guessed — later restored under D-006.
 - Created repository skeleton: `frontend/`, `backend/`, `docs/`, `infra/`, `scripts/`,
-  `CLAUDE.md`, `README.md`, `.gitignore`.
+  `AGENTS.md`, `README.md`, `.gitignore`.

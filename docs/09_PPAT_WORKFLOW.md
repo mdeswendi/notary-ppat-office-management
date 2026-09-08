@@ -23,7 +23,7 @@ inferred from other documents in this repository.
 
 ## 2. Why This Document Is Empty
 
-`CLAUDE.md` section 62 prohibits inventing PPAT procedures, required Warkah, deed numbering
+`AGENTS.md` section 62 prohibits inventing PPAT procedures, required Warkah, deed numbering
 rules, tax rules, registration deadlines, or legal document requirements when the
 specification does not define them.
 

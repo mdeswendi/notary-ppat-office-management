@@ -344,7 +344,7 @@ class PermissionScopeRules
      * **`notary.deeds.lock`, `.void` and `.delete` are absent from this list
      * because they are absent from the catalogue.** They are the post-finalization
      * correction mechanisms `08_NOTARY_WORKFLOW.md` section 6 asks about and
-     * `CLAUDE.md` section 29 requires documented rules for. M6 invents neither the
+     * `AGENTS.md` section 29 requires documented rules for. M6 invents neither the
      * codes nor the rules (D-120).
      */
     /**

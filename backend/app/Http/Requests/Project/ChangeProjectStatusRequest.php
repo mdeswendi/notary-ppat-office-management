@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
  *
  * One field. Only the canonical `ProjectStatus` codes are accepted, so a
  * translated label — `Sedang Diproses` — is a 422 rather than a stored value
- * (CLAUDE.md section 12).
+ * (AGENTS.md section 12).
  *
  * **No transition is validated, deliberately.** There is no rule that
  * `COMPLETED` may not return to `IN_PROGRESS`, no cancellation lock, and no

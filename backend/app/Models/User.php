@@ -48,14 +48,14 @@ class User extends Authenticatable
      * matches the primary key supplied by HasUlids below.
      *
      * Capability decisions are made with `can('resource.action')`, never with
-     * `hasRole()` — CLAUDE.md section 24 and
+     * `hasRole()` — AGENTS.md section 24 and
      * docs/02_MENU_AND_PERMISSIONS.md section 1. Role membership is for
      * display and administration.
      */
     use HasRoles;
 
     /**
-     * ULID primary key, per CLAUDE.md section 11.
+     * ULID primary key, per AGENTS.md section 11.
      *
      * The trait supplies the generated identifier and sets the key as a
      * non-incrementing string, so no manual id generation or `$keyType`

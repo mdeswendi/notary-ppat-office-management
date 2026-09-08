@@ -437,7 +437,7 @@ export function IndividualForm({ individual }: { individual?: Individual }) {
  *
  * Takes the registration and the message rather than the whole form object,
  * which keeps it fully typed — passing `UseFormReturn` through a generic
- * boundary is where an `any` usually creeps in, and CLAUDE.md section 53 rules
+ * boundary is where an `any` usually creeps in, and AGENTS.md section 53 rules
  * that out.
  */
 function Field({

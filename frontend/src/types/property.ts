@@ -30,7 +30,7 @@ export type PropertyType = (typeof PROPERTY_TYPES)[number];
  * `HGB`, `HGU`, `HAK_PAKAI`, `STRATA_TITLE` and `OTHER` — *for example*, not *these are
  * the values*. A union type here would assert that Indonesian land law has six kinds of
  * right, which `11_LEGAL_REFERENCES.md` exists as a statutory register precisely
- * because nobody in this repository may decide (`CLAUDE.md` section 62).
+ * because nobody in this repository may decide (`AGENTS.md` section 62).
  *
  * The options endpoint returns the six as **suggestions**, and the form renders them in
  * a `datalist` over a free-text input.
@@ -184,7 +184,7 @@ export type PropertyListPage = {
  * What the create form sends.
  *
  * **`property_number` is required and office-supplied.** M7.3 settled the M7 lock's
- * open question that way: the ERD gives the column no format, `CLAUDE.md` section 38
+ * open question that way: the ERD gives the column no format, `AGENTS.md` section 38
  * shows `PROP-000001` without a year — alone among the internal references it lists —
  * and an allocator would need a counter table this milestone has no migration for. The
  * software validates uniqueness within the Office and nothing else, which is the shape
@@ -236,7 +236,7 @@ export type PropertyOptions = {
  *
  * **A closed link is not a deleted one.** Every row the office recorded appears,
  * current or ended, because that is what makes this a chain rather than a current state
- * somebody keeps editing (`CLAUDE.md` section 63).
+ * somebody keeps editing (`AGENTS.md` section 63).
  *
  * **There is no delete**, and the type reflects it: ending an ownership is stamping
  * `effective_until` and clearing `is_current`. `property_owners` carries no

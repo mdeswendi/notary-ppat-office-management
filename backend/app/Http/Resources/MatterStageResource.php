@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * **Names come from the snapshot, never from the template.** `stage_name_id` and
  * `stage_name_en` are read off the instance's own copied columns, so a Matter
  * started last month still displays the names its template carried then — which
- * is the requirement of `CLAUDE.md` section 18 and the whole point of the
+ * is the requirement of `AGENTS.md` section 18 and the whole point of the
  * snapshot (D-104). Reading through the `stage` relation here would quietly undo
  * it.
  *

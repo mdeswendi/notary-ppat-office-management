@@ -22,7 +22,7 @@ namespace App\Domains\Document;
  * an identifier may not lose. `varchar(32)` is sized for it.
  *
  * **Never a legal number.** Not a deed number, not a repertorium entry, not a
- * minuta or Warkah number (`CLAUDE.md` section 38).
+ * minuta or Warkah number (`AGENTS.md` section 38).
  */
 class DocumentReference
 {

@@ -27,7 +27,7 @@ use RuntimeException;
  * **`requirement_code` is stored and matched against nothing.** What it would match is
  * a requirement template, and D-104 keeps those unbuilt.
  *
- * **`title_id` and `title_en` are database fields, not UI strings** (`CLAUDE.md`
+ * **`title_id` and `title_en` are database fields, not UI strings** (`AGENTS.md`
  * section 10) — the pattern `service_types` uses. A Warkah item title is content an
  * office writes.
  */

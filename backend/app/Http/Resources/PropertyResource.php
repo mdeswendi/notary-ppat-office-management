@@ -25,7 +25,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * `current_ownership_total` is the arithmetic sum of the current shares, exposed so the
  * interface can display it. **It is not validated against 100 anywhere**: whether
- * shares must total 100 is a rule about Indonesian co-ownership and `CLAUDE.md`
+ * shares must total 100 is a rule about Indonesian co-ownership and `AGENTS.md`
  * section 62 forbids inventing it. The number is shown; no judgement is attached.
  *
  * ## What is absent, and why
@@ -82,7 +82,7 @@ class PropertyResource extends JsonResource
             'property_type' => $this->property_type->value,
 
             // Open vocabulary, rendered verbatim. No catalogue backs it and none is
-            // invented (`CLAUDE.md` section 9).
+            // invented (`AGENTS.md` section 9).
             'right_type' => $this->right_type,
 
             // The legal identifier. Deliberately not unique — two offices may hold

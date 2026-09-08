@@ -10,7 +10,7 @@ export type RoleErrorKey = "forbidden" | "assigned" | "notFound" | "network" | "
  *
  * Only the HTTP status is read. The response body never reaches the user, so a
  * Laravel exception message, stack trace, or internal payload cannot leak
- * through this path (CLAUDE.md sections 32 and 48).
+ * through this path (AGENTS.md sections 32 and 48).
  *
  * `403` is expected rather than exceptional here: role administration needs a
  * canonical `roles.*` permission at the `ALL` Data Scope, and the permission

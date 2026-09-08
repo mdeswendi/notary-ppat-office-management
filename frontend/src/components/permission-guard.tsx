@@ -32,7 +32,7 @@ type PermissionGuardProps = {
  * what a person can do — it is not a security boundary and must never be treated
  * as one. Anyone can edit client state and reveal the markup; doing so grants no
  * capability, because every protected action is authorized again by a backend
- * Policy. See CLAUDE.md section 28.
+ * Policy. See AGENTS.md section 28.
  *
  * Checks effective permissions and scopes, never roles: authorization must not
  * depend on a role name (D-032, D-045).

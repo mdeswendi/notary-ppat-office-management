@@ -28,7 +28,7 @@ import { changePassword, securityQueryKeys } from "@/services/security";
  *
  * Zod checks length and confirmation only. The real policy, including the
  * known-compromised check, lives in `PasswordRules` on the backend; duplicating
- * it here would create a second rule to keep in step (CLAUDE.md section 44).
+ * it here would create a second rule to keep in step (AGENTS.md section 44).
  *
  * Every field is cleared on success, and none of them is ever persisted
  * anywhere.

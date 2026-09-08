@@ -11,7 +11,7 @@ use RuntimeException;
  * The next quotation or invoice reference, allocated atomically (M8.2, D-124).
  *
  * The fourth allocator, after Project (D-103), Matter and Document (D-108), and
- * built the same way for the same reason: `CLAUDE.md` section 38 and
+ * built the same way for the same reason: `AGENTS.md` section 38 and
  * `03_DATABASE_ERD.md` section 27 both forbid `MAX + 1`, which hands two people
  * the same number the moment they create an invoice in the same second.
  *

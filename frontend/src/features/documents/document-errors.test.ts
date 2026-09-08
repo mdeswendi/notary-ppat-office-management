@@ -59,7 +59,7 @@ describe("toDocumentErrorKey", () => {
   });
 
   /**
-   * No raw server text reaches a user through this path (`CLAUDE.md` §48).
+   * No raw server text reaches a user through this path (`AGENTS.md` §48).
    */
   it("ignores anything that is not an AxiosError", () => {
     expect(toDocumentErrorKey(new Error("SQLSTATE[23503]: foreign key violation"))).toBe("server");

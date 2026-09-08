@@ -26,7 +26,7 @@ import { can, canWithScope } from "@/lib/permissions/can";
 import type { CurrentUser, DataScope } from "@/types/auth";
 
 /**
- * Sidebar navigation, as data rather than JSX branching (CLAUDE.md section 47).
+ * Sidebar navigation, as data rather than JSX branching (AGENTS.md section 47).
  *
  * Two independent questions decide whether an entry appears, and conflating them
  * is the mistake this file exists to prevent:
@@ -214,7 +214,7 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         implemented: true,
         // **`properties.view`, with no `ppat.` prefix.** The canonical family is
         // domain-neutral — there is no `ppat.properties.*` in the catalogue — even
-        // though `CLAUDE.md` section 16 lists Property among the PPAT-specific
+        // though `AGENTS.md` section 16 lists Property among the PPAT-specific
         // concepts, which is why the entry sits in this group. The page path and the
         // permission namespace are different things, deliberately.
         requiredPermission: "properties.view",

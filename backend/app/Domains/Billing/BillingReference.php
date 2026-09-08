@@ -10,7 +10,7 @@ namespace App\Domains\Billing;
  * INV-2026-000001
  * ```
  *
- * **`CLAUDE.md` section 38's warning applies with full force: these are internal
+ * **`AGENTS.md` section 38's warning applies with full force: these are internal
  * application references.** Neither is a legal document number, neither is a deed
  * number, and neither may be presented as one. An invoice number is a commercial
  * identifier the office allocates for its own filing.

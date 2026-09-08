@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * field list in section 16 does not carry one, unlike `properties`, so M7.1 did not
  * add `SoftDeletes` to this model. A `DELETE` here could only be a hard one, and a hard
  * delete of a link in a chain of title destroys exactly the history the table exists
- * to keep (`CLAUDE.md` sections 30 and 63, and the model's own docblock).
+ * to keep (`AGENTS.md` sections 30 and 63, and the model's own docblock).
  *
  * So there is no delete route. Ending an ownership is **closing the link**: stamp
  * `effective_until`, clear `is_current`, leave the party and the percentage as they

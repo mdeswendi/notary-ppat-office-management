@@ -20,7 +20,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * Minuta Akta — where a deed's original is filed (M6.3, D-120).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource.
  *
  * **Nested under the deed, with no top-level `/notary/minuta` root.** The M6.3 brief

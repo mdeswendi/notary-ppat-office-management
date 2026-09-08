@@ -33,7 +33,7 @@ use RuntimeException;
  * **Nothing here counts, requires, or infers anything.** No rule demands a
  * participant, caps them, requires a seller, or attaches meaning to a
  * `role_code`. Those would be participant semantics, and M4 has no authority to
- * invent them (D-105, CLAUDE.md section 62).
+ * invent them (D-105, AGENTS.md section 62).
  *
  * Adding the same Party twice is permitted and creates a second row. No
  * uniqueness rule exists because none is canonical — a Party legitimately

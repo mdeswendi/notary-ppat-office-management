@@ -503,7 +503,7 @@ Modules must be developed incrementally.
 Do not implement future modules without explicit instruction.
 
 **M3 is Project only; Matter is M4** *(locked at M3.0, D-087)*. The two are separate
-persistence entities — section 15 of `CLAUDE.md` says so directly — and the boundary between
+persistence entities — section 15 of `AGENTS.md` says so directly — and the boundary between
 them is a milestone boundary as well as an architectural one. M3 builds no `matters`, no
 `matter_parties`, no Notary or PPAT Matter, and no Workflow Engine.
 

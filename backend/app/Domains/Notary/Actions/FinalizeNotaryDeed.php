@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * Finalize a Deed (M6.2, D-120).
  *
  * `APPROVED` → `FINALIZED`, stamping the pair. After this the record is read-only:
- * `CLAUDE.md` section 29 denies normal updates once finalized, and section 64
+ * `AGENTS.md` section 29 denies normal updates once finalized, and section 64
  * requires the original values be preserved. {@see NotaryDeed::isReadOnly()} and
  * {@see NotaryDeedPolicy::update()} both honour it, so no interface
  * offers an edit control that cannot work.
@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\DB;
  * numbering happens at finalization, which is half of open question one — *"what are
  * the deed numbering rules, and who assigns the number?"* `notary.deeds.number` is
  * its own canonical capability precisely so the office decides when to use it, and
- * folding it in here would answer a question `CLAUDE.md` section 62 forbids
+ * folding it in here would answer a question `AGENTS.md` section 62 forbids
  * answering. A deed may be finalized with no number, and one with a number may be
  * numbered before it is ever reviewed.
  *
@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\DB;
  * there is no `notary.deeds.lock` capability. The column stays canonical vocabulary
  * nothing writes.
  *
- * A transaction, because `CLAUDE.md` section 37 requires finalization be
+ * A transaction, because `AGENTS.md` section 37 requires finalization be
  * transaction-safe — even though M6.2's version is a single row, so that the
  * milestone which adds register allocation inherits the boundary rather than having
  * to introduce one.

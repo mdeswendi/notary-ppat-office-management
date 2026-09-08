@@ -5,7 +5,7 @@ namespace App\Domains\Party\Enums;
 /**
  * Which subtype a Party is.
  *
- * Stable machine codes, never translated display strings (CLAUDE.md section 12,
+ * Stable machine codes, never translated display strings (AGENTS.md section 12,
  * D-078). `Perorangan` and `Perusahaan` are labels the interface renders from
  * these; they are not values the database ever holds.
  *

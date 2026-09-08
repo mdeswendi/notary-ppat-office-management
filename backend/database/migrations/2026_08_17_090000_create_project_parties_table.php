@@ -93,7 +93,7 @@ return new class extends Migration
             // vocabulary exists — `03_DATABASE_ERD.md` offers six codes and
             // labels them examples, not a catalogue — so constraining the column
             // would invent the legal role list M3 has no authority to write
-            // (CLAUDE.md section 62, D-092).
+            // (AGENTS.md section 62, D-092).
             $table->string('role_code', 30)->nullable();
 
             // Designation only. No cardinality rule: not at-least-one, not

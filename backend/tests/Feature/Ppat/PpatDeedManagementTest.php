@@ -419,7 +419,7 @@ it('edits a deed the status still permits', function (): void {
 });
 
 it('still permits editing an approved deed', function (): void {
-    // CLAUDE.md section 29 denies normal updates *once finalized* and says nothing
+    // AGENTS.md section 29 denies normal updates *once finalized* and says nothing
     // about approval. The narrower rule the brief asked for — approval freezes the
     // content — is an approval requirement, which section 62 forbids inventing.
     [$actor, $office] = ppatDeedApiActor(['ppat.deeds.view', 'ppat.deeds.update']);

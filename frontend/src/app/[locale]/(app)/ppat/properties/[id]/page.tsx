@@ -7,7 +7,7 @@ import { PropertyDetail } from "@/features/properties/property-detail";
  * The heading lives in the client component because it renders the parcel's certificate
  * number beside its badges, which are not known until the record loads. An unreachable
  * Property answers 404 from the API and the component shows the translated not-found
- * message — never a server string (`CLAUDE.md` section 48).
+ * message — never a server string (`AGENTS.md` section 48).
  *
  * **An archived parcel opens normally**, read-only. Retiring a record from the active
  * list is not making it unfindable: an office looking up an old certificate needs it,

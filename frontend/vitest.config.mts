@@ -24,7 +24,7 @@ import { defineConfig } from "vitest/config";
  * dependency earning nothing.)*
  *
  * **These tests do not replace the backend suite or the HTTP smokes.** The
- * backend is the security boundary (`CLAUDE.md` section 28), and every gate here
+ * backend is the security boundary (`AGENTS.md` section 28), and every gate here
  * is presentation. What this runner adds is the layer nothing else covered:
  * branch behaviour in components and pure helpers.
  */

@@ -103,7 +103,7 @@ function renderDetail() {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §28): a passing assertion here never means an endpoint is
+ * (`AGENTS.md` §28): a passing assertion here never means an endpoint is
  * authorized. What they pin is that a control the actor may not use is *absent*,
  * which is a real defect class — an offered button that 403s or 422s.
  *
@@ -194,7 +194,7 @@ describe("DocumentDetail", () => {
 
     renderDetail();
 
-    // `CLAUDE.md` §49: status must not rely on colour. Both badges carry words.
+    // `AGENTS.md` §49: status must not rely on colour. Both badges carry words.
     expect(await screen.findByText("documents.statuses.VERIFIED")).toBeInTheDocument();
     expect(screen.getByText("documents.sensitive")).toBeInTheDocument();
   });

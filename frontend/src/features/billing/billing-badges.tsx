@@ -9,7 +9,7 @@ import type { InvoiceStatus, PaymentStatus, QuotationStatus } from "@/types/bill
 /**
  * Status chips for the billing surfaces (M8.2).
  *
- * **Text carries the status; colour only reinforces it** (`CLAUDE.md` §49). Each
+ * **Text carries the status; colour only reinforces it** (`AGENTS.md` §49). Each
  * chip renders the translated label, so a reader who cannot distinguish the tints
  * loses nothing — and an `aria-label` names the field as well as the value.
  *

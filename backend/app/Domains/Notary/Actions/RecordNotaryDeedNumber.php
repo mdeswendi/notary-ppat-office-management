@@ -15,7 +15,7 @@ use App\Models\User;
  *
  * **The office supplies the number. The software validates no format and generates
  * nothing.** *"What are the deed numbering rules, and who assigns the number?"* is
- * open question one, and `CLAUDE.md` section 62 names deed numbering rules explicitly
+ * open question one, and `AGENTS.md` section 62 names deed numbering rules explicitly
  * among the things not to invent. D-103 separately ruled that the Matter allocator's
  * `N-YYYY-NNNNNN` is *"an operational identifier, never a legal deed number"*.
  *

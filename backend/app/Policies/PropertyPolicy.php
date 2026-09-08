@@ -96,7 +96,7 @@ class PropertyPolicy
      * see {@see ArchiveProperty} for why that is what `properties.archive` means — and
      * a retired record is not one an office keeps editing. The check sits here rather
      * than in the Action so the answer is **403**: archived-ness is a property of the
-     * record, the way `CLAUDE.md` section 29 makes read-only a property of a finalized
+     * record, the way `AGENTS.md` section 29 makes read-only a property of a finalized
      * deed, and `NotaryDeedPolicy::update()` reads the same shape.
      *
      * Reading stays open, deliberately: an office looking up an old certificate must

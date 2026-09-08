@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Schema;
  * figure from another by a rate. An office that must show PPN on an invoice adds
  * a line it names and prices itself. **That is a fact the office asserted**, not
  * a rule this software encoded — and it keeps O-040 intact, which is still open
- * and which `CLAUDE.md` section 62 names explicitly among the things not to
+ * and which `AGENTS.md` section 62 names explicitly among the things not to
  * invent.
  *
  * ## `line_amount` is stored, not computed on read
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Schema;
  * anything that can change later**: it is `quantity * unit_amount` at the moment
  * the line was written. Recomputing it on read would silently rewrite history
  * the first time somebody corrected a unit price on a different line, and an
- * issued invoice must preserve its figures exactly (`CLAUDE.md` section 64).
+ * issued invoice must preserve its figures exactly (`AGENTS.md` section 64).
  *
  * The Action writes it; nothing else may.
  *

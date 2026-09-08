@@ -37,7 +37,7 @@ use Illuminate\Support\Facades\Date;
 /**
  * Task management (M5.4, D-119).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see TaskVisibility}, status rules in
  * {@see TaskStatus}, and mutation rules in the Actions.
  *

@@ -8,7 +8,7 @@ use RuntimeException;
  * The operator-supplied primary demo user password could not be accepted.
  *
  * Never carries the password, its confirmation, or a value that echoes
- * either back — CLAUDE.md section 32 and D-051 forbid printing or logging a
+ * either back — AGENTS.md section 32 and D-051 forbid printing or logging a
  * password, and a validation failure describes *which rule* rejected the
  * input, never the input itself.
  */

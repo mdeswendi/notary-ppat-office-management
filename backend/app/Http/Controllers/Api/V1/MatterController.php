@@ -27,7 +27,7 @@ use Illuminate\Support\Collection;
 /**
  * Matter records (M4.4, D-109).
  *
- * Thin (CLAUDE.md section 35): authorize, take validated input, call an Action,
+ * Thin (AGENTS.md section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see MatterVisibility} and mutation
  * rules in the Actions, where both can be read and tested without HTTP.
  *

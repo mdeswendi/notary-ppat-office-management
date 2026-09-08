@@ -246,7 +246,7 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
       {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, and **only on a
           PPAT Matter** for the same reason. The two are separate sections rather
           than one domain-aware section because they are separate business domains
-          (`CLAUDE.md` section 16) reading separate tables through separate
+          (`AGENTS.md` section 16) reading separate tables through separate
           capabilities — `ppat.deeds.view` here, and a caller may hold one and not
           the other in either direction. */}
       {domain === "PPAT" ? (
@@ -256,7 +256,7 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
       ) : null}
 
       {/* Which land this Matter concerns (M7.3, D-121). **Only on a PPAT Matter** —
-          `CLAUDE.md` section 16 lists Property among the PPAT-specific concepts, and
+          `AGENTS.md` section 16 lists Property among the PPAT-specific concepts, and
           there is no Notary counterpart route at all.
 
           Reading answers to `properties.view` on its own endpoint; attaching and

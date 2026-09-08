@@ -539,7 +539,7 @@ it('refuses every relation endpoint to a guest', function (string $method): void
 
 it('adopts no third-party activity package', function (): void {
     // D-115: no half-measure ships. An application log is not append-only in the
-    // sense CLAUDE.md section 31 means, is not queryable by resource, and is the
+    // sense AGENTS.md section 31 means, is not queryable by resource, and is the
     // stopgap that becomes permanent. `attached_by` and `attached_at` record who
     // and when on the row; the event record waits for the store built to hold it.
     //

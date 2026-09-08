@@ -11,7 +11,7 @@ export type NotaryErrorKey =
  *
  * Only the HTTP status and the shape of a 422 are read. The response body never
  * reaches the user, so a Laravel exception or internal payload cannot leak through
- * this path (`CLAUDE.md` sections 32 and 48).
+ * this path (`AGENTS.md` sections 32 and 48).
  *
  * **`422` is split in two, because the two cases need different words.** A field
  * error — a title too long, a Matter the caller cannot reach, a deed number another

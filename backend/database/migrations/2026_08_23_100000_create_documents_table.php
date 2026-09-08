@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * **A Document is not a file.** The file lives on a version
  * (`document_versions`), and this table carries identity, classification and
  * state. That separation is what makes "never overwrite a version" expressible
- * at all (`CLAUDE.md` section 19): correcting a document adds a version, and the
+ * at all (`AGENTS.md` section 19): correcting a document adds a version, and the
  * previous bytes stay exactly where they were.
  *
  * **Backend foundation only** — no route, controller, request, resource or
@@ -92,7 +92,7 @@ return new class extends Migration
 
             $table->string('title');
 
-            // Stable machine codes, never translated labels (CLAUDE.md section
+            // Stable machine codes, never translated labels (AGENTS.md section
             // 12). CHECK-constrained below rather than a PostgreSQL native ENUM,
             // per section 13.
             $table->string('status', 30);
@@ -139,7 +139,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Archiving is a state, not a deletion. `CLAUDE.md` section 30 and
+            // Archiving is a state, not a deletion. `AGENTS.md` section 30 and
             // ERD section 33 both prefer archive over hard delete for legal
             // records, and `ARCHIVED` is a business status rather than a
             // persistence one — the D-102 distinction.
@@ -174,7 +174,7 @@ return new class extends Migration
         });
 
         // Only canonical codes are storable. A CHECK rather than a PostgreSQL
-        // native ENUM, per CLAUDE.md section 13 — the enum lives in PHP, and the
+        // native ENUM, per AGENTS.md section 13 — the enum lives in PHP, and the
         // database refuses anything the enum does not name.
         $connection = Schema::getConnection();
 

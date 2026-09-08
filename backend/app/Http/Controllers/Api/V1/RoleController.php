@@ -17,7 +17,7 @@ use Spatie\Permission\Models\Role;
 /**
  * Role definitions.
  *
- * Thin by design (CLAUDE.md section 35): authorize, take validated input, call
+ * Thin by design (AGENTS.md section 35): authorize, take validated input, call
  * an action, return a resource. Every rule worth protecting lives in
  * {@see RolePolicy} and the action classes, where it can be read
  * and tested without an HTTP request.

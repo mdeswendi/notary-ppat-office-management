@@ -102,7 +102,7 @@ class ProjectPolicy
      *
      * This answers *who may change status*. It does not answer *which* changes
      * are legal — no transition matrix exists, because no canonical document
-     * defines one, and inventing one would be the failure CLAUDE.md section 62
+     * defines one, and inventing one would be the failure AGENTS.md section 62
      * prohibits one domain removed.
      */
     public function changeStatus(User $actor, Project $project): bool

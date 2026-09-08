@@ -18,7 +18,7 @@ use RuntimeException;
  *
  * ## What is never recorded
  *
- * `CLAUDE.md` section 32 lists what must never be logged, D-105 adds the
+ * `AGENTS.md` section 32 lists what must never be logged, D-105 adds the
  * leak-surface rule, and D-115 restates both with more force for audit
  * specifically: an audit row records **that** a sensitive field changed, never
  * what it changed from and to.
@@ -34,7 +34,7 @@ use RuntimeException;
  *
  * If the audit write fails, the surrounding transaction fails with it. That is
  * the intended behaviour rather than an oversight: the record of an act and the
- * act itself belong to the same transaction (`CLAUDE.md` section 37), and an
+ * act itself belong to the same transaction (`AGENTS.md` section 37), and an
  * audit trail with silent gaps is worse than one that stops the line. Callers
  * that genuinely must not fail this way should not be audited at all — a decision
  * to take explicitly, not by catching an exception here.

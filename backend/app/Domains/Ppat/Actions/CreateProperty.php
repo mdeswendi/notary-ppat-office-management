@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
  * - `03_DATABASE_ERD.md` gives the column **no format**. D-103's allocator exists
  *   because `PRJ-YYYY-NNNNNN` and `N-YYYY-NNNNNN` are formats a canonical document
  *   states; nothing states one here.
- * - `CLAUDE.md` section 38 shows `PROP-000001` **without a year**, alone among the
+ * - `AGENTS.md` section 38 shows `PROP-000001` **without a year**, alone among the
  *   internal references it lists, so D-108's Office+year counter does not fit — and a
  *   land parcel is not a yearly thing.
  * - An allocator needs a counter table, which is a migration, and M7.1 built the
@@ -42,7 +42,7 @@ use Illuminate\Support\Facades\DB;
  * {@see ArchiveProperty}.
  *
  * A transaction, because creation stamps attribution alongside the row and
- * `CLAUDE.md` section 37 asks that multi-step writes be atomic even when the step
+ * `AGENTS.md` section 37 asks that multi-step writes be atomic even when the step
  * count is currently one.
  */
 class CreateProperty

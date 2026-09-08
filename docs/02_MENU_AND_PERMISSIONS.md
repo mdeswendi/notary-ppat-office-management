@@ -326,7 +326,7 @@ See D-091 and D-093, and `13_M3_PROJECT_ARCHITECTURE.md`.
 `projects.view_all` and its siblings elsewhere in this document —
 `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all`, `calendar.view_all` —
 predate the Data Scope model. They express **reach**, which is exactly what a Data Scope
-expresses, and section 22 plus `CLAUDE.md` section 26 both warn against duplicating a
+expresses, and section 22 plus `AGENTS.md` section 26 both warn against duplicating a
 permission per scope. They are listed here as bare entries with no stated meaning, which is
 how the duplication survived unnoticed.
 
@@ -454,7 +454,7 @@ The two `view_all` codes remain non-authority.
 `COMPLETED` and `CANCELLED` are the only statuses the product can reach, and **there is no status
 dropdown anywhere in the Matter interface**. `IN_PROGRESS`, `WAITING`, `ON_HOLD` and `ARCHIVED`
 stay filterable vocabulary that nothing can set — **and M4.7 does not change that.** Giving Matter a
-workflow gave it *stages*, which are a separate concept from status (`CLAUDE.md` section 18): moving
+workflow gave it *stages*, which are a separate concept from status (`AGENTS.md` section 18): moving
 a stage writes no `matters.status`, and a test asserts it.
 
 **Navigation gains two groups** — **Notary → Matters** and **PPAT → Matters** — each gated on its

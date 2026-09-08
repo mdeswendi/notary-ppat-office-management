@@ -764,7 +764,7 @@ it('offers the canonical entity type codes and nothing else', function (): void 
 
     expect($response->json('data.entity_types'))->toBe(CompanyEntityType::values())
         ->and($response->json('data.entity_types'))->toHaveCount(7)
-        // Codes, never translated display strings (CLAUDE.md section 12).
+        // Codes, never translated display strings (AGENTS.md section 12).
         ->and($response->json('data.entity_types'))->toContain('PT')
         ->and($response->json('data'))->not->toHaveKey('relationship_types');
 });

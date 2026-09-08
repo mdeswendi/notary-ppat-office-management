@@ -23,7 +23,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 /**
  * Warkah — the supporting documents bound with a PPAT Deed (M7.4, D-121).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see PpatDeedVisibility} — a Warkah's reach
  * *is* its deed's reach — and the refusals live in the Actions, where each can be read
  * and tested without HTTP.

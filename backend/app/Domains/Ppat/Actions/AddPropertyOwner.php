@@ -41,7 +41,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Closing a link stamps `effective_until` and clears `is_current` **on the previous
  * rows** and inserts a new one. It does not touch their party or percentage —
- * `CLAUDE.md` section 63, and `PropertyOwner` refuses those changes outright. The
+ * `AGENTS.md` section 63, and `PropertyOwner` refuses those changes outright. The
  * closing date is the new link's `effective_from`, so the chain has no gap and no
  * overlap.
  *
@@ -60,7 +60,7 @@ use Illuminate\Support\Facades\DB;
  * ## No sum is enforced
  *
  * Whether co-owners' shares must total 100 is a rule about Indonesian co-ownership and
- * `CLAUDE.md` section 62 forbids inventing it. Each row is 0–100 — arithmetic — and the
+ * `AGENTS.md` section 62 forbids inventing it. Each row is 0–100 — arithmetic — and the
  * total is whatever the office recorded. The interface shows the total and does not
  * judge it.
  */

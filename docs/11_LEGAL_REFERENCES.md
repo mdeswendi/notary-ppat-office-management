@@ -58,7 +58,7 @@ This register does **not** establish:
 - protocol handover procedure.
 
 Any of the above must be validated by a qualified domain source before implementation, per
-`CLAUDE.md` section 62.
+`AGENTS.md` section 62.
 
 ---
 

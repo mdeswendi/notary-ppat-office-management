@@ -27,7 +27,7 @@ import type { RevenueRow } from "@/types/reports";
  * ## The service type name is chosen here, not in SQL
  *
  * Both names ship on every row. Picking one in a database aggregate would put a
- * presentation decision where no locale is known (`CLAUDE.md` sections 6, 10).
+ * presentation decision where no locale is known (`AGENTS.md` sections 6, 10).
  */
 export function RevenueReport() {
   const t = useTranslations("reports");

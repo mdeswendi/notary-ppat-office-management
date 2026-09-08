@@ -3,7 +3,7 @@
  *
  * Stable codes, mirroring the backend enum exactly — seven values, transcribed
  * from `03_DATABASE_ERD.md` and never extended here. The interface translates
- * them for display; the code is what travels and what is stored (CLAUDE.md
+ * them for display; the code is what travels and what is stored (AGENTS.md
  * section 12).
  */
 export const COMPANY_ENTITY_TYPES = [

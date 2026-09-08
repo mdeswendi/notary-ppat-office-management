@@ -306,7 +306,7 @@ it('does not let finalize reach numbering', function (): void {
 */
 
 it('refuses update on a finalized deed even to a full capability holder', function (): void {
-    // CLAUDE.md sections 29 and 64: once finalized, prevent normal edits. Checked in
+    // AGENTS.md sections 29 and 64: once finalized, prevent normal edits. Checked in
     // the Policy so no interface offers an edit control that cannot work.
     [$actor, $office] = deedActor(['notary.deeds.update'], DataScope::ALL);
 
@@ -343,7 +343,7 @@ it('gives a SUPER_ADMIN role name no bypass', function (): void {
 
 it('exposes no delete, lock or void ability', function (string $ability): void {
     // There is no canonical code for any of the three, and no documented rule
-    // describing the acts. CLAUDE.md section 29 requires that correction mechanisms
+    // describing the acts. AGENTS.md section 29 requires that correction mechanisms
     // "follow documented business rules"; none exist (D-120).
     expect(method_exists(NotaryDeedPolicy::class, $ability))->toBeFalse();
 })->with(['delete', 'forceDelete', 'restore', 'lock', 'void', 'supersede']);

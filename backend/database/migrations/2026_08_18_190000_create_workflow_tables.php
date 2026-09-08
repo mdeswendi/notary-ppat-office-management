@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Schema;
  * the id says which template a Matter is running, the number says which
  * iteration of it, and the content of that iteration is preserved by M4.7's
  * snapshot — `stage_code` plus both snapshot names on every stage instance.
- * `CLAUDE.md` section 18 requires exactly that: editing a template must never
+ * `AGENTS.md` section 18 requires exactly that: editing a template must never
  * retroactively change a Matter already running, and a snapshot is what
  * guarantees it. Storing each version as its own row would make
  * `workflow_version` redundant with the foreign key and would multiply the
@@ -103,7 +103,7 @@ return new class extends Migration
             // code, or fail to, with no stated rule either way (the O-023 shape).
             $table->string('code', 50);
 
-            // Bilingual master content, sanctioned by CLAUDE.md section 10. Both
+            // Bilingual master content, sanctioned by AGENTS.md section 10. Both
             // required: a template that cannot be displayed in one of the two
             // supported locales is incomplete, and falling back silently would
             // hide that.

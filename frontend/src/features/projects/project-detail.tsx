@@ -217,7 +217,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
           `/ppat/deeds?project_id=` through the same correlated query.
 
           **Two sections rather than one merged list**, because Notary and PPAT are
-          separate business domains (`CLAUDE.md` section 16) reading separate tables
+          separate business domains (`AGENTS.md` section 16) reading separate tables
           through separate capabilities. Merging them would need a reader to hold
           both to see either half honestly, and would put a "domain" column on a page
           whose two halves already answer different questions. Each section fails on

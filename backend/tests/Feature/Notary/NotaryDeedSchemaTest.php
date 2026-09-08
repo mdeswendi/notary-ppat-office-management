@@ -56,7 +56,7 @@ it('omits the three columns M6.0 ruled out, each for its own recorded reason', f
     expect(Schema::hasColumn('notary_deeds', 'locked_by'))->toBeFalse();
 
     // `deleted_at`: four canonical sources agree — the ERD omits it, section 33
-    // prefers states over deletion for finalized legal records, CLAUDE.md section 30
+    // prefers states over deletion for finalized legal records, AGENTS.md section 30
     // forbids user-facing hard delete of finalized Deeds, and no
     // `notary.deeds.delete` capability exists.
     expect(Schema::hasColumn('notary_deeds', 'deleted_at'))->toBeFalse()
@@ -128,7 +128,7 @@ it('separates the four reachable statuses from the two that are stored vocabular
 });
 
 it('does not name LOCKED as a status', function (): void {
-    // CLAUDE.md section 29's ladder ends at LOCKED, but the ERD's status list does
+    // AGENTS.md section 29's ladder ends at LOCKED, but the ERD's status list does
     // not contain it: locking is `locked_at`, a separate column. A seventh case
     // would contradict the transcription.
     expect(NotaryDeedStatus::tryFrom('LOCKED'))->toBeNull()
@@ -145,7 +145,7 @@ it('describes the lifecycle each status permits', function (): void {
 });
 
 it('keeps a deed editable up to approval and no further', function (): void {
-    // The literal reading of CLAUDE.md section 29, which denies normal updates once
+    // The literal reading of AGENTS.md section 29, which denies normal updates once
     // *finalized* and says nothing about approval. The narrower rule — that approval
     // freezes the content — is the more familiar one and is deliberately not encoded,
     // because no canonical document states it (section 62).
@@ -216,7 +216,7 @@ it('lets two offices use the same number', function (): void {
 });
 
 it('validates no number format anywhere in the domain', function (): void {
-    // The rule CLAUDE.md section 62 names explicitly. A deed number is whatever the
+    // The rule AGENTS.md section 62 names explicitly. A deed number is whatever the
     // office says it is; the software stores it.
     $matter = Matter::factory()->state(['domain' => MatterDomain::NOTARY])->create();
 

@@ -26,7 +26,7 @@ namespace App\Domains\Activity\Enums;
  * every typo fix is a timeline nobody reads.
  *
  * Each case pairs with a translation key under `activity.types.*` on the frontend.
- * The label is never stored — `CLAUDE.md` section 12.
+ * The label is never stored — `AGENTS.md` section 12.
  */
 enum ActivityType: string
 {

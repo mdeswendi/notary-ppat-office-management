@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * ## `description_key` ships, the sentence does not
  *
  * The row carries a translation key and the values that key interpolates.
- * Rendering it is the frontend's job, because `CLAUDE.md` section 6 puts static
+ * Rendering it is the frontend's job, because `AGENTS.md` section 6 puts static
  * user-facing text in `messages/{id,en}.json` — a server that returned
  * *"Rina menyetujui akta"* would have picked a language for a bilingual product,
  * and would put Indonesian legal wording in a PHP string where nobody looking for

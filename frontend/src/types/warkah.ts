@@ -93,7 +93,7 @@ export type WarkahDocumentStub = {
  * optional, not a code from a catalogue.
  *
  * **`title_id` and `title_en` are bilingual database fields**, not UI strings
- * (`CLAUDE.md` section 10). They are content an office writes and must never move to
+ * (`AGENTS.md` section 10). They are content an office writes and must never move to
  * the message files.
  */
 export type WarkahItem = {

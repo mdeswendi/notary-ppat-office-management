@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * whether `COMPLETED → OPEN` is sensible, whether a cancelled Project may reopen,
  * or whether anything requires approval first. Which status may follow which is
  * an operational rule no canonical document defines, and encoding one from memory
- * is the failure CLAUDE.md section 62 prohibits one domain removed. M3 authorizes
+ * is the failure AGENTS.md section 62 prohibits one domain removed. M3 authorizes
  * *who* may change status through `projects.change_status`; the office decides
  * *what* the change means.
  *

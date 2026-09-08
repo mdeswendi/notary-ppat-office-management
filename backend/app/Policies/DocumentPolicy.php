@@ -102,7 +102,7 @@ class DocumentPolicy
      * The same capability as filing a new one — `documents.upload` — judged
      * against the existing record rather than against an Office, because the
      * Document already has one. **This is never an overwrite**: a new version is
-     * added and the previous file stays exactly as it was (`CLAUDE.md` §19).
+     * added and the previous file stays exactly as it was (`AGENTS.md` §19).
      */
     public function upload(User $actor, Document $document): bool
     {

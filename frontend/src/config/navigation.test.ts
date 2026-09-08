@@ -405,7 +405,7 @@ describe("visibleNavigation — the M7.3 Property entry", () => {
   /**
    * **Gated on `properties.view`, with no `ppat.` prefix.**
    *
-   * The entry sits in the PPAT group because `CLAUDE.md` section 16 lists Property
+   * The entry sits in the PPAT group because `AGENTS.md` section 16 lists Property
    * among the PPAT-specific concepts — but the canonical capability family is
    * domain-neutral, and there is no `ppat.properties.*` code for a gate to name. A
    * page path is not a permission namespace, and this asserts the gate reads the code

@@ -165,7 +165,7 @@ class DocumentFactory extends Factory
     }
 
     /**
-     * Archived: a state, never a deletion (`CLAUDE.md` section 30).
+     * Archived: a state, never a deletion (`AGENTS.md` section 30).
      */
     public function archived(?User $by = null): static
     {

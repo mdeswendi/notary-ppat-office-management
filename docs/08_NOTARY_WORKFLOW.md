@@ -23,7 +23,7 @@ inferred from other documents in this repository.
 
 ## 2. Why This Document Is Empty
 
-`CLAUDE.md` section 62 prohibits inventing Notary procedures, approval requirements, deed
+`AGENTS.md` section 62 prohibits inventing Notary procedures, approval requirements, deed
 numbering rules, registration deadlines, or document requirements when the specification
 does not define them.
 

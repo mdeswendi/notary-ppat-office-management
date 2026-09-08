@@ -51,7 +51,7 @@ import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
  *
  * 0–100 per link, because that is what a percentage is. **No sum across co-owners is
  * validated** — whether shares must total 100 is a rule about Indonesian co-ownership
- * that `CLAUDE.md` section 62 forbids inventing, and the M7 lock records it as open.
+ * that `AGENTS.md` section 62 forbids inventing, and the M7 lock records it as open.
  * A link with no share at all is accepted: an office recording inherited title may have
  * a name and no figure.
  */

@@ -50,7 +50,7 @@ use App\Models\User;
  * There is **no `delete`, no `lock`, and no `void`**, because the canonical catalogue
  * has no `ppat.deeds.delete`, `ppat.deeds.lock` or `ppat.deeds.void` — verified
  * against the live registry at M7.0 — and no documented rule describing any of the
- * three acts. `CLAUDE.md` section 29 requires that correction mechanisms *"follow
+ * three acts. `AGENTS.md` section 29 requires that correction mechanisms *"follow
  * documented business rules"*; none exist (O-039).
  *
  * **There is no Warkah ability here either.** `ppat.warkah.*` is its own family with
@@ -64,7 +64,7 @@ use App\Models\User;
  * would succeed on a deed in a different state.
  *
  * The one exception is `update`, where the read-only rule is also reflected here, so
- * no interface offers an edit control on a finalized deed. `CLAUDE.md` sections 29 and
+ * no interface offers an edit control on a finalized deed. `AGENTS.md` sections 29 and
  * 64 make that a property of the record rather than of the request.
  */
 class PpatDeedPolicy
@@ -137,7 +137,7 @@ class PpatDeedPolicy
      * May the actor edit this deed own fields?
      *
      * **A finalized deed is read-only**, checked here rather than only in the Action,
-     * so no interface offers a control that cannot work. `CLAUDE.md` section 29:
+     * so no interface offers a control that cannot work. `AGENTS.md` section 29:
      * *"Once finalized/locked: normal update = denied."*
      */
     public function update(User $actor, PpatDeed $deed): bool

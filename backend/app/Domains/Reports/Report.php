@@ -15,7 +15,7 @@ use App\Policies\ReportPolicy;
  * It exists because Laravel's `Gate::policy()` maps a **class name** to a policy,
  * and controllers authorize with `$this->authorize('viewFinancial', Report::class)`.
  * Without a class to name, the alternatives were a bare `Gate::define` on a
- * permission code — which `CLAUDE.md` section 24 and D-048 forbid outright — or
+ * permission code — which `AGENTS.md` section 24 and D-048 forbid outright — or
  * an inline resolver call in every action, which puts authorization somewhere the
  * enforcement scan does not look.
  *

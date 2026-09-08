@@ -42,7 +42,7 @@ import {
  * resolves the choice through the same visibility again — composing a Matter never
  * becomes a way to discover which Properties exist.
  *
- * **Rendered only on PPAT Matters.** `CLAUDE.md` section 16 lists Property among the
+ * **Rendered only on PPAT Matters.** `AGENTS.md` section 16 lists Property among the
  * PPAT-specific concepts, and there is no Notary counterpart route at all.
  *
  * **Detaching removes the junction row and nothing else** — never the Matter, never the

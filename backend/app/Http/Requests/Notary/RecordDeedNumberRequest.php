@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * **One field, and no format.** *"What are the deed numbering rules, and who assigns
  * the number?"* is open question one in `08_NOTARY_WORKFLOW.md` section 6, and
- * `CLAUDE.md` section 62 names deed numbering rules explicitly among the things not
+ * `AGENTS.md` section 62 names deed numbering rules explicitly among the things not
  * to invent. There is no regular expression here, no length convention beyond a
  * storage bound, and no derived segment — the office types what its own numbering
  * produces.

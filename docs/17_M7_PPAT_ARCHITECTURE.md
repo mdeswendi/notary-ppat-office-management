@@ -118,7 +118,7 @@ a single operation on it** — the same shape `notary.protocol.*` had at M6.0 (O
 rules on it.
 
 The three deed-correction codes are absent exactly as their Notary counterparts were: they are the
-post-finalization mechanisms `CLAUDE.md` section 29 requires documented business rules for, and
+post-finalization mechanisms `AGENTS.md` section 29 requires documented business rules for, and
 `09_PPAT_WORKFLOW.md` section 6 asks about. **The catalogue's silence and the workflow document's
 silence agree with each other**, for the second milestone running.
 
@@ -256,7 +256,7 @@ Stated affirmatively, so the milestone is not defined only by its refusals:
 - **`ppat_matters`** — the Matter extension (ERD section 10).
 - **`ppat_deeds`** — ERD section 18, with the dispositions section 9 records.
 - **`ppat_warkah`**, **`ppat_warkah_items`**, **`ppat_warkah_documents`** — ERD section 19.
-- **The deed lifecycle ladder**, on `CLAUDE.md` section 29's authority — see 9.2.
+- **The deed lifecycle ladder**, on `AGENTS.md` section 29's authority — see 9.2.
 - **Warkah completeness as an arithmetic fact** — see 8.2.
 - **CRUD, Policy, Data Scope, Office boundary, and the frontend** — engineering throughout.
 
@@ -294,7 +294,7 @@ inventing `ACTIVE / INACTIVE` would be inventing a lifecycle.
 
 **`property_number` is an internal reference**, not a certificate number — `certificate_number` is
 the legal identifier and they are different concepts, exactly as `matter_number` and `deed_number`
-are (D-103, D-120). M7.1 decides whether it is allocated (the `PROP-000001` shape `CLAUDE.md`
+are (D-103, D-120). M7.1 decides whether it is allocated (the `PROP-000001` shape `AGENTS.md`
 section 38 names) or office-supplied; **section 14 records that as an open question for M7.1 rather
 than settling it here**, because the ERD gives no format and D-103's allocator pattern is about
 Office+year namespaces which `PROP-000001` does not obviously carry.
@@ -321,11 +321,11 @@ so the two can disagree. M7.1 keeps the column because the ERD names it and writ
 one transaction, the way M5.4 and M6.1 handled every other paired field.
 
 **No percentage sum is enforced.** Whether shares must total 100 is a rule about Indonesian
-co-ownership, and `CLAUDE.md` section 62 forbids inventing it. The column stores what the office
+co-ownership, and `AGENTS.md` section 62 forbids inventing it. The column stores what the office
 records.
 
 **`source_matter_id` is the transfer that produced this row** — the audit trail the ownership history
-exists for, and the reason `CLAUDE.md` section 63 gives for never overwriting history: a change of
+exists for, and the reason `AGENTS.md` section 63 gives for never overwriting history: a change of
 ownership adds a row and closes the previous one.
 
 ### 7.3 Ownership is its own capability
@@ -392,7 +392,7 @@ the shape every document junction has used since M5.1.
 **None of the three tables carries `office_id`.** All three need one as a composite-key carrier, added
 as a recorded extension exactly as `notary_matters` and `notary_minuta` did at M6.
 
-**`title_id` and `title_en` are bilingual database fields**, which `CLAUDE.md` section 10 permits for
+**`title_id` and `title_en` are bilingual database fields**, which `AGENTS.md` section 10 permits for
 business data — the same pattern `service_types` uses. They are *not* UI strings and must not move to
 the message files.
 
@@ -470,7 +470,7 @@ office types, but constraining the column to six would assert PPAT has six deed 
 
 **`deleted_at` is absent from the canonical list and M7 adds none** — the M6.1 ruling, on the same
 four agreeing sources: the ERD omits it, section 33 prefers states over destructive deletion for
-finalized legal records, `CLAUDE.md` section 30 forbids user-facing hard delete of Deeds, and no
+finalized legal records, `AGENTS.md` section 30 forbids user-facing hard delete of Deeds, and no
 `ppat.deeds.delete` capability exists.
 
 **`locked_by` is absent and M7 adds none**, exactly as M6.1 ruled for `notary_deeds`.
@@ -494,7 +494,7 @@ SUPERSEDED  no path, no capability
 ```
 
 **The ladder is not invented, but adopting it here is a decision rather than transcription.**
-`CLAUDE.md` section 29 states `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` as the
+`AGENTS.md` section 29 states `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` as the
 legal-record lifecycle generally, and section 64 states its consequence. That constitution-level
 statement is what authorizes the four reachable transitions — the same authority M6 used. What is
 *additionally* decided here is that PPAT uses **the same six-value vocabulary as Notary** rather than a
@@ -511,7 +511,7 @@ unique per Office where present, supplied by the office, validated against **no 
 through **`ppat.deeds.number`** — its own canonical capability — on its own endpoint.
 
 *"What are the deed numbering rules, and who assigns the number?"* is open question five, and
-`CLAUDE.md` section 62 names deed numbering rules explicitly. D-103 separately ruled that
+`AGENTS.md` section 62 names deed numbering rules explicitly. D-103 separately ruled that
 `P-YYYY-NNNNNN` is *"an operational identifier, never a legal deed number"*, so the M4 allocator is
 not reused.
 
@@ -556,7 +556,7 @@ independent grounds, any one of which would be sufficient:
    validated before production."*
 4. ***"Which tax obligations gate which stage, and in what order?"*** is open question four.
 
-**`CLAUDE.md` section 62 names tax rules explicitly** among the things not to invent.
+**`AGENTS.md` section 62 names tax rules explicitly** among the things not to invent.
 
 One transcription note for whoever does build it: **`ppat_tax_records.matter_id`, not
 `ppat_deed_id`.** Tax obligations attach to the transaction, not to the instrument recording it — a
@@ -722,8 +722,8 @@ templates, no workflow stages, no right-type catalogue.
 | Deed register format and finalization period | **OPEN — §6.** Batch 11; nothing in M7 writes an entry (O-042) | **No** |
 | Monthly reporting obligation, deadline, recipient | **OPEN — §6.** M8; `ppat.reports.*` stays unimplemented (O-043) | **No** |
 | Binding and archiving of deeds with their Warkah | **OPEN — §6.** `ppat.warkah.finalize` and `.archive` stay unimplemented (O-041) | **No** |
-| Correction mechanisms after finalization | **OPEN — §6 and `CLAUDE.md` §29.** `VOID`, `SUPERSEDED`, `locked_at` are stored vocabulary with no path | **No** |
-| Whether `property_number` is allocated or office-supplied | **RESOLVED 2026-08-25 by M7.3: office-supplied.** The ERD gives no format; `CLAUDE.md` §38 names `PROP-000001` as an example internal reference **without a year**, alone among the ones it lists, so D-108's Office+year allocator does not fit; and an allocator needs a counter table. Required at creation, unique per Office (D-103), immutable once assigned, **no format validated** — the `ppat.deeds.number` shape | **No** |
+| Correction mechanisms after finalization | **OPEN — §6 and `AGENTS.md` §29.** `VOID`, `SUPERSEDED`, `locked_at` are stored vocabulary with no path | **No** |
+| Whether `property_number` is allocated or office-supplied | **RESOLVED 2026-08-25 by M7.3: office-supplied.** The ERD gives no format; `AGENTS.md` §38 names `PROP-000001` as an example internal reference **without a year**, alone among the ones it lists, so D-108's Office+year allocator does not fit; and an allocator needs a counter table. Required at creation, unique per Office (D-103), immutable once assigned, **no format validated** — the `ppat.deeds.number` shape | **No** |
 | What `properties.archive` does | **RESOLVED 2026-08-25 by M7.3: it soft-deletes.** The ERD gives `properties` a `deleted_at` and the catalogue gives `archive` while withholding `properties.delete`; read separately each is dead, read together they are one mechanism. `status` stays unwritten — it has no ERD vocabulary. **One-way**: no `properties.restore` exists (O-045) | **No** |
 | Whether ownership percentages must total 100 | **OPEN.** A rule about Indonesian co-ownership; the column stores what the office records. M7.3 displays the arithmetic total and attaches no judgement to it | **No** |
 | `ppat_deed_documents` junction | **UNBLOCKED but not built** (§3.6) | **No** |

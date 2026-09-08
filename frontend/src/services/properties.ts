@@ -21,7 +21,7 @@ const ROOT = "/api/v1/properties";
  * **`properties`, not `ppat.properties`.** The canonical capability family is
  * `properties.*` — there is no `ppat.properties.*` in the catalogue — so the API root
  * and these keys match the codes. The *page* lives under `/ppat/properties`, because
- * `CLAUDE.md` section 16 lists Property among the PPAT-specific concepts. A page path
+ * `AGENTS.md` section 16 lists Property among the PPAT-specific concepts. A page path
  * is not a permission namespace, and the asymmetry is deliberate.
  *
  * The chain of title is keyed **under** its Property, because it has no existence
@@ -153,7 +153,7 @@ export async function addPropertyOwner(
  *
  * **There is no remove.** `property_owners` has no `deleted_at` in the ERD, so a delete
  * could only be a hard one, and hard-deleting a link destroys the history the table
- * exists to keep (`CLAUDE.md` sections 30 and 63). Ending an ownership is stamping
+ * exists to keep (`AGENTS.md` sections 30 and 63). Ending an ownership is stamping
  * `effective_until`, which this does.
  */
 export async function updatePropertyOwner(
@@ -180,7 +180,7 @@ const MATTER_ROOT = "/api/v1/ppat/matters";
 /**
  * The parcels a Matter names.
  *
- * **PPAT only.** `CLAUDE.md` section 16 lists Property among the PPAT-specific
+ * **PPAT only.** `AGENTS.md` section 16 lists Property among the PPAT-specific
  * concepts, so there is no Notary counterpart address.
  */
 export async function getMatterProperties(matterId: string): Promise<MatterPropertyList> {

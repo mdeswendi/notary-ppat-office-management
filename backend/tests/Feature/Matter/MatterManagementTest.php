@@ -691,7 +691,7 @@ it('exposes no way to set the statuses no capability owns', function (): void {
     //
     // **Narrowed at M4.7**, which gives stages their own routes (D-112). The
     // `matters/{matter}/stage` entry left this list because it was never about
-    // stages: Matter Status and Workflow Stage are separate concepts (CLAUDE.md
+    // stages: Matter Status and Workflow Stage are separate concepts (AGENTS.md
     // section 18), and a stage route is not a way to set a *status*. What
     // replaces it is the assertion that actually holds — moving a stage writes
     // no `matters.status` — which `MatterWorkflowTest` proves behaviourally.

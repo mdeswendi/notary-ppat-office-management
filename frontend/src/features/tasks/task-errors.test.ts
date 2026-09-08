@@ -59,7 +59,7 @@ describe("toTaskErrorKey", () => {
   });
 
   /**
-   * No raw server text reaches a user through this path (`CLAUDE.md` §48).
+   * No raw server text reaches a user through this path (`AGENTS.md` §48).
    */
   it("ignores anything that is not an AxiosError", () => {
     expect(toTaskErrorKey(new Error("SQLSTATE[23514]: check_violation"))).toBe("server");

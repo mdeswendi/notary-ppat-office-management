@@ -8,12 +8,12 @@ use App\Domains\Matter\Enums\MatterStatus;
  * The business status of a Project.
  *
  * Transcribed exactly from `03_DATABASE_ERD.md` section 7 — stable machine
- * codes, never translated labels (CLAUDE.md section 12). Nothing is added and
+ * codes, never translated labels (AGENTS.md section 12). Nothing is added and
  * nothing is renamed.
  *
  * **This is business status, and only that.** It is not a workflow stage, which
  * does not exist in M3 at all and belongs to M4, and it is not the archive state
- * of the record, which is `deleted_at` (D-093). `CLAUDE.md` section 18 and
+ * of the record, which is `deleted_at` (D-093). `AGENTS.md` section 18 and
  * `08_NOTARY_WORKFLOW.md` section 4 both insist the three stay apart, and the
  * awkward part is named rather than smoothed over: `ARCHIVED` here and a
  * soft-deleted row are **different states with similar names**.
@@ -22,7 +22,7 @@ use App\Domains\Matter\Enums\MatterStatus;
  * which is an operational rule no canonical document defines, so M3 authorizes
  * *who* may change status through `projects.change_status` and never encodes
  * *which* changes are legal. There is no `canTransitionTo()` here, and adding one
- * from memory would be the failure CLAUDE.md section 62 prohibits, one domain
+ * from memory would be the failure AGENTS.md section 62 prohibits, one domain
  * removed from the legal rules it names.
  */
 enum ProjectStatus: string

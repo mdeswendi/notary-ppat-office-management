@@ -88,7 +88,7 @@ function renderChain(isArchived = false) {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §51): a passing assertion here never means an endpoint is authorized.
+ * (`AGENTS.md` §51): a passing assertion here never means an endpoint is authorized.
  * What they pin is that a control the actor may not use is *absent*, and that the
  * co-ownership rulings the M7 lock made survive contact with the interface.
  *
@@ -132,7 +132,7 @@ describe("OwnershipHistory", () => {
   /**
    * A total over 100 renders without complaint. Whether shares must sum to 100 is a
    * rule about Indonesian co-ownership that no canonical document states, so the
-   * interface displays the arithmetic and attaches no judgement (`CLAUDE.md` §62).
+   * interface displays the arithmetic and attaches no judgement (`AGENTS.md` §62).
    */
   it("displays a total over 100 without flagging it", async () => {
     vi.mocked(services.getPropertyOwners).mockResolvedValue(
@@ -148,7 +148,7 @@ describe("OwnershipHistory", () => {
 
   /**
    * **A closed link stays in the chain.** History is added and never overwritten
-   * (`CLAUDE.md` §63), so a past owner is listed alongside the current ones rather than
+   * (`AGENTS.md` §63), so a past owner is listed alongside the current ones rather than
    * disappearing.
    */
   it("keeps closed links visible", async () => {

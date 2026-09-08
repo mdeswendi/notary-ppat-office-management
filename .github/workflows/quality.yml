@@ -13,7 +13,7 @@
 # backend/phpunit.xml, so it is deliberately independent of Docker.
 #
 # Both jobs now run tests. The frontend gained a runner with O-032 (Vitest and
-# React Testing Library); adding the step here obliged updating CLAUDE.md
+# React Testing Library); adding the step here obliged updating AGENTS.md
 # section 52 and README.md in the same change, because that section requires the
 # documented command list never to be weaker than this file — a rule written
 # after it was broken once.

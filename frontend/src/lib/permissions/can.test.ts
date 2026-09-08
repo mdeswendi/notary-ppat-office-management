@@ -6,7 +6,7 @@ import type { CurrentUser } from "@/types/auth";
  * and by running the real API, never by an executed test.
  *
  * Every assertion here is about **presentation**. The backend is the security
- * boundary (`CLAUDE.md` section 28) and authorizes again on every request; what
+ * boundary (`AGENTS.md` section 28) and authorizes again on every request; what
  * these pin is that the interface asks the same question the backend will, so a
  * control is offered exactly when following it would work.
  */

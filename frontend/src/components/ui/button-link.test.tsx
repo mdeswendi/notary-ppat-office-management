@@ -71,7 +71,7 @@ describe("ButtonLink", () => {
   });
 
   it("keeps an accessible name given only as an aria-label", () => {
-    // The Roles table builds its per-row control this way (CLAUDE.md section 49).
+    // The Roles table builds its per-row control this way (AGENTS.md section 49).
     render(
       <ButtonLink href="/settings/roles/01H" aria-label="Izin untuk Notaris">
         <span aria-hidden="true">x</span>

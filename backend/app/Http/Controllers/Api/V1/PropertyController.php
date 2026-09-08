@@ -25,7 +25,7 @@ use Illuminate\Support\Collection;
 /**
  * Land objects (M7.3, D-121).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see PropertyVisibility} and state rules in
  * the Actions, where both can be read and tested without HTTP.
  *
@@ -37,7 +37,7 @@ use Illuminate\Support\Collection;
  * so the root matches the codes, exactly as `/documents` and `/parties` do.
  *
  * The *page* lives at `/ppat/properties` and the navigation entry sits in the PPAT
- * group, because `CLAUDE.md` section 16 lists Property among the PPAT-specific
+ * group, because `AGENTS.md` section 16 lists Property among the PPAT-specific
  * concepts. A page path is not a permission namespace, so the two are consistent — but
  * the asymmetry is deliberate rather than an oversight, and is recorded here so nobody
  * "fixes" one to match the other.
@@ -189,7 +189,7 @@ class PropertyController extends Controller
      * that changed, which is what `PATCH` means.
      *
      * An archived Property is refused by the Policy, so this answers **403** rather
-     * than 422: archived-ness is a property of the record, the way `CLAUDE.md`
+     * than 422: archived-ness is a property of the record, the way `AGENTS.md`
      * section 29 makes read-only a property of a finalized deed.
      */
     public function update(UpdatePropertyRequest $request, string $property, UpdateProperty $update): PropertyResource
@@ -232,7 +232,7 @@ class PropertyController extends Controller
      * machine codes, for example"*, so the interface renders it as a `datalist` over a
      * free-text input and accepts anything typed. A `<select>` there would present six
      * values as the vocabulary of Indonesian land rights, which is a claim nobody in
-     * this repository may make (`CLAUDE.md` section 62).
+     * this repository may make (`AGENTS.md` section 62).
      *
      * `matter_role_examples` is the same shape for `matter_properties.role_code`.
      */

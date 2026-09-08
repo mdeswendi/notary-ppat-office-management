@@ -19,7 +19,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * `ip_address` and `user_agent` are included. They are exactly the material an
  * auditor needs to tell a routine action from an anomalous one, and
- * `CLAUDE.md` section 31 names both as audit fields.
+ * `AGENTS.md` section 31 names both as audit fields.
  *
  * @mixin AuditLog
  */

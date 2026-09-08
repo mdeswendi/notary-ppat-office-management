@@ -53,7 +53,7 @@ enum InvoiceStatus: string
      * May an ordinary edit still change this invoice, or its lines?
      *
      * **`DRAFT` only.** Issuing is the finalization act: the invoice has been
-     * sent to a client, so `CLAUDE.md` section 64 applies and the only remaining
+     * sent to a client, so `AGENTS.md` section 64 applies and the only remaining
      * act is `cancel`. This governs the line items too — editing what an issued
      * invoice charges for is editing the invoice.
      */

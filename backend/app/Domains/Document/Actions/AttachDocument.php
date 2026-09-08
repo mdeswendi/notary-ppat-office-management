@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\DB;
  *
  * **Nothing is audited, and that is not an oversight.** `audit_logs` does not
  * exist, and D-115 rules that no half-measure ships: an application log is not
- * append-only in the sense `CLAUDE.md` section 31 means, is not queryable by
+ * append-only in the sense `AGENTS.md` section 31 means, is not queryable by
  * resource, and is the stopgap that becomes permanent. `attached_by` and
  * `attached_at` record who and when on the row itself; the event record waits for
  * the store built to hold it.

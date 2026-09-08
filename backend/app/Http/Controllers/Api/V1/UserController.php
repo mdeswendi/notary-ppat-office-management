@@ -21,7 +21,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 /**
  * User accounts.
  *
- * Thin (CLAUDE.md section 35): authorize, take validated input, call an action,
+ * Thin (AGENTS.md section 35): authorize, take validated input, call an action,
  * return a resource. The rules live in {@see UserPolicy} and
  * {@see UserVisibility}, where they can be read and tested without HTTP.
  *

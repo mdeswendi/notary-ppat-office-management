@@ -19,7 +19,7 @@ type BaseErrorStateProps = {
  * Deliberately accepts only pre-translated, caller-controlled copy. It has no
  * way to render an exception, stack trace, response payload, or any backend
  * detail, so those cannot leak into the interface through this component —
- * see CLAUDE.md sections 32 and 48.
+ * see AGENTS.md sections 32 and 48.
  *
  * Status is not carried by colour alone: the icon is paired with a heading and
  * explanatory text.

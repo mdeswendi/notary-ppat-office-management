@@ -119,7 +119,7 @@ return new class extends Migration
             //
             // Never `SET NULL`: erasing a Matter's classification because a
             // catalogue was tidied would lose data a historical record depends on
-            // (CLAUDE.md section 63). Nothing deletes a Service Type anyway —
+            // (AGENTS.md section 63). Nothing deletes a Service Type anyway —
             // retirement is `is_active` (D-106) — which makes this RESTRICT
             // nearly unreachable and correct regardless.
             $table->foreign(
@@ -129,7 +129,7 @@ return new class extends Migration
 
             $table->string('title');
 
-            // Stable codes, never translated labels (CLAUDE.md section 12).
+            // Stable codes, never translated labels (AGENTS.md section 12).
             $table->string('status', 20);
             $table->string('priority', 20)->nullable();
 
@@ -197,7 +197,7 @@ return new class extends Migration
         });
 
         // Only canonical codes are storable. A CHECK rather than a PostgreSQL
-        // native ENUM, per CLAUDE.md section 13 — the enum lives in PHP, and the
+        // native ENUM, per AGENTS.md section 13 — the enum lives in PHP, and the
         // database refuses anything the enum does not name.
         $connection = Schema::getConnection();
 

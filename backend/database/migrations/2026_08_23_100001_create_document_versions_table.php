@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * One uploaded file, written once (M5.1, D-116).
  *
- * `CLAUDE.md` sections 19 and 20 and `03_DATABASE_ERD.md` section 13 all say the
+ * `AGENTS.md` sections 19 and 20 and `03_DATABASE_ERD.md` section 13 all say the
  * same thing three ways: **never overwrite an existing version.** This table is
  * where that becomes structural — a correction adds a row, and the previous
  * file's bytes, path and checksum stay exactly as they were.
@@ -40,7 +40,7 @@ use Illuminate\Support\Facades\Schema;
  * ## Storage
  *
  * `storage_path` is a path on a **private disk** and must never contain `public/`
- * or `uploads/` (`CLAUDE.md` section 19). M5.0 additionally turned off the
+ * or `uploads/` (`AGENTS.md` section 19). M5.0 additionally turned off the
  * `serve` flag that exposed that directory over HTTP (D-114), so a file is
  * reachable only by streaming it from a surface that authorized the actor first.
  *
@@ -135,7 +135,7 @@ return new class extends Migration
             );
 
             // A private path, enforced by the database rather than only by the
-            // service that writes it. `CLAUDE.md` section 19 names both
+            // service that writes it. `AGENTS.md` section 19 names both
             // directories explicitly, and a constraint is what makes a future
             // caller unable to route around the rule.
             $connection->statement(

@@ -80,7 +80,7 @@ export interface WorkloadItem {
  *
  * `description_key` is a translation key and `metadata` are its interpolation
  * values — the server never sends a rendered sentence, because choosing the
- * language is the client's job in a bilingual product (`CLAUDE.md` §6).
+ * language is the client's job in a bilingual product (`AGENTS.md` §6).
  */
 export interface ActivityItem {
   id: string;

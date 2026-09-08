@@ -41,7 +41,7 @@ use RuntimeException;
  *
  * Storing a code authorizes nothing by itself. Whatever eventually reads this
  * must still go through a Policy and `EffectiveAccessResolver` with the actor's
- * Data Scope, like every other decision in the application (D-048, `CLAUDE.md`
+ * Data Scope, like every other decision in the application (D-048, `AGENTS.md`
  * section 24). This column names *which* capability a stage asks for; it never
  * answers whether somebody has it.
  */

@@ -13,7 +13,7 @@ use Illuminate\Validation\Validator;
  * `SELLER`, `BUYER`, `SELLER_SPOUSE`, `AUTHORIZED_PERSON`, `WITNESS`,
  * `DIRECTOR`, `COMMISSIONER` and `SHAREHOLDER` and explicitly labels them
  * *example* role codes, so constraining the column here would invent the
- * participant-role vocabulary M4 has no authority to write (CLAUDE.md section
+ * participant-role vocabulary M4 has no authority to write (AGENTS.md section
  * 62, D-105). It is nullable because a participation may legitimately be
  * recorded before anybody has classified it.
  *

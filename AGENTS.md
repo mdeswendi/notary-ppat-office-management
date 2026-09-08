@@ -1699,7 +1699,7 @@ docs/
 ├── 18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md
 ├── DECISIONS.md
 ├── CHANGELOG.md
-└── HANDOFF.md
+└── PROJECT_STATUS.md
 ```
 
 `12_` through `18_` are milestone architecture locks. Each records what its domain may
@@ -1731,7 +1731,7 @@ catalogue's verbs rather than invented, nothing computes or gates on tax, and th
 designed rather than transcribed (O-049). Check **both** sides — table and capability — before
 building anything, and say which one you are supplying.
 
-`HANDOFF.md` orients somebody arriving mid-project: where the work stands, which invariants must not
+`PROJECT_STATUS.md` orients somebody arriving mid-project: where the work stands, which invariants must not
 be broken, which working rules exist outside this file, and what comes next. It is a **pointer, not a
 source** — where it disagrees with this file or with `DECISIONS.md`, they win, and it is the file that
 needs correcting.

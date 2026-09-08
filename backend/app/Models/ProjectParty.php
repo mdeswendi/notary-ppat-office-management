@@ -38,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `role_code` has **no enum cast**, deliberately. No canonical participant-role
  * vocabulary exists; the ERD's six codes are labelled examples, not a catalogue.
  * Casting to an enum would invent the legal role list M3 has no authority to
- * write (CLAUDE.md section 62).
+ * write (AGENTS.md section 62).
  */
 #[Fillable([
     'role_code',

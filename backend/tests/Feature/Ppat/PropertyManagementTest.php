@@ -249,7 +249,7 @@ it('shows every current owner, not one', function (): void {
 
 it('reports a total over 100 without judging it', function (): void {
     // Whether shares must total 100 is a rule about Indonesian co-ownership that no
-    // canonical document states (`CLAUDE.md` section 62). The number is shown; nothing
+    // canonical document states (`AGENTS.md` section 62). The number is shown; nothing
     // refuses it.
     [$actor, $office] = propertyApiActor([
         'properties.view', 'properties.ownership.view', 'parties.view',
@@ -342,7 +342,7 @@ it('permits the same property number in another office', function (): void {
 });
 
 it('validates no property number format', function (): void {
-    // The ERD gives none, and `CLAUDE.md` section 62 names numbering rules among the
+    // The ERD gives none, and `AGENTS.md` section 62 names numbering rules among the
     // things not to invent. The office supplies whatever it uses.
     [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
@@ -591,7 +591,7 @@ it('archives a property whose matters have all finished', function (): void {
 });
 
 it('destroys nothing when archiving', function (): void {
-    // Every link in the chain of title survives — `CLAUDE.md` section 63.
+    // Every link in the chain of title survives — `AGENTS.md` section 63.
     [$actor, $office] = propertyApiActor(['properties.archive', 'properties.view']);
 
     $property = Property::factory()->inOffice($office)->create();
@@ -720,7 +720,7 @@ it('closes the current links when the caller says this is a transfer', function 
     expect($closed->is_current)->toBeFalse();
     expect($closed->effective_until->toDateString())->toBe('2026-03-01');
     // The old link's party and share are untouched — history is closed, never
-    // rewritten (`CLAUDE.md` section 63).
+    // rewritten (`AGENTS.md` section 63).
     expect($closed->party_id)->toBe($previous->party_id);
 });
 
@@ -961,7 +961,7 @@ it('detaches the junction row and nothing else', function (): void {
 });
 
 it('exposes no notary counterpart to the matter properties route', function (): void {
-    // `CLAUDE.md` section 16 lists Property among the PPAT-specific concepts, and a
+    // `AGENTS.md` section 16 lists Property among the PPAT-specific concepts, and a
     // Notary Matter naming land would be a claim about Notary practice nobody here
     // may make.
     [$actor, $office] = propertyApiActor([

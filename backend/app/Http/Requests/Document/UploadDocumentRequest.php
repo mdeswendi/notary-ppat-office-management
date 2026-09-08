@@ -15,7 +15,7 @@ use Illuminate\Validation\Validator;
  * refuses to create. Nothing here is required on legal grounds, and no business
  * rule is invented — there is no check that `expiry_date` follows `document_date`,
  * because no canonical document says a certificate may not be reissued with an
- * earlier expiry, and guessing is what `CLAUDE.md` section 62 forbids.
+ * earlier expiry, and guessing is what `AGENTS.md` section 62 forbids.
  *
  * **`document_type_code` is validated for length and nothing else.** No enum, no
  * `Rule::in`, no `CHECK` — `KTP`, `NPWP`, `AKTA` and `SERTIPIKAT` are examples in

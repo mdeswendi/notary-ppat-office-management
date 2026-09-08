@@ -75,7 +75,7 @@ class PpatWarkahItemResource extends JsonResource
             // template, and D-104 keeps those unbuilt.
             'requirement_code' => $this->requirement_code,
 
-            // Bilingual database fields, not UI strings (`CLAUDE.md` section 10).
+            // Bilingual database fields, not UI strings (`AGENTS.md` section 10).
             'title_id' => $this->title_id,
             'title_en' => $this->title_en,
 

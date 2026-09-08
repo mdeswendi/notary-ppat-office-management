@@ -17,7 +17,7 @@ use Illuminate\Auth\Events\Logout;
  * **every authenticated request**, not once per session — a single page load
  * behind an SPA produces several. Auditing it would write thousands of rows a day
  * that say nothing, and would bury the events that matter in a table nobody may
- * delete from (`CLAUDE.md` section 31).
+ * delete from (`AGENTS.md` section 31).
  *
  * `Login` fires when a session is established, which is the fact an auditor
  * actually asks about.
@@ -30,7 +30,7 @@ use Illuminate\Auth\Events\Logout;
  *
  * ## Nothing about the credential is recorded
  *
- * No password, no session id, no token, no remember-me cookie — `CLAUDE.md`
+ * No password, no session id, no token, no remember-me cookie — `AGENTS.md`
  * section 32. The subject of the row is the User, and the User's own attributes
  * are not copied into `new_values` either: an audit row for a login is about an
  * event, not about the state of the account.

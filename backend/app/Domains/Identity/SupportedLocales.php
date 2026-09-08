@@ -5,7 +5,7 @@ namespace App\Domains\Identity;
 /**
  * The interface languages this deployment stores.
  *
- * Exactly the two codes `CLAUDE.md` section 6 names, stored bare: `id` and `en`,
+ * Exactly the two codes `AGENTS.md` section 6 names, stored bare: `id` and `en`,
  * never `id-ID`, `en-US`, or a display name (D-068). The frontend's
  * `src/i18n/routing.ts` carries the same pair for routing; this is the backend's
  * validation boundary, and the two are asserted to match by test rather than by

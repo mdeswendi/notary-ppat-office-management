@@ -3,7 +3,7 @@
  *
  * Stable codes mirroring the backend enum exactly, transcribed from
  * `03_DATABASE_ERD.md` section 11. The interface translates them for display; the
- * code is what travels (CLAUDE.md section 12).
+ * code is what travels (AGENTS.md section 12).
  *
  * **Only three are reachable in M4** *(D-112)*. A stage starts `PENDING`, the
  * first becomes `ACTIVE`, and moving on marks the one you left `COMPLETED`.
@@ -28,7 +28,7 @@ export type MatterStageStatus = (typeof MATTER_STAGE_STATUSES)[number];
  *
  * **The names are snapshots.** They were copied from the template when this
  * Matter's workflow started, so a template renamed since displays here as it was
- * then — the requirement of `CLAUDE.md` section 18. Nothing in the interface may
+ * then — the requirement of `AGENTS.md` section 18. Nothing in the interface may
  * fetch a "current" name from anywhere else.
  *
  * `assignee` is operational information and **never a capability**: a stage

@@ -31,7 +31,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * have one.
  *
  * `deed_number` is reported because the office typed it; nothing here allocates
- * or validates one, and `CLAUDE.md` section 38's distinction between an internal
+ * or validates one, and `AGENTS.md` section 38's distinction between an internal
  * reference and a legal deed number stands.
  */
 class NotaryReportController extends Controller

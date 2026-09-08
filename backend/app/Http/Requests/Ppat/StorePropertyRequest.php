@@ -31,7 +31,7 @@ use Illuminate\Validation\Rule;
  * actor's Office because that is the only Office creation may target — `ALL` is reach
  * over records that exist, never authority to place a new one elsewhere.
  *
- * **No format is validated.** The ERD gives none; `CLAUDE.md` section 38 shows
+ * **No format is validated.** The ERD gives none; `AGENTS.md` section 38 shows
  * `PROP-000001` as an example internal reference and section 62 forbids inventing
  * numbering rules. The office supplies whatever it uses, the way it supplies a deed
  * number.

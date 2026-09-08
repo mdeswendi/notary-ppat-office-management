@@ -5,7 +5,7 @@ import type { ProjectPriority } from "@/types/project";
  *
  * Stable codes mirroring the backend enum exactly, transcribed from
  * `03_DATABASE_ERD.md` section 15. The interface translates them for display; the
- * code is what travels and what is stored (`CLAUDE.md` section 12).
+ * code is what travels and what is stored (`AGENTS.md` section 12).
  *
  * **Only three are settable by an ordinary edit.** `COMPLETED` and `CANCELLED`
  * answer to their own capabilities and their own endpoints, so the status control

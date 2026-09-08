@@ -136,7 +136,7 @@ function renderSection() {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §51): a passing assertion here never means an endpoint is authorized.
+ * (`AGENTS.md` §51): a passing assertion here never means an endpoint is authorized.
  * What they pin is that a control the actor may not use is *absent*, and that the
  * rulings the M7 lock made about Warkah survive contact with the interface.
  *
@@ -231,7 +231,7 @@ describe("WarkahSection", () => {
 
   /**
    * Both titles render, because `title_id` and `title_en` are bilingual **database**
-   * fields rather than UI strings (`CLAUDE.md` §10) — the office wrote both, and a
+   * fields rather than UI strings (`AGENTS.md` §10) — the office wrote both, and a
    * reader in either language should see what was written.
    */
   it("renders both stored titles, not a translated one", async () => {

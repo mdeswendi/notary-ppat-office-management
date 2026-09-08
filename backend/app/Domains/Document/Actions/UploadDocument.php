@@ -56,7 +56,7 @@ use Throwable;
  * explanation.
  *
  * This is the one case `DocumentStorage::delete()` exists for. It is **not** a
- * deletion path for a live document — `CLAUDE.md` section 19 forbids overwriting
+ * deletion path for a live document — `AGENTS.md` section 19 forbids overwriting
  * a version and section 30 prefers archiving over removal.
  *
  * ## Attachments

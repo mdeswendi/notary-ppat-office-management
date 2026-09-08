@@ -5,7 +5,7 @@ import type { ReportDefinition } from "@/types/reports";
  *
  * Thirteen surfaces that differ only in their endpoint, columns and filters. A
  * page component each would be thirteen copies of one paging-and-export loop, and
- * `CLAUDE.md` section 40 asks for the shared component instead — so each page is
+ * `AGENTS.md` section 40 asks for the shared component instead — so each page is
  * a definition plus `<ReportSurface />`.
  *
  * **The `permission` here gates navigation only.** It is the family's view code,

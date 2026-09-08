@@ -9,13 +9,13 @@ import type { ProjectPriority } from "@/types/project";
 /**
  * Status, priority, and domain, rendered as labelled badges.
  *
- * **Status must not rely on colour alone** (CLAUDE.md section 49): every badge
+ * **Status must not rely on colour alone** (AGENTS.md section 49): every badge
  * carries its translated text, and the subtle tint is a secondary cue rather than
  * the information itself. A reader who cannot distinguish the tints still reads
  * the status.
  *
  * The tints stay muted on purpose. This is a professional office system, not a
- * dashboard — CLAUDE.md section 39 rules out the traffic-light palette a status
+ * dashboard — AGENTS.md section 39 rules out the traffic-light palette a status
  * chip usually attracts, and a Matter being `CANCELLED` is an ordinary
  * operational fact rather than an error.
  *
@@ -68,7 +68,7 @@ export function MatterPriorityBadge({ priority }: { priority: ProjectPriority | 
  *
  * Each surface already lives under its own address, so this appears only where
  * naming the domain adds something — a detail header. The accent is used lightly
- * (CLAUDE.md section 42): a badge, never a whole screen tinted by domain.
+ * (AGENTS.md section 42): a badge, never a whole screen tinted by domain.
  *
  * **The tones are carried over unchanged, and one of them looks wrong.** PPAT
  * renders neutral here while every other PPAT surface — deeds, Warkah, property

@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * `effective_until` and clearing `is_current` is what a chain of title does when land
  * changes hands. `property_owners` carries no `deleted_at` in the ERD, so a `DELETE`
  * could only be a hard one, and hard-deleting a link destroys the history the table
- * exists to keep (`CLAUDE.md` sections 30 and 63).
+ * exists to keep (`AGENTS.md` sections 30 and 63).
  *
  * **`party_id` and `property_id` are prohibited, not merely absent.** A different party
  * is a different link, and a different property is a different chain — correcting who

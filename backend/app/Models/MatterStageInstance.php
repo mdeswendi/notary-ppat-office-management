@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * `stage_code`, `stage_name_snapshot_id`, `stage_name_snapshot_en` and
  * `sequence_no` are **copied at instantiation and never refreshed**. Renaming or
  * renumbering a template stage afterwards changes nothing here, which is what
- * `CLAUDE.md` section 18 requires and what D-104 calls the point of the design
+ * `AGENTS.md` section 18 requires and what D-104 calls the point of the design
  * rather than decoration.
  *
  * **`stage_name_snapshot_id` is not a foreign key.** The `_id` is the ISO 639-1

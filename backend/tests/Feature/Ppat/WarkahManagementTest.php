@@ -428,7 +428,7 @@ it('refuses verification without the verify capability', function (): void {
 });
 
 it('keeps the verification stamp when the bundle goes back for review', function (): void {
-    // Somebody did check it on that date; `CLAUDE.md` section 63 asks that facts not be
+    // Somebody did check it on that date; `AGENTS.md` section 63 asks that facts not be
     // overwritten because the current state moved on.
     [$actor, $office] = warkahApiActor([
         'ppat.warkah.view', 'ppat.warkah.update', 'ppat.warkah.verify',

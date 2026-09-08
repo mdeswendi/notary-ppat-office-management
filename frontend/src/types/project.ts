@@ -3,7 +3,7 @@
  *
  * Stable codes mirroring the backend enum exactly, transcribed from
  * `03_DATABASE_ERD.md` section 7. The interface translates them for display; the
- * code is what travels and what is stored (CLAUDE.md section 12).
+ * code is what travels and what is stored (AGENTS.md section 12).
  *
  * **There is no transition rule here, deliberately.** No canonical document says
  * which status may follow which, so the frontend offers all of them and the

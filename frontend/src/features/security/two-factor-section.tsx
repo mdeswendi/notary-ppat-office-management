@@ -118,7 +118,7 @@ export function TwoFactorSection({ overview }: { overview: SecurityOverview }) {
       {errorKey ? <SecurityError>{t(`errors.${errorKey}`)}</SecurityError> : null}
       {notice ? <SecurityNotice>{notice}</SecurityNotice> : null}
 
-      {/* Status is stated in words, not conveyed by colour alone (CLAUDE.md
+      {/* Status is stated in words, not conveyed by colour alone (AGENTS.md
           section 49). */}
       <p className="text-sm">
         <span className="font-medium">{t("statusLabel")}: </span>

@@ -42,7 +42,7 @@ type SectionProps = { domain: MatterDomain; matterId: string };
  *
  * **Names come from the snapshot.** Each stage displays the name its template
  * carried when this Matter started, so editing a template never changes what a
- * running Matter shows (`CLAUDE.md` section 18). Nothing here fetches a "current"
+ * running Matter shows (`AGENTS.md` section 18). Nothing here fetches a "current"
  * name from anywhere.
  *
  * **There is no next-stage button and deliberately no ordering rule.** M4 has no
@@ -56,7 +56,7 @@ type SectionProps = { domain: MatterDomain; matterId: string };
  * and means the stepper never meets a status it cannot express.
  *
  * Status is never conveyed by colour alone — each step carries an icon and a
- * translated label (CLAUDE.md section 49).
+ * translated label (AGENTS.md section 49).
  */
 export function MatterWorkflowSection({ domain, matterId }: SectionProps) {
   const t = useTranslations("matterStages");

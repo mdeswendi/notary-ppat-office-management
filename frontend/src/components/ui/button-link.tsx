@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * styling only — no button semantics, no keyboard handlers layered on top of
  * the ones an anchor already has.
  *
- * `Link` is the locale-aware one from `@/i18n/navigation` (CLAUDE.md section 7),
+ * `Link` is the locale-aware one from `@/i18n/navigation` (AGENTS.md section 7),
  * so the active locale segment travels with the href.
  */
 function ButtonLink({

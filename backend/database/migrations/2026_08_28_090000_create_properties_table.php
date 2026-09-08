@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Schema;
  * - **`right_type` is a plain `VARCHAR` with no CHECK.** Constraining it to the
  *   five examples would assert that Indonesian land law has five kinds of right,
  *   which `11_LEGAL_REFERENCES.md` exists as a statutory register precisely because
- *   nobody here may decide (`CLAUDE.md` section 62).
+ *   nobody here may decide (`AGENTS.md` section 62).
  *
  * Neither is translated in the database — the ERD says so outright.
  *
@@ -51,7 +51,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * Unique **per Office** where present, following D-103: an internal reference
  * identifies a record within its Office and does not identify it globally. Note that
- * `CLAUDE.md` section 38 shows `PROP-000001` **without a year**, unlike every other
+ * `AGENTS.md` section 38 shows `PROP-000001` **without a year**, unlike every other
  * internal reference — so whatever M7.3 builds is namespaced by Office alone, not by
  * Office and calendar year like D-108's allocator.
  *

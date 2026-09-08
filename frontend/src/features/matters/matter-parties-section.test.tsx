@@ -226,7 +226,7 @@ describe("MatterPartiesSection", () => {
   });
 
   it("maps a 403 onto the forbidden message rather than showing a raw error", async () => {
-    // CLAUDE.md section 48: never display a raw server exception. The error key
+    // AGENTS.md section 48: never display a raw server exception. The error key
     // is chosen from the status alone, so no response body can leak through.
     //
     // A **real** `AxiosError`, not a shaped plain object: `toMatterErrorKey`

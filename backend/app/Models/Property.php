@@ -122,7 +122,7 @@ class Property extends Model
     /**
      * The whole chain of title, newest first.
      *
-     * History is added and never overwritten (`CLAUDE.md` section 63), so this is the
+     * History is added and never overwritten (`AGENTS.md` section 63), so this is the
      * audit trail rather than a mutable list.
      */
     public function owners(): HasMany

@@ -9,7 +9,7 @@ import type { DocumentStatus } from "@/types/document";
 /**
  * Status and sensitivity, rendered as labelled badges.
  *
- * **Status must not rely on colour alone** (`CLAUDE.md` section 49): every badge
+ * **Status must not rely on colour alone** (`AGENTS.md` section 49): every badge
  * carries its translated text, and the subtle tint is a secondary cue rather than
  * the information itself. A reader who cannot distinguish the tints still reads
  * the status.

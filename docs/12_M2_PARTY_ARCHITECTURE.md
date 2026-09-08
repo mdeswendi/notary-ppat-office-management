@@ -74,7 +74,7 @@ identity table, no `clients` table, and no `client_id` running parallel to `part
 
 The reason is not tidiness. A person appears as a seller in one matter and a company
 director in another; an organization is a client on Monday and a counterparty on Thursday.
-Role belongs to the *relationship* with a Project or Matter — CLAUDE.md section 17 already
+Role belongs to the *relationship* with a Project or Matter — AGENTS.md section 17 already
 says so for Party roles, and a `clients` table would be the same mistake wearing a different
 name.
 
@@ -583,7 +583,7 @@ No migration exists. This is the proposal M2.1 implements.
 
 | Aspect | Decision | Why |
 |---|---|---|
-| PK | ULID | CLAUDE.md section 11; first-party domain table. The M1 package-table bigint exception (D-023/D-038) does not apply. |
+| PK | ULID | AGENTS.md section 11; first-party domain table. The M1 package-table bigint exception (D-023/D-038) does not apply. |
 | Office ownership | `office_id` FK → `offices.id`, **required**, indexed | Office is the security boundary (section 8). PostgreSQL does not index a referencing column automatically. |
 | FK behaviour | `restrictOnDelete` | Matches `users.office_id`. Removing an Office must not silently take its directory with it. |
 | Actor metadata | `created_by`, `updated_by` FK → `users.id`, `restrictOnDelete` | Attribution must survive; M1 has no user-deletion path anyway (D-050). |
@@ -648,7 +648,7 @@ indexes, zero `UNIQUE` constraints touching a fingerprint column.
 
 No `party_documents`, no Project or Matter foreign keys, no `party_offices` pivot, no Property
 link. Those belong to M3 and later, and adding a column "ready for" them now would be a
-speculative table by another name (CLAUDE.md section 61).
+speculative table by another name (AGENTS.md section 61).
 
 ---
 

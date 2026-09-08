@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * `deleted_at`** — `03_DATABASE_ERD.md` section 19 gives the table ten columns and
  * none of them is one, so M7.1 added no `SoftDeletes`. There is no column to write.
  *
- * Unlike a link in a chain of title, that is not a loss `CLAUDE.md` section 63
+ * Unlike a link in a chain of title, that is not a loss `AGENTS.md` section 63
  * protects. A Warkah item is **a line the office typed on its own checklist** — not
  * ownership history, not a document version, not deed state, not an audit record.
  * Removing one it added in error is composing the list, which is what

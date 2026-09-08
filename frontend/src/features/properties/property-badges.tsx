@@ -9,7 +9,7 @@ import type { PropertyType } from "@/types/property";
 /**
  * Property type, right type and retirement, as labelled badges (M7.3, D-121).
  *
- * **Status must not rely on colour alone** (`CLAUDE.md` section 49): every badge carries
+ * **Status must not rely on colour alone** (`AGENTS.md` section 49): every badge carries
  * its translated text, and the tint is a secondary cue rather than the information
  * itself.
  *
@@ -23,7 +23,7 @@ import type { PropertyType } from "@/types/property";
  *
  * **Translated**, unlike `right_type` below, because `property_type` is a closed list
  * of four values the ERD gives flat — a stable machine code with a known meaning, which
- * is exactly what message keys are for (`CLAUDE.md` section 12).
+ * is exactly what message keys are for (`AGENTS.md` section 12).
  */
 export function PropertyTypeBadge({ type }: { type: PropertyType }) {
   const t = useTranslations("properties");
@@ -41,7 +41,7 @@ export function PropertyTypeBadge({ type }: { type: PropertyType }) {
  * **Not translated, and not expanded.** `right_type` is open vocabulary: the ERD says
  * *"Right type **may** use stable machine codes, **for example**"*, so rendering
  * `HAK_MILIK` as "Freehold Title" would be an invented legal translation of exactly the
- * kind `CLAUDE.md` section 9 forbids — and would be wrong for any code the office typed
+ * kind `AGENTS.md` section 9 forbids — and would be wrong for any code the office typed
  * that the ERD never listed. The code is shown verbatim, the way `deed_type_code` is on
  * both deed surfaces.
  */

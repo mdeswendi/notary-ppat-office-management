@@ -3,7 +3,7 @@
  *
  * Stable codes mirroring the backend enum exactly, transcribed from
  * `03_DATABASE_ERD.md` section 13. The interface translates them for display; the
- * code is what travels and what is stored (`CLAUDE.md` section 12).
+ * code is what travels and what is stored (`AGENTS.md` section 12).
  *
  * **Only four of these are reachable in M5.2, and the interface must not pretend
  * otherwise.** Upload creates `RECEIVED`; verification reaches `VERIFIED`;

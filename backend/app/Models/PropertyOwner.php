@@ -13,7 +13,7 @@ use RuntimeException;
 /**
  * One link in a chain of title (M7.1, D-121).
  *
- * **History is added, never overwritten** (`CLAUDE.md` section 63). Transferring
+ * **History is added, never overwritten** (`AGENTS.md` section 63). Transferring
  * ownership closes the previous row — stamping `effective_until` and clearing
  * `is_current` — and inserts a new one. It never rewrites the old row's party or
  * percentage, which is what makes this table an audit trail rather than a current
@@ -30,7 +30,7 @@ use RuntimeException;
  * SQLite connection the suite runs on.
  *
  * **No percentage sum is enforced.** Whether co-owners must total 100 is a rule about
- * Indonesian co-ownership, and `CLAUDE.md` section 62 forbids inventing it.
+ * Indonesian co-ownership, and `AGENTS.md` section 62 forbids inventing it.
  */
 #[Fillable([
     'ownership_percentage',
@@ -85,7 +85,7 @@ class PropertyOwner extends Model
                     throw new RuntimeException(
                         "property_owners.{$attribute} is immutable (M7.1, D-121). "
                         .'A chain of title is corrected by closing a link and adding another, never '
-                        .'by rewriting who owned what (CLAUDE.md section 63).'
+                        .'by rewriting who owned what (AGENTS.md section 63).'
                     );
                 }
             }

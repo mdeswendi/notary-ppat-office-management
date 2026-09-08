@@ -9,7 +9,7 @@ import type { NotaryDeedStatus } from "@/types/notary";
 /**
  * Deed status and type, rendered as labelled badges (M6.2, D-120).
  *
- * **Status must not rely on colour alone** (`CLAUDE.md` section 49): every badge
+ * **Status must not rely on colour alone** (`AGENTS.md` section 49): every badge
  * carries its translated text, and the tint is a secondary cue rather than the
  * information itself. A reader who cannot distinguish the tints still reads the
  * status.
@@ -52,7 +52,7 @@ export function NotaryDeedStatusBadge({ status }: { status: NotaryDeedStatus }) 
  * `03_DATABASE_ERD.md` gives it no vocabulary, M6 seeds no catalogue, and the
  * examples elsewhere in the canonical set are prose. Rendering `AJB` as
  * "Akta Jual Beli" here would require a mapping this milestone has no authority to
- * write — and inventing legal translations is exactly what `CLAUDE.md` section 9
+ * write — and inventing legal translations is exactly what `AGENTS.md` section 9
  * forbids. The office's own code is shown verbatim.
  */
 export function NotaryDeedTypeBadge({ code }: { code: string | null }) {
@@ -74,7 +74,7 @@ export function NotaryDeedTypeBadge({ code }: { code: string | null }) {
  *
  * **The server decides this**, not the browser: `is_read_only` folds in both the
  * settled statuses and `locked_at`, so the interface cannot disagree with the
- * backend about what `CLAUDE.md` section 29 means.
+ * backend about what `AGENTS.md` section 29 means.
  */
 export function NotaryDeedReadOnlyBadge({ isReadOnly }: { isReadOnly: boolean }) {
   const t = useTranslations("notary");

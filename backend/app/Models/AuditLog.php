@@ -15,7 +15,7 @@ use RuntimeException;
  *
  * ## Append-only is enforced here, not merely intended
  *
- * `CLAUDE.md` section 31 states that audit records are immutable from the
+ * `AGENTS.md` section 31 states that audit records are immutable from the
  * application and that `audit.update` and `audit.delete` must never exist.
  * `03_DATABASE_ERD.md` section 25 says the same structurally by giving the table
  * no `updated_at` and no `deleted_at`.
@@ -66,7 +66,7 @@ class AuditLog extends Model
     {
         static::updating(static function (self $log): void {
             throw new RuntimeException(
-                'audit_logs is append-only (CLAUDE.md section 31, D-123). '
+                'audit_logs is append-only (AGENTS.md section 31, D-123). '
                 .'An audit record cannot be amended: correct the world, then record that correction '
                 .'as a new event. Log id: '.($log->getKey() ?? 'unsaved')
             );
@@ -74,7 +74,7 @@ class AuditLog extends Model
 
         static::deleting(static function (self $log): void {
             throw new RuntimeException(
-                'audit_logs is append-only (CLAUDE.md section 31, D-123). '
+                'audit_logs is append-only (AGENTS.md section 31, D-123). '
                 .'Audit records are never removed, and no retention policy exists yet. '
                 .'Log id: '.($log->getKey() ?? 'unsaved')
             );

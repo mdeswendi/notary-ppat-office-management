@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * One row per Individual or Company. There is deliberately no `clients` table
  * and no `client_id`: a Party becomes a client through use, and freezing that
- * role into the master record is the mistake CLAUDE.md section 17 already
+ * role into the master record is the mistake AGENTS.md section 17 already
  * refuses for Party roles.
  *
  * Two unique keys beyond the primary key exist purely so that other tables can
@@ -56,7 +56,7 @@ return new class extends Migration
                 ->constrained('offices')
                 ->restrictOnDelete();
 
-            // Stable codes, never translated labels (CLAUDE.md section 12).
+            // Stable codes, never translated labels (AGENTS.md section 12).
             $table->string('party_type', 20);
 
             // Derived and normalized, never a third independently editable name
@@ -93,7 +93,7 @@ return new class extends Migration
         });
 
         // Only the two canonical codes are storable. A CHECK rather than a
-        // PostgreSQL native ENUM, per CLAUDE.md section 13 — the enum lives in
+        // PostgreSQL native ENUM, per AGENTS.md section 13 — the enum lives in
         // PHP, and the database refuses anything the enum does not name.
         $values = implode("', '", PartyType::values());
 

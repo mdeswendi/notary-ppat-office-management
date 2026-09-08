@@ -9,7 +9,7 @@ import type { WarkahStatus } from "@/types/warkah";
 /**
  * Warkah state and line state, as labelled badges (M7.4, D-121).
  *
- * **State must not rely on colour alone** (`CLAUDE.md` section 49): every badge carries
+ * **State must not rely on colour alone** (`AGENTS.md` section 49): every badge carries
  * its translated text, and the tint is a secondary cue rather than the information
  * itself.
  *

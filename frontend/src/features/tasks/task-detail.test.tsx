@@ -91,7 +91,7 @@ function renderDetail() {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §51): a passing assertion here never means an endpoint is
+ * (`AGENTS.md` §51): a passing assertion here never means an endpoint is
  * authorized. What they pin is that a control the actor may not use is *absent*,
  * which is a real defect class — an offered button that answers 403 or 422.
  *
@@ -217,7 +217,7 @@ describe("TaskDetail", () => {
   });
 
   /**
-   * `CLAUDE.md` §49: status must not rely on colour alone. Every badge carries
+   * `AGENTS.md` §49: status must not rely on colour alone. Every badge carries
    * its translated word, and overdue carries a word beside its icon.
    */
   it("shows status, priority and overdue as text, not colour alone", async () => {

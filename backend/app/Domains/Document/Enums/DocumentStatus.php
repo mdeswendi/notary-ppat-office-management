@@ -34,7 +34,7 @@ namespace App\Domains\Document\Enums;
  * **`FINAL` and `VOID` are still unreachable, and that is stated rather than
  * implied** — the D-109 precedent. No capability in M5.2 sets either; both carry
  * legal weight no document in this repository defines, and guessing at it is what
- * `CLAUDE.md` section 62 prohibits. They appear in the rules above as *sources*
+ * `AGENTS.md` section 62 prohibits. They appear in the rules above as *sources*
  * only, so an office that later gains a way to reach `FINAL` can archive from it
  * without this enum changing.
  *
@@ -83,7 +83,7 @@ enum DocumentStatus: string
     /**
      * Deletion stops the moment somebody verifies.
      *
-     * `CLAUDE.md` section 30 forbids user-facing hard delete for finalized legal
+     * `AGENTS.md` section 30 forbids user-facing hard delete for finalized legal
      * records and prefers a state; this is the soft-delete equivalent of the same
      * line — the record is removable while it is still just an uploaded file, and
      * not once it carries a verification.

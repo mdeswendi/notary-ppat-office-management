@@ -48,7 +48,7 @@ export function NeedsAttentionWidget() {
               <AttentionLink item={item} />
 
               {/* Status is carried as text as well as position, so the panel does
-                  not rely on colour alone (CLAUDE.md §49). */}
+                  not rely on colour alone (AGENTS.md §49). */}
               <span className="text-muted-foreground shrink-0 text-xs">
                 {t(`attention.${item.type}`)}
               </span>

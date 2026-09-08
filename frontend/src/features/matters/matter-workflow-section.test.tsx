@@ -138,7 +138,7 @@ describe("MatterWorkflowSection", () => {
 
   it("renders each stage with its snapshot name and a translated status", async () => {
     // Names come from the instance's own copied columns, so a template renamed
-    // since must not change what a running Matter shows (CLAUDE.md section 18).
+    // since must not change what a running Matter shows (AGENTS.md section 18).
     vi.mocked(services.getMatterWorkflow).mockResolvedValue(run(threeStages));
 
     renderSection();
@@ -169,7 +169,7 @@ describe("MatterWorkflowSection", () => {
   });
 
   it("gives each step an icon with an accessible name, not colour alone", async () => {
-    // CLAUDE.md section 49: status must not rely on colour. The icon carries an
+    // AGENTS.md section 49: status must not rely on colour. The icon carries an
     // aria-label and the text repeats it.
     vi.mocked(services.getMatterWorkflow).mockResolvedValue(run(threeStages));
 

@@ -13,7 +13,7 @@ use RuntimeException;
 /**
  * One uploaded file, written once (M5.1, D-116).
  *
- * **Immutable, and enforced rather than intended.** `CLAUDE.md` section 19 and
+ * **Immutable, and enforced rather than intended.** `AGENTS.md` section 19 and
  * `03_DATABASE_ERD.md` section 13 both say never overwrite an existing version;
  * this model refuses `update` outright. A correction is a new version, which is
  * the whole reason the file lives here rather than on the Document.
@@ -71,7 +71,7 @@ class DocumentVersion extends Model
         static::updating(function (): void {
             throw new RuntimeException(
                 'document_versions is write-once (M5.1, D-116). '
-                .'CLAUDE.md section 19 and the ERD both require that an existing version is never '
+                .'AGENTS.md section 19 and the ERD both require that an existing version is never '
                 .'overwritten: a correction adds a version, and the previous file stays exactly as '
                 .'it was. Editing one would rewrite what the checksum attests to.'
             );
@@ -85,7 +85,7 @@ class DocumentVersion extends Model
             foreach (['public/', 'uploads/'] as $forbidden) {
                 if (str_starts_with($path, $forbidden) || str_contains($path, '/'.$forbidden)) {
                     throw new RuntimeException(
-                        "document_versions.storage_path must not contain [{$forbidden}] (CLAUDE.md section 19). "
+                        "document_versions.storage_path must not contain [{$forbidden}] (AGENTS.md section 19). "
                         .'A legal document never lives in a public web directory.'
                     );
                 }
