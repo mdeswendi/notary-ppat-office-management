@@ -33,7 +33,10 @@ export function Card({
   return (
     <section
       id={id}
-      className={cn("border-border bg-card flex flex-col gap-4 rounded-lg border p-5", className)}
+      className={cn(
+        "border-border bg-card flex min-w-0 flex-col gap-4 rounded-lg border p-4 sm:p-5",
+        className,
+      )}
     >
       {children}
     </section>
@@ -64,9 +67,11 @@ export function CardHeader({
   className?: string;
 }) {
   const text = (
-    <div className="flex flex-col gap-1">
-      <h2 className="text-base font-medium">{title}</h2>
-      {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
+    <div className="flex min-w-0 flex-col gap-1">
+      <h2 className="text-base font-medium break-words">{title}</h2>
+      {description ? (
+        <p className="text-muted-foreground text-sm break-words">{description}</p>
+      ) : null}
     </div>
   );
 

@@ -221,7 +221,7 @@ export function PpatDeedsList({
                 <th scope="col" className="hidden px-4 py-3 font-medium lg:table-cell">
                   {t("deedType")}
                 </th>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">
                   {t("deedDate")}
                 </th>
               </tr>
@@ -261,7 +261,7 @@ export function PpatDeedsList({
                   <td className="hidden px-4 py-3 lg:table-cell">
                     <PpatDeedTypeBadge code={deed.deed_type_code} />
                   </td>
-                  <td className="text-muted-foreground px-4 py-3 whitespace-nowrap">
+                  <td className="text-muted-foreground hidden px-4 py-3 whitespace-nowrap md:table-cell">
                     {deed.deed_date ?? "—"}
                   </td>
                 </tr>
@@ -272,7 +272,10 @@ export function PpatDeedsList({
       )}
 
       {meta && meta.last_page > 1 ? (
-        <nav className="flex items-center justify-between gap-3" aria-label={t("paginationLabel")}>
+        <nav
+          className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          aria-label={t("paginationLabel")}
+        >
           <p className="text-muted-foreground text-sm">
             {t("paginationSummary", {
               current: meta.current_page,

@@ -54,10 +54,12 @@ export function PageHeader({
   breadcrumb,
   className,
 }: PageHeaderProps) {
-  const heading = <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>;
+  const heading = (
+    <h1 className="min-w-0 text-2xl font-semibold tracking-tight break-words">{title}</h1>
+  );
 
   return (
-    <header className={cn("flex flex-col gap-1", className)}>
+    <header className={cn("flex min-w-0 flex-col gap-1", className)}>
       {breadcrumb}
 
       {actions ? (
@@ -69,7 +71,9 @@ export function PageHeader({
         heading
       )}
 
-      {description ? <p className="text-muted-foreground">{description}</p> : null}
+      {description ? (
+        <p className="text-muted-foreground min-w-0 break-words">{description}</p>
+      ) : null}
     </header>
   );
 }

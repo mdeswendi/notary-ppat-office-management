@@ -17,5 +17,14 @@ type PageContainerProps = {
  * Presentational. No data fetching, authentication, or permission logic.
  */
 export function PageContainer({ children, className }: PageContainerProps) {
-  return <div className={cn("flex flex-col gap-6 px-4 py-6 sm:px-6", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "flex w-full min-w-0 flex-col gap-6 px-4 py-6 sm:px-6 [&>*]:min-w-0",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }

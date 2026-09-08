@@ -102,12 +102,12 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const project = query.data;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-muted-foreground font-mono text-xs">{project.project_number}</span>
-          <h1 className="text-2xl font-semibold tracking-tight">{project.title}</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-2xl font-semibold tracking-tight break-words">{project.title}</h1>
+          <p className="text-muted-foreground text-sm break-words">
             {project.office ? `${project.office.code} — ${project.office.name}` : "—"}
           </p>
         </div>
