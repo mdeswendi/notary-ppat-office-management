@@ -99,7 +99,7 @@ function renderDetail() {
 }
 
 /**
- * Presentation tests. The backend is the security boundary (`CLAUDE.md` §51).
+ * Presentation tests. The backend is the security boundary (`AGENTS.md` §51).
  */
 describe("PropertyDetail", () => {
   it("offers no act the flags refuse", async () => {
@@ -202,7 +202,7 @@ describe("PropertyDetail", () => {
   });
 
   /**
-   * `CLAUDE.md` §49: state must not rely on colour alone. The type badge carries its
+   * `AGENTS.md` §49: state must not rely on colour alone. The type badge carries its
    * translated word and the archived marker carries one beside its icon.
    */
   it("shows type and retirement as text, not colour alone", async () => {
@@ -221,7 +221,7 @@ describe("PropertyDetail", () => {
   /**
    * **`right_type` is rendered verbatim, never expanded.** The ERD calls its codes
    * examples, so no translation table exists, and expanding `HAK_MILIK` into an English
-   * name would be the invented legal translation `CLAUDE.md` §9 forbids — and would be
+   * name would be the invented legal translation `AGENTS.md` §9 forbids — and would be
    * simply wrong for a code the office typed that the ERD never listed.
    */
   it("renders a right type verbatim, including one the erd never listed", async () => {

@@ -92,7 +92,7 @@ Route::prefix('v1')->group(function (): void {
          *
          * **Read-only, structurally.** `audit.view` guards it; there is no
          * `audit.update` or `audit.delete` in the catalogue, the model throws on
-         * both, and no address here could reach one. `CLAUDE.md` section 31.
+         * both, and no address here could reach one. `AGENTS.md` section 31.
          *
          * One address with filters rather than nested routes (D-118): "what
          * happened to this deed", "what has this person done" and "what happened
@@ -916,7 +916,7 @@ Route::prefix('v1')->group(function (): void {
          * decides the permission namespace, and the canonical family is
          * `properties.*` — there is no `ppat.properties.*` in the catalogue, so a
          * `/ppat` prefix here would name a namespace that does not exist. The *page*
-         * lives at `/ppat/properties` because `CLAUDE.md` section 16 lists Property
+         * lives at `/ppat/properties` because `AGENTS.md` section 16 lists Property
          * among the PPAT-specific concepts; a page path is not a permission
          * namespace, and the asymmetry is deliberate.
          *
@@ -935,7 +935,7 @@ Route::prefix('v1')->group(function (): void {
          *
          * **No `DELETE` on a link either.** `property_owners` has no `deleted_at` in
          * the ERD, so a delete could only be a hard one, and hard-deleting a link
-         * destroys the history the table exists to keep (`CLAUDE.md` sections 30 and
+         * destroys the history the table exists to keep (`AGENTS.md` sections 30 and
          * 63). Ending an ownership is closing it — `PATCH` with an `effective_until`.
          *
          * `options` precedes `{property}`, or the literal segment would bind as an id.
@@ -974,7 +974,7 @@ Route::prefix('v1')->group(function (): void {
          * through canonical Property visibility before attaching, so composing a
          * Matter never becomes a way to discover which Properties exist.
          *
-         * **PPAT only.** `CLAUDE.md` section 16 lists Property among the PPAT-specific
+         * **PPAT only.** `AGENTS.md` section 16 lists Property among the PPAT-specific
          * concepts, so there is no `/notary/matters/{matter}/properties` counterpart —
          * a Notary Matter naming land would be a claim about Notary practice nobody
          * here may make. The junction is domain-agnostic in the schema, which is the

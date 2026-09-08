@@ -118,7 +118,7 @@ email verification (D-031). It was previously absent from this list while
 present in the schema; the divergence is resolved in favour of keeping the
 column.
 
-Primary keys here are ULID (`CLAUDE.md` section 11, section 2 above). Spatie's
+Primary keys here are ULID (`AGENTS.md` section 11, section 2 above). Spatie's
 `roles` and `permissions` keep their package-native integer keys, while the
 package morph column `model_id` is ULID to match `users.id` — see D-023.
 
@@ -722,7 +722,7 @@ and it is written here so a reader finding the field list without it does not as
 
 | Field | Status |
 |---|---|
-| `represented_by_party_id` | **DOMAIN VALIDATION REQUIRED.** A Party acting through another Party is representation, proxy, or legal capacity. Which it means, when it is permitted, and what it implies for a deed have no canonical answer here, and guessing would invent an Indonesian notarial rule (`CLAUDE.md` section 62). |
+| `represented_by_party_id` | **DOMAIN VALIDATION REQUIRED.** A Party acting through another Party is representation, proxy, or legal capacity. Which it means, when it is permitted, and what it implies for a deed have no canonical answer here, and guessing would invent an Indonesian notarial rule (`AGENTS.md` section 62). |
 | `sequence_no` | **Semantics unvalidated.** Display order, signing order, legal priority and appearance order are four different things and the name distinguishes none of them. A wrong guess stays invisible until a deed is drafted from it. |
 
 **Participation is current working state, not a historical ledger** — no effective periods, no

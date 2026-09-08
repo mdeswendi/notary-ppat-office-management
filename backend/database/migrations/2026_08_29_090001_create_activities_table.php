@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * ## `description_key` is a translation key, never a sentence
  *
- * `CLAUDE.md` section 6 applies to the timeline exactly as it applies to
+ * `AGENTS.md` section 6 applies to the timeline exactly as it applies to
  * everything else, and section 12 applies to `activity_type`: stable machine
  * codes, with the label resolved in the presentation layer. `metadata` carries
  * the key's interpolation values and nothing else — never a NIK, never an NPWP,

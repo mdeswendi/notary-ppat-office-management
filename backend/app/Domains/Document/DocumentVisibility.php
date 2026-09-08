@@ -57,7 +57,7 @@ use Illuminate\Database\Eloquent\Builder;
  * Archived Documents are reached normally. `archived_at` is a lifecycle state,
  * not a visibility rule: somebody must be able to read what the office archived,
  * and a record referencing an archived document must stay readable
- * (`CLAUDE.md` section 63). `deleted_at` is reserved capability with no lifecycle
+ * (`AGENTS.md` section 63). `deleted_at` is reserved capability with no lifecycle
  * in M5.1 and the model applies no global scope, so nothing here filters on it.
  */
 class DocumentVisibility

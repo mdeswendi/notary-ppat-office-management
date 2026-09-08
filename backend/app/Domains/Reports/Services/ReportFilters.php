@@ -74,7 +74,7 @@ class ReportFilters
      * How many rows a page of a report carries.
      *
      * **Reports paginate.** The M8.3 brief's sketch returned `->get()` on an
-     * unbounded query; `CLAUDE.md` section 43 forbids loading unbounded database
+     * unbounded query; `AGENTS.md` section 43 forbids loading unbounded database
      * records into the frontend, and an office with four years of matters would
      * discover that the hard way.
      *

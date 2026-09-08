@@ -11,7 +11,7 @@ namespace App\Domains\Party\Enums;
  * form is recorded honestly rather than forced into the nearest wrong category.
  *
  * Stored as stable codes. `PT` is displayed as *Perseroan Terbatas* by the
- * interface, never stored that way (CLAUDE.md section 12).
+ * interface, never stored that way (AGENTS.md section 12).
  *
  * Carrying a value here asserts nothing about what that form legally requires —
  * no director count, no commissioner requirement, no capital rule. Those are

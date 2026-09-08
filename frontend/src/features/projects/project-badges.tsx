@@ -8,13 +8,13 @@ import type { ProjectPriority, ProjectStatus } from "@/types/project";
 /**
  * Status and priority, rendered as labelled badges.
  *
- * **Status must not rely on colour alone** (CLAUDE.md section 49): every badge
+ * **Status must not rely on colour alone** (AGENTS.md section 49): every badge
  * carries its translated text, and the subtle tint is a secondary cue rather
  * than the information itself. A reader who cannot distinguish the tints still
  * reads the status.
  *
  * The tints stay muted on purpose. This is a professional office system, not a
- * dashboard — CLAUDE.md section 39 rules out the traffic-light palette that a
+ * dashboard — AGENTS.md section 39 rules out the traffic-light palette that a
  * status chip usually attracts, and a Project being `CANCELLED` is an ordinary
  * operational fact rather than an error.
  *

@@ -197,7 +197,7 @@ class DocumentStorage
      * Remove a stored file.
      *
      * **Nothing in M5 calls this on a live document**, and it is not a delete
-     * path: `CLAUDE.md` section 30 prefers archive over deletion for legal
+     * path: `AGENTS.md` section 30 prefers archive over deletion for legal
      * records, and section 19 forbids overwriting a version. It exists so a
      * caller that wrote a file and then failed to record it can clean up rather
      * than leaving an orphan — the one case where removing bytes is right.

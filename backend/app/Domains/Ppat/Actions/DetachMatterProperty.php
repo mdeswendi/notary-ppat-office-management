@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  * `property_id`, `role_code` and `created_at`, nothing more — so this is a hard delete
  * and the interface says so rather than implying an undo the product does not have.
  *
- * That is not a loss of history in the sense `CLAUDE.md` section 63 protects: the
+ * That is not a loss of history in the sense `AGENTS.md` section 63 protects: the
  * Property, its chain of title and every Matter still exist. What disappears is one
  * office's statement that this parcel was the object of this piece of work, which is
  * the thing being corrected.

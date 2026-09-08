@@ -31,7 +31,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * `property_owners.ownership_percentage` is nullable in the ERD.
  *
  * **No sum across co-owners is validated.** Whether shares must total 100 is a rule
- * about Indonesian co-ownership; `CLAUDE.md` section 62 forbids inventing it, and the
+ * about Indonesian co-ownership; `AGENTS.md` section 62 forbids inventing it, and the
  * M7 lock records it as an open question. 0–100 per row is arithmetic, not law.
  *
  * ## What is refused

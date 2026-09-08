@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Schema;
  * role's grant.
  *
  * Key types are deliberately mixed. `id` is a ULID because the table is ours
- * (CLAUDE.md section 11), while `role_id` and `permission_id` stay
+ * (AGENTS.md section 11), while `role_id` and `permission_id` stay
  * `unsignedBigInteger` to match Spatie's package-native `$table->id()` keys.
  * Converting the package's keys would mean editing vendor migrations, which
  * D-023 already ruled out for exactly this reason.
@@ -50,7 +50,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             // VARCHAR carrying a stable machine code, backed by the DataScope
-            // PHP enum, per CLAUDE.md section 13. Not a PostgreSQL native ENUM:
+            // PHP enum, per AGENTS.md section 13. Not a PostgreSQL native ENUM:
             // adding a scope value would otherwise need an ALTER TYPE.
             $table->string('scope', 20);
 

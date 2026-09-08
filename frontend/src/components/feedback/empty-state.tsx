@@ -34,7 +34,7 @@ type EmptyStateProps = {
  *
  * The same card, the same words, no alarm: no `role="alert"`, no icon, no
  * destructive colour. An empty list is an ordinary state and now reads as one —
- * `CLAUDE.md` section 39 asks for calm, and calm is not only about spacing.
+ * `AGENTS.md` section 39 asks for calm, and calm is not only about spacing.
  *
  * Like `BaseErrorState` beside it, this accepts only pre-translated copy and has
  * no way to render an exception, payload, or backend detail, so nothing can leak

@@ -39,7 +39,7 @@ notary-ppat-office-management/
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
-├── CLAUDE.md
+├── AGENTS.md
 ├── README.md
 └── docker-compose.yml
 ```
@@ -54,7 +54,7 @@ Advantages:
 
 - frontend and backend changes can be reviewed together;
 - shared documentation remains centralized;
-- Claude can inspect the complete architecture;
+- A coding assistant can inspect the complete architecture;
 - simpler for small-team or solo development;
 - easier milestone management.
 

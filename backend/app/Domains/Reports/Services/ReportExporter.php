@@ -27,7 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * ## CSV, deliberately, and not a spreadsheet
  *
- * No PDF and no XLSX. `CLAUDE.md` section 62's discipline applies further than it
+ * No PDF and no XLSX. `AGENTS.md` section 62's discipline applies further than it
  * first looks: a formatted document with a letterhead starts to resemble
  * something an office might file, and **a report that looks like a statutory
  * return is worse than no report**. CSV is unambiguously working data.

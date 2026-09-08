@@ -93,7 +93,7 @@ function renderSection() {
 }
 
 /**
- * Presentation tests. The backend is the security boundary (`CLAUDE.md` §51).
+ * Presentation tests. The backend is the security boundary (`AGENTS.md` §51).
  */
 describe("PpatProjectDeedsSection", () => {
   /**
@@ -187,7 +187,7 @@ describe("PpatProjectDeedsSection", () => {
   /**
    * **The deed type code is shown verbatim, in the one place it is most tempting not
    * to.** `AJB` is the PPAT deed type everybody in an office knows the expansion of,
-   * and expanding it here would be exactly the invented legal translation `CLAUDE.md`
+   * and expanding it here would be exactly the invented legal translation `AGENTS.md`
    * §9 forbids — no canonical catalogue of type codes exists.
    */
   it("renders a deed type code verbatim in the row", async () => {

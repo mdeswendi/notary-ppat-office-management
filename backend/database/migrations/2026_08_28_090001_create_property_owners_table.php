@@ -30,12 +30,12 @@ use Illuminate\Support\Facades\Schema;
  * ## No percentage sum is enforced
  *
  * Whether co-owners' shares must total 100 is a rule about Indonesian co-ownership,
- * and `CLAUDE.md` section 62 forbids inventing it. The column stores what the office
+ * and `AGENTS.md` section 62 forbids inventing it. The column stores what the office
  * records. What *is* enforced is arithmetic: a share is between 0 and 100.
  *
  * ## History is added, never overwritten
  *
- * `CLAUDE.md` section 63: a change of ownership **closes** the previous row by
+ * `AGENTS.md` section 63: a change of ownership **closes** the previous row by
  * stamping `effective_until` and clearing `is_current`, and **inserts** a new one. It
  * never updates the old row's party or percentage. `source_matter_id` records which
  * transaction produced the row, which is the audit trail this table exists for.

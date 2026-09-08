@@ -6,7 +6,7 @@ namespace App\Domains\Matter\Enums;
  * Which business domain a Matter belongs to (M4.2).
  *
  * Transcribed exactly from `03_DATABASE_ERD.md` section 9 — stable machine
- * codes, never translated labels (CLAUDE.md section 12).
+ * codes, never translated labels (AGENTS.md section 12).
  *
  * **A Matter belongs to exactly one domain.** No `BOTH`, no alias, no
  * domain-neutral case. The canonical registry splits the Matter capability

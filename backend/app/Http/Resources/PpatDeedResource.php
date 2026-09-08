@@ -53,7 +53,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * `is_read_only` is computed by the server rather than derived in the browser from
  * `status`, so the interface and the backend cannot disagree about what
- * `CLAUDE.md` section 29 means.
+ * `AGENTS.md` section 29 means.
  *
  * The `can_*` flags are **presentation hints computed from the real Policy**, with
  * status eligibility folded in, so no control is offered that the endpoint would

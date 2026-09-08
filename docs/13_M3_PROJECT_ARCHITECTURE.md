@@ -22,7 +22,7 @@ together with `matter_parties`, Notary Matter, PPAT Matter, the `notary.matters.
 
 This resolves a conflict the M3.0 discovery found and did not silently choose between. The
 milestone was proposed as "Project / Matter", while three canonical sources —
-`00_PROJECT_OVERVIEW.md` section 19, `CLAUDE.md` section 2, and the `DECISIONS.md` milestone
+`00_PROJECT_OVERVIEW.md` section 19, `AGENTS.md` section 2, and the `DECISIONS.md` milestone
 register — all read **M3 — Project Management** and **M4 — Matter & Workflow Engine**. The
 roadmap wins. M3.0 documents the Project → Matter *boundary* because an aggregate edge cannot
 be defined without naming what attaches to it, but it creates no Matter anything.
@@ -41,7 +41,7 @@ Project    one client engagement, transaction, or larger legal requirement
 Matter     the operational unit of work inside it            (M4)
 ```
 
-`CLAUDE.md` section 15 states it directly: *"Do not merge Project and Matter into one database
+`AGENTS.md` section 15 states it directly: *"Do not merge Project and Matter into one database
 entity."* `00_PROJECT_OVERVIEW.md` sections 5 and 6 define both, and
 `03_DATABASE_ERD.md` sections 7 and 9 give each its own table. The discovery considered
 collapsing them in either direction and found no canonical support for either reading.
@@ -185,7 +185,7 @@ mutate status. Status moves through a dedicated action and authorization boundar
 
 **M3 invents no transition matrix.** Which status may follow which is an operational rule
 nobody has specified. M3 authorizes *who may change status*; it does not encode *which
-changes are legal*. Inventing one here would be exactly the failure `CLAUDE.md` section 62
+changes are legal*. Inventing one here would be exactly the failure `AGENTS.md` section 62
 prohibits, one domain removed.
 
 See **D-091**.
@@ -196,7 +196,7 @@ See **D-091**.
 
 `project_parties` is the **canonical and only** source of Project ↔ Party participation.
 
-- **The role lives on the relationship**, never on the Party record (`CLAUDE.md` section 17,
+- **The role lives on the relationship**, never on the Party record (`AGENTS.md` section 17,
   D-078). The same person is a client on one Project and a counterparty on another.
 - **No raw Party sensitive identity is copied into any Project-domain table.** No NIK, no
   NPWP, no `tax_id`, no mask, no fingerprint. Project references a Party by id and reads
@@ -247,7 +247,7 @@ changed.
 ## 9. Internal reference
 
 A Project's internal reference is **ordinary office identification**. Its shape follows
-`CLAUDE.md` section 38's internal-reference examples.
+`AGENTS.md` section 38's internal-reference examples.
 
 It is explicitly **not**:
 
@@ -258,7 +258,7 @@ a land or government registration number
 any legally significant document number
 ```
 
-`CLAUDE.md` section 38 already separates the two concepts; this restates it for Project so no
+`AGENTS.md` section 38 already separates the two concepts; this restates it for Project so no
 future reader treats `PRJ-2026-000001` as carrying legal weight.
 
 **No `MAX(number) + 1` allocator**, which is unsafe under concurrency.
@@ -319,7 +319,7 @@ numbering nobody has validated into a milestone that owns none of it.
 
 ## 10. Lifecycle: three separate concerns
 
-`CLAUDE.md` section 18 and `08_NOTARY_WORKFLOW.md` section 4 both insist these not be merged.
+`AGENTS.md` section 18 and `08_NOTARY_WORKFLOW.md` section 4 both insist these not be merged.
 Project keeps them apart:
 
 ```text
@@ -373,7 +373,7 @@ say which part of it expired and when.
 
 `projects.view_all`, `notary.matters.view_all`, `ppat.matters.view_all`, `tasks.view_all` and
 `calendar.view_all` predate the Data Scope model. They express reach, which is exactly what a
-Data Scope expresses, and `CLAUDE.md` section 26 warns against duplicating a permission per
+Data Scope expresses, and `AGENTS.md` section 26 warns against duplicating a permission per
 scope.
 
 The ruling:

@@ -104,7 +104,7 @@ return new class extends Migration
             // SELLER, BUYER, SELLER_SPOUSE, DIRECTOR, COMMISSIONER and WITNESS
             // and labels them *example* role codes; constraining the column
             // would turn examples into the catalogue the document says they are
-            // not (D-105, CLAUDE.md section 62).
+            // not (D-105, AGENTS.md section 62).
             //
             // 30 characters, matching `project_parties`. No canonical length
             // exists, and two participation tables disagreeing about how long a

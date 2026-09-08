@@ -10,7 +10,7 @@ export type IndividualErrorKey =
  * Map a failed Individual request onto a message the interface can show.
  *
  * Only the HTTP status is read. The response body never reaches the user, so a
- * Laravel exception or internal payload cannot leak through this path (CLAUDE.md
+ * Laravel exception or internal payload cannot leak through this path (AGENTS.md
  * sections 32 and 48) — which matters more here than elsewhere, because a failed
  * identity request is one whose error text is most likely to mention something
  * sensitive.

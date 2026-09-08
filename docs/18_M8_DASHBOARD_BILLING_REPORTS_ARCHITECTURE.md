@@ -17,7 +17,7 @@ defined field by field in the ERD, and the catalogue has no `notary.protocol.*` 
 code at all (O-036, O-040). Billing is the reverse. It has **seventeen canonical capabilities and no
 canonical table whatsoever.** Section 5 is where that bites, and section 9 is where it is resolved.
 
-**M8 is also the last milestone in the plan.** `CLAUDE.md` section 2 and `01_ARCHITECTURE.md`
+**M8 is also the last milestone in the plan.** `AGENTS.md` section 2 and `01_ARCHITECTURE.md`
 section 28 both end at M8. There is no M9 to inherit what M8 declines, which makes section 11 and the
 open-item ledger materially more consequential here than in any previous lock.
 
@@ -30,7 +30,7 @@ inference promoted to fact.
 
 M8 implements the three cross-cutting surfaces named by `01_ARCHITECTURE.md` section 28:
 
-- the **Dashboard** — a composed answer to the six questions in `CLAUDE.md` section 68;
+- the **Dashboard** — a composed answer to the six questions in `AGENTS.md` section 68;
 - **Billing** — Quotations, Invoices, Payments, Disbursements;
 - **Reports** — operational, Notary, PPAT, financial, audit.
 
@@ -56,7 +56,7 @@ The sentence this document exists to hold:
 | **Dashboard** | A composed page of panels. Not an entity, not a table, not a capability. |
 | **Panel** | One summary on the Dashboard, drawing from exactly one resource the actor can already reach. |
 | **Activity** | A system-written timeline row describing that something happened. Infrastructure. |
-| **Audit log** | An append-only record of who changed what, per `CLAUDE.md` section 31. |
+| **Audit log** | An append-only record of who changed what, per `AGENTS.md` section 31. |
 | **Quotation** | A priced offer to a client, before work is agreed. |
 | **Invoice** | A demand for payment, issued to a client. |
 | **Payment** | Money received against an Invoice. |
@@ -221,7 +221,7 @@ registers, protocol and taxes — the three M6 and M7 both declined (O-036, O-04
 batch is not sharing a disposition. Those three were declined because **their domain rules are not
 authored anywhere**: what a protocol period is and how it closes, which taxes gate which stage, what
 a register's format and period are. Billing has no such gap — an office invoicing its own client is
-commerce, not Indonesian notarial procedure, and `CLAUDE.md` section 62's list of things not to
+commerce, not Indonesian notarial procedure, and `AGENTS.md` section 62's list of things not to
 invent (PPAT procedures, Notary approval requirements, required Warkah, deed numbering, **tax rules**,
 registration deadlines, legal document requirements) does not include it. Section 9.4 holds the line
 between the two.
@@ -326,7 +326,7 @@ underlying query would exclude a row, the aggregate excludes it too.
 
 ### 7.3 The Dashboard answers section 68's questions, and adds nothing decorative
 
-`CLAUDE.md` section 68 states the six questions the product exists to answer, and section 57 forbids
+`AGENTS.md` section 68 states the six questions the product exists to answer, and section 57 forbids
 *"fake analytics charts simply to fill the dashboard."* The panels exist to answer the six:
 
 ```text
@@ -374,7 +374,7 @@ TASK_COMPLETED
 DEED_APPROVED
 ```
 
-`description_key` is a translation key, not a rendered sentence — the bilingual rule in `CLAUDE.md`
+`description_key` is a translation key, not a rendered sentence — the bilingual rule in `AGENTS.md`
 section 6 applies to the timeline exactly as it applies to everything else. `metadata` carries the
 key's interpolation values, and section 8.5 bounds what may go in it.
 
@@ -400,7 +400,7 @@ with the ERD's own note, transcribed:
 > No: `updated_at`, `deleted_at`. Audit logs are append-only.
 
 **Ruling.** Append-only is enforced structurally, not by convention. The model has no `update` or
-`delete` path, no `updated_at`, no soft delete, and `CLAUDE.md` section 31's prohibition on
+`delete` path, no `updated_at`, no soft delete, and `AGENTS.md` section 31's prohibition on
 `audit.update` / `audit.delete` extends to there being no internal method that could perform one.
 
 ### 8.2 M8.1 closes D-115
@@ -452,7 +452,7 @@ worse than one that begins on a known date.
 
 ### 8.5 What may never be written to either table
 
-`CLAUDE.md` section 32 and D-105's leak-surface rule apply, and D-115 restates them with more force
+`AGENTS.md` section 32 and D-105's leak-surface rule apply, and D-115 restates them with more force
 for audit specifically. Neither table may ever carry:
 
 ```text
@@ -536,7 +536,7 @@ PENDING ──verify──> VERIFIED
 project has repeatedly recorded as a cost rather than repeated as a design.
 
 **Ruling on mutability.** `invoices.update` applies to a `DRAFT` invoice only. Issuing is the
-finalization act: an issued invoice has been sent to a client, and `CLAUDE.md` section 64's
+finalization act: an issued invoice has been sent to a client, and `AGENTS.md` section 64's
 discipline for finalized records applies to it — it displays read-only, its values are preserved, and
 the only remaining act is `cancel`. The same reasoning makes `quotations.update` a `DRAFT`-only act.
 
@@ -622,7 +622,7 @@ anywhere that derives one figure from another by a rate.
 
 An office that must show a tax on an invoice enters it as a line item it names and prices itself.
 A typed line is a fact the office asserted; a computed line is a tax rule the software encoded — and
-tax rules are named explicitly in `CLAUDE.md` section 62 among the things not to invent, are open
+tax rules are named explicitly in `AGENTS.md` section 62 among the things not to invent, are open
 question four in `09_PPAT_WORKFLOW.md`, and are the subject of O-040, which remains open.
 
 **Disbursements are records, not tax.** A disbursement records that the office spent money on the
@@ -634,7 +634,7 @@ back door to it.
 
 No billing surface has a delete capability. Corrections are therefore made by adding records, not by
 removing them — an invoice is `cancel`led and a new one issued, never edited after issue and never
-deleted. This matches the legal-record discipline in `CLAUDE.md` sections 29, 30 and 64, and it is
+deleted. This matches the legal-record discipline in `AGENTS.md` sections 29, 30 and 64, and it is
 what a financial record ought to do regardless.
 
 **One case has no remedy in the product, and this lock does not invent one.** A payment recorded with
@@ -653,7 +653,7 @@ code exists), and has no reversal verb. Three responses, all of them chosen rath
 ### 9.6 `billing.amount.view` masks, and is a second gate
 
 `billing.amount.view` is a separate code from `billing.view`. The catalogue does not explain it, but
-its shape matches the sensitive-field pattern in `CLAUDE.md` section 22, where reading a record and
+its shape matches the sensitive-field pattern in `AGENTS.md` section 22, where reading a record and
 reading its protected values are distinct capabilities.
 
 **Ruling.** `billing.view` authorizes seeing that a billing record exists, its number, its status,
@@ -741,7 +741,7 @@ capabilities are registered: `calendar.view`, `calendar.view_all`, `calendar.cre
 and activity work M8.1 does build.
 
 **It is nonetheless outside M8**, because M8's subject is Dashboard, Billing and Reports, and
-`CLAUDE.md` section 60 forbids implementing a module merely because it appears in the specification.
+`AGENTS.md` section 60 forbids implementing a module merely because it appears in the specification.
 
 **But it is owned by no milestone at all.** M5 was "Documents & Tasks" and built tasks. No milestone
 between M0 and M8 names Calendar, and M8 is the last. Unlike protocol, taxes and registers — which
@@ -758,7 +758,7 @@ M6 and M7 gave them:
 |---|---|
 | Notary / PPAT registers | Format and period unauthored; `ppat.register.delete` absent (O-042) |
 | Protocol | `protocol_records` has no status vocabulary and no `notary.protocol.*` code at all (O-036) |
-| Taxes | No `ppat.taxes.*` code; tax rules named in `CLAUDE.md` section 62; ERD section 20 requires validation before production (O-040) |
+| Taxes | No `ppat.taxes.*` code; tax rules named in `AGENTS.md` section 62; ERD section 20 requires validation before production (O-040) |
 | **`ppat.reports.*`** | A five-code generate → review → approve → export workflow. It is the PPAT **monthly reporting obligation** — deadline, recipient and format all unauthored (O-043). Distinct from `reports.ppat.view`, which M8.3 does build (section 3.2). |
 
 Each needs **both** a domain source **and** a decision about extending a permission catalogue

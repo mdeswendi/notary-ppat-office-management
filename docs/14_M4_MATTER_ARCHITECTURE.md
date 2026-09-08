@@ -39,7 +39,7 @@ Matter     the operational unit of work inside it                            (M4
 Workflow   the configurable stage mechanism a Matter runs through            (M4)
 ```
 
-**Matter Status and Workflow Stage are different concepts and must never be merged.** `CLAUDE.md`
+**Matter Status and Workflow Stage are different concepts and must never be merged.** `AGENTS.md`
 section 18, `00_PROJECT_OVERVIEW.md` section 6, and section 4 of both workflow drafts all say so
 independently.
 
@@ -319,7 +319,7 @@ is recorded in the ERD itself.
 
 | ERD field | M4 disposition | Why |
 |---|---|---|
-| `represented_by_party_id` | **Deferred — DOMAIN VALIDATION REQUIRED** | A Party acting through another Party is representation, proxy, or legal capacity. Which of those it means, when it is permitted, and what it implies for a deed are legal questions with no canonical answer here. Guessing would invent an Indonesian notarial rule (CLAUDE.md section 62). |
+| `represented_by_party_id` | **Deferred — DOMAIN VALIDATION REQUIRED** | A Party acting through another Party is representation, proxy, or legal capacity. Which of those it means, when it is permitted, and what it implies for a deed are legal questions with no canonical answer here. Guessing would invent an Indonesian notarial rule (AGENTS.md section 62). |
 | `sequence_no` | **Deferred — semantics unvalidated** | Display order, signing order, legal priority, and appearance order are four different things and the column name distinguishes none of them. A wrong guess is invisible until a deed is drafted from it. |
 | `role_code` | Built, **nullable and opaque** | No enum, no `Rule::in`, no `CHECK`. The ERD's `SELLER`, `BUYER`, `SELLER_SPOUSE`, `DIRECTOR`, `COMMISSIONER`, `WITNESS` and the rest are labelled **example role codes**; constraining the column would turn examples into the catalogue the document says they are not (D-092, D-098). |
 
@@ -364,7 +364,7 @@ matter_stage_instances    per-stage state, with name snapshots taken at instanti
 matter_stage_history      append-only record of transitions
 ```
 
-**Snapshotting is the point, not decoration.** `CLAUDE.md` section 18 requires that editing a
+**Snapshotting is the point, not decoration.** `AGENTS.md` section 18 requires that editing a
 template must not retroactively change a Matter already running. `matter_stage_instances` carries
 `stage_code` and both snapshot names for exactly that reason, and `matter_workflows` records the
 `workflow_version` it was instantiated from.
@@ -419,7 +419,7 @@ OPEN  IN_PROGRESS  WAITING  ON_HOLD  COMPLETED  CANCELLED  ARCHIVED
 
 **M4 invents no transition matrix.** It authorizes *who* may change, complete, or cancel a
 Matter — three separate canonical capabilities — and never *which* status may follow which. That
-is an operational rule nobody has specified, and inventing one is exactly what `CLAUDE.md`
+is an operational rule nobody has specified, and inventing one is exactly what `AGENTS.md`
 section 62 prohibits, one domain removed. The M3 precedent is D-091, taken for the same reason.
 
 ### 10.2 Archive and restore are not in M4
@@ -444,7 +444,7 @@ wrong answer.
 
 ## 11. Internal reference
 
-A Matter's internal reference is **ordinary office identification**, following `CLAUDE.md`
+A Matter's internal reference is **ordinary office identification**, following `AGENTS.md`
 section 38. It is explicitly **not** a deed number, a repertorium number, a land or government
 registration number, or any legally significant document number.
 
@@ -453,7 +453,7 @@ N-YYYY-NNNNNN     Notary
 P-YYYY-NNNNNN     PPAT
 ```
 
-Both prefixes are transcribed from `CLAUDE.md` section 38's internal-reference examples.
+Both prefixes are transcribed from `AGENTS.md` section 38's internal-reference examples.
 
 **Namespace: Office + calendar year + domain.** Three components, because the two prefixes are
 distinct and a shared counter would make `N-2026-000001` and `P-2026-000001` compete for the same
@@ -519,7 +519,7 @@ are ordinary content an office may correct.
 
 **Retirement is `is_active`, and there is no other lifecycle** — no delete, no soft delete, no
 archive, no restore, and no canonical code that could authorize one. An inactive Service Type
-stays readable so records referencing it keep their classification (`CLAUDE.md` section 63), which
+stays readable so records referencing it keep their classification (`AGENTS.md` section 63), which
 is also why M4.2's Matter foreign key must never be designed as `SET NULL`.
 
 **Data Scope is `OFFICE` and `ALL` only** — the Party answer (D-080), not the Project one. `OWN`
@@ -803,7 +803,7 @@ configuration rather than a schema change.
 code)` and multiple versions, which are mutually exclusive. The ERD settles it by giving
 `matter_workflows` both `workflow_template_id` *and* `workflow_version` — redundant under a
 row-per-version reading. The old iteration is preserved by M4.7's snapshot, which is what section 18
-of `CLAUDE.md` actually requires.
+of `AGENTS.md` actually requires.
 
 **`approval_permission` is refused on save unless it names a canonical permission**, so an
 unresolvable string can never reach M4.7. Storing a code authorizes nothing; reading it still goes

@@ -10,7 +10,7 @@ export type UserErrorKey = "forbidden" | "selfDisable" | "notFound" | "network" 
  *
  * Only the HTTP status is read; the response body never reaches the user, so a
  * Laravel exception or internal payload cannot leak through this path
- * (CLAUDE.md sections 32 and 48).
+ * (AGENTS.md sections 32 and 48).
  *
  * `403` is expected rather than exceptional. User administration depends on a
  * canonical `users.*` permission at a Data Scope the browser's permission list

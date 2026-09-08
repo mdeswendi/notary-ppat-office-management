@@ -20,7 +20,7 @@ import type { DocumentVersion } from "@/types/document";
  * of them (D-114), and the type has no field for one. What a person needs to tell
  * two versions apart is the original name, the size, and who uploaded it when.
  *
- * A version is written once and never overwritten (`CLAUDE.md` section 19), so
+ * A version is written once and never overwritten (`AGENTS.md` section 19), so
  * there is no edit control here and never will be: a correction is a new version.
  */
 export function DocumentVersionList({

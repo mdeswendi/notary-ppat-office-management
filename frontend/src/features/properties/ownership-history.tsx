@@ -24,7 +24,7 @@ import type { PropertyOwner } from "@/types/property";
  *
  * The list shows the whole chain — current holders and past ones — because that is what
  * makes this history rather than a current state somebody keeps editing
- * (`CLAUDE.md` section 63). A closed link keeps the party and the share the office
+ * (`AGENTS.md` section 63). A closed link keeps the party and the share the office
  * recorded, for good.
  *
  * ## There is no remove control, and that is not an omission
@@ -159,7 +159,7 @@ export function OwnershipHistory({
 /**
  * One link, and the control that closes it.
  *
- * The current holders are marked, not colour-coded alone (`CLAUDE.md` section 49): the
+ * The current holders are marked, not colour-coded alone (`AGENTS.md` section 49): the
  * badge carries its word, and the closed ones carry their end date.
  */
 function OwnershipLink({

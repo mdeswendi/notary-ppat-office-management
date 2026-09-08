@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * ## Snapshotting, which is the point rather than decoration
  *
- * `CLAUDE.md` section 18 requires that editing a template must not retroactively
+ * `AGENTS.md` section 18 requires that editing a template must not retroactively
  * change a Matter already running. Three mechanisms together guarantee it:
  *
  *   1. `matter_workflows.workflow_version` records the iteration instantiated
@@ -52,7 +52,7 @@ use Illuminate\Support\Facades\Schema;
  * `matter_stage_history` has no `updated_at`, no `deleted_at`, and no update path
  * in the application. D-104 records that whether a stage transition carries legal
  * state is undecided, and treats the table as append-only from the outset — the
- * safe direction to be wrong in. `CLAUDE.md` section 31 applies the same rule to
+ * safe direction to be wrong in. `AGENTS.md` section 31 applies the same rule to
  * audit records generally.
  *
  * `reason` is free text and is therefore a leak surface: D-105 is explicit that
@@ -127,7 +127,7 @@ return new class extends Migration
                 ->references('id')->on('workflow_stages')->restrictOnDelete();
 
             // The snapshot. Copied at instantiation and never refreshed: editing
-            // the template afterwards changes none of it (CLAUDE.md section 18).
+            // the template afterwards changes none of it (AGENTS.md section 18).
             $table->string('stage_code', 50);
 
             // **Not foreign keys.** `_id` and `_en` are locale codes here, exactly
@@ -137,7 +137,7 @@ return new class extends Migration
 
             $table->unsignedInteger('sequence_no');
 
-            // Stable machine codes, never translated labels (CLAUDE.md section
+            // Stable machine codes, never translated labels (AGENTS.md section
             // 12). CHECK-constrained below rather than a PostgreSQL native ENUM,
             // per section 13.
             $table->string('status', 20);

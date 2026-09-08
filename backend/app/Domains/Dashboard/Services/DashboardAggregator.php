@@ -313,7 +313,7 @@ class DashboardAggregator
      *
      * **Not filtered by role name.** The brief specified "only users with role
      * `NOTARY_STAFF`, `PPAT_STAFF`, `OFFICE_MANAGER`", which is exactly the
-     * role-name authorization `CLAUDE.md` section 24 and D-048 forbid — and it
+     * role-name authorization `AGENTS.md` section 24 and D-048 forbid — and it
      * would also be wrong on its own terms, since who holds which role is
      * configuration an office changes.
      *

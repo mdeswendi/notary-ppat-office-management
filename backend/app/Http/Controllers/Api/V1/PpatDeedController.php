@@ -32,7 +32,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * PPAT Deed records (M7.2, D-121).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see PpatDeedVisibility} and lifecycle
  * rules in the Actions, where both can be read and tested without HTTP.
  *
@@ -64,7 +64,7 @@ use Illuminate\Validation\ValidationException;
  * `.lock`, so the brief's own condition rules the endpoint out. Three further sources
  * agree separately — `ppat_deeds` has no `deleted_at` column (M7.1, matching the
  * ERD), `03_DATABASE_ERD.md` section 33 prefers states over destructive deletion for
- * finalized legal records, and `CLAUDE.md` section 30 forbids user-facing hard delete
+ * finalized legal records, and `AGENTS.md` section 30 forbids user-facing hard delete
  * of Deeds. A deed recorded in error is a correction mechanism, which is open
  * question nine (D-121, O-039).
  *
@@ -429,7 +429,7 @@ class PpatDeedController extends Controller
      *
      * *A finalized deed is not updatable*, which mirrors
      * {@see PpatDeedPolicy::update()} rather than duplicating a rule
-     * it does not already hold: `CLAUDE.md` sections 29 and 64 make read-only a
+     * it does not already hold: `AGENTS.md` sections 29 and 64 make read-only a
      * property of the record.
      *
      * **`can_record_number` is deliberately not folded.**

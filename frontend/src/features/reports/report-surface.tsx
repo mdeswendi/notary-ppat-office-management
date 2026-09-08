@@ -17,7 +17,7 @@ import type { ReportDefinition, ReportFilterValues, ReportRow } from "@/types/re
  * One report: filters, a table, and a download (M8.3, D-126).
  *
  * Shared by all ten tabular reports, because they differ only in endpoint,
- * columns and which filters they offer (`CLAUDE.md` section 40).
+ * columns and which filters they offer (`AGENTS.md` section 40).
  *
  * ## A withheld column is absent, and the table says so
  *

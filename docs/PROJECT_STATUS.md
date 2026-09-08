@@ -1,4 +1,4 @@
-# Project Handoff — M0 through Baseline Packaging
+# Project Status and Continuation Guide — M0 through Baseline Packaging
 
 **Position:** branch `main`, at commit `0e87b5f`. **M0 through M8 are all merged to `main` and
 feature-complete.** M8 itself merged `--no-ff` at `7d2cc1a`; eleven UI/backend housekeeping commits
@@ -14,7 +14,7 @@ It is **not** a summary of `CHANGELOG.md`, which already records what each miles
 answers four questions the changelog does not: *where are we*, *what must not be broken*, *what is
 deliberately missing*, and *what comes next*.
 
-Read `CLAUDE.md` first. It is the constitution and it overrides this file wherever they disagree.
+Read `AGENTS.md` first. It is the constitution and it overrides this file wherever they disagree.
 
 ---
 
@@ -52,7 +52,7 @@ forward without re-checking it is a number nobody has actually verified.
 | Frontend tests | **249 passing** across **28** files (Vitest + RTL) |
 | Frontend pages | 69 (`find frontend/src/app -name page.tsx`) |
 | Decisions recorded | **D-001 … D-132** |
-| Open items | **27 still open** (§7) — recount of `docs/DECISIONS.md`'s Open Items table (51 entries total, O-001…O-051; 24 resolved, 27 open). The previous count here said 26; O-015's status text ("remains open") was being missed by a plain grep for the word "Open" — corrected. |
+| Open items | **26 still open** (§7) — 51 entries total, O-001…O-051; 25 resolved and 26 open after O-015 was closed by the 2026-09-08 documentation cleanup. |
 
 **The persistent development database now stands at all 58 migrations, fully caught up** —
 verified read-only via `php artisan migrate:status` against the configured `notary_ppat_office`
@@ -102,7 +102,7 @@ short?*
 **`properties` is its own root, not `ppat/properties`**, and the asymmetry is deliberate. The
 canonical family is `properties.*` with no `ppat.` prefix, and D-101 says the route decides the
 permission namespace — so the endpoint matches the codes while the *page* sits at `/ppat/properties`,
-because `CLAUDE.md` §16 lists Property among the PPAT-specific concepts. A page path is not a
+because `AGENTS.md` §16 lists Property among the PPAT-specific concepts. A page path is not a
 permission namespace. There is no `DELETE` here either: `properties.delete` is absent and
 `properties.archive` soft-deletes (O-045).
 
@@ -156,7 +156,7 @@ quality gate.
 
 Two batches of work landed on `main` after the M8 merge, neither of which is a milestone and neither
 of which touches the Notary/PPAT domain model, workflow, or authorization surface. Both are
-housekeeping in the sense `CLAUDE.md` §67 describes: small, meaningful, separately reviewable
+housekeeping in the sense `AGENTS.md` §67 describes: small, meaningful, separately reviewable
 changes — not "finished app" in one commit.
 
 **Eleven UI/backend commits, `d36fedf` … `02e260a`** (pre-existing work found already on `main`
@@ -184,14 +184,13 @@ baseline-recovery pass, audited, packaged into six commits, and merged as its ow
   `laravel new` Vite/Blade asset pipeline (welcome view, `vite.config.js`, `backend/package.json`,
   compiled asset entrypoints, the default placeholder Feature test) and the two references to it in
   `composer.json` and `routes/web.php`. It was never wired to anything — the Next.js frontend is
-  the only frontend this project serves (`CLAUDE.md` §4).
+  the only frontend this project serves (`AGENTS.md` §4).
 - **`fix(ui): preserve sidebar scroll position across navigation`** — the sidebar is now `sticky`
   with its own internal scroll container, so navigating between pages no longer resets a reader
   scrolled deep in the menu back to the top.
-- **`docs: add Codex repository instructions`** — added `AGENTS.md` as a Codex-facing mirror of
-  `CLAUDE.md` (only the title, one repository-structure line, and §59's heading/first instruction
-  differ; every rule and example is otherwise identical). `CLAUDE.md` §4's expected root structure
-  already anticipated this file.
+- **`docs: add Codex repository instructions`** — added `AGENTS.md` as the repository instruction
+  file for Codex. It is now the sole root constitution; a redundant mirror was removed during the
+  2026-09-08 documentation cleanup.
 - **`docs(ops): add office backup and restore runbook`** — `scripts/backup.ps1`,
   `scripts/restore.ps1`, `scripts/README.md`. Implements the restore-testing requirement
   `docs/07_SECURITY_RULES.md` §28 already states in prose: dumps PostgreSQL from the running Docker
@@ -294,7 +293,7 @@ formatted string (D-108).
 
 ### 4.5 Invent no legal rules
 
-`CLAUDE.md` §62. When the specification does not define a legal rule, the project **stops, records the
+`AGENTS.md` §62. When the specification does not define a legal rule, the project **stops, records the
 gap, and asks** — it does not guess. This is why:
 
 - `08_NOTARY_WORKFLOW.md` and `09_PPAT_WORKFLOW.md` are marked `DRAFT — DOMAIN VALIDATION REQUIRED`
@@ -343,14 +342,14 @@ docs/
 ├── 16_M6_NOTARY_ARCHITECTURE.md   │
 ├── 17_M7_PPAT_ARCHITECTURE.md     │ ← read §5 of these two first
 ├── 18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md ┘ ← §5 inverts M6/M7: capabilities, no schema
-├── DECISIONS.md                   ← D-001…D-132 + the Open Items register (51 items, 27 open)
+├── DECISIONS.md                   ← D-001…D-132 + the Open Items register (51 items, 26 open)
 ├── CHANGELOG.md                   ← what each milestone did
-└── HANDOFF.md                     ← this file
+└── PROJECT_STATUS.md                     ← this file
 ```
 
 **`DECISIONS.md` wins.** Where older material conflicts with it, the newer explicit decision governs
 unless later superseded. Where source code and documentation conflict: identify it, do not silently
-pick one, **report it** (`CLAUDE.md` §58).
+pick one, **report it** (`AGENTS.md` §58).
 
 **Locks are amended in place, never rewritten.** M5.0's status line reads
 `LOCKED — M5.0, amended at M5.1 and M5.2`, and §10.2 keeps its original "no transition matrix" ruling
@@ -359,7 +358,7 @@ than no lock.
 
 ---
 
-## 6. Working rules that are not in `CLAUDE.md`
+## 6. Working rules that are not in `AGENTS.md`
 
 These are standing constraints set during the project. They are not optional.
 
@@ -403,8 +402,8 @@ workflow or document tables, browser storage, URLs, query keys, or logs.
 
 ## 7. Open items still open
 
-**Twenty-seven of fifty-one** (recounted 2026-09-05 directly from `docs/DECISIONS.md`'s Open Items
-table: 51 entries total, O-001…O-051, 24 resolved and 27 open). Each is recorded there with its
+**Twenty-six of fifty-one** (updated 2026-09-08 after resolving O-015: 51 entries total,
+O-001…O-051, 25 resolved and 26 open). Each is recorded there with its
 full reasoning; this is the index — minus the five M7 scope items (**O-039** … **O-043**), which are
 described where they matter, in §8. (This previously said "twenty-five of fifty" — a straight
 recount, not a change in what's open; the fifty-first item, O-051, is added to the table below.)
@@ -412,7 +411,6 @@ recount, not a change in what's open; the fifty-first item, O-051, is added to t
 | ID | One line | Why it is still open |
 |---|---|---|
 | O-010 | `gh` CLI not installed | Not a blocker; HTTPS Git works |
-| O-015 | `frontend/AGENTS.md` + `CLAUDE.md` are regenerated by `next dev` | Needs an upstream opt-out, not a deletion |
 | O-017 | No localized 404 for unmatched URLs | Needs a catch-all route — routing work |
 | O-018 | `setRequestLocale` deprecated but load-bearing | Blocked upstream: next-intl cannot yet source locale from `next/root-params` |
 | O-021 | No desktop sidebar collapse | Deferred; revisit when the rail earns its complexity |
@@ -463,7 +461,7 @@ not, and belongs with `reports.export` at M8.3.
 ## 8. What M6, M7 and M8 built, rulings not to undo, and what comes next
 
 **M0 through M8 are all complete, feature-complete, and merged to `main`** (§2, §3). Nothing in
-this section describes future milestone work — there is no M9 in the plan (`CLAUDE.md` §2,
+this section describes future milestone work — there is no M9 in the plan (`AGENTS.md` §2,
 `01_ARCHITECTURE.md` §28 both end at M8) and none is invented here. What follows is kept for two
 reasons: the specific "do not undo this" rulings below remain load-bearing even though the
 milestones that produced them are finished, and the final subsection states honestly what kind of
@@ -506,7 +504,7 @@ not around it — the domain gaps below are still open (§7), not resolved by M6
 **M6.0 (D-120) established what that blockage actually costs, and it is less than it sounds.** Five
 of the seven questions in `08_NOTARY_WORKFLOW.md` §6 are rules a deed surface would ordinarily
 encode; M6 stores the vocabulary the ERD names for each and **reaches none of it** — the D-109
-pattern. What remains buildable is the deed record itself, its lifecycle ladder (which `CLAUDE.md`
+pattern. What remains buildable is the deed record itself, its lifecycle ladder (which `AGENTS.md`
 §29 states outright, so it is not inferred from the draft), its document pointers, its Minuta
 metadata, and the whole authorization surface.
 
@@ -571,7 +569,7 @@ batches 8 and 10, so neither domain reaches a batch further than the other (O-04
 
 **Two rulings worth knowing before writing schema:**
 
-- **`ppat_deeds` has no status vocabulary in the ERD.** M7 adopts Notary's six on `CLAUDE.md` §29's
+- **`ppat_deeds` has no status vocabulary in the ERD.** M7 adopts Notary's six on `AGENTS.md` §29's
   authority, but that is a **decision, not a transcription** — reconcile rather than assume if a
   canonical PPAT list turns up.
 - **`property_owners.is_current` is kept and D-116 does not apply.** A Property legitimately has
@@ -580,7 +578,7 @@ batches 8 and 10, so neither domain reaches a batch further than the other (O-04
 
 **M7.1 owed one explicit decision** — whether `property_number` is allocated or office-supplied.
 **M7.3 settled it: office-supplied**, unique per Office, no format validated, immutable once
-assigned. The ERD gives no format, `CLAUDE.md` §38 shows `PROP-000001` without a year (alone among
+assigned. The ERD gives no format, `AGENTS.md` §38 shows `PROP-000001` without a year (alone among
 the internal references), and an allocator would need a counter table. Lock §15.
 
 **M7.2's own finding: `ppat.deeds.delete` is not in the registry**, and neither is `.void` or
@@ -639,7 +637,7 @@ verifiable is the higher-level fact: M8 merged to `main` `--no-ff` at `7d2cc1a`,
 quality gate (frontend and backend, §9) has since passed repeatedly against `main` at later commits
 (including at `0e87b5f`, the current HEAD). Whether a discrete "M8.4" quality-gate step happened as
 its own recorded unit or was absorbed into the merge and later verification passes is genuinely not
-answerable from what's in this repository — flagged here as a documentation gap (`CLAUDE.md` §58:
+answerable from what's in this repository — flagged here as a documentation gap (`AGENTS.md` §58:
 identify a source conflict, don't silently pick a side) rather than resolved one way or the other.
 
 **M8.1 shipped** two migrations (50 → 52), two models, two enums, three services, seven routes and
@@ -710,7 +708,7 @@ one invites being filed as one.
 registered codes, a menu destination, batch 7 — and **no milestone from M0 to M8 names it**. Unlike
 everything else outstanding it is blocked on nothing but assignment (O-048).
 
-**M8 is the last milestone in the plan.** `CLAUDE.md` §2 and `01_ARCHITECTURE.md` §28 both end there,
+**M8 is the last milestone in the plan.** `AGENTS.md` §2 and `01_ARCHITECTURE.md` §28 both end there,
 so nothing M8 declines has a later milestone to fall into. At M6 and M7 an open item was a deferral;
 **at M8 it is a statement about what the delivered product does not do.**
 
@@ -733,8 +731,8 @@ inherit:
 ### What comes next
 
 The M0–M8 milestone plan has run its full course. There is no M9, and none is proposed here —
-`CLAUDE.md` §2 names eight milestones and stops, and inventing a ninth to keep this section's shape
-familiar would be exactly the kind of unrequested scope `CLAUDE.md` §60 forbids. What comes next is
+`AGENTS.md` §2 names eight milestones and stops, and inventing a ninth to keep this section's shape
+familiar would be exactly the kind of unrequested scope `AGENTS.md` §60 forbids. What comes next is
 a **different kind of work**, not a continuation of the milestone sequence:
 
 - **An authenticated product-flow audit.** Every milestone brief above was verified with disposable
@@ -745,7 +743,7 @@ a **different kind of work**, not a continuation of the milestone sequence:
   neither `activities` nor `audit_logs` is backfilled, and no milestone has shipped a demo seeder).
   Showing the product to anyone who isn't reading raw API responses needs data that is realistic
   without being real client information — NIK, NPWP, and real names never belong in a seeder or a
-  demo environment (`CLAUDE.md` §21–22).
+  demo environment (`AGENTS.md` §21–22).
 - **UI/UX packaging for Dashboard, Document/Deed Management, and Deed Detail.** These surfaces were
   built to the letter of their milestone briefs (M8.1, M5.2/M6.2/M7.2, M6.2/M7.2 respectively) but
   packaging a screen for a brief and packaging it for an office worker to actually use it well are
@@ -753,13 +751,13 @@ a **different kind of work**, not a continuation of the milestone sequence:
 - **Open items close only through explicit, individually-scoped tasks** — never as a side effect of
   something else. §7 lists 27 of them; none is closed here, and none should be closed anywhere
   merely because a broader task happened to touch nearby code. This is the same discipline
-  `CLAUDE.md` §67 asks of commits, applied to the open-item ledger.
+  `AGENTS.md` §67 asks of commits, applied to the open-item ledger.
 - **Domain validation is still required wherever a legal rule is still open.** M6 and M7 shipped
   everything buildable *without* guessing at Indonesian notarial or PPAT procedure — deed numbering,
   Repertorium format, Minuta archiving triggers, Warkah composition per deed type, tax gating, and
   the PPAT monthly reporting obligation are all still unanswered (§7; `08_NOTARY_WORKFLOW.md` §6,
   `09_PPAT_WORKFLOW.md` §6). Productization work does not change who is allowed to answer those —
-  `CLAUDE.md` §62 still applies: stop, document the gap, ask, never guess.
+  `AGENTS.md` §62 still applies: stop, document the gap, ask, never guess.
 
 ---
 

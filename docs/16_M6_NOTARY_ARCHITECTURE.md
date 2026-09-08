@@ -105,7 +105,7 @@ notary.protocol.*        ABSENT  — all four
 
 These are not oversights to be corrected by this milestone. Three of them —
 `lock`, `void`, `delete` — are precisely the **post-finalization correction mechanisms**
-`CLAUDE.md` section 29 says *"must follow documented business rules"*, and
+`AGENTS.md` section 29 says *"must follow documented business rules"*, and
 `08_NOTARY_WORKFLOW.md` section 6 lists as an open question. **The catalogue's silence and the
 workflow document's silence agree with each other**, which is evidence rather than coincidence.
 
@@ -179,7 +179,7 @@ require them"*, which is the rule sections 9 and 10 apply.
 ## 5. The five questions M6 may not answer
 
 `08_NOTARY_WORKFLOW.md` is stamped `DRAFT — DOMAIN VALIDATION REQUIRED` and
-`DO NOT IMPLEMENT FROM THIS DOCUMENT YET`. Its section 2 states why: `CLAUDE.md` section 62
+`DO NOT IMPLEMENT FROM THIS DOCUMENT YET`. Its section 2 states why: `AGENTS.md` section 62
 prohibits inventing Notary procedures, approval requirements, **deed numbering rules**, registration
 deadlines, or document requirements when the specification does not define them. Its section 6 lists
 seven open questions.
@@ -303,7 +303,7 @@ serve. Nothing here requires `locked_by`.)*
 
 **`deleted_at` is not added, and there is no soft delete.** The ERD gives `notary_deeds` no
 `deleted_at`; section 33 says finalized legal records *"should generally use states such as ARCHIVED,
-VOID, SUPERSEDED, CANCELLED rather than destructive deletion"*; `CLAUDE.md` section 30 forbids
+VOID, SUPERSEDED, CANCELLED rather than destructive deletion"*; `AGENTS.md` section 30 forbids
 user-facing hard delete for finalized Deeds outright; and **there is no `notary.deeds.delete`
 capability to authorize one.** Four canonical sources agree. The prompt asked for soft delete
 restricted to `DRAFT` status — a defensible product idea that would nonetheless mean adding a column
@@ -361,7 +361,7 @@ approve  UNDER_REVIEW       ->  APPROVED        notary.deeds.approve
 finalize APPROVED           ->  FINALIZED       notary.deeds.finalize
 ```
 
-**This ladder is not invented.** `CLAUDE.md` section 29 states it verbatim as the legal-record
+**This ladder is not invented.** `AGENTS.md` section 29 states it verbatim as the legal-record
 lifecycle — `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` — and section 64 states its
 consequence: once finalized, prevent normal edits, show the record as locked, preserve original
 values. That is a constitution-level statement about legal records generally, not content inferred
@@ -376,7 +376,7 @@ SUPERSEDED   no path, no capability
 locked_at    column present, nothing writes it, no notary.deeds.lock capability
 ```
 
-`CLAUDE.md` section 29 lists `CORRECTION`, `AMENDMENT`, `SUPERSEDE` and `VOID` as *"possible future
+`AGENTS.md` section 29 lists `CORRECTION`, `AMENDMENT`, `SUPERSEDE` and `VOID` as *"possible future
 correction mechanisms"* that *"must follow documented business rules"*. No such rules exist. The CHECK
 constraint admits all six values, because the vocabulary is canonical; the API offers four.
 
@@ -384,7 +384,7 @@ constraint admits all six values, because the vocabulary is canonical; the API o
 surface — that is a correction mechanism, and correction mechanisms are the blocked question. What an
 office does today is what it did before the software existed.
 
-**`FINALIZED` is read-only**, per `CLAUDE.md` sections 29 and 64. `update` is refused on it, and the
+**`FINALIZED` is read-only**, per `AGENTS.md` sections 29 and 64. `update` is refused on it, and the
 capability flag the interface reads says so, so no control is offered that would answer 422.
 
 ### 8.5 `notary_minuta` — metadata, and not the archive lifecycle
@@ -556,7 +556,7 @@ no register periods.
 | Whether a deed must carry a number before it may be finalized | **OPEN.** Left unenforced rather than guessed in either direction | **No** |
 | Repertorium entry procedure and period | **OPEN — §6.** No register table in M6; batch 11 | **No** |
 | What triggers Minuta archiving, and what releases it | **OPEN — §6.** `release_status` stored with no vocabulary and no lifecycle; `notary.minuta.archive` and `.release` stay unimplemented | **No** |
-| Correction mechanisms after finalization | **OPEN — §6 and `CLAUDE.md` §29.** `VOID`, `SUPERSEDED` and `locked_at` are stored vocabulary with no code path, and no capability exists for any of them | **No** |
+| Correction mechanisms after finalization | **OPEN — §6 and `AGENTS.md` §29.** `VOID`, `SUPERSEDED` and `locked_at` are stored vocabulary with no code path, and no capability exists for any of them | **No** |
 | Which capability satisfies deed approval, per service type | **OPEN — §6.** `notary.deeds.approve` authorizes it; *which roles hold it* is office configuration, never a role-name check (D-032, D-041, D-048) | **No** |
 | Whether `notary_deeds` should carry `locked_by` | **DEFERRED at M6.0.** The ERD omits it and nothing structurally requires it. Revisit when the locking act is described | **No** |
 | Whether a Deed may have more than one Minuta | **DECIDED at M6.0**: one, enforced by a unique index. The term carries the cardinality. A second requires a stated rule, not a dropped index | **No** |

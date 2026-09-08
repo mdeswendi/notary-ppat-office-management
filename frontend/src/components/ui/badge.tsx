@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
  *
  * ## Colour is never the information
  *
- * `CLAUDE.md` section 49: status must not rely on colour alone. Every badge
+ * `AGENTS.md` section 49: status must not rely on colour alone. Every badge
  * carries its own translated text, and the tint is a second cue. A reader who
  * cannot separate the tints still reads the status. The tints stay muted on
  * purpose — section 39 rules out the traffic-light palette a status chip usually

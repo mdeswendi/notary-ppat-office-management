@@ -299,7 +299,7 @@ function DeedDocuments({ deed }: { deed: NotaryDeed }) {
  *
  * **No format is suggested and none is validated.** The placeholder is deliberately
  * not an example number: showing one would teach a numbering convention this
- * milestone has no authority to invent (`CLAUDE.md` section 62).
+ * milestone has no authority to invent (`AGENTS.md` section 62).
  *
  * Offered in every status, because the office decides when — including on a deed
  * already finalized, which is why this section sits outside the read-only notice.

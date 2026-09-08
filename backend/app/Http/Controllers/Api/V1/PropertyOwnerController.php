@@ -55,7 +55,7 @@ use Illuminate\Validation\ValidationException;
  * `property_owners` has **no `deleted_at`** — `03_DATABASE_ERD.md` section 16 gives the
  * table nine columns and none of them is one, so M7.1 did not add `SoftDeletes`. A
  * `DELETE` here could only be a hard one, and hard-deleting a link destroys exactly the
- * history the table exists to keep (`CLAUDE.md` sections 30 and 63).
+ * history the table exists to keep (`AGENTS.md` sections 30 and 63).
  *
  * Ending an ownership is **closing the link** — `PATCH` with an `effective_until` —
  * which is what a chain of title does when land changes hands, and the closed row stays
@@ -79,7 +79,7 @@ class PropertyOwnerController extends Controller
      * The whole chain, newest first.
      *
      * **Every link, closed ones included.** That is what makes this a chain rather than
-     * a current state somebody keeps editing — `CLAUDE.md` section 63, and the reason
+     * a current state somebody keeps editing — `AGENTS.md` section 63, and the reason
      * `source_matter_id` exists at all.
      *
      * Party visibility is computed in **bulk**, one query per subtype branch, the
@@ -137,7 +137,7 @@ class PropertyOwnerController extends Controller
                 // The arithmetic sum of the current shares, for display. **Not
                 // validated against 100**: whether shares must total 100 is a rule
                 // about Indonesian co-ownership that no canonical document states
-                // (`CLAUDE.md` section 62, M7 lock section 7.2).
+                // (`AGENTS.md` section 62, M7 lock section 7.2).
                 'current_ownership_total' => (float) $links
                     ->where('is_current', true)
                     ->sum(fn (PropertyOwner $link): float => (float) ($link->ownership_percentage ?? 0)),

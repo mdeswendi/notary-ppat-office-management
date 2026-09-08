@@ -16,7 +16,7 @@ use App\Models\Quotation;
  * between them.
  *
  * **Nothing here applies a rate to anything.** No tax, no rounding rule, no
- * derived percentage — D-124 section 9.4 forbids all three, `CLAUDE.md`
+ * derived percentage — D-124 section 9.4 forbids all three, `AGENTS.md`
  * section 62 names tax rules among the things not to invent, and O-040 is open.
  * An office that must show PPN adds a line it names and prices itself, and this
  * class then adds that line up like any other. Summing what somebody typed is

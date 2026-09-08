@@ -10,7 +10,7 @@ use Illuminate\Validation\Validator;
  * Validation for correcting a Document's metadata (M5.2, D-117).
  *
  * **Metadata only, and no file.** A correction to the bytes is a new version, not
- * an edit — `CLAUDE.md` section 19 forbids overwriting one — so `file` is
+ * an edit — `AGENTS.md` section 19 forbids overwriting one — so `file` is
  * `prohibited` here rather than optional. A caller who sends one is told, which is
  * better than a `PATCH` that appears to accept a replacement and silently keeps
  * the old bytes.

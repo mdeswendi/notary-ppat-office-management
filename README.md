@@ -4,9 +4,9 @@ Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bi
 (Indonesia / Inggris) dengan frontend Next.js dan backend Laravel.
 
 > **Status: M0–M8 selesai, seluruhnya sudah di-merge ke `main`.** Milestone plan ini
-> ([CLAUDE.md](CLAUDE.md) §2) berhenti di M8 — tidak ada M9. Bukan berarti aplikasi ini
+> ([AGENTS.md](AGENTS.md) §2) berhenti di M8 — tidak ada M9. Bukan berarti aplikasi ini
 > "production ready": lihat "Keterbatasan yang sengaja masih terbuka" di bawah, dan baca
-> [docs/HANDOFF.md](docs/HANDOFF.md) sebelum mengasumsikan apa pun tentang status proyek.
+> [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) sebelum mengasumsikan apa pun tentang status proyek.
 >
 > **Sudah ada:** autentikasi sesi dan otorisasi berbasis Data Scope; manajemen Pengguna dan
 > Peran; Party (Perorangan & Perusahaan); Proyek beserta Pihak Terkait; Jenis Layanan;
@@ -20,14 +20,14 @@ Sistem manajemen kantor Notaris & PPAT (Pejabat Pembuat Akta Tanah). Aplikasi bi
 > katalog permission), Register dan Protocol Notaris/PPAT, kewajiban pelaporan bulanan PPAT,
 > serta Calendar (kanonik di skema tetapi tidak dimiliki milestone mana pun). Setiap item
 > tercatat sebagai open item di [docs/DECISIONS.md](docs/DECISIONS.md) dan
-> [docs/HANDOFF.md](docs/HANDOFF.md) §7 — bukan diam-diam terlewat.
+> [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) §7 — bukan diam-diam terlewat.
 >
 > **Mesin alur kerja sengaja dikirim kosong.** Tidak ada template Notaris/PPAT bawaan: isi
 > alur kerja menunggu validasi domain, bukan menunggu pengembangan (D-104).
 >
 > **Aturan hukum yang belum divalidasi domain tidak boleh dikarang.** `08_NOTARY_WORKFLOW.md`
 > dan `09_PPAT_WORKFLOW.md` masih berstatus `DRAFT — DOMAIN VALIDATION REQUIRED` dan tidak
-> boleh dipakai untuk mengimplementasikan alur kerja hukum (`CLAUDE.md` §58, §62).
+> boleh dipakai untuk mengimplementasikan alur kerja hukum (`AGENTS.md` §58, §62).
 
 ## Arsitektur
 
@@ -60,7 +60,7 @@ notary-ppat-office-management/
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
-├── CLAUDE.md            # Konstitusi coding untuk asisten AI
+├── AGENTS.md            # Konstitusi coding untuk asisten AI
 ├── README.md
 └── docker-compose.yml   # Infrastruktur development lokal saja
 ```
@@ -259,7 +259,7 @@ pnpm build
 
 Perintah yang sama dijalankan otomatis oleh CI pada setiap push dan pull request — lihat
 `.github/workflows/quality.yml`. Daftar di atas tidak boleh lebih lemah daripada berkas itu
-(`CLAUDE.md` §52).
+(`AGENTS.md` §52).
 
 Skrip test lainnya:
 
@@ -269,7 +269,7 @@ pnpm test:ci               # sekali jalan + laporan coverage (dipakai CI)
 pnpm test:ui               # antarmuka Vitest di browser
 ```
 
-**Test frontend adalah lapisan presentasi.** Batas keamanan tetap di backend (`CLAUDE.md` §28):
+**Test frontend adalah lapisan presentasi.** Batas keamanan tetap di backend (`AGENTS.md` §28):
 test frontend yang hijau tidak pernah berarti sebuah endpoint sudah terotorisasi.
 
 ## Rute dan Bahasa
@@ -286,7 +286,7 @@ Rute selalu diawali locale, dan nama rute tetap dalam bahasa Inggris di kedua lo
 
 ## Dokumentasi
 
-Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
+Baca `AGENTS.md` dan berkas relevan di `docs/` sebelum menulis kode.
 
 | Berkas | Isi |
 | --- | --- |
@@ -311,14 +311,14 @@ Baca `CLAUDE.md` dan berkas relevan di `docs/` sebelum menulis kode.
 | [docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md](docs/18_M8_DASHBOARD_BILLING_REPORTS_ARCHITECTURE.md) | Architecture lock M8 — Dashboard, Billing & Reports |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Keputusan kanonik dan aturan presedensi, plus register open item |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Riwayat perubahan per milestone |
-| [docs/HANDOFF.md](docs/HANDOFF.md) | **Orientasi status proyek saat ini** — baca ini dulu untuk tahu posisi aktual, bukan dokumen ini |
+| [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) | **Orientasi status proyek saat ini** — baca ini dulu untuk tahu posisi aktual, bukan dokumen ini |
 | [scripts/README.md](scripts/README.md) | Panduan operasional backup & pemulihan data untuk PC kantor (Bahasa Indonesia) |
 | [user_manual.html](user_manual.html) | Manual pengguna akhir untuk staf kantor |
 
 Tujuh berkas `12_` sampai `18_` adalah **architecture lock** per milestone: masing-masing
 mencatat apa yang boleh dibangun domainnya, apa yang tidak, dan pernyataan mana yang disalin dari
 sumber kanonik alih-alih diputuskan setempat. Baca lock domain yang sedang dikerjakan sebelum
-mengubahnya (`CLAUDE.md` §58).
+mengubahnya (`AGENTS.md` §58).
 
 Dokumen 08 dan 09 **tidak boleh** dipakai untuk mengimplementasi alur kerja hukum sebelum
 divalidasi oleh sumber domain.
@@ -338,10 +338,10 @@ M8   Dashboard, Billing & Reports  selesai
 ```
 
 Seluruh milestone M0–M8 sudah di-merge ke `main`. Urutan ini mengikuti
-[docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) dan `CLAUDE.md` §2, yang berhenti di M8 —
+[docs/10_M0_FOUNDATION.md](docs/10_M0_FOUNDATION.md) dan `AGENTS.md` §2, yang berhenti di M8 —
 tidak ada M9 dalam rencana ini. Untuk status terkini secara rinci (angka aktual, apa yang masih
 terbuka, dan apa yang dikerjakan berikutnya di luar rencana milestone ini), baca
-[docs/HANDOFF.md](docs/HANDOFF.md).
+[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Lisensi
 

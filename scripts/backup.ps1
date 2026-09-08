@@ -19,7 +19,7 @@
         1 GB) so many generations can be kept cheaply.
 
       - Documents are mirrored ADDITIVELY, never with /MIR. Document versions
-        are immutable by design (CLAUDE.md section 19) so nothing legitimately
+        are immutable by design (AGENTS.md section 19) so nothing legitimately
         disappears from the source. Additive copying means an accidental
         deletion on the office PC is never propagated into the backup.
 

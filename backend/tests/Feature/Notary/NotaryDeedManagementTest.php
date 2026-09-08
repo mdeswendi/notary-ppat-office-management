@@ -402,7 +402,7 @@ it('edits a deed the status still permits', function (): void {
 });
 
 it('still permits editing an approved deed', function (): void {
-    // CLAUDE.md section 29 denies normal updates *once finalized* and says nothing
+    // AGENTS.md section 29 denies normal updates *once finalized* and says nothing
     // about approval. The narrower rule the brief asked for — approval freezes the
     // content — is an approval requirement, which section 62 forbids inventing.
     [$actor, $office] = deedApiActor(['notary.deeds.view', 'notary.deeds.update']);
@@ -631,7 +631,7 @@ it('does not let a notary capability reach the ppat deed surface', function (): 
     // measuring the calendar rather than the boundary.
     //
     // What the guard was actually for survives intact: the two families are separate
-    // business domains (`CLAUDE.md` section 16) with separate capabilities, and
+    // business domains (`AGENTS.md` section 16) with separate capabilities, and
     // holding `notary.deeds.view` confers nothing on the PPAT side. 403, not 404 —
     // the surface exists, this caller may not use it.
     [$actor] = deedApiActor(['notary.deeds.view']);

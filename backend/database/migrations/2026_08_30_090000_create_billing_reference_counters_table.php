@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * The fourth counter table, after `project_reference_counters`,
  * `matter_reference_counters` and `document_reference_counters`. Same shape and
- * the same reason: `CLAUDE.md` section 38 and `03_DATABASE_ERD.md` section 27
+ * the same reason: `AGENTS.md` section 38 and `03_DATABASE_ERD.md` section 27
  * both forbid `MAX + 1`, which is unsafe the moment two people create an invoice
  * in the same second.
  *
@@ -37,7 +37,7 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             // `QUOTATION` or `INVOICE`. A short varchar rather than an enum,
-            // per CLAUDE.md section 13 — and unconstrained by a CHECK, because
+            // per AGENTS.md section 13 — and unconstrained by a CHECK, because
             // this is an internal counter key rather than a business vocabulary.
             $table->string('code', 20);
 

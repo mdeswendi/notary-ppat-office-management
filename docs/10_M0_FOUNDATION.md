@@ -225,7 +225,7 @@ notary-ppat-office-management/
 ├── .editorconfig
 ├── .gitattributes
 ├── .gitignore
-├── CLAUDE.md
+├── AGENTS.md
 ├── README.md
 └── docker-compose.yml
 ```
@@ -236,7 +236,7 @@ Advantages:
 
 ```text
 Frontend + backend changes can be reviewed together
-Claude can read the complete architecture
+A coding assistant can read the complete architecture
 Documentation stays in one place
 Simpler for solo/small-team development
 ```
@@ -947,7 +947,7 @@ Preserve: YES
 English explanation: Notary Register
 ```
 
-Claude must not create new legal translations outside this dictionary.
+A coding assistant must not create new legal translations outside this dictionary.
 
 ---
 
@@ -1585,7 +1585,7 @@ Commands:
 php artisan test
 ```
 
-Code produced by Claude must pass the formatter and the tests.
+Code produced by a coding assistant must pass the formatter and the tests.
 
 ---
 
@@ -1663,7 +1663,7 @@ chore: initialize Laravel backend
 feat: configure bilingual routing
 feat: add Sanctum authentication
 feat: add application shell
-docs: add Claude coding instructions
+docs: add coding-assistant instructions
 ```
 
 Never a single commit named:
@@ -1716,9 +1716,9 @@ docs/
 
 ---
 
-## 63. CLAUDE.md
+## 63. AGENTS.md
 
-`CLAUDE.md` at the repository root is the coding constitution for the assistant.
+`AGENTS.md` at the repository root is the coding constitution for the assistant.
 
 The authoritative version is the file already present at the repository root. An earlier,
 shorter draft exists in the source material for this specification; it is superseded and
@@ -1726,9 +1726,9 @@ must not be reintroduced.
 
 ---
 
-## 64. Claude Task Rule
+## 64. AI Assistant Task Rule
 
-Do not give Claude:
+Do not give an AI assistant:
 
 ```text
 Build the Notary application.
@@ -1742,17 +1742,17 @@ Implement only the M0 frontend application shell.
 Do not create Project, Matter, Party, Notary, PPAT,
 Property, Document, or Warkah business features.
 
-Follow CLAUDE.md and docs/04_UI_DESIGN_SYSTEM.md.
+Follow AGENTS.md and docs/04_UI_DESIGN_SYSTEM.md.
 ```
 
 ---
 
-## 65. First Claude Prompt
+## 65. First AI Assistant Prompt
 
-Once the empty project folder exists and `CLAUDE.md` is available, the first prompt:
+Once the empty project folder exists and `AGENTS.md` is available, the first prompt:
 
 ```text
-Read CLAUDE.md and all files in /docs before making changes.
+Read AGENTS.md and all files in /docs before making changes.
 
 We are implementing M0 Foundation only for the
 Notary & PPAT Office Management System.
@@ -1839,7 +1839,7 @@ Acceptance:
 ✓ Git repository initialized
 ✓ root folders created
 ✓ root README
-✓ CLAUDE.md
+✓ AGENTS.md
 ✓ docs directory
 ✓ .editorconfig
 ✓ .gitignore
@@ -2027,7 +2027,7 @@ M0 is complete only when:
 [ ] no hardcoded auth secret
 [ ] no first-party token in localStorage
 [ ] no business module implemented prematurely
-[ ] CLAUDE.md exists
+[ ] AGENTS.md exists
 [ ] docs structure exists
 ```
 

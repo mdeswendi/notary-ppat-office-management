@@ -463,7 +463,7 @@ it('reports every deed status including the ones at zero', function (): void {
 */
 
 it('paginates rather than returning everything', function (): void {
-    // CLAUDE.md §43: do not load unbounded database records into the frontend.
+    // AGENTS.md §43: do not load unbounded database records into the frontend.
     // The M8.3 brief's sketch called `->get()`; export is the answer for "all of
     // it", and it streams.
     [$actor, $office] = reportActor(['reports.operational.view', 'notary.matters.view']);

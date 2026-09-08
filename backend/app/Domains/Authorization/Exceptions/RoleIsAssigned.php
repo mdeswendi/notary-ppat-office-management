@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  *
  * The message is for logs and developers. The interface shows its own
  * translated explanation keyed off the status, so no server string reaches a
- * user (CLAUDE.md section 48).
+ * user (AGENTS.md section 48).
  */
 class RoleIsAssigned extends ConflictHttpException
 {

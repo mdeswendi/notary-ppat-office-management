@@ -111,7 +111,7 @@ function renderDetail() {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §51): a passing assertion here never means an endpoint is authorized.
+ * (`AGENTS.md` §51): a passing assertion here never means an endpoint is authorized.
  * What they pin is that a control the actor may not use is *absent*, which is a real
  * defect class — an offered button that answers 403 or 422.
  *
@@ -263,7 +263,7 @@ describe("PpatDeedDetail", () => {
   });
 
   /**
-   * `CLAUDE.md` §49: status must not rely on colour alone. Both badges carry words,
+   * `AGENTS.md` §49: status must not rely on colour alone. Both badges carry words,
    * and the read-only marker carries a word beside its icon — which matters more here
    * than on the Notary page, because this is the first surface to use the PPAT teal.
    */
@@ -281,7 +281,7 @@ describe("PpatDeedDetail", () => {
 
   /**
    * A deed type code is rendered verbatim, never expanded into a legal name.
-   * `CLAUDE.md` §9 forbids inventing legal translations, and no catalogue exists —
+   * `AGENTS.md` §9 forbids inventing legal translations, and no catalogue exists —
    * which bites hardest here, because `AJB` is the PPAT deed type everybody knows.
    */
   it("renders a deed type code verbatim", async () => {

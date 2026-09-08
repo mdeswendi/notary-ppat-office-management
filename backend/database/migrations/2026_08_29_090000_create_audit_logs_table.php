@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * There is no `updated_at` and no `deleted_at`, so `timestamps()` and
  * `softDeletes()` are both deliberately absent. The model refuses updates and
- * deletes outright ({@see AuditLog}), and `CLAUDE.md`
+ * deletes outright ({@see AuditLog}), and `AGENTS.md`
  * section 31's prohibition on `audit.update` / `audit.delete` extends to there
  * being no internal method that could perform one.
  *

@@ -22,7 +22,7 @@ use Illuminate\Http\Response;
 /**
  * Individual records.
  *
- * Thin (CLAUDE.md section 35): authorize, take validated input, call an Action,
+ * Thin (AGENTS.md section 35): authorize, take validated input, call an Action,
  * return a Resource. The aggregate rules live in the Actions and the scope rules
  * in {@see PartyVisibility}, where both can be read and tested without HTTP.
  *

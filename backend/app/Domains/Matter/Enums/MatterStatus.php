@@ -6,11 +6,11 @@ namespace App\Domains\Matter\Enums;
  * The business status of a Matter (M4.2).
  *
  * Transcribed exactly from `03_DATABASE_ERD.md` section 9 — stable machine
- * codes, never translated labels (CLAUDE.md section 12). Nothing is added and
+ * codes, never translated labels (AGENTS.md section 12). Nothing is added and
  * nothing is renamed.
  *
  * **This is business status, and only that.** It is not a workflow stage, which
- * belongs to M4.7 and stays a separate concept for good (`CLAUDE.md` section 18,
+ * belongs to M4.7 and stays a separate concept for good (`AGENTS.md` section 18,
  * and section 4 of both workflow drafts). And it is not the persistence state of
  * the record: `matters.deleted_at` exists as reserved schema capability with no
  * lifecycle reaching it, so `ARCHIVED` here and a soft-deleted row are
@@ -23,7 +23,7 @@ namespace App\Domains\Matter\Enums;
  * so M4 authorizes *who* may change, complete, or cancel a Matter — three
  * separate canonical capabilities — and never encodes *which* changes are legal.
  * There is no `canTransitionTo()` here, and adding one from memory would be the
- * failure `CLAUDE.md` section 62 prohibits, one domain removed from the legal
+ * failure `AGENTS.md` section 62 prohibits, one domain removed from the legal
  * rules it names.
  *
  * M4.2 defines the vocabulary. `OPEN` is the initial status a create path will

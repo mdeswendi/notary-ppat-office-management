@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Date;
  * concluded record, not a way to shelve an undecided one, so an unverified
  * document is 422.
  *
- * **Archiving is a state, never a deletion** (`CLAUDE.md` section 30, ERD section
+ * **Archiving is a state, never a deletion** (`AGENTS.md` section 30, ERD section
  * 33). `deleted_at` is untouched, the internal reference is kept permanently, and
  * an archived Document stays fully readable and fully in the ordinary list —
  * somebody must be able to read what the office put away, and a record referencing
- * it must stay resolvable (`CLAUDE.md` section 63). {@see DocumentVisibility}
+ * it must stay resolvable (`AGENTS.md` section 63). {@see DocumentVisibility}
  * deliberately does not filter on `archived_at` for that reason.
  *
  * `FINAL` is a source here and no capability in M5.2 can reach it. That is stated

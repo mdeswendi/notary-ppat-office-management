@@ -60,7 +60,7 @@ it('builds the five billing tables plus a counter', function (string $table): vo
 ]);
 
 it('gives no billing table a tax column', function (string $table): void {
-    // D-124 §9.4 forbids it in as many words, CLAUDE.md §62 names tax rules
+    // D-124 §9.4 forbids it in as many words, AGENTS.md §62 names tax rules
     // among the things not to invent, and O-040 is still open. An office showing
     // PPN adds a line it names and prices itself.
     foreach (['tax', 'tax_amount', 'tax_rate', 'ppn', 'vat'] as $column) {
@@ -179,7 +179,7 @@ it('approves a quotation once and refuses a second approval', function (): void 
 });
 
 it('refuses to edit an approved quotation', function (): void {
-    // Approving is the finalization act: CLAUDE.md §64 applied to a commercial
+    // Approving is the finalization act: AGENTS.md §64 applied to a commercial
     // record, because a client has agreed the figures.
     [$actor] = billingActor(billingCapabilities());
 

@@ -21,7 +21,7 @@ namespace App\Domains\Notary\Enums;
  * SUPERSEDED  no path, no capability
  * ```
  *
- * **The ladder is not invented.** `CLAUDE.md` section 29 states it verbatim as the
+ * **The ladder is not invented.** `AGENTS.md` section 29 states it verbatim as the
  * legal-record lifecycle — `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` —
  * and section 64 states its consequence: once finalized, prevent normal edits and
  * preserve the original values. That is a constitution-level statement about legal
@@ -29,7 +29,7 @@ namespace App\Domains\Notary\Enums;
  * `DRAFT — DOMAIN VALIDATION REQUIRED` and may not be implemented from.
  *
  * **`VOID` and `SUPERSEDED` are canonical vocabulary that nothing produces.**
- * `CLAUDE.md` section 29 lists `CORRECTION`, `AMENDMENT`, `SUPERSEDE` and `VOID` as
+ * `AGENTS.md` section 29 lists `CORRECTION`, `AMENDMENT`, `SUPERSEDE` and `VOID` as
  * *"possible future correction mechanisms"* that *"must follow documented business
  * rules"*; `08_NOTARY_WORKFLOW.md` section 6 asks *"What correction mechanisms are
  * permitted after finalization?"* and has no answer; and the permission catalogue
@@ -114,7 +114,7 @@ enum NotaryDeedStatus: string
      * May the deed's own fields still be edited?
      *
      * **Everything up to and including `APPROVED`**, which is the literal reading of
-     * `CLAUDE.md` section 29: it denies normal updates *once finalized or locked*
+     * `AGENTS.md` section 29: it denies normal updates *once finalized or locked*
      * and says nothing about approval.
      *
      * The narrower rule — that approval freezes the content, so an edit after

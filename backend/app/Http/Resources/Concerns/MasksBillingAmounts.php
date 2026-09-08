@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
  *
  * `billing.amount.view` is a **separate capability** from `billing.view` and from
  * every entity's own `*.view`. The catalogue does not explain why, but its shape
- * matches `CLAUDE.md` section 22, where reading a record and reading its
+ * matches `AGENTS.md` section 22, where reading a record and reading its
  * protected values are distinct grants — the pattern NIK and NPWP already
  * follow.
  *

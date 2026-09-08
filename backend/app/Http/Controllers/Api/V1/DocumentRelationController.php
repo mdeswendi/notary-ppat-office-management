@@ -25,7 +25,7 @@ use Illuminate\Http\Request;
 /**
  * What a Document is attached to (M5.3, D-118).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a payload. The junction rules live in the Actions and the reachability
  * rules in each domain's visibility class, where both can be read and tested
  * without HTTP.

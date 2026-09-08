@@ -16,7 +16,7 @@ export type MatterDomain = (typeof MATTER_DOMAINS)[number];
  *
  * Stable codes mirroring the backend enum exactly, transcribed from
  * `03_DATABASE_ERD.md` section 9. The interface translates them for display; the
- * code is what travels and what is stored (CLAUDE.md section 12).
+ * code is what travels and what is stored (AGENTS.md section 12).
  *
  * **Only three of these are reachable in M4** *(D-109)*, and the interface must
  * not pretend otherwise. A Matter starts `OPEN`, and the only transitions the

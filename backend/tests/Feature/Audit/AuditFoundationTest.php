@@ -66,7 +66,7 @@ it('gives audit_logs no updated_at and no deleted_at', function (string $column)
 */
 
 it('refuses to update an audit row', function (): void {
-    // CLAUDE.md §31 forbids `audit.update`. The catalogue has no such code, and
+    // AGENTS.md §31 forbids `audit.update`. The catalogue has no such code, and
     // this is the other half: no internal method can perform one either.
     [$actor] = auditActor();
 

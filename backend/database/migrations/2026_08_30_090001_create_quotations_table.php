@@ -37,7 +37,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * The brief specified `decimal tax`. D-124 section 9.4 forbids it in as many
  * words: no `tax_amount`, no rate, and no calculation deriving one figure from
- * another. Tax rules are named in `CLAUDE.md` section 62 among the things not to
+ * another. Tax rules are named in `AGENTS.md` section 62 among the things not to
  * invent, they are open question four in `09_PPAT_WORKFLOW.md`, and O-040 is
  * still open. An office that must show a tax enters it as a line item it names
  * and prices itself — a fact the office asserted, not a rule the software

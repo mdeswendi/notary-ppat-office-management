@@ -214,7 +214,7 @@ it('surfaces a waiting matter without inventing a staleness threshold', function
 
 it('builds workload from assignment rather than from role names', function (): void {
     // The brief specified "only users with role NOTARY_STAFF, PPAT_STAFF,
-    // OFFICE_MANAGER". That is role-name authorization, which CLAUDE.md §24 and
+    // OFFICE_MANAGER". That is role-name authorization, which AGENTS.md §24 and
     // D-048 forbid. The panel lists whoever the actor may read and who actually
     // holds live work.
     [$actor, $office] = dashboardActor(['users.view', 'tasks.view']);
@@ -312,7 +312,7 @@ it('hides every activity row from an actor who can reach no subject at all', fun
 });
 
 it('ships a translation key rather than a rendered sentence', function (): void {
-    // CLAUDE.md §6: a server that returned "Rina menyetujui akta" would have
+    // AGENTS.md §6: a server that returned "Rina menyetujui akta" would have
     // picked a language for a bilingual product.
     [$actor, $office] = dashboardActor(['projects.view']);
 

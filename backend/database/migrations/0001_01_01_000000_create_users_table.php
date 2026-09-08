@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The Laravel scaffold created `users.id` as an auto-incrementing bigint. The
- * canonical key strategy for our own domain tables is ULID — CLAUDE.md
+ * canonical key strategy for our own domain tables is ULID — AGENTS.md
  * section 11, docs/03_DATABASE_ERD.md section 2, docs/10_M0_FOUNDATION.md
  * section 45 — and `users` is listed in the canonical ERD as one of ours, not
  * as a third-party package table.

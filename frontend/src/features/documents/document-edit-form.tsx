@@ -26,7 +26,7 @@ import {
  * Correct a Document's metadata.
  *
  * **The file is not here, and cannot be.** A replacement is a new version, never
- * an edit (`CLAUDE.md` section 19), and the API answers 422 to a `file` key on
+ * an edit (`AGENTS.md` section 19), and the API answers 422 to a `file` key on
  * this endpoint. A form offering a file picker that silently did nothing would be
  * worse than one that does not offer it.
  *

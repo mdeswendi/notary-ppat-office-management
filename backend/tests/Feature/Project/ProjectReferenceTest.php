@@ -340,7 +340,7 @@ it('exposes no route that writes a reference', function (): void {
     //
     // So the guard fired correctly, on a route that is correct. A deed number is
     // caller-supplied precisely because it is **not** system-allocated: the office
-    // decides its format and when it is assigned, and `CLAUDE.md` section 62
+    // decides its format and when it is assigned, and `AGENTS.md` section 62
     // forbids inventing either (D-120). A Project reference is the opposite in
     // every respect, and that is what stays asserted below.
     //

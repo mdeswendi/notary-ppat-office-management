@@ -54,7 +54,7 @@ use Illuminate\Support\Facades\DB;
  * ## Moving back does not erase who verified it
  *
  * Sending a bundle back to `UNDER_REVIEW` leaves `verified_at` and `verified_by`
- * standing. Somebody did check it on that date; that is a fact, and `CLAUDE.md`
+ * standing. Somebody did check it on that date; that is a fact, and `AGENTS.md`
  * section 63 asks that facts not be overwritten because the current state moved on.
  * Re-verifying overwrites the pair with the newer act, which is the same record kept
  * current rather than a second one appended — the ERD gives this table one pair of

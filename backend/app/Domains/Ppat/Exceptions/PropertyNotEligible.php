@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * permission that would not help.
  *
  * The message names the obstacle for logs and developers. The interface shows its own
- * translated explanation, so no server string reaches a user (`CLAUDE.md` section 48).
+ * translated explanation, so no server string reaches a user (`AGENTS.md` section 48).
  */
 class PropertyNotEligible extends UnprocessableEntityHttpException
 {

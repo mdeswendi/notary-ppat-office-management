@@ -10,7 +10,7 @@ use RuntimeException;
  *
  * `demo:seed` never creates a Role and never grants a permission itself.
  * Doing either silently would fabricate authorization state nobody
- * configured, which is exactly what `CLAUDE.md` section 24 and
+ * configured, which is exactly what `AGENTS.md` section 24 and
  * `DefaultRoleRegistry` (D-045, D-057) forbid: a role, and the canonical
  * permissions it needs to actually grant anything, can only come from
  * `permissions:sync` and `app:bootstrap` (or equivalent manual Role

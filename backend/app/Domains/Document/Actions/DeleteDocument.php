@@ -17,7 +17,7 @@ use App\Models\User;
  * `ARCHIVED` through `VERIFIED`.
  *
  * **Soft delete, and the file is left exactly where it is.** The bytes and the
- * checksum stay on disk, and every version row survives. `CLAUDE.md` section 19
+ * checksum stay on disk, and every version row survives. `AGENTS.md` section 19
  * forbids overwriting a version, section 30 forbids destructive deletion of legal
  * records, and a soft delete that quietly erased files would be a hard delete
  * wearing a soft one's name. Reclaiming storage for a removed document is a

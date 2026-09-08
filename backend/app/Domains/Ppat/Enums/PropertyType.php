@@ -12,7 +12,7 @@ namespace App\Domains\Ppat\Enums;
  * **`APARTMENT_UNIT`, not `APARTMENT`.** The M7 brief shortened it; the ERD does not.
  * A stable machine code is only stable if it is copied exactly.
  *
- * Never translated in the database (`CLAUDE.md` section 12). The interface renders
+ * Never translated in the database (`AGENTS.md` section 12). The interface renders
  * these through message keys.
  */
 enum PropertyType: string

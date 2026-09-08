@@ -6,7 +6,7 @@
  * stops — so the M7 lock ruled that PPAT reuses the Notary lifecycle rather than
  * inventing a shorter one, so that the two domains' deed records answer the same
  * question the same way. The interface translates them for display; the code is what
- * travels and what is stored (`CLAUDE.md` section 12).
+ * travels and what is stored (`AGENTS.md` section 12).
  */
 export const PPAT_DEED_STATUSES = [
   "DRAFT",
@@ -77,7 +77,7 @@ export type PpatDeedUserStub = {
  * `id` is the route key and the number is a displayed field.
  *
  * **`is_read_only` comes from the server**, not derived here from `status`, so the
- * interface and the backend cannot disagree about what `CLAUDE.md` section 29 means.
+ * interface and the backend cannot disagree about what `AGENTS.md` section 29 means.
  *
  * The `can_*` flags are presentation hints computed from the real Policy, with status
  * eligibility folded in — so no control is offered that the endpoint would answer 422

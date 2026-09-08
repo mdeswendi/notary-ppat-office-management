@@ -11,7 +11,7 @@ export type WarkahErrorKey =
  *
  * Only the HTTP status and the shape of a 422 are read. The response body never reaches
  * the user, so a Laravel exception or internal payload cannot leak through this path
- * (`CLAUDE.md` sections 32 and 48).
+ * (`AGENTS.md` sections 32 and 48).
  *
  * **`404` is the interesting one here**, and the section treats it separately rather
  * than as an error at all: a deed whose office has not started a bundle answers 404,

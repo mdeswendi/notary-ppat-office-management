@@ -27,7 +27,7 @@ use App\Policies\PropertyPolicy;
  *
  * **An archived Property is not editable**, and the Policy says so before this runs
  * (403, not 422): archived-ness is a property of the record, the way
- * `CLAUDE.md` section 29 makes read-only a property of a finalized deed.
+ * `AGENTS.md` section 29 makes read-only a property of a finalized deed.
  */
 class UpdateProperty
 {

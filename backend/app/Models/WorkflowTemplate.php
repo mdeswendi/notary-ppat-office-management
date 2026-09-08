@@ -27,7 +27,7 @@ use RuntimeException;
  * **`version` is a counter on this row, not a second row** (D-111). Editing a
  * template raises it in place; the previous iteration is preserved by M4.7's
  * snapshot rather than by keeping an old row, which is why `matter_workflows`
- * records both `workflow_template_id` and `workflow_version`. `CLAUDE.md`
+ * records both `workflow_template_id` and `workflow_version`. `AGENTS.md`
  * section 18 requires that editing a template never retroactively change a
  * Matter already running, and the snapshot is what guarantees it.
  *

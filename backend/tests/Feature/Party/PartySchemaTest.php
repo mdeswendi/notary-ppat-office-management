@@ -57,7 +57,7 @@ it('stores party_type as a stable code, never a translated label', function (): 
 });
 
 it('rejects an invalid party_type through the model cast', function (): void {
-    // A translated label is exactly the wrong thing to store (CLAUDE.md section
+    // A translated label is exactly the wrong thing to store (AGENTS.md section
     // 12), and the enum cast refuses it before it can reach SQL.
     expect(fn () => Party::factory()->create(['party_type' => 'PERORANGAN']))
         ->toThrow(ValueError::class);

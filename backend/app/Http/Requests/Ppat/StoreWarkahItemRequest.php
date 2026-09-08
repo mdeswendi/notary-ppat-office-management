@@ -10,7 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * ## Both titles are required and `requirement_code` is not
  *
- * `title_id` and `title_en` are **bilingual database fields**, which `CLAUDE.md`
+ * `title_id` and `title_en` are **bilingual database fields**, which `AGENTS.md`
  * section 10 permits for business data — the pattern `service_types` uses. A line with
  * one language filled in renders blank for half the office, so both are required.
  * They are *not* UI strings and must never move to the message files.

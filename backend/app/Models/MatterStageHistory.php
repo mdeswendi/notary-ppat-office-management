@@ -16,7 +16,7 @@ use RuntimeException;
  * **Append-only, and enforced rather than intended.** The model refuses `update`
  * and `delete` outright. D-104 records that whether a stage transition carries
  * legal state is undecided, and treats this table as append-only from the
- * outset — the safe direction to be wrong in. `CLAUDE.md` section 31 says the
+ * outset — the safe direction to be wrong in. `AGENTS.md` section 31 says the
  * same of audit records generally: never implement `audit.update` or
  * `audit.delete`.
  *
@@ -66,7 +66,7 @@ class MatterStageHistory extends Model
             throw new RuntimeException(
                 'matter_stage_history is append-only (M4.7, D-104). '
                 .'Deleting a transition record would erase evidence of a change that occurred. '
-                .'CLAUDE.md section 31 forbids it for audit records generally.'
+                .'AGENTS.md section 31 forbids it for audit records generally.'
             );
         });
     }

@@ -41,7 +41,7 @@ return [
          * Policy, no `EffectiveAccessResolver`, no Data Scope, and no distinction
          * between `documents.download` and `documents.sensitive.download`.
          *
-         * For KTP, NPWP, Minuta Akta and Warkah that is exactly what CLAUDE.md
+         * For KTP, NPWP, Minuta Akta and Warkah that is exactly what AGENTS.md
          * section 21 forbids — "authorization protected" and "unavailable through
          * predictable public URLs" — and section 54's "never expose private
          * document URLs".

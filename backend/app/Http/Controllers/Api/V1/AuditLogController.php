@@ -23,7 +23,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
  * ## Read-only, and structurally so
  *
  * There is no `store`, no `update`, no `destroy`, and no route for any of them.
- * `CLAUDE.md` section 31 forbids `audit.update` and `audit.delete`; the catalogue
+ * `AGENTS.md` section 31 forbids `audit.update` and `audit.delete`; the catalogue
  * contains neither, {@see AuditLog} throws on both, and this controller offers no
  * address that could reach one.
  *

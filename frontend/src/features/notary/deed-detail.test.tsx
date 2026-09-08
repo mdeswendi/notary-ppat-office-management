@@ -103,7 +103,7 @@ function renderDetail() {
 
 /**
  * These are **presentation tests**. The backend is the security boundary
- * (`CLAUDE.md` §51): a passing assertion here never means an endpoint is authorized.
+ * (`AGENTS.md` §51): a passing assertion here never means an endpoint is authorized.
  * What they pin is that a control the actor may not use is *absent*, which is a real
  * defect class — an offered button that answers 403 or 422.
  *
@@ -223,7 +223,7 @@ describe("DeedDetail", () => {
   });
 
   /**
-   * `CLAUDE.md` §49: status must not rely on colour alone. Both badges carry words,
+   * `AGENTS.md` §49: status must not rely on colour alone. Both badges carry words,
    * and the read-only marker carries a word beside its icon.
    */
   it("shows status, type and read-only as text, not colour alone", async () => {
@@ -240,7 +240,7 @@ describe("DeedDetail", () => {
 
   /**
    * A deed type code is rendered verbatim, never expanded into a legal name.
-   * `CLAUDE.md` §9 forbids inventing legal translations, and no catalogue exists.
+   * `AGENTS.md` §9 forbids inventing legal translations, and no catalogue exists.
    */
   it("renders a deed type code verbatim", async () => {
     vi.mocked(services.getNotaryDeed).mockResolvedValue(deed({ deed_type_code: "AJB" }));

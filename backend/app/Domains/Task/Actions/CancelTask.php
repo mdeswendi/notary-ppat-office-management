@@ -14,7 +14,7 @@ use App\Models\User;
  *
  * **Cancelling is not deleting, and that distinction is the point.** `CANCELLED`
  * says the office decided not to do this; a soft delete says the row should stop
- * appearing. `CLAUDE.md` section 30 prefers a state over removal, and cancelling
+ * appearing. `AGENTS.md` section 30 prefers a state over removal, and cancelling
  * is what makes deletion available afterwards without losing the decision.
  *
  * **It answers to `tasks.delete`**, which is the closest canonical capability and

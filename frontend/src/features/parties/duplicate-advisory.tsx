@@ -230,7 +230,7 @@ function CandidateRow({ candidate }: { candidate: DuplicateCandidate }) {
 /**
  * Signal codes, translated for reading.
  *
- * Stable codes travel over the API; only the label is translated (CLAUDE.md
+ * Stable codes travel over the API; only the label is translated (AGENTS.md
  * section 12). An unrecognized code falls back to a generic label rather than
  * throwing — a backend that gains a signal must not blank the panel — and is
  * never printed raw, because a code is not a sentence.

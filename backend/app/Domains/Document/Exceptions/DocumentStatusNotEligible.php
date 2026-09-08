@@ -21,7 +21,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  *
  * The message names the status and the act for logs and developers. The interface
  * shows its own translated explanation keyed off the status code, so no server
- * string reaches a user (`CLAUDE.md` section 48).
+ * string reaches a user (`AGENTS.md` section 48).
  */
 class DocumentStatusNotEligible extends UnprocessableEntityHttpException
 {

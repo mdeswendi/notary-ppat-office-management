@@ -96,7 +96,7 @@ function renderSection() {
 }
 
 /**
- * Presentation tests. The backend is the security boundary (`CLAUDE.md` §51).
+ * Presentation tests. The backend is the security boundary (`AGENTS.md` §51).
  */
 describe("ProjectDeedsSection", () => {
   /**

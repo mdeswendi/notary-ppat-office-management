@@ -251,7 +251,7 @@ class FinancialReportController extends Controller
             ->selectRaw('matters.domain as domain')
             ->selectRaw('service_types.code as service_type_code')
             // Both names, never one: picking a language here would put a
-            // presentation decision in a SQL aggregate (CLAUDE.md sections 6, 10).
+            // presentation decision in a SQL aggregate (AGENTS.md sections 6, 10).
             ->selectRaw('service_types.name_id as service_type_name_id')
             ->selectRaw('service_types.name_en as service_type_name_en')
             ->selectRaw('sum(payments.amount) as total_amount')

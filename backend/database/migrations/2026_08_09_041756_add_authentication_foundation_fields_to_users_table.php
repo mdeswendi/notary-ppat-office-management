@@ -20,7 +20,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table): void {
             // Stable locale code, validated in the application layer rather
-            // than pinned by a database enum — see CLAUDE.md section 13.
+            // than pinned by a database enum — see AGENTS.md section 13.
             $table->string('preferred_locale', 5)->default('id');
 
             // Disabled accounts must not be able to authenticate.

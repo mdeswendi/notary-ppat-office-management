@@ -17,7 +17,7 @@ import { WorkloadWidget } from "@/features/dashboard/workload-widget";
  * ## There is no role check here, and there is no layout variant
  *
  * The M8.1 brief specified two layouts — one for staff, another for
- * principal/manager. That would be role-name branching, which `CLAUDE.md` §27 and
+ * principal/manager. That would be role-name branching, which `AGENTS.md` §27 and
  * D-048 rule out, and it would also be brittle: who holds which role is
  * configuration an office changes.
  *

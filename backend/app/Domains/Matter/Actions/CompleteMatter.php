@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\DB;
  * D-091). Completing an already-completed Matter succeeds and re-stamps the time;
  * a cancelled Matter may be completed. Which status may follow which is an
  * operational rule no canonical document defines, and encoding one from memory is
- * the failure `CLAUDE.md` section 62 prohibits one domain removed. M4 authorizes
+ * the failure `AGENTS.md` section 62 prohibits one domain removed. M4 authorizes
  * *who* may complete; the office decides *what* completing means.
  *
  * **Completion is not gated by a workflow, and it carries one with it**

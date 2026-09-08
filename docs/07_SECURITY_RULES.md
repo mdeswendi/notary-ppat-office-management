@@ -913,7 +913,7 @@ Do not install unnecessary packages suggested by AI without checking their need 
 
 ## 43. AI Coding Rule
 
-Claude or any coding assistant must not:
+Any coding assistant must not:
 
 - disable authorization;
 - expose private files;

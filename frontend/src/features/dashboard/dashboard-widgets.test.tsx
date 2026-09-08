@@ -93,7 +93,7 @@ describe("StatsCards", () => {
     renderWithProviders(<StatsCards />);
 
     // A bilingual, generic message — no raw server text ever reaches a user
-    // (CLAUDE.md §48).
+    // (AGENTS.md §48).
     expect(await screen.findByText("dashboard.panelUnavailable")).toBeInTheDocument();
     expect(screen.queryByText(/SQLSTATE/)).not.toBeInTheDocument();
   });
@@ -129,7 +129,7 @@ describe("WorkloadWidget", () => {
     expect(await screen.findByText("Rina")).toBeInTheDocument();
 
     // The counts reach the message layer as text beside the bar, so a reader who
-    // cannot see the bar loses nothing (CLAUDE.md §49). The setup mock returns
+    // cannot see the bar loses nothing (AGENTS.md §49). The setup mock returns
     // the key rather than the rendered sentence, so the key is what is asserted —
     // pinning that the component asked for the right message, and leaving the
     // wording to translators.

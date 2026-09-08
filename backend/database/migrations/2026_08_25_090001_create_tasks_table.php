@@ -79,7 +79,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
 
-            // Stable machine codes, never translated labels (CLAUDE.md section
+            // Stable machine codes, never translated labels (AGENTS.md section
             // 12). CHECK-constrained below rather than a PostgreSQL native ENUM,
             // per section 13.
             $table->string('status', 30)->default(TaskStatus::OPEN->value);

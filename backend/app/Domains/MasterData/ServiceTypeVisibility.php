@@ -105,7 +105,7 @@ class ServiceTypeVisibility
      * Inactive Service Types are reached normally. `is_active` is a catalogue
      * availability flag, not a visibility rule: somebody administering the
      * catalogue must be able to see what they retired, and a record referencing a
-     * retired service must stay readable (CLAUDE.md section 63).
+     * retired service must stay readable (AGENTS.md section 63).
      */
     public function permits(User $actor, EffectiveAccess $access, ServiceType $serviceType): bool
     {

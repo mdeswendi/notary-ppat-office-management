@@ -27,14 +27,14 @@ use Illuminate\Support\Facades\Schema;
  * The M6.1 rulings, on the same sources. `locked_at` appears in the canonical list and
  * `locked_by` does not; adding an actor would assert that somebody performs a locking
  * act, which is open question nine. `deleted_at` is omitted by the ERD, section 33
- * prefers states over destructive deletion for finalized legal records, `CLAUDE.md`
+ * prefers states over destructive deletion for finalized legal records, `AGENTS.md`
  * section 30 forbids user-facing hard delete of Deeds, and **no `ppat.deeds.delete`
  * capability exists** — verified against the live registry.
  *
  * ## The status vocabulary is a decision, not a transcription
  *
  * **`ppat_deeds` has no status vocabulary in the ERD**, where `notary_deeds` lists
- * six. M7 adopts the same six on `CLAUDE.md` section 29's authority — it states
+ * six. M7 adopts the same six on `AGENTS.md` section 29's authority — it states
  * `DRAFT → UNDER_REVIEW → APPROVED → FINALIZED → LOCKED` as the legal-record lifecycle
  * generally — so the two domains answer the same question the same way.
  *

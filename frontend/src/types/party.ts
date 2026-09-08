@@ -2,7 +2,7 @@ import type { CompanyEntityType } from "@/types/company";
 
 /**
  * The two Party subtypes. Stable codes mirroring the backend enum; the interface
- * translates them for display and never sends a label (CLAUDE.md section 12).
+ * translates them for display and never sends a label (AGENTS.md section 12).
  */
 export const PARTY_TYPES = ["INDIVIDUAL", "COMPANY"] as const;
 

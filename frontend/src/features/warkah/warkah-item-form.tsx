@@ -20,7 +20,7 @@ import { addWarkahItem, warkahKeys } from "@/services/warkah";
  *
  * There is no "generate the standard items for this deed type" control, and building
  * one would answer open question three — *"what is the mandatory Warkah composition per
- * deed type?"* — which `CLAUDE.md` section 62 names among the things not to invent. No
+ * deed type?"* — which `AGENTS.md` section 62 names among the things not to invent. No
  * requirement template drives this (D-104); every line is one somebody typed.
  *
  * **`requirement_code` is optional**, which inverts the M7.4 brief. It refers to no
@@ -30,7 +30,7 @@ import { addWarkahItem, warkahKeys } from "@/services/warkah";
  * ## Both titles are required, and there is no status field
  *
  * `title_id` and `title_en` are **bilingual database fields**, not UI strings
- * (`CLAUDE.md` section 10) — a line with one language filled in renders blank for half
+ * (`AGENTS.md` section 10) — a line with one language filled in renders blank for half
  * the office.
  *
  * **No status control exists**, and that is not an omission. The brief specified

@@ -410,7 +410,7 @@ it('keeps sensitivity out of the visibility query', function (): void {
 
 it('keeps an archived document reachable', function (): void {
     // Somebody must be able to read what the office archived, and a record
-    // referencing an archived document must stay readable (CLAUDE.md section 63).
+    // referencing an archived document must stay readable (AGENTS.md section 63).
     [$actor, $office] = documentActor(['documents.view']);
 
     $archived = Document::factory()->inOffice($office)->archived($actor)->create();

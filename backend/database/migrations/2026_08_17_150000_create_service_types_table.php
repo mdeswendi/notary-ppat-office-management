@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Schema;
  * whole surface. The `offices` migration set this precedent in the same words:
  * retirement uses `is_active`. It is also the only choice that survives M4.2: a
  * Matter that referenced a deleted Service Type would lose the classification a
- * historical record depends on, which CLAUDE.md section 63 forbids.
+ * historical record depends on, which AGENTS.md section 63 forbids.
  *
  * Deliberately absent, each for a stated reason:
  *
@@ -78,14 +78,14 @@ return new class extends Migration
             // rather than filled from memory.
             $table->string('code');
 
-            // Stable machine codes, never translated labels (CLAUDE.md section
+            // Stable machine codes, never translated labels (AGENTS.md section
             // 12). Required and immutable: a Service Type belongs to exactly one
             // domain, and flipping it after Matters reference it would silently
             // reclassify work.
             $table->string('domain', 20);
 
             // The first bilingual columns in this schema, sanctioned by
-            // CLAUDE.md section 10 and `05_I18N_LEGAL_TERMINOLOGY.md` section 3
+            // AGENTS.md section 10 and `05_I18N_LEGAL_TERMINOLOGY.md` section 3
             // for dynamic master content. Both are required: a catalogue entry
             // that cannot be displayed in one of the two supported locales is
             // incomplete, and falling back silently would hide that.
@@ -148,7 +148,7 @@ return new class extends Migration
         });
 
         // Only canonical codes are storable. A CHECK rather than a PostgreSQL
-        // native ENUM, per CLAUDE.md section 13 — the enum lives in PHP, and the
+        // native ENUM, per AGENTS.md section 13 — the enum lives in PHP, and the
         // database refuses anything the enum does not name.
         $connection = Schema::getConnection();
 

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  *
  * **Issuing is the finalization act.** After it `invoices.update` refuses the
  * row and its lines, its figures are preserved, and the only remaining act is
- * `cancel` — `CLAUDE.md` section 64 applied to a commercial record rather than a
+ * `cancel` — `AGENTS.md` section 64 applied to a commercial record rather than a
  * legal one, for the same reason: somebody outside the office has now seen it.
  *
  * **An invoice with no lines cannot be issued.** A bill for nothing is not a

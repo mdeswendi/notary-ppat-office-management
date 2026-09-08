@@ -30,7 +30,7 @@ describe("MatterStatusBadge", () => {
   });
 
   it("does not rely on colour alone to convey the status", () => {
-    // CLAUDE.md section 49. The text carries the meaning; the tint is decoration,
+    // AGENTS.md section 49. The text carries the meaning; the tint is decoration,
     // and the aria-label names the field as well as the value.
     render(<MatterStatusBadge status="COMPLETED" />);
 

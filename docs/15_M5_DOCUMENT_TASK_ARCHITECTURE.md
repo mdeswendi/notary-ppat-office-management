@@ -125,7 +125,7 @@ the authorization chain entirely**: no Policy, no `EffectiveAccessResolver`, no 
 distinction between `documents.download` and `documents.sensitive.download`. Anyone holding the
 string holds the file.
 
-For KTP, NPWP, Minuta Akta and Warkah that is precisely what `CLAUDE.md` section 21 forbids —
+For KTP, NPWP, Minuta Akta and Warkah that is precisely what `AGENTS.md` section 21 forbids —
 *"authorization protected"*, *"unavailable through predictable public URLs"* — and section 54's
 *"never expose private document URLs"*.
 
@@ -160,7 +160,7 @@ Office boundary the database enforces.
 
 ## 6. Versioning
 
-Transcribed from `CLAUDE.md` sections 19 and 20, and `03_DATABASE_ERD.md` section 13:
+Transcribed from `AGENTS.md` sections 19 and 20, and `03_DATABASE_ERD.md` section 13:
 
 ```text
 documents          identity, classification, state
@@ -259,7 +259,7 @@ and a document must never become unreachable because something it was attached t
 
 ## 8. Audit: required, absent, and not improvised
 
-`CLAUDE.md` section 21 requires sensitive files to be *"audited where appropriate"*. **No audit store
+`AGENTS.md` section 21 requires sensitive files to be *"audited where appropriate"*. **No audit store
 exists.** `audit_logs` has never been built, D-033 kept it out of M1 on the batch-7 ordering, and
 `audit.view` / `audit.export` are registered and unimplemented.
 

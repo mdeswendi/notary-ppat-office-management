@@ -21,7 +21,7 @@ use RuntimeException;
  * `description_key` names a translation key; `metadata` carries what that key
  * interpolates — a title, a reference number, a stage name. It is subject to the
  * same denylist as the audit trail: never a NIK, never an NPWP, never a filename
- * that might carry one (`CLAUDE.md` section 32, D-105).
+ * that might carry one (`AGENTS.md` section 32, D-105).
  *
  * Because the values here are chosen explicitly at each call site rather than
  * swept from a model's attributes, the risk is different from the audit

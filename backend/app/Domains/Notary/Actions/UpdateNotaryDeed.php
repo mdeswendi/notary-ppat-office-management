@@ -15,14 +15,14 @@ use App\Models\User;
  * answer to their own capability, so mass assignment cannot reach any of them.
  *
  * **Editable up to and including `APPROVED`.** That is the literal reading of
- * `CLAUDE.md` section 29, which denies normal updates *once finalized or locked* and
+ * `AGENTS.md` section 29, which denies normal updates *once finalized or locked* and
  * says nothing about approval — and it is what {@see NotaryDeedStatus::isEditable()}
  * recorded at M6.1.
  *
  * The M6.2 brief asked for `DRAFT` or `UNDER_REVIEW` only. That narrower rule —
  * approval freezes the content — is the more familiar one and is deliberately **not**
  * encoded, because no canonical document states it: it is an approval requirement,
- * which `CLAUDE.md` section 62 forbids inventing, and *"which stages require
+ * which `AGENTS.md` section 62 forbids inventing, and *"which stages require
  * Principal approval rather than staff completion?"* is open question three. An
  * office that works that way enforces it as practice until somebody writes it down.
  */

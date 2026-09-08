@@ -55,7 +55,7 @@ use App\Models\User;
  * There is **no `delete`, no `lock`, and no `void`**, because there is no
  * `notary.deeds.delete`, `notary.deeds.lock` or `notary.deeds.void` in the canonical
  * catalogue — verified against the registry at M6.0 — and no documented rule
- * describing any of the three acts. `CLAUDE.md` section 29 requires that correction
+ * describing any of the three acts. `AGENTS.md` section 29 requires that correction
  * mechanisms *"follow documented business rules"*; none exist.
  *
  * ## What is decided here and what is decided in the Actions
@@ -65,7 +65,7 @@ use App\Models\User;
  * succeed on a deed in a different state.
  *
  * The one exception is `update`, where the read-only rule is *also* reflected here,
- * so no interface offers an edit control on a finalized deed. `CLAUDE.md` sections 29
+ * so no interface offers an edit control on a finalized deed. `AGENTS.md` sections 29
  * and 64 make that a property of the record rather than of the request.
  */
 class NotaryDeedPolicy
@@ -144,7 +144,7 @@ class NotaryDeedPolicy
      * May the actor edit this deed's own fields?
      *
      * **A finalized deed is read-only**, and that is checked here rather than only in
-     * the Action, so no interface offers a control that cannot work. `CLAUDE.md`
+     * the Action, so no interface offers a control that cannot work. `AGENTS.md`
      * section 29: *"Once finalized/locked: normal update = denied."*
      */
     public function update(User $actor, NotaryDeed $deed): bool

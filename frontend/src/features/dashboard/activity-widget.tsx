@@ -22,7 +22,7 @@ import type { ActivityItem } from "@/types/dashboard";
  *
  * The server sends `activity.types.DEED_APPROVED` and its interpolation values,
  * never a rendered sentence — choosing the language belongs to the client in a
- * bilingual product (`CLAUDE.md` §6). An unknown type falls back to the raw code
+ * bilingual product (`AGENTS.md` §6). An unknown type falls back to the raw code
  * rather than throwing, so a server that learns a new event before the frontend
  * does degrades to something readable.
  */

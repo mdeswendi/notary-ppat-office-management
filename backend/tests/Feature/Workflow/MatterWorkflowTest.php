@@ -159,7 +159,7 @@ it('creates the three running-workflow tables', function (): void {
 
 it('keeps history append-only in the schema', function (): void {
     // No `updated_at` to bump and no `deleted_at` to set, matching a table
-    // nothing may edit (D-104, CLAUDE.md section 31).
+    // nothing may edit (D-104, AGENTS.md section 31).
     expect(Schema::hasColumn('matter_stage_history', 'updated_at'))->toBeFalse()
         ->and(Schema::hasColumn('matter_stage_history', 'deleted_at'))->toBeFalse();
 });
@@ -278,7 +278,7 @@ it('records the opening transition with no origin', function (): void {
 });
 
 it('snapshots the stage names rather than referencing them', function (): void {
-    // The requirement of CLAUDE.md section 18: editing a template must not
+    // The requirement of AGENTS.md section 18: editing a template must not
     // retroactively change a Matter already running.
     [$actor, $office] = stageActor(stageCapabilities());
     $template = stageTemplate($office, 2);
@@ -650,7 +650,7 @@ it('refuses a move on a matter with no workflow', function (): void {
 
 it('never touches matter status when a stage moves', function (): void {
     // Matter Status and Workflow Stage are separate concepts and must not be
-    // merged (CLAUDE.md section 18, D-104).
+    // merged (AGENTS.md section 18, D-104).
     [$actor, $office] = stageActor(stageCapabilities());
     stageTemplate($office);
     $matter = stageMatter($actor, $office);

@@ -54,7 +54,7 @@ use Illuminate\Validation\ValidationException;
  *
  * The prefix is `/ppat/matters/{matter}/properties`, so the namespace this authorizes
  * through is fixed by the address rather than by the record (D-101). There is no
- * `/notary/…` counterpart: `CLAUDE.md` section 16 lists Property among the
+ * `/notary/…` counterpart: `AGENTS.md` section 16 lists Property among the
  * PPAT-specific concepts, and a Notary Matter naming land would be a claim about
  * Notary practice nobody here may make. The junction is domain-agnostic in the schema,
  * which is the ERD's business; only PPAT reaches it.

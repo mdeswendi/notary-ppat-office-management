@@ -19,7 +19,7 @@ use RuntimeException;
  *
  * **A Document is not a file.** The bytes live on {@see DocumentVersion}; this
  * carries identity, classification and state. That separation is what makes
- * "never overwrite a version" (`CLAUDE.md` section 19) expressible at all.
+ * "never overwrite a version" (`AGENTS.md` section 19) expressible at all.
  *
  * **`office_id` is immutable**, following `ServiceType` and `WorkflowTemplate`:
  * it is the security boundary and the `OFFICE` scope predicate, and moving a
@@ -44,10 +44,10 @@ use RuntimeException;
  * deletable, so nothing anybody has verified can be removed. See
  * {@see DocumentStatus::isDeletable()}.
  *
- * **Archiving is a state, not a deletion**, and `CLAUDE.md` section 30 prefers it
+ * **Archiving is a state, not a deletion**, and `AGENTS.md` section 30 prefers it
  * for legal records. `archived_at` / `archived_by` are set by archiving and an
  * archived Document stays fully readable — somebody must be able to read what the
- * office put away (`CLAUDE.md` section 63).
+ * office put away (`AGENTS.md` section 63).
  */
 #[Fillable([
     'document_type_code',

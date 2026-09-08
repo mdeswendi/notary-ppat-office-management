@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  *
  * A panel that shouts about its own error beside five working ones is worse than
  * one that says it has nothing. The message is bilingual and generic — no raw
- * server text ever reaches a user (`CLAUDE.md` §48).
+ * server text ever reaches a user (`AGENTS.md` §48).
  */
 export function DashboardPanel({
   title,

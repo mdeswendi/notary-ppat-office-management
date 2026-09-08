@@ -44,7 +44,7 @@ enum QuotationStatus: string
      * May an ordinary edit still change this quotation?
      *
      * **`DRAFT` only.** Approving is the finalization act: the figures have been
-     * agreed, and `CLAUDE.md` section 64's discipline for finalized records
+     * agreed, and `AGENTS.md` section 64's discipline for finalized records
      * applies — the row displays read-only and its values are preserved.
      */
     public function isEditable(): bool

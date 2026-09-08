@@ -6,7 +6,7 @@ namespace App\Domains\MasterData\Enums;
  * Which business domain a Service Type belongs to.
  *
  * Transcribed exactly from `03_DATABASE_ERD.md` section 8 — stable machine
- * codes, never translated labels (CLAUDE.md section 12). Nothing is added and
+ * codes, never translated labels (AGENTS.md section 12). Nothing is added and
  * nothing is renamed.
  *
  * **A Service Type belongs to exactly one domain.** There is no `BOTH`, no
@@ -24,7 +24,7 @@ namespace App\Domains\MasterData\Enums;
  * do is worth a test when Matter exists.
  *
  * Notary and PPAT are separate business domains sharing common infrastructure
- * (CLAUDE.md section 16). Nothing here implies a legal rule about either: the
+ * (AGENTS.md section 16). Nothing here implies a legal rule about either: the
  * *content* of each domain's catalogue is unvalidated and deliberately empty
  * (D-102).
  */

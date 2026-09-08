@@ -39,7 +39,7 @@ use RuntimeException;
  * surface, so nothing sets it except a factory state and a test.
  *
  * **A record referencing an inactive Service Type keeps its reference.** Inactive
- * means unavailable for new selection, never erased from history (CLAUDE.md
+ * means unavailable for new selection, never erased from history (AGENTS.md
  * section 63) — which is also why deletion is not the retirement strategy and why
  * M4.2's `matters.service_type_id` must never be designed as `SET NULL`.
  *

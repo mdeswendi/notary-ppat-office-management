@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  *
  * The message names the status and the act for logs and developers. The interface
  * shows its own translated explanation, so no server string reaches a user
- * (`CLAUDE.md` section 48).
+ * (`AGENTS.md` section 48).
  */
 class DeedStatusNotEligible extends UnprocessableEntityHttpException
 {

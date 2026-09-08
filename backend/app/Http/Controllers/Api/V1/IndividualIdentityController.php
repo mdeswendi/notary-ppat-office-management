@@ -102,7 +102,7 @@ class IndividualIdentityController extends Controller
     {
         // **This was an application `Log::info` until M8.1**, which D-115 named
         // as the stopgap that becomes permanent: not append-only in the sense
-        // `CLAUDE.md` section 31 means, and not queryable by resource. The audit
+        // `AGENTS.md` section 31 means, and not queryable by resource. The audit
         // store now exists, so the record goes where it belongs and the log line
         // is gone rather than duplicated — a second copy of this metadata in a
         // log aggregator is a second place to leak from.

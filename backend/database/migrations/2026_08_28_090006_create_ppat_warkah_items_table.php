@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * ## `title_id` and `title_en` are database fields, not UI strings
  *
- * `CLAUDE.md` section 10 permits bilingual database columns for business data and
+ * `AGENTS.md` section 10 permits bilingual database columns for business data and
  * names exactly this case — the pattern `service_types` uses. They must **not** move
  * to `frontend/messages/`: a Warkah item title is content an office writes, not
  * interface chrome.
@@ -60,7 +60,7 @@ return new class extends Migration
             // Stored, matched against nothing — see the class docblock.
             $table->string('requirement_code', 100)->nullable();
 
-            // Bilingual business data (CLAUDE.md section 10), not UI strings.
+            // Bilingual business data (AGENTS.md section 10), not UI strings.
             $table->string('title_id');
             $table->string('title_en');
 

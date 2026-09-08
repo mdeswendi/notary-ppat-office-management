@@ -12,7 +12,7 @@ use Illuminate\Validation\Validator;
  * enum, no `Rule::in`, no catalogue. `03_DATABASE_ERD.md` section 7 offers six
  * example codes and explicitly labels them examples rather than a catalogue, so
  * constraining the column here would invent the participant-role vocabulary M3
- * has no authority to write (CLAUDE.md section 62). It is nullable because a
+ * has no authority to write (AGENTS.md section 62). It is nullable because a
  * participation may legitimately be recorded before anybody has classified it.
  *
  * **`is_primary` is a designation and carries no cardinality rule.** Nothing

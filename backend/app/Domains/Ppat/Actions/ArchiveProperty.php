@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  *
  * **It destroys nothing.** Every `matter_properties` row, every link in the chain of
  * title and every Warkah line survives, so a Matter that names an archived parcel
- * still resolves it. `CLAUDE.md` section 63 asks exactly that of history.
+ * still resolves it. `AGENTS.md` section 63 asks exactly that of history.
  *
  * **It is not reversible through the product.** There is no `properties.restore` in
  * the catalogue — `projects.restore` exists and this has no counterpart — so M7.3
@@ -50,7 +50,7 @@ use Illuminate\Support\Facades\DB;
  * Archiving is refused while a Matter that has not finished names this Property.
  * Retiring a parcel that live work depends on would leave that work pointing at a
  * record the office has taken out of use, which is ordinary data hygiene — it asserts
- * nothing about land law, tax, registration or any other thing `CLAUDE.md` section 62
+ * nothing about land law, tax, registration or any other thing `AGENTS.md` section 62
  * protects, and it clears by itself as the Matter completes.
  *
  * **The terminal set lives here rather than on `MatterStatus`**, deliberately. D-102

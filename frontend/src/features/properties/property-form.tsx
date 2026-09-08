@@ -34,7 +34,7 @@ import { PROPERTY_TYPES, type Property, type PropertyType } from "@/types/proper
  * typeahead suggestions and anything else is accepted. A `<select>` here would assert
  * that Indonesian land law has six kinds of right, which `11_LEGAL_REFERENCES.md`
  * exists as a statutory register precisely because nobody here may decide
- * (`CLAUDE.md` section 62).
+ * (`AGENTS.md` section 62).
  *
  * ## Three things this form deliberately does not offer
  *
@@ -49,7 +49,7 @@ import { PROPERTY_TYPES, type Property, type PropertyType } from "@/types/proper
  * ## `property_number` is required at creation and immutable afterwards
  *
  * Required, because the office's own reference is how it finds the record again;
- * **office-supplied**, because the ERD gives no format and `CLAUDE.md` section 38 shows
+ * **office-supplied**, because the ERD gives no format and `AGENTS.md` section 38 shows
  * `PROP-000001` without a year, alone among the internal references. No format is
  * validated and none is suggested — the placeholder is deliberately not an example
  * number, for the reason the deed-number field is not either.

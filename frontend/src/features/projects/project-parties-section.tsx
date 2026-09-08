@@ -44,7 +44,7 @@ import type { ProjectParty } from "@/types/project-party";
  * **No legal role dropdown.** `role_code` is a free optional text field because
  * no canonical participant-role vocabulary exists — offering a list of
  * CLIENT / BUYER / SELLER would present an invented catalogue as though it were
- * established (D-092, CLAUDE.md section 62).
+ * established (D-092, AGENTS.md section 62).
  *
  * **A Party is linked only when `can_view_party` says the link would work.** That
  * flag comes from real Party visibility, per subtype, so a name the reader cannot
@@ -145,7 +145,7 @@ function ParticipantRow({
 
           {/* Plain bordered chips, matching ProjectStatusBadge: the text is the
               information and the border is only a boundary, so nothing here
-              relies on colour alone (CLAUDE.md section 49). */}
+              relies on colour alone (AGENTS.md section 49). */}
           {party ? <Chip>{t(`partyTypes.${party.party_type}`)}</Chip> : null}
 
           {participant.is_primary ? <Chip emphasis>{t("primary")}</Chip> : null}

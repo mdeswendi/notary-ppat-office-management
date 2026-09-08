@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Record that a client agreed the price (M8.2, D-124).
  *
  * The only lifecycle act `quotations.*` authorizes. After it the quotation is
- * read-only: `CLAUDE.md` section 64's discipline for finalized records applies,
+ * read-only: `AGENTS.md` section 64's discipline for finalized records applies,
  * because the figures have been agreed with somebody outside the office.
  *
  * **Approving does not create an invoice.** Billing an agreed offer is

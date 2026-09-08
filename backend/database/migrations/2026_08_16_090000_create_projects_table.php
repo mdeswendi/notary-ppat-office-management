@@ -67,7 +67,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
 
-            // Stable codes, never translated labels (CLAUDE.md section 12).
+            // Stable codes, never translated labels (AGENTS.md section 12).
             $table->string('status', 20);
             $table->string('priority', 20)->nullable();
 
@@ -113,7 +113,7 @@ return new class extends Migration
         });
 
         // Only canonical codes are storable. A CHECK rather than a PostgreSQL
-        // native ENUM, per CLAUDE.md section 13 — the enum lives in PHP, and the
+        // native ENUM, per AGENTS.md section 13 — the enum lives in PHP, and the
         // database refuses anything the enum does not name.
         $connection = Schema::getConnection();
 

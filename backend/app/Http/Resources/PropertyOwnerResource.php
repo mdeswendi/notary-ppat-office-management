@@ -13,7 +13,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * **A closed link is not a deleted one.** Every row the office ever recorded appears
  * here, current or ended, because that is what makes this a chain rather than a
- * current state somebody keeps editing (`CLAUDE.md` section 63). `is_current` and
+ * current state somebody keeps editing (`AGENTS.md` section 63). `is_current` and
  * `effective_until` say which is which.
  *
  * **The Party is a stub.** Enough to say who, never a way to read a Party record the

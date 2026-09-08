@@ -43,7 +43,7 @@ describe("Button", () => {
   });
 
   it("keeps an accessible name when it carries only an icon", async () => {
-    // CLAUDE.md section 49: buttons need meaningful labels. The remove controls
+    // AGENTS.md section 49: buttons need meaningful labels. The remove controls
     // in the participation section are icon-only and rely on this.
     render(
       <Button aria-label="Hapus tautan">

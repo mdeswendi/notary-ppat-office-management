@@ -41,7 +41,7 @@ import { COMPANY_ENTITY_TYPES, type Company, type CompanyEntityType } from "@/ty
  * Entity type comes from the options endpoint, falling back to the compiled-in
  * code list if that request has not landed — the codes are stable and mirrored in
  * `types/company.ts`, so the control is never empty. Labels are translated at
- * render time; the value posted is always the code (CLAUDE.md section 12).
+ * render time; the value posted is always the code (AGENTS.md section 12).
  *
  * Office is chosen only on create, from the options endpoint, which returns
  * exactly the Offices this actor may create in — so the dropdown cannot offer a
@@ -414,7 +414,7 @@ export function CompanyForm({ company }: { company?: Company }) {
  *
  * Takes the registration and the message rather than the whole form object,
  * which keeps it fully typed — passing `UseFormReturn` through a generic
- * boundary is where an `any` usually creeps in, and CLAUDE.md section 53 rules
+ * boundary is where an `any` usually creeps in, and AGENTS.md section 53 rules
  * that out.
  */
 function Field({

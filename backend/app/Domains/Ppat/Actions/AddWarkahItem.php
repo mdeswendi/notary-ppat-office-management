@@ -21,11 +21,11 @@ use Illuminate\Support\Facades\DB;
  *
  * So there is no "generate the standard items for this deed type" path, and building
  * one would answer open question three — *"what is the mandatory Warkah composition
- * per deed type?"* — which `CLAUDE.md` section 62 names among the things not to
+ * per deed type?"* — which `AGENTS.md` section 62 names among the things not to
  * invent. Every line here is one an office typed.
  *
  * **`title_id` and `title_en` are both required**, because they are bilingual
- * *database* fields rather than UI strings (`CLAUDE.md` section 10, the pattern
+ * *database* fields rather than UI strings (`AGENTS.md` section 10, the pattern
  * `service_types` uses). A line with one language filled in is a line that renders
  * blank for half the office.
  *

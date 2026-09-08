@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * a counter on a single template row (D-111), so the foreign key says *which*
  * template and this says *which iteration of it*. The stage instances carry the
  * content of that iteration, so editing the template afterwards changes nothing
- * here — which is exactly what `CLAUDE.md` section 18 requires.
+ * here — which is exactly what `AGENTS.md` section 18 requires.
  *
  * **Nothing here is fillable.** Every column is decided by the instantiating
  * action or by completing the Matter; none is ever a request field.

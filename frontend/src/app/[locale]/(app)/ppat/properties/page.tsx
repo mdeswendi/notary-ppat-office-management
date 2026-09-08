@@ -11,7 +11,7 @@ import { PropertiesList } from "@/features/properties/properties-list";
  * applies. `properties.view` at a usable scope is enforced by the API, which remains the
  * security boundary regardless of what navigation shows.
  *
- * **The page is under `/ppat/` and the API is not.** `CLAUDE.md` section 16 lists
+ * **The page is under `/ppat/` and the API is not.** `AGENTS.md` section 16 lists
  * Property among the PPAT-specific concepts, which is why this sits in the PPAT group;
  * the canonical capability family is `properties.*` with no `ppat.` prefix, which is why
  * the endpoint is `/api/v1/properties`. A page path is not a permission namespace, so

@@ -128,7 +128,7 @@ it('spells the apartment code as the ERD does', function (): void {
 
 it('leaves right_type open, because the ERD says codes may be used for example', function (): void {
     // Constraining it to five would assert Indonesian land law has five kinds of
-    // right (D-121, CLAUDE.md section 62).
+    // right (D-121, AGENTS.md section 62).
     $property = Property::factory()->rightType('SESUATU_YANG_LAIN')->create();
 
     expect($property->fresh()->right_type)->toBe('SESUATU_YANG_LAIN')
@@ -357,7 +357,7 @@ it('allows several current owners of one property', function (): void {
 
 it('enforces no percentage sum', function (): void {
     // Whether shares must total 100 is a rule about Indonesian co-ownership
-    // (CLAUDE.md section 62). The column stores what the office records.
+    // (AGENTS.md section 62). The column stores what the office records.
     $property = Property::factory()->create();
 
     PropertyOwner::factory()->forProperty($property)->share('70.00')->create();
@@ -394,7 +394,7 @@ it('refuses a row that has ended yet claims to be current', function (): void {
 });
 
 it('closes a link rather than rewriting it', function (): void {
-    // History is added, never overwritten (CLAUDE.md section 63).
+    // History is added, never overwritten (AGENTS.md section 63).
     $owner = PropertyOwner::factory()->create();
 
     expect(fn () => $owner->forceFill(['party_id' => Party::factory()->create()->getKey()])->save())

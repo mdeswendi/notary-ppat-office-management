@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Schema;
  * against no format.**
  *
  * *"What are the deed numbering rules, and who assigns the number?"* is open
- * question one in `08_NOTARY_WORKFLOW.md` section 6, and `CLAUDE.md` section 62
+ * question one in `08_NOTARY_WORKFLOW.md` section 6, and `AGENTS.md` section 62
  * names deed numbering rules explicitly among the things not to invent. So:
  *
  * - **No format.** `{deed_type_code}/{register_number}/{year}` is the M6 brief's
@@ -70,7 +70,7 @@ use Illuminate\Support\Facades\Schema;
  * **`deleted_at` is not added, and there is no soft delete.** Four canonical sources
  * agree: the ERD omits the column; section 33 says finalized legal records
  * *"should generally use states such as ARCHIVED, VOID, SUPERSEDED, CANCELLED rather
- * than destructive deletion"*; `CLAUDE.md` section 30 forbids user-facing hard delete
+ * than destructive deletion"*; `AGENTS.md` section 30 forbids user-facing hard delete
  * for finalized Deeds outright; and **no `notary.deeds.delete` capability exists** to
  * authorize one.
  *
@@ -119,7 +119,7 @@ return new class extends Migration
 
             $table->string('title');
 
-            // Stable machine codes, never translated labels (CLAUDE.md section 12).
+            // Stable machine codes, never translated labels (AGENTS.md section 12).
             // CHECK-constrained below rather than a PostgreSQL native ENUM, per
             // section 13.
             $table->string('status', 20)->default(NotaryDeedStatus::DRAFT->value);

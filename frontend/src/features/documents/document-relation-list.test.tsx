@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 
 /**
- * **Presentation tests.** The backend is the security boundary (`CLAUDE.md` §28):
+ * **Presentation tests.** The backend is the security boundary (`AGENTS.md` §28):
  * a passing assertion here never means an endpoint is authorized. What they pin is
  * that a control the actor may not use is *absent*, and that a link points where
  * the record actually lives.

@@ -133,7 +133,7 @@ class NotaryDeedFactory extends Factory
     }
 
     /**
-     * Finalized — and therefore read-only (`CLAUDE.md` sections 29 and 64).
+     * Finalized — and therefore read-only (`AGENTS.md` sections 29 and 64).
      *
      * Builds on `approved()` so the earlier pairs are present too: a deed that was
      * finalized without ever having been approved is a row no code path produces.

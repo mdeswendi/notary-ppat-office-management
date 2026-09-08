@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * Document Management (M5.2, D-117).
  *
- * Thin (`CLAUDE.md` section 35): authorize, take validated input, call an Action,
+ * Thin (`AGENTS.md` section 35): authorize, take validated input, call an Action,
  * return a Resource. Scope rules live in {@see DocumentVisibility}, status rules
  * in {@see DocumentStatus}, and mutation rules in the Actions, where all three can
  * be read and tested without HTTP.

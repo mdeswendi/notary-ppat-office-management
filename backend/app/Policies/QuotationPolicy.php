@@ -65,7 +65,7 @@ class QuotationPolicy
      * May the actor correct this Quotation, or its lines?
      *
      * **`DRAFT` only.** Approving is the finalization act: the figures have been
-     * agreed with a client, so `CLAUDE.md` section 64's discipline applies and
+     * agreed with a client, so `AGENTS.md` section 64's discipline applies and
      * the row displays read-only from then on.
      *
      * This governs the line items too — editing what a quotation offers is

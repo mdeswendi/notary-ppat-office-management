@@ -993,7 +993,7 @@ describe('DemoDataSeeder — Notary Deeds (Task 3A)', function () {
         // checks" — a different, unprivileged user in the very same office
         // is refused by the production Policy the same way a real Controller
         // would refuse them, even though DemoDataSeeder itself never calls
-        // this Policy for its own Actions (CLAUDE.md §35 — the Action trusts
+        // this Policy for its own Actions (AGENTS.md §35 — the Action trusts
         // its caller already authorized).
         app(DemoDataSeeder::class)->seed(DEMO_PRIMARY_PASSWORD);
 

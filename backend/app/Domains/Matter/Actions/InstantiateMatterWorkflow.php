@@ -54,7 +54,7 @@ use Illuminate\Support\Facades\Date;
  *
  * Every stage copies `stage_code`, both names, and `sequence_no` at this moment.
  * Editing the template afterwards changes nothing already running — the
- * requirement of `CLAUDE.md` section 18, and the reason
+ * requirement of `AGENTS.md` section 18, and the reason
  * `matter_stage_instances.workflow_stage_id` is `RESTRICT` rather than `CASCADE`.
  *
  * The first stage becomes `ACTIVE` and is stamped `started_at`; the rest are

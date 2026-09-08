@@ -10,7 +10,7 @@ use App\Models\User;
  * Correct a Document's metadata (M5.2, D-117).
  *
  * **Metadata only, never the file.** A correction to the bytes is a new version;
- * `CLAUDE.md` section 19 forbids overwriting one, and `DocumentVersion` refuses
+ * `AGENTS.md` section 19 forbids overwriting one, and `DocumentVersion` refuses
  * `update` outright. This action cannot reach a version at all.
  *
  * **Five ordinary fields plus one guarded one.** `title`, `document_type_code`,

@@ -48,7 +48,7 @@ it('publishes exactly the canonical matter status vocabulary', function (): void
 it('defines no transition logic on the status enum', function (): void {
     // D-102, following D-091: M4 authorizes who may change status, never which
     // change is legal. A `canTransitionTo()` from memory would be the failure
-    // CLAUDE.md section 62 prohibits.
+    // AGENTS.md section 62 prohibits.
     $methods = array_map(
         fn (ReflectionMethod $method): string => $method->getName(),
         (new ReflectionClass(MatterStatus::class))->getMethods(),
