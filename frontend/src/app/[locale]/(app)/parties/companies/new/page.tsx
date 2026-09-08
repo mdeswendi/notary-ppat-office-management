@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompanyForm } from "@/features/companies/company-form";
@@ -19,7 +20,11 @@ export default async function NewCompanyPage({ params }: { params: Promise<{ loc
 
   return (
     <PageContainer>
-      <PageHeader title={t("createTitle")} description={t("createDescription")} />
+      <PageHeader
+        title={t("createTitle")}
+        description={t("createDescription")}
+        breadcrumb={<PageBackLink href="/parties/companies" />}
+      />
 
       <CompanyForm />
     </PageContainer>

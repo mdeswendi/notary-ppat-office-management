@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { RolePermissionMatrix } from "@/features/permissions/role-permission-matrix";
@@ -32,7 +33,11 @@ export default async function RolePermissionsPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("title")} description={t("subtitle")} />
+      <PageHeader
+        title={t("title")}
+        description={t("subtitle")}
+        breadcrumb={<PageBackLink href="/settings/roles" />}
+      />
 
       <RolePermissionMatrix roleId={roleId} />
     </PageContainer>

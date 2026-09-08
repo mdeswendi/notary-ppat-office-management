@@ -2,6 +2,7 @@
   "common": {
     "appName": "Notary & PPAT Office Management System",
     "officeLabel": "Notary & PPAT Office",
+    "back": "Back",
     "foundationNotice": "Application foundation is ready. Business modules are not available yet.",
     "loading": "Loading...",
     "language": "Language",

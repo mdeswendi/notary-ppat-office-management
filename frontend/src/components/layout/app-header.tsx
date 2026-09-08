@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { Link } from "@/i18n/navigation";
 import type { CurrentUser } from "@/types/auth";
 
 /**
@@ -38,15 +39,24 @@ import type { CurrentUser } from "@/types/auth";
  * The application name remains the fallback, because `office` is genuinely
  * nullable — the backend sends `null` when the relation was not loaded — and a
  * blank header would be worse than a generic one.
+ * The mark and name link to Dashboard, giving every viewport a persistent home
+ * route without adding another header control.
  */
 export async function AppHeader({ user }: { user: CurrentUser }) {
-  const t = await getTranslations("common");
+  const [t, tNavigation] = await Promise.all([
+    getTranslations("common"),
+    getTranslations("navigation"),
+  ]);
 
   return (
     <header className="bg-card border-border flex h-14 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
       <MobileNav user={user} />
 
-      <div className="flex min-w-0 items-center gap-2.5">
+      <Link
+        href="/dashboard"
+        aria-label={tNavigation("dashboard")}
+        className="focus-visible:ring-ring flex min-w-0 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      >
         <span
           aria-hidden="true"
           className="bg-primary text-primary-foreground grid size-7 shrink-0 place-items-center rounded-md"
@@ -56,7 +66,7 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
         <span className="truncate text-sm font-semibold tracking-tight">
           {user.office?.name ?? t("appName")}
         </span>
-      </div>
+      </Link>
 
       <div className="ml-auto flex items-center gap-2">
         <LocaleSwitcher />

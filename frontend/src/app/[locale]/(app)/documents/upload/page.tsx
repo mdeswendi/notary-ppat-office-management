@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { DocumentUploadForm } from "@/features/documents/document-upload-form";
@@ -22,7 +23,11 @@ export default async function UploadDocumentPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("uploadTitle")} description={t("uploadSubtitle")} />
+      <PageHeader
+        title={t("uploadTitle")}
+        description={t("uploadSubtitle")}
+        breadcrumb={<PageBackLink href="/documents" />}
+      />
 
       <DocumentUploadForm />
     </PageContainer>

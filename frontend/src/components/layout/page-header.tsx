@@ -19,7 +19,7 @@ type PageHeaderProps = {
    */
   actions?: ReactNode;
 
-  /** Section 12's breadcrumb line. Nothing supplies one yet. */
+  /** Section 12's context line, typically a `PageBackLink` on secondary routes. */
   breadcrumb?: ReactNode;
 
   className?: string;

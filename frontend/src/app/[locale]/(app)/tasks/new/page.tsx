@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { TaskForm } from "@/features/tasks/task-form";
@@ -29,7 +30,11 @@ export default async function NewTaskPage({
 
   return (
     <PageContainer>
-      <PageHeader title={t("newTask")} description={t("newTaskSubtitle")} />
+      <PageHeader
+        title={t("newTask")}
+        description={t("newTaskSubtitle")}
+        breadcrumb={<PageBackLink href="/tasks" />}
+      />
 
       <TaskForm projectId={projectId} matterId={matterId} />
     </PageContainer>

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +38,11 @@ export default function EditPropertyPage({ params }: { params: Promise<{ id: str
 
   return (
     <PageContainer>
-      <PageHeader title={t("editProperty")} description={t("editPropertySubtitle")} />
+      <PageHeader
+        title={t("editProperty")}
+        description={t("editPropertySubtitle")}
+        breadcrumb={<PageBackLink href={`/ppat/properties/${id}`} />}
+      />
 
       {query.isPending ? (
         <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
