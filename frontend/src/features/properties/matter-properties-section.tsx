@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,21 +143,24 @@ export function MatterPropertiesSection({ matterId }: { matterId: string }) {
                 <PropertyRoleBadge code={property.role_code} />
 
                 {canManage ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t("detach")}
-                    disabled={detach.isPending}
-                    onClick={() => {
-                      setError(null);
-
-                      if (window.confirm(t("detachConfirm"))) {
-                        detach.mutate(property.id);
-                      }
-                    }}
-                  >
-                    <Trash2 aria-hidden="true" className="size-4" />
-                  </Button>
+                  <ConfirmDialog
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("detach")}
+                        disabled={detach.isPending}
+                        onClick={() => setError(null)}
+                      >
+                        <Trash2 aria-hidden="true" className="size-4" />
+                      </Button>
+                    }
+                    title={t("detach")}
+                    description={t("detachConfirm")}
+                    cancelLabel={tActions("cancel")}
+                    confirmLabel={t("detach")}
+                    onConfirm={() => detach.mutateAsync(property.id)}
+                  />
                 ) : null}
               </div>
             </li>

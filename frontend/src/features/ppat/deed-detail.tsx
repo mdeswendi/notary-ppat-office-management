@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,22 +165,18 @@ export function PpatDeedDetail({ deedId }: { deedId: string }) {
               ) : null}
 
               {deed.can_finalize ? (
-                <Button
-                  variant="outline"
-                  disabled={finalize.isPending}
-                  onClick={() => {
-                    setActionError(null);
-
-                    // Finalizing makes the record read-only and nothing in the product
-                    // reverses it — there is no correction mechanism (D-121) — so it is
-                    // confirmed rather than one click.
-                    if (window.confirm(t("finalizeConfirm"))) {
-                      finalize.mutate();
-                    }
-                  }}
-                >
-                  {t("finalize")}
-                </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="outline" onClick={() => setActionError(null)}>
+                      {t("finalize")}
+                    </Button>
+                  }
+                  title={t("finalize")}
+                  description={t("finalizeConfirm")}
+                  cancelLabel={tActions("cancel")}
+                  confirmLabel={t("finalize")}
+                  onConfirm={() => finalize.mutateAsync()}
+                />
               ) : null}
             </>
           ) : undefined

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Paperclip, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,21 +139,24 @@ export function WarkahItemDocuments({ deedId, item }: { deedId: string; item: Wa
               </div>
 
               {item.can_upload ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={t("detach")}
-                  disabled={detach.isPending}
-                  onClick={() => {
-                    setError(null);
-
-                    if (window.confirm(t("detachConfirm"))) {
-                      detach.mutate(document.id);
-                    }
-                  }}
-                >
-                  <Trash2 aria-hidden="true" className="size-4" />
-                </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={t("detach")}
+                      disabled={detach.isPending}
+                      onClick={() => setError(null)}
+                    >
+                      <Trash2 aria-hidden="true" className="size-4" />
+                    </Button>
+                  }
+                  title={t("detach")}
+                  description={t("detachConfirm")}
+                  cancelLabel={tActions("cancel")}
+                  confirmLabel={t("detach")}
+                  onConfirm={() => detach.mutateAsync(document.id)}
+                />
               ) : null}
             </li>
           ))}

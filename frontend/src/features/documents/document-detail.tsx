@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DateText } from "@/components/i18n/date-text";
 import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
@@ -206,21 +207,19 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
               ) : null}
 
               {document.can_delete ? (
-                <Button
-                  variant="outline"
-                  disabled={remove.isPending}
-                  onClick={() => {
-                    setActionError(null);
-
-                    // A deletion the office cannot undo through the product — there is
-                    // no restore endpoint — so it is confirmed rather than one click.
-                    if (window.confirm(t("deleteConfirm"))) {
-                      remove.mutate();
-                    }
-                  }}
-                >
-                  {t("delete")}
-                </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="outline" onClick={() => setActionError(null)}>
+                      {t("delete")}
+                    </Button>
+                  }
+                  title={t("delete")}
+                  description={t("deleteConfirm")}
+                  cancelLabel={tActions("cancel")}
+                  confirmLabel={t("delete")}
+                  pendingLabel={tActions("deleting")}
+                  onConfirm={() => remove.mutateAsync()}
+                />
               ) : null}
             </>
           ) : undefined
