@@ -149,6 +149,11 @@ describe("QuotationList", () => {
     expect(screen.getByText("Jasa AJB")).toBeInTheDocument();
 
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "billing.quotations" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "billing.quotationNumber" })).toHaveAttribute(
+      "scope",
+      "col",
+    );
   });
 });
 
@@ -162,6 +167,7 @@ describe("InvoiceList", () => {
     expect(screen.getByText("Jasa AJB")).toBeInTheDocument();
 
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "billing.invoices" })).toBeInTheDocument();
   });
 
   it("shows the record and its lateness while withholding the money", async () => {
@@ -232,6 +238,10 @@ describe("PaymentList", () => {
     await waitFor(() => expect(screen.getAllByRole("row")).toHaveLength(3));
 
     expect(screen.getAllByRole("button", { name: "billing.verify" })).toHaveLength(1);
+    expect(screen.getByRole("columnheader", { name: "billing.actions" })).toHaveAttribute(
+      "scope",
+      "col",
+    );
   });
 
   it("offers no verify control at all without the capability", async () => {

@@ -83,14 +83,27 @@ export function InvoiceList() {
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
+            <caption className="sr-only">{t("invoices")}</caption>
             <thead className="bg-muted/40 text-muted-foreground text-xs">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">{t("invoiceNumber")}</th>
-                <th className="px-3 py-2 text-left font-medium">{t("client")}</th>
-                <th className="px-3 py-2 text-left font-medium">{t("status")}</th>
-                <th className="px-3 py-2 text-left font-medium">{t("dueDate")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("total")}</th>
-                <th className="px-3 py-2 text-right font-medium">{t("outstanding")}</th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {t("invoiceNumber")}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {t("client")}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {t("status")}
+                </th>
+                <th scope="col" className="px-3 py-2 text-left font-medium">
+                  {t("dueDate")}
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  {t("total")}
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">
+                  {t("outstanding")}
+                </th>
               </tr>
             </thead>
 

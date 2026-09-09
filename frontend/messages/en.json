@@ -2,6 +2,8 @@
   "common": {
     "appName": "Notary & PPAT Office Management System",
     "officeLabel": "Notary & PPAT Office",
+    "skipToContent": "Skip to main content",
+    "close": "Close",
     "back": "Back",
     "foundationNotice": "Application foundation is ready. Business modules are not available yet.",
     "loading": "Loading...",
@@ -284,6 +286,7 @@
     "incurredOn": "Incurred",
     "rebilledOn": "Re-billed On",
     "verify": "Verify",
+    "actions": "Actions",
     "verifyConfirm": "Verify this payment? Once verified it counts toward the invoice and cannot be undone.",
     "verifyFailed": "This payment could not be verified.",
     "noQuotations": "No quotations yet.",

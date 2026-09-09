@@ -2,6 +2,8 @@
   "common": {
     "appName": "Notary & PPAT Office Management System",
     "officeLabel": "Kantor Notaris & PPAT",
+    "skipToContent": "Lewati ke konten utama",
+    "close": "Tutup",
     "back": "Kembali",
     "foundationNotice": "Fondasi aplikasi siap. Modul bisnis belum tersedia.",
     "loading": "Memuat...",
@@ -284,6 +286,7 @@
     "incurredOn": "Tanggal",
     "rebilledOn": "Ditagihkan Pada",
     "verify": "Verifikasi",
+    "actions": "Tindakan",
     "verifyConfirm": "Verifikasi pembayaran ini? Setelah diverifikasi, pembayaran diperhitungkan pada tagihan dan tidak dapat dibatalkan.",
     "verifyFailed": "Pembayaran tidak dapat diverifikasi.",
     "noQuotations": "Belum ada penawaran.",

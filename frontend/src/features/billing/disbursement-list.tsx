@@ -47,13 +47,24 @@ export function DisbursementList() {
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
+        <caption className="sr-only">{t("disbursements")}</caption>
         <thead className="bg-muted/40 text-muted-foreground text-xs">
           <tr>
-            <th className="px-3 py-2 text-left font-medium">{t("description")}</th>
-            <th className="px-3 py-2 text-left font-medium">{t("incurredOn")}</th>
-            <th className="px-3 py-2 text-left font-medium">{t("matter")}</th>
-            <th className="px-3 py-2 text-left font-medium">{t("rebilledOn")}</th>
-            <th className="px-3 py-2 text-right font-medium">{t("amount")}</th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("description")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("incurredOn")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("matter")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("rebilledOn")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">
+              {t("amount")}
+            </th>
           </tr>
         </thead>
 

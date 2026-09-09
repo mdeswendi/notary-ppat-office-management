@@ -67,14 +67,27 @@ export function PaymentList() {
 
       <div className="border-border overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
+          <caption className="sr-only">{t("payments")}</caption>
           <thead className="bg-muted/40 text-muted-foreground text-xs">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">{t("invoice")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("paidAt")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("method")}</th>
-              <th className="px-3 py-2 text-left font-medium">{t("status")}</th>
-              <th className="px-3 py-2 text-right font-medium">{t("amount")}</th>
-              <th className="px-3 py-2" />
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {t("invoice")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {t("paidAt")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {t("method")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">
+                {t("status")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {t("amount")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                <span className="sr-only">{t("actions")}</span>
+              </th>
             </tr>
           </thead>
 

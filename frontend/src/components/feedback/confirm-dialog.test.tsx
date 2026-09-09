@@ -25,6 +25,7 @@ describe("ConfirmDialog", () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByRole("alertdialog", { name: "Hapus dokumen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "common.close" })).toBeInTheDocument();
 
     const deleteButtons = screen.getAllByRole("button", { name: "Hapus" });
     await user.click(deleteButtons.at(-1)!);
