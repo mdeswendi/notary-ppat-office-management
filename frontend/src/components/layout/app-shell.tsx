@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SkipLink } from "@/components/layout/skip-link";
 import type { CurrentUser } from "@/types/auth";
 
 type AppShellProps = {
@@ -25,10 +26,13 @@ type AppShellProps = {
 export function AppShell({ user, children }: AppShellProps) {
   return (
     <div className="flex min-h-svh">
+      <SkipLink />
       <AppSidebar user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader user={user} />
-        <main className="min-w-0 flex-1">{children}</main>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
+          {children}
+        </main>
       </div>
     </div>
   );
