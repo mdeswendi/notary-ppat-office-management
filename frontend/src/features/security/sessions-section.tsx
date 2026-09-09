@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,10 +88,10 @@ export function SessionsSection() {
           {sessions.map((session) => (
             <li
               key={session.key}
-              className="border-border flex flex-wrap items-center justify-between gap-3 rounded-md border px-3 py-3"
+              className="border-border flex min-w-0 flex-col items-stretch gap-3 rounded-md border px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex flex-col gap-0.5 text-sm">
-                <span className="font-medium">
+              <div className="flex min-w-0 flex-col gap-0.5 text-sm">
+                <span className="font-medium break-words">
                   {session.device ?? t("unknownDevice")}
                   {session.current ? (
                     <span className="text-muted-foreground font-normal">
@@ -99,7 +100,7 @@ export function SessionsSection() {
                     </span>
                   ) : null}
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground break-words">
                   {session.ip_address ?? t("unknownAddress")}
                   {session.last_active_at
                     ? ` — ${format.dateTime(new Date(session.last_active_at), {
@@ -115,6 +116,7 @@ export function SessionsSection() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={revokeOne.isPending}
                   onClick={() => revokeOne.mutate(session.key)}
                 >
@@ -140,7 +142,7 @@ export function SessionsSection() {
             <p className="text-muted-foreground text-xs">{t("passwordRequiredToChange")}</p>
           </div>
 
-          <div>
+          <FormActions>
             <Button
               type="button"
               variant="outline"
@@ -149,7 +151,7 @@ export function SessionsSection() {
             >
               {t("revokeOtherSessions")}
             </Button>
-          </div>
+          </FormActions>
         </div>
       ) : null}
     </SecuritySection>

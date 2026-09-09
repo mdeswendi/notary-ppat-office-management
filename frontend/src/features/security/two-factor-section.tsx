@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,7 +152,7 @@ export function TwoFactorSection({ overview }: { overview: SecurityOverview }) {
 
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">{t("manualEntryLabel")}</span>
-            <code className="bg-muted w-fit rounded px-2 py-1 font-mono text-sm tracking-wider select-all">
+            <code className="bg-muted max-w-full overflow-x-auto rounded px-2 py-1 font-mono text-sm tracking-wider whitespace-nowrap select-all">
               {enrolment.secret}
             </code>
             <p className="text-muted-foreground text-xs">{t("manualEntryHint")}</p>
@@ -169,7 +170,7 @@ export function TwoFactorSection({ overview }: { overview: SecurityOverview }) {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <FormActions>
             <Button
               type="button"
               disabled={busy || code.length !== 6}
@@ -190,16 +191,16 @@ export function TwoFactorSection({ overview }: { overview: SecurityOverview }) {
             >
               {tActions("cancel")}
             </Button>
-          </div>
+          </FormActions>
 
           <p className="text-muted-foreground text-xs">{t("notActiveUntilConfirmed")}</p>
         </div>
       ) : (
-        <div>
+        <FormActions>
           <Button type="button" disabled={busy} onClick={() => begin.mutate()}>
             {begin.isPending ? tActions("saving") : t("enableTwoFactor")}
           </Button>
-        </div>
+        </FormActions>
       )}
 
       <RecoveryCodesDialog
@@ -253,7 +254,7 @@ function EnabledControls({
         <p className="text-muted-foreground text-xs">{t("passwordRequiredToChange")}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
@@ -271,7 +272,7 @@ function EnabledControls({
         >
           {t("disableTwoFactor")}
         </Button>
-      </div>
+      </FormActions>
     </div>
   );
 }

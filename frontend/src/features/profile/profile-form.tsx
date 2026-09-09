@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -137,11 +138,11 @@ export function ProfileForm() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <Card>
         <CardHeader title={t("personalTitle")} description={t("personalDescription")} />
 
-        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} noValidate className="flex max-w-xl flex-col gap-4">
           {form.formState.errors.root ? (
             <InlineAlert>{form.formState.errors.root.message}</InlineAlert>
           ) : null}
@@ -187,15 +188,15 @@ export function ProfileForm() {
               a disabled field still reads as "editable, just not now". */}
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">{t("emailLabel")}</span>
-            <p className="text-muted-foreground text-sm">{profile.email}</p>
+            <p className="text-muted-foreground text-sm break-all">{profile.email}</p>
             <p className="text-muted-foreground text-xs">{t("emailReadOnly")}</p>
           </div>
 
-          <div>
+          <FormActions>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? tActions("saving") : tActions("save")}
             </Button>
-          </div>
+          </FormActions>
         </form>
       </Card>
 
@@ -208,14 +209,14 @@ export function ProfileForm() {
         <dl className="flex flex-col gap-3 text-sm">
           <div className="flex flex-col gap-0.5">
             <dt className="font-medium">{t("officeLabel")}</dt>
-            <dd className="text-muted-foreground">
+            <dd className="text-muted-foreground break-words">
               {profile.office ? `${profile.office.code} — ${profile.office.name}` : "—"}
             </dd>
           </div>
 
           <div className="flex flex-col gap-0.5">
             <dt className="font-medium">{t("rolesLabel")}</dt>
-            <dd className="text-muted-foreground">
+            <dd className="text-muted-foreground break-words">
               {profile.roles.length > 0 ? profile.roles.join(", ") : t("noRoles")}
             </dd>
           </div>

@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Search, TriangleAlert } from "lucide-react";
+import { Search, TriangleAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
-import { ButtonLink } from "@/components/ui/button-link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -207,7 +207,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-2 sm:items-end">
           <p className="text-muted-foreground text-sm" aria-live="polite">
             {t("grantedSummary", {
               granted: grantedCount,
@@ -218,7 +218,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
             })}
           </p>
           {canSave ? (
-            <>
+            <FormActions className="w-full pt-0 sm:justify-end">
               <Button
                 variant="outline"
                 disabled={!dirty || mutation.isPending}
@@ -229,7 +229,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
               <Button disabled={!dirty || mutation.isPending} onClick={() => mutation.mutate()}>
                 {mutation.isPending ? tActions("saving") : tActions("save")}
               </Button>
-            </>
+            </FormActions>
           ) : (
             <span className="text-muted-foreground border-border rounded border px-2 py-1 text-xs">
               {t("readOnly")}
@@ -296,7 +296,7 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                     key={permission.code}
                     className="border-border flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex min-w-0 items-start gap-2.5">
                       <Checkbox
                         id={inputId}
                         checked={enabled}
@@ -308,9 +308,9 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
                           )
                         }
                       />
-                      <div className="flex flex-col gap-0.5">
+                      <div className="flex min-w-0 flex-col gap-0.5">
                         <Label htmlFor={inputId} className="cursor-pointer font-normal">
-                          <code>{permission.code}</code>
+                          <code className="break-all">{permission.code}</code>
                         </Label>
                         <div className="flex flex-wrap gap-2">
                           {permission.deferred ? (
@@ -358,13 +358,6 @@ export function RolePermissionMatrix({ roleId }: { roleId: number }) {
           </section>
         ))
       )}
-
-      <div>
-        <ButtonLink variant="ghost" href="/settings/roles">
-          <ArrowLeft aria-hidden="true" />
-          {t("backToRoles")}
-        </ButtonLink>
-      </div>
     </div>
   );
 }

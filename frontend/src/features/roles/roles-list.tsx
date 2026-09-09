@@ -92,9 +92,9 @@ export function RolesList() {
       {/* Role administration is deployment-global, so each control needs the
           ALL scope specifically. Hiding them is courtesy; the API refuses
           regardless. */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-stretch sm:justify-end">
         <PermissionGuard permission="roles.create" scope="ALL">
-          <Button onClick={openCreate}>
+          <Button className="w-full sm:w-auto" onClick={openCreate}>
             <Plus aria-hidden="true" />
             {t("create")}
           </Button>
@@ -123,7 +123,7 @@ export function RolesList() {
             <tbody>
               {roles.map((role) => (
                 <tr key={role.id} className="border-border border-t">
-                  <td className="px-4 py-3 font-medium">{role.name}</td>
+                  <td className="px-4 py-3 font-medium break-words">{role.name}</td>
                   <td className="text-muted-foreground hidden px-4 py-3 sm:table-cell">
                     {role.created_at
                       ? format.dateTime(new Date(role.created_at), {
@@ -132,7 +132,7 @@ export function RolesList() {
                       : "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex flex-wrap justify-end gap-1">
                       <PermissionGuard permission="permissions.view" scope="ALL">
                         <ButtonLink
                           variant="ghost"

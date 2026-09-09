@@ -60,7 +60,7 @@ export function SecurityPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-4xl flex-col gap-6">
       <PasswordSection />
       <TwoFactorSection overview={query.data} />
       <EmailSection overview={query.data} />
