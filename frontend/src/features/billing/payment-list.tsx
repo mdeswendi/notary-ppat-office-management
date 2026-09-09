@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DateText } from "@/components/i18n/date-text";
@@ -54,11 +56,21 @@ export function PaymentList() {
   }
 
   if (query.isError) {
-    return <InlineAlert>{t("listUnavailable")}</InlineAlert>;
+    return (
+      <BaseErrorState
+        title={t("listErrorTitle")}
+        description={t("listUnavailable")}
+        action={
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            {tActions("retry")}
+          </Button>
+        }
+      />
+    );
   }
 
   if (payments.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t("noPayments")}</p>;
+    return <EmptyState title={t("emptyTitle")} description={t("noPayments")} />;
   }
 
   return (
@@ -66,7 +78,7 @@ export function PaymentList() {
       {verify.isError ? <InlineAlert>{t("verifyFailed")}</InlineAlert> : null}
 
       <div className="border-border overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[44rem] text-sm">
           <caption className="sr-only">{t("payments")}</caption>
           <thead className="bg-muted/40 text-muted-foreground text-xs">
             <tr>
@@ -94,7 +106,7 @@ export function PaymentList() {
           <tbody className="divide-border divide-y">
             {payments.map((payment) => (
               <tr key={payment.id}>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2 whitespace-nowrap">
                   {payment.invoice ? (
                     <span className="font-medium">{payment.invoice.reference}</span>
                   ) : (
@@ -102,7 +114,7 @@ export function PaymentList() {
                   )}
                 </td>
 
-                <td className="px-3 py-2">
+                <td className="px-3 py-2 whitespace-nowrap">
                   <DateText value={payment.paid_at} />
                 </td>
 
@@ -112,7 +124,7 @@ export function PaymentList() {
                   <PaymentStatusBadge status={payment.status} />
                 </td>
 
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-right whitespace-nowrap">
                   <AmountField
                     amount={payment.amount}
                     currency={payment.currency}
@@ -120,7 +132,7 @@ export function PaymentList() {
                   />
                 </td>
 
-                <td className="px-3 py-2 text-right">
+                <td className="px-3 py-2 text-right whitespace-nowrap">
                   {payment.capabilities?.can_verify ? (
                     <ConfirmDialog
                       trigger={

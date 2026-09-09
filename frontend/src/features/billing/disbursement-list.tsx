@@ -3,6 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { DateText } from "@/components/i18n/date-text";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { billingQueryKeys, getDisbursements } from "@/services/billing";
@@ -18,6 +22,7 @@ import { billingQueryKeys, getDisbursements } from "@/services/billing";
  */
 export function DisbursementList() {
   const t = useTranslations("billing");
+  const tActions = useTranslations("actions");
 
   const query = useQuery({
     queryKey: billingQueryKeys.disbursements({}),
@@ -37,16 +42,26 @@ export function DisbursementList() {
   }
 
   if (query.isError) {
-    return <p className="text-muted-foreground text-sm">{t("listUnavailable")}</p>;
+    return (
+      <BaseErrorState
+        title={t("listErrorTitle")}
+        description={t("listUnavailable")}
+        action={
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            {tActions("retry")}
+          </Button>
+        }
+      />
+    );
   }
 
   if (disbursements.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t("noDisbursements")}</p>;
+    return <EmptyState title={t("emptyTitle")} description={t("noDisbursements")} />;
   }
 
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[44rem] text-sm">
         <caption className="sr-only">{t("disbursements")}</caption>
         <thead className="bg-muted/40 text-muted-foreground text-xs">
           <tr>
@@ -72,7 +87,9 @@ export function DisbursementList() {
           {disbursements.map((disbursement) => (
             <tr key={disbursement.id}>
               <td className="px-3 py-2">{disbursement.description}</td>
-              <td className="px-3 py-2 tabular-nums">{disbursement.incurred_on ?? "—"}</td>
+              <td className="px-3 py-2 whitespace-nowrap">
+                <DateText value={disbursement.incurred_on} />
+              </td>
               <td className="px-3 py-2">{disbursement.matter?.reference ?? "—"}</td>
               <td className="px-3 py-2">{disbursement.invoice?.reference ?? "—"}</td>
 

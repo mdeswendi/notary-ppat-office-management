@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { DateText } from "@/components/i18n/date-text";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -26,6 +29,7 @@ import { billingQueryKeys, getInvoices } from "@/services/billing";
  */
 export function InvoiceList() {
   const t = useTranslations("billing");
+  const tActions = useTranslations("actions");
 
   const [status, setStatus] = useState("");
   const [overdue, setOverdue] = useState(false);
@@ -40,8 +44,8 @@ export function InvoiceList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
+        <label className="flex min-w-0 flex-col gap-1 text-sm lg:flex-1">
           <span className="text-muted-foreground text-xs">{t("search")}</span>
           <Input
             type="search"
@@ -51,7 +55,7 @@ export function InvoiceList() {
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">{t("status")}</span>
           <Select value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">{t("allStatuses")}</option>
@@ -63,7 +67,7 @@ export function InvoiceList() {
           </Select>
         </label>
 
-        <label className="mt-5 flex items-center gap-2 text-sm">
+        <label className="flex min-h-10 items-center gap-2 text-sm sm:col-span-2 lg:min-h-0">
           <Checkbox checked={overdue} onCheckedChange={(checked) => setOverdue(checked === true)} />
           {t("onlyOverdue")}
         </label>
@@ -77,12 +81,20 @@ export function InvoiceList() {
           <Skeleton className="h-10 w-full" />
         </div>
       ) : query.isError ? (
-        <p className="text-muted-foreground text-sm">{t("listUnavailable")}</p>
+        <BaseErrorState
+          title={t("listErrorTitle")}
+          description={t("listUnavailable")}
+          action={
+            <Button variant="outline" onClick={() => void query.refetch()}>
+              {tActions("retry")}
+            </Button>
+          }
+        />
       ) : invoices.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("noInvoices")}</p>
+        <EmptyState title={t("emptyTitle")} description={t("noInvoices")} />
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[48rem] text-sm">
             <caption className="sr-only">{t("invoices")}</caption>
             <thead className="bg-muted/40 text-muted-foreground text-xs">
               <tr>
@@ -110,8 +122,8 @@ export function InvoiceList() {
             <tbody className="divide-border divide-y">
               {invoices.map((invoice) => (
                 <tr key={invoice.id}>
-                  <td className="px-3 py-2">
-                    <span className="font-medium">{invoice.invoice_number}</span>
+                  <td className="max-w-56 px-3 py-2">
+                    <span className="font-medium whitespace-nowrap">{invoice.invoice_number}</span>
                     <div className="text-muted-foreground truncate text-xs">{invoice.title}</div>
                   </td>
 
@@ -124,11 +136,11 @@ export function InvoiceList() {
                     </div>
                   </td>
 
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 whitespace-nowrap">
                     <DateText value={invoice.due_date} />
                   </td>
 
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
                     <AmountField
                       amount={invoice.total_amount}
                       currency={invoice.currency}
@@ -136,7 +148,7 @@ export function InvoiceList() {
                     />
                   </td>
 
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
                     <AmountField
                       amount={invoice.outstanding_amount}
                       currency={invoice.currency}

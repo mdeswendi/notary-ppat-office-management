@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AmountField } from "@/features/billing/amount-field";
@@ -154,6 +154,16 @@ describe("QuotationList", () => {
       "scope",
       "col",
     );
+    expect(screen.getByText("2026-09-01T00:00:00.000Z")).toHaveAttribute("datetime", "2026-09-01");
+  });
+
+  it("uses the shared empty state when no quotations exist", async () => {
+    vi.mocked(services.getQuotations).mockResolvedValue({ data: [] });
+
+    renderWithProviders(<QuotationList />);
+
+    expect(await screen.findByText("billing.emptyTitle")).toBeInTheDocument();
+    expect(screen.getByText("billing.noQuotations")).toBeInTheDocument();
   });
 });
 
@@ -201,7 +211,21 @@ describe("InvoiceList", () => {
     renderWithProviders(<InvoiceList />);
 
     expect(await screen.findByText("billing.listUnavailable")).toBeInTheDocument();
+    expect(screen.getByText("billing.listErrorTitle")).toBeInTheDocument();
     expect(screen.queryByText(/SQLSTATE/)).not.toBeInTheDocument();
+  });
+
+  it("can retry a failed invoice request", async () => {
+    vi.mocked(services.getInvoices)
+      .mockRejectedValueOnce(new Error("temporary"))
+      .mockResolvedValueOnce({ data: [invoice()] });
+
+    renderWithProviders(<InvoiceList />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "actions.retry" }));
+
+    expect(await screen.findByText("INV-2026-000001")).toBeInTheDocument();
+    expect(services.getInvoices).toHaveBeenCalledTimes(2);
   });
 });
 
