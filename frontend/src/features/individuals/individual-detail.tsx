@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -92,26 +93,27 @@ export function IndividualDetail({ individualId }: { individualId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{individual.full_name}</h1>
-          <p className="text-muted-foreground text-sm">
-            {individual.office ? `${individual.office.code} — ${individual.office.name}` : "—"}
-          </p>
-        </div>
+      <DetailHeader
+        title={individual.full_name}
+        description={
+          individual.office ? `${individual.office.code} — ${individual.office.name}` : "—"
+        }
+        actions={
+          can(user, "parties.update") || can(user, "parties.archive") ? (
+            <>
+              <PermissionGuard permission="parties.update">
+                <ButtonLink variant="outline" href={`/parties/individuals/${individual.id}/edit`}>
+                  {t("editAction")}
+                </ButtonLink>
+              </PermissionGuard>
 
-        <div className="flex gap-2">
-          <PermissionGuard permission="parties.update">
-            <ButtonLink variant="outline" href={`/parties/individuals/${individual.id}/edit`}>
-              {t("editAction")}
-            </ButtonLink>
-          </PermissionGuard>
-
-          <PermissionGuard permission="parties.archive">
-            <ArchiveButton individualId={individual.id} />
-          </PermissionGuard>
-        </div>
-      </div>
+              <PermissionGuard permission="parties.archive">
+                <ArchiveButton individualId={individual.id} />
+              </PermissionGuard>
+            </>
+          ) : undefined
+        }
+      />
 
       <Card>
         <CardHeader title={t("profileSection")} description={t("profileDescription")} />

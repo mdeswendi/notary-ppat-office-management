@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { DateText } from "@/components/i18n/date-text";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -138,75 +139,80 @@ export function TaskDetail({ taskId }: { taskId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{task.title}</h1>
-          <TaskStatusBadge status={task.status} />
-          <TaskPriorityBadge priority={task.priority} />
-          <TaskOverdueBadge isOverdue={task.is_overdue} />
-        </div>
+      <DetailHeader
+        title={task.title}
+        badges={
+          <>
+            <TaskStatusBadge status={task.status} />
+            <TaskPriorityBadge priority={task.priority} />
+            <TaskOverdueBadge isOverdue={task.is_overdue} />
+          </>
+        }
+        actions={
+          task.can_complete || task.can_reopen || task.can_cancel || task.can_delete ? (
+            <>
+              {task.can_complete ? (
+                <Button
+                  variant="outline"
+                  disabled={complete.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    complete.mutate();
+                  }}
+                >
+                  {t("complete")}
+                </Button>
+              ) : null}
 
+              {task.can_reopen ? (
+                <Button
+                  variant="outline"
+                  disabled={reopen.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    reopen.mutate();
+                  }}
+                >
+                  {t("reopen")}
+                </Button>
+              ) : null}
+
+              {task.can_cancel ? (
+                <Button
+                  variant="outline"
+                  disabled={cancel.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    cancel.mutate();
+                  }}
+                >
+                  {t("cancel")}
+                </Button>
+              ) : null}
+
+              {task.can_delete ? (
+                <Button
+                  variant="outline"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    setActionError(null);
+
+                    // Nothing in the product undoes this — there is no restore
+                    // endpoint — so it is confirmed rather than one click.
+                    if (window.confirm(t("deleteConfirm"))) {
+                      remove.mutate();
+                    }
+                  }}
+                >
+                  {t("delete")}
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
         {actionError ? <InlineAlert>{actionError}</InlineAlert> : null}
-
-        <div className="flex flex-wrap gap-2">
-          {task.can_complete ? (
-            <Button
-              variant="outline"
-              disabled={complete.isPending}
-              onClick={() => {
-                setActionError(null);
-                complete.mutate();
-              }}
-            >
-              {t("complete")}
-            </Button>
-          ) : null}
-
-          {task.can_reopen ? (
-            <Button
-              variant="outline"
-              disabled={reopen.isPending}
-              onClick={() => {
-                setActionError(null);
-                reopen.mutate();
-              }}
-            >
-              {t("reopen")}
-            </Button>
-          ) : null}
-
-          {task.can_cancel ? (
-            <Button
-              variant="outline"
-              disabled={cancel.isPending}
-              onClick={() => {
-                setActionError(null);
-                cancel.mutate();
-              }}
-            >
-              {t("cancel")}
-            </Button>
-          ) : null}
-
-          {task.can_delete ? (
-            <Button
-              variant="outline"
-              disabled={remove.isPending}
-              onClick={() => {
-                setActionError(null);
-
-                // Nothing in the product undoes this — there is no restore
-                // endpoint — so it is confirmed rather than one click.
-                if (window.confirm(t("deleteConfirm"))) {
-                  remove.mutate();
-                }
-              }}
-            >
-              {t("delete")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      </DetailHeader>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("detail")}</h2>

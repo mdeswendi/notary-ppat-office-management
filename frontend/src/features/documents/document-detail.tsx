@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { DateText } from "@/components/i18n/date-text";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -133,87 +134,100 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{document.title}</h1>
-          <DocumentStatusBadge status={document.status} />
-          <DocumentSensitiveBadge isSensitive={document.is_sensitive} />
-        </div>
+      <DetailHeader
+        reference={document.document_number}
+        title={document.title}
+        badges={
+          <>
+            <DocumentStatusBadge status={document.status} />
+            <DocumentSensitiveBadge isSensitive={document.is_sensitive} />
+          </>
+        }
+        actions={
+          document.can_download ||
+          document.is_sensitive ||
+          document.can_update ||
+          document.can_verify ||
+          document.can_archive ||
+          document.can_delete ? (
+            <>
+              {document.can_download ? (
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  disabled={download.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    download.mutate();
+                  }}
+                >
+                  <Download aria-hidden="true" className="size-4" />
+                  {download.isPending ? t("downloading") : t("download")}
+                </Button>
+              ) : document.is_sensitive ? (
+                <p className="text-muted-foreground text-sm">{t("sensitiveDownloadUnavailable")}</p>
+              ) : null}
 
-        <p className="text-muted-foreground font-mono text-sm">{document.document_number}</p>
+              {document.can_update ? (
+                <ButtonLink
+                  variant="outline"
+                  className="gap-2"
+                  href={`/documents/${document.id}/edit`}
+                >
+                  <Pencil aria-hidden="true" className="size-4" />
+                  {tActions("edit")}
+                </ButtonLink>
+              ) : null}
 
+              {document.can_verify ? (
+                <Button
+                  variant="outline"
+                  disabled={verify.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    verify.mutate();
+                  }}
+                >
+                  {t("verify")}
+                </Button>
+              ) : null}
+
+              {document.can_archive ? (
+                <Button
+                  variant="outline"
+                  disabled={archive.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    archive.mutate();
+                  }}
+                >
+                  {t("archive")}
+                </Button>
+              ) : null}
+
+              {document.can_delete ? (
+                <Button
+                  variant="outline"
+                  disabled={remove.isPending}
+                  onClick={() => {
+                    setActionError(null);
+
+                    // A deletion the office cannot undo through the product — there is
+                    // no restore endpoint — so it is confirmed rather than one click.
+                    if (window.confirm(t("deleteConfirm"))) {
+                      remove.mutate();
+                    }
+                  }}
+                >
+                  {t("delete")}
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
         {actionError ? <InlineAlert>{actionError}</InlineAlert> : null}
-
-        <div className="flex flex-wrap gap-2">
-          {document.can_download ? (
-            <Button
-              variant="outline"
-              className="gap-2"
-              disabled={download.isPending}
-              onClick={() => {
-                setActionError(null);
-                download.mutate();
-              }}
-            >
-              <Download aria-hidden="true" className="size-4" />
-              {download.isPending ? t("downloading") : t("download")}
-            </Button>
-          ) : document.is_sensitive ? (
-            <p className="text-muted-foreground text-sm">{t("sensitiveDownloadUnavailable")}</p>
-          ) : null}
-
-          {document.can_update ? (
-            <ButtonLink variant="outline" className="gap-2" href={`/documents/${document.id}/edit`}>
-              <Pencil aria-hidden="true" className="size-4" />
-              {tActions("edit")}
-            </ButtonLink>
-          ) : null}
-
-          {document.can_verify ? (
-            <Button
-              variant="outline"
-              disabled={verify.isPending}
-              onClick={() => {
-                setActionError(null);
-                verify.mutate();
-              }}
-            >
-              {t("verify")}
-            </Button>
-          ) : null}
-
-          {document.can_archive ? (
-            <Button
-              variant="outline"
-              disabled={archive.isPending}
-              onClick={() => {
-                setActionError(null);
-                archive.mutate();
-              }}
-            >
-              {t("archive")}
-            </Button>
-          ) : null}
-
-          {document.can_delete ? (
-            <Button
-              variant="outline"
-              disabled={remove.isPending}
-              onClick={() => {
-                setActionError(null);
-
-                // A deletion the office cannot undo through the product — there is
-                // no restore endpoint — so it is confirmed rather than one click.
-                if (window.confirm(t("deleteConfirm"))) {
-                  remove.mutate();
-                }
-              }}
-            >
-              {t("delete")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      </DetailHeader>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("metadataTitle")}</h2>

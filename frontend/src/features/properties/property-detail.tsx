@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -110,16 +111,47 @@ export function PropertyDetail({ propertyId }: { propertyId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{property.certificate_number}</h1>
-          <PropertyTypeBadge type={property.property_type} />
-          <RightTypeBadge code={property.right_type} />
-          <PropertyArchivedBadge isArchived={property.is_archived} />
-        </div>
+      <DetailHeader
+        title={property.certificate_number}
+        description={property.address}
+        badges={
+          <>
+            <PropertyTypeBadge type={property.property_type} />
+            <RightTypeBadge code={property.right_type} />
+            <PropertyArchivedBadge isArchived={property.is_archived} />
+          </>
+        }
+        actions={
+          property.can_update || property.can_archive ? (
+            <>
+              {property.can_update ? (
+                <ButtonLink variant="outline" href={`/ppat/properties/${property.id}/edit`}>
+                  {tActions("edit")}
+                </ButtonLink>
+              ) : null}
 
-        <p className="text-muted-foreground text-sm">{property.address}</p>
+              {property.can_archive ? (
+                <Button
+                  variant="outline"
+                  disabled={archive.isPending}
+                  onClick={() => {
+                    setActionError(null);
 
+                    // Nothing in the product reverses this: `properties.restore` is not a
+                    // canonical capability, so there is no un-archive path (O-045). The
+                    // wording says so rather than implying an undo.
+                    if (window.confirm(t("archiveConfirm"))) {
+                      archive.mutate();
+                    }
+                  }}
+                >
+                  {t("archive")}
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
         {actionError ? <InlineAlert>{actionError}</InlineAlert> : null}
 
         {property.is_archived ? (
@@ -127,34 +159,7 @@ export function PropertyDetail({ propertyId }: { propertyId: string }) {
             {t("archivedNotice")}
           </p>
         ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          {property.can_update ? (
-            <ButtonLink variant="outline" href={`/ppat/properties/${property.id}/edit`}>
-              {tActions("edit")}
-            </ButtonLink>
-          ) : null}
-
-          {property.can_archive ? (
-            <Button
-              variant="outline"
-              disabled={archive.isPending}
-              onClick={() => {
-                setActionError(null);
-
-                // Nothing in the product reverses this: `properties.restore` is not a
-                // canonical capability, so there is no un-archive path (O-045). The
-                // wording says so rather than implying an undo.
-                if (window.confirm(t("archiveConfirm"))) {
-                  archive.mutate();
-                }
-              }}
-            >
-              {t("archive")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      </DetailHeader>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("sections.overview")}</h2>

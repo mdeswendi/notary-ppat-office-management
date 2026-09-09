@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -104,42 +105,35 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-muted-foreground font-mono text-xs">{project.project_number}</span>
-          <h1 className="text-2xl font-semibold tracking-tight break-words">{project.title}</h1>
-          <p className="text-muted-foreground text-sm break-words">
-            {project.office ? `${project.office.code} — ${project.office.name}` : "—"}
-          </p>
-        </div>
+      <DetailHeader
+        reference={project.project_number}
+        title={project.title}
+        description={project.office ? `${project.office.code} — ${project.office.name}` : "—"}
+        badges={
+          <>
+            <ProjectStatusBadge status={project.status} />
+            <ProjectPriorityBadge priority={project.priority} />
+          </>
+        }
+        actions={
+          project.can_update || project.can_archive ? (
+            <>
+              {project.can_update ? (
+                <ButtonLink variant="outline" href={`/projects/${project.id}/edit`}>
+                  {t("editAction")}
+                </ButtonLink>
+              ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          {project.can_update ? (
-            <ButtonLink variant="outline" href={`/projects/${project.id}/edit`}>
-              {t("editAction")}
-            </ButtonLink>
-          ) : null}
-
-          {project.can_archive ? <ArchiveButton projectId={project.id} /> : null}
-        </div>
-      </div>
+              {project.can_archive ? <ArchiveButton projectId={project.id} /> : null}
+            </>
+          ) : undefined
+        }
+      />
 
       <Card>
         <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />
 
         <dl className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1">
-            <dt className="text-sm font-medium">{t("statusLabel")}</dt>
-            <dd>
-              <ProjectStatusBadge status={project.status} />
-            </dd>
-          </div>
-          <div className="flex flex-col gap-1">
-            <dt className="text-sm font-medium">{t("priorityLabel")}</dt>
-            <dd>
-              <ProjectPriorityBadge priority={project.priority} />
-            </dd>
-          </div>
           <Detail label={t("openedAtLabel")} value={project.opened_at} />
           <Detail label={t("targetCompletionLabel")} value={project.target_completion_date} />
           <Detail label={t("descriptionLabel")} value={project.description} />

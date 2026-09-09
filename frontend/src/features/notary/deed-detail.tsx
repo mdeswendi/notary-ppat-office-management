@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,14 +117,66 @@ export function DeedDetail({ deedId }: { deedId: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{deed.title}</h1>
-          <NotaryDeedStatusBadge status={deed.status} />
-          <NotaryDeedTypeBadge code={deed.deed_type_code} />
-          <NotaryDeedReadOnlyBadge isReadOnly={deed.is_read_only} />
-        </div>
+      <DetailHeader
+        title={deed.title}
+        badges={
+          <>
+            <NotaryDeedStatusBadge status={deed.status} />
+            <NotaryDeedTypeBadge code={deed.deed_type_code} />
+            <NotaryDeedReadOnlyBadge isReadOnly={deed.is_read_only} />
+          </>
+        }
+        actions={
+          deed.can_review || deed.can_approve || deed.can_finalize ? (
+            <>
+              {deed.can_review ? (
+                <Button
+                  variant="outline"
+                  disabled={review.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    review.mutate();
+                  }}
+                >
+                  {t("submitForReview")}
+                </Button>
+              ) : null}
 
+              {deed.can_approve ? (
+                <Button
+                  variant="outline"
+                  disabled={approve.isPending}
+                  onClick={() => {
+                    setActionError(null);
+                    approve.mutate();
+                  }}
+                >
+                  {t("approve")}
+                </Button>
+              ) : null}
+
+              {deed.can_finalize ? (
+                <Button
+                  variant="outline"
+                  disabled={finalize.isPending}
+                  onClick={() => {
+                    setActionError(null);
+
+                    // Finalizing makes the record read-only and nothing in the product
+                    // reverses it — there is no correction mechanism (D-120) — so it is
+                    // confirmed rather than one click.
+                    if (window.confirm(t("finalizeConfirm"))) {
+                      finalize.mutate();
+                    }
+                  }}
+                >
+                  {t("finalize")}
+                </Button>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      >
         {actionError ? <InlineAlert>{actionError}</InlineAlert> : null}
 
         {deed.is_read_only ? (
@@ -131,54 +184,7 @@ export function DeedDetail({ deedId }: { deedId: string }) {
             {t("finalizedNotice")}
           </p>
         ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          {deed.can_review ? (
-            <Button
-              variant="outline"
-              disabled={review.isPending}
-              onClick={() => {
-                setActionError(null);
-                review.mutate();
-              }}
-            >
-              {t("submitForReview")}
-            </Button>
-          ) : null}
-
-          {deed.can_approve ? (
-            <Button
-              variant="outline"
-              disabled={approve.isPending}
-              onClick={() => {
-                setActionError(null);
-                approve.mutate();
-              }}
-            >
-              {t("approve")}
-            </Button>
-          ) : null}
-
-          {deed.can_finalize ? (
-            <Button
-              variant="outline"
-              disabled={finalize.isPending}
-              onClick={() => {
-                setActionError(null);
-
-                // Finalizing makes the record read-only and nothing in the product
-                // reverses it — there is no correction mechanism (D-120) — so it is
-                // confirmed rather than one click.
-                if (window.confirm(t("finalizeConfirm"))) {
-                  finalize.mutate();
-                }
-              }}
-            >
-              {t("finalize")}
-            </Button>
-          ) : null}
-        </div>
-      </header>
+      </DetailHeader>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("deedOverview")}</h2>
