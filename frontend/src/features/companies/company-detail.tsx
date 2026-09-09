@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { PermissionGuard } from "@/components/permission-guard";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -84,28 +85,25 @@ export function CompanyDetail({ companyId }: { companyId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {company.display_name ?? company.legal_name}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {company.office ? `${company.office.code} — ${company.office.name}` : "—"}
-          </p>
-        </div>
+      <DetailHeader
+        title={company.display_name ?? company.legal_name}
+        description={company.office ? `${company.office.code} — ${company.office.name}` : "—"}
+        actions={
+          can(user, "companies.update") || can(user, "companies.archive") ? (
+            <>
+              <PermissionGuard permission="companies.update">
+                <ButtonLink variant="outline" href={`/parties/companies/${company.id}/edit`}>
+                  {t("editAction")}
+                </ButtonLink>
+              </PermissionGuard>
 
-        <div className="flex gap-2">
-          <PermissionGuard permission="companies.update">
-            <ButtonLink variant="outline" href={`/parties/companies/${company.id}/edit`}>
-              {t("editAction")}
-            </ButtonLink>
-          </PermissionGuard>
-
-          <PermissionGuard permission="companies.archive">
-            <ArchiveButton companyId={company.id} />
-          </PermissionGuard>
-        </div>
-      </div>
+              <PermissionGuard permission="companies.archive">
+                <ArchiveButton companyId={company.id} />
+              </PermissionGuard>
+            </>
+          ) : undefined
+        }
+      />
 
       <Card>
         <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />

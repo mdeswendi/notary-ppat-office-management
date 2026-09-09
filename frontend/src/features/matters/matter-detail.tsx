@@ -6,6 +6,7 @@ import { Pencil } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Label } from "@/components/ui/label";
@@ -134,28 +135,29 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-muted-foreground font-mono text-xs">{matter.matter_number}</span>
-          <h2 className="text-xl font-semibold">{matter.title}</h2>
-          <div className="flex flex-wrap items-center gap-2">
+      <DetailHeader
+        reference={matter.matter_number}
+        title={matter.title}
+        badges={
+          <>
             <MatterDomainBadge domain={matter.domain} />
             <MatterStatusBadge status={matter.status} />
             <MatterPriorityBadge priority={matter.priority} />
-          </div>
-        </div>
-
-        {matter.can_update ? (
-          <ButtonLink
-            variant="outline"
-            className="gap-2"
-            href={`${matterBasePath(domain)}/${matter.id}/edit`}
-          >
-            <Pencil aria-hidden="true" />
-            {tActions("edit")}
-          </ButtonLink>
-        ) : null}
-      </header>
+          </>
+        }
+        actions={
+          matter.can_update ? (
+            <ButtonLink
+              variant="outline"
+              className="gap-2"
+              href={`${matterBasePath(domain)}/${matter.id}/edit`}
+            >
+              <Pencil aria-hidden="true" />
+              {tActions("edit")}
+            </ButtonLink>
+          ) : undefined
+        }
+      />
 
       <dl className="grid gap-4 sm:grid-cols-2">
         <Detail label={t("projectLabel")}>
