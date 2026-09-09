@@ -107,7 +107,7 @@ export function UsersList() {
             is within the actor's Office is a Policy predicate, and duplicating
             it in React would be a second authorization engine (D-063). */}
         <PermissionGuard permission="users.create">
-          <Button onClick={() => setForm({ user: null })}>
+          <Button className="w-full sm:w-auto" onClick={() => setForm({ user: null })}>
             <Plus aria-hidden="true" />
             {t("create")}
           </Button>
@@ -150,8 +150,8 @@ export function UsersList() {
               {users.map((user) => (
                 <tr key={user.id} className="border-border border-t">
                   <td className="px-4 py-3">
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-muted-foreground">{user.email}</div>
+                    <div className="font-medium break-words">{user.name}</div>
+                    <div className="text-muted-foreground break-all">{user.email}</div>
                   </td>
                   <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">
                     {user.office ? `${user.office.code} — ${user.office.name}` : "—"}
@@ -175,7 +175,7 @@ export function UsersList() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex flex-wrap justify-end gap-1">
                       <PermissionGuard permission="users.update">
                         <Button
                           variant="ghost"

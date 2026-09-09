@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { FormActions } from "@/components/forms/form-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,7 +103,7 @@ export function EmailSection({ overview }: { overview: SecurityOverview }) {
         <div className="border-border bg-muted/40 flex flex-col items-start gap-3 rounded-md border px-3 py-3">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">{t("emailPendingTitle")}</p>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm break-all">
               {t("emailPendingDescription", { email: overview.pending_email })}
             </p>
           </div>
@@ -161,11 +162,11 @@ export function EmailSection({ overview }: { overview: SecurityOverview }) {
 
         <p className="text-muted-foreground text-xs">{t("emailUnchangedUntilConfirmed")}</p>
 
-        <div>
+        <FormActions>
           <Button type="submit" disabled={request.isPending}>
             {request.isPending ? tActions("saving") : t("sendVerification")}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </SecuritySection>
   );
