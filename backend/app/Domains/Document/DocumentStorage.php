@@ -58,13 +58,9 @@ use RuntimeException;
  * ## The disk is a constructor parameter, not a constant
  *
  * Every real document goes through the default — `app(DocumentStorage::class)`
- * resolves this with no disk argument, so production behaviour is exactly what
- * it was when `DISK` was a class constant. The parameter exists for exactly one
- * other caller: local demo tooling, which constructs its own
- * `new DocumentStorage('local_demo')` so demo files land on a disk that is never
- * `storage/app/private` and is never read by anything that serves a real
- * document. Nothing in this class decides which disk that is beyond taking
- * whatever it is handed.
+ * resolves this with no disk argument. Keeping the disk injectable lets tests
+ * verify storage isolation without changing production behaviour. Nothing in
+ * this class decides which disk that is beyond taking whatever it is handed.
  */
 class DocumentStorage
 {

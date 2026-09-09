@@ -252,7 +252,7 @@ it('issues no URL of any kind', function (): void {
 
 /*
 |--------------------------------------------------------------------------
-| Disk is a constructor parameter, not a constant (demo tooling isolation)
+| Disk is a constructor parameter, not a constant
 |--------------------------------------------------------------------------
 */
 
@@ -262,18 +262,18 @@ it('defaults to the local disk when constructed with no argument, unchanged from
 });
 
 it('stores to whatever disk it was constructed with, and never touches local instead', function (): void {
-    Storage::fake('local_demo');
+    Storage::fake('isolated_test');
 
     $document = Document::factory()->create();
-    $demoStorage = new DocumentStorage('local_demo');
+    $isolatedStorage = new DocumentStorage('isolated_test');
 
-    $metadata = $demoStorage->store(
-        UploadedFile::fake()->createWithContent('dokumen-demo.pdf', 'isi demo'),
+    $metadata = $isolatedStorage->store(
+        UploadedFile::fake()->createWithContent('document.pdf', 'test content'),
         $document,
     );
 
-    expect($metadata['storage_disk'])->toBe('local_demo')
-        ->and(Storage::disk('local_demo')->exists($metadata['storage_path']))->toBeTrue()
+    expect($metadata['storage_disk'])->toBe('isolated_test')
+        ->and(Storage::disk('isolated_test')->exists($metadata['storage_path']))->toBeTrue()
         ->and(Storage::disk('local')->exists($metadata['storage_path']))->toBeFalse();
 });
 
