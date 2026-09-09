@@ -17,6 +17,14 @@ use Illuminate\Support\Facades\Date;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    Date::setTestNow('2026-09-07 10:00:00');
+});
+
+afterEach(function (): void {
+    Date::setTestNow();
+});
+
 /**
  * The Dashboard (M8.1, D-122).
  *
