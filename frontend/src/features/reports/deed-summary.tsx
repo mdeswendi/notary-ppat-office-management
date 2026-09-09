@@ -3,6 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeedSummary, reportQueryKeys } from "@/services/reports";
 
@@ -40,7 +43,17 @@ export function DeedSummary({ endpoint }: { endpoint: string }) {
   }
 
   if (query.isError) {
-    return <p className="text-muted-foreground text-sm">{t("unavailable")}</p>;
+    return (
+      <BaseErrorState
+        title={t("errorTitle")}
+        description={t("unavailable")}
+        action={
+          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+            {t("retry")}
+          </Button>
+        }
+      />
+    );
   }
 
   const summary = query.data;
@@ -48,24 +61,26 @@ export function DeedSummary({ endpoint }: { endpoint: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border-border bg-card flex flex-col gap-1 rounded-lg border p-5">
+      <Card className="gap-1">
         <span className="text-muted-foreground text-sm">{t("totalDeeds")}</span>
         <span className="text-2xl font-semibold tabular-nums">{summary.total}</span>
+      </Card>
+
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <Counts
+          title={t("byStatus")}
+          entries={Object.entries(summary.by_status)}
+          empty={t("noData")}
+        />
+
+        <Counts
+          title={t("byType")}
+          entries={types}
+          // A deed type the office has never used is not a hole in a histogram —
+          // there is no closed vocabulary of deed types to fill in (O-035).
+          empty={t("noTypesYet")}
+        />
       </div>
-
-      <Counts
-        title={t("byStatus")}
-        entries={Object.entries(summary.by_status)}
-        empty={t("noData")}
-      />
-
-      <Counts
-        title={t("byType")}
-        entries={types}
-        // A deed type the office has never used is not a hole in a histogram —
-        // there is no closed vocabulary of deed types to fill in (O-035).
-        empty={t("noTypesYet")}
-      />
     </div>
   );
 }
