@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { REPORTS } from "@/features/reports/report-definitions";
@@ -168,6 +168,22 @@ describe("ReportSurface", () => {
 
     expect(await screen.findByText("reports.unavailable")).toBeInTheDocument();
     expect(screen.queryByText(/SQLSTATE/)).not.toBeInTheDocument();
+  });
+
+  it("lets the reader retry a report that failed to load", async () => {
+    vi.mocked(services.getReportPage)
+      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockResolvedValueOnce({
+        data: [{ matter_number: "N-2026-000001" }],
+        meta: { current_page: 1, last_page: 1, total: 1 },
+      });
+
+    renderWithProviders(<ReportSurface definition={REPORTS["operational.matters"]} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "reports.retry" }));
+
+    expect(await screen.findByText("N-2026-000001")).toBeInTheDocument();
+    expect(services.getReportPage).toHaveBeenCalledTimes(2);
   });
 
   it("offers no status filter on the property report", async () => {

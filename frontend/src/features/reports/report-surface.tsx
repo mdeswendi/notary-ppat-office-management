@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,11 +76,17 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <ReportFilters definition={definition} filters={filters} onChange={set} />
 
         {canExport ? (
-          <Button variant="outline" size="sm" onClick={onExport} disabled={downloading}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full lg:w-auto"
+            onClick={onExport}
+            disabled={downloading}
+          >
             {downloading ? t("exporting") : t("export")}
           </Button>
         ) : null}
@@ -94,20 +102,31 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
           <Skeleton className="h-10 w-full" />
         </div>
       ) : query.isError ? (
-        <InlineAlert>{t("unavailable")}</InlineAlert>
+        <BaseErrorState
+          title={t("errorTitle")}
+          description={t("unavailable")}
+          action={
+            <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+              {t("retry")}
+            </Button>
+          }
+        />
       ) : rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("noData")}</p>
+        <EmptyState title={t("emptyTitle")} description={t("noData")} />
       ) : (
         <>
           <div className="border-border overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[48rem] text-sm">
               <thead className="bg-muted/40 text-muted-foreground text-xs">
                 <tr>
                   {definition.columns.map((column) => (
                     <th
                       key={column}
+                      scope="col"
                       className={`px-3 py-2 font-medium ${
-                        definition.numeric?.includes(column) ? "text-right" : "text-left"
+                        definition.numeric?.includes(column)
+                          ? "text-right whitespace-nowrap"
+                          : "text-left"
                       }`}
                     >
                       {t(`columns.${column}`)}
@@ -134,15 +153,16 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
           </div>
 
           {meta ? (
-            <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div className="text-muted-foreground flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span className="tabular-nums">
                 {t("pageOf", { page: meta.current_page, last: meta.last_page, total: meta.total })}
               </span>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={meta.current_page <= 1}
                   onClick={() => setFilters((c) => ({ ...c, page: (c.page ?? 1) - 1 }))}
                 >
@@ -151,6 +171,7 @@ export function ReportSurface({ definition }: { definition: ReportDefinition }) 
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={meta.current_page >= meta.last_page}
                   onClick={() => setFilters((c) => ({ ...c, page: (c.page ?? 1) + 1 }))}
                 >
@@ -179,7 +200,11 @@ function Cell({ row, column, numeric }: { row: ReportRow; column: string; numeri
   const value = row[column];
 
   return (
-    <td className={`px-3 py-2 ${numeric ? "text-right tabular-nums" : ""}`}>
+    <td
+      className={`px-3 py-2 ${
+        numeric ? "text-right whitespace-nowrap tabular-nums" : "max-w-xs break-words"
+      }`}
+    >
       {withheld ? (
         <span className="text-muted-foreground text-xs" title={t("withheldHint")}>
           {t("withheld")}
@@ -205,7 +230,7 @@ function ReportFilters({
   const t = useTranslations("reports");
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="grid w-full grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:flex lg:w-auto lg:flex-wrap">
       {definition.filters.includes("dateRange") ? (
         <>
           <Field label={t("filters.dateFrom")}>
@@ -290,7 +315,7 @@ function ReportFilters({
               max={100}
               value={filters.completeness_min ?? ""}
               onChange={(event) => onChange({ completeness_min: event.target.value })}
-              className="w-24"
+              className="w-full lg:w-24"
             />
           </Field>
           <Field label={t("filters.completenessMax")}>
@@ -300,14 +325,14 @@ function ReportFilters({
               max={100}
               value={filters.completeness_max ?? ""}
               onChange={(event) => onChange({ completeness_max: event.target.value })}
-              className="w-24"
+              className="w-full lg:w-24"
             />
           </Field>
         </>
       ) : null}
 
       {definition.filters.includes("overdue") ? (
-        <label className="mb-1.5 flex items-center gap-2 text-sm">
+        <label className="flex min-h-11 items-center gap-2 text-sm sm:col-span-2 lg:mb-1.5 lg:min-h-0">
           <Checkbox
             checked={filters.overdue === "true"}
             onCheckedChange={(checked) => onChange({ overdue: checked === true ? "true" : "" })}
@@ -321,7 +346,7 @@ function ReportFilters({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
+    <label className="flex min-w-0 flex-col gap-1 text-sm">
       <span className="text-muted-foreground text-xs">{label}</span>
       {children}
     </label>

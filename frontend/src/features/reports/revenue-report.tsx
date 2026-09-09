@@ -3,6 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 
+import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { EmptyState } from "@/components/feedback/empty-state";
+import { InlineAlert } from "@/components/feedback/inline-alert";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { getRevenue, reportQueryKeys } from "@/services/reports";
@@ -49,40 +53,62 @@ export function RevenueReport() {
   }
 
   if (query.isError) {
-    return <p className="text-muted-foreground text-sm">{t("unavailable")}</p>;
+    return (
+      <BaseErrorState
+        title={t("errorTitle")}
+        description={t("unavailable")}
+        action={
+          <Button variant="outline" size="sm" onClick={() => void query.refetch()}>
+            {t("retry")}
+          </Button>
+        }
+      />
+    );
   }
 
   if (query.data.data === null) {
-    return <p className="text-muted-foreground text-sm">{t("revenueWithheld")}</p>;
+    return <InlineAlert tone="info">{t("revenueWithheld")}</InlineAlert>;
   }
 
   const rows = query.data.data;
 
   if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t("noData")}</p>;
+    return <EmptyState title={t("emptyTitle")} description={t("noData")} />;
   }
 
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[40rem] text-sm">
         <thead className="bg-muted/40 text-muted-foreground text-xs">
           <tr>
-            <th className="px-3 py-2 text-left font-medium">{t("columns.period")}</th>
-            <th className="px-3 py-2 text-left font-medium">{t("columns.domain")}</th>
-            <th className="px-3 py-2 text-left font-medium">{t("columns.service_type")}</th>
-            <th className="px-3 py-2 text-right font-medium">{t("columns.payment_count")}</th>
-            <th className="px-3 py-2 text-right font-medium">{t("columns.total_amount")}</th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("columns.period")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("columns.domain")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("columns.service_type")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap">
+              {t("columns.payment_count")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium whitespace-nowrap">
+              {t("columns.total_amount")}
+            </th>
           </tr>
         </thead>
 
         <tbody className="divide-border divide-y">
           {rows.map((row, index) => (
             <tr key={`${row.period}-${row.domain ?? "none"}-${row.service_type_code ?? index}`}>
-              <td className="px-3 py-2 tabular-nums">{row.period}</td>
+              <td className="px-3 py-2 whitespace-nowrap tabular-nums">{row.period}</td>
               <td className="px-3 py-2">{row.domain ?? "—"}</td>
               <td className="px-3 py-2">{serviceTypeName(row, locale)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{row.payment_count}</td>
-              <td className="px-3 py-2 text-right">
+              <td className="px-3 py-2 text-right whitespace-nowrap tabular-nums">
+                {row.payment_count}
+              </td>
+              <td className="px-3 py-2 text-right whitespace-nowrap">
                 {/* Reaching here at all means the grant is held, so `visible` is
                     true — the server would have sent `null` otherwise. */}
                 <AmountField amount={row.total_amount} currency="IDR" visible emphasis />
