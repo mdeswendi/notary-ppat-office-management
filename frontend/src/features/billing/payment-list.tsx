@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,7 @@ import { billingQueryKeys, getPayments, verifyPayment } from "@/services/billing
  */
 export function PaymentList() {
   const t = useTranslations("billing");
+  const tActions = useTranslations("actions");
   const client = useQueryClient();
 
   const query = useQuery({
@@ -107,18 +109,19 @@ export function PaymentList() {
 
                 <td className="px-3 py-2 text-right">
                   {payment.capabilities?.can_verify ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={verify.isPending}
-                      onClick={() => {
-                        if (window.confirm(t("verifyConfirm"))) {
-                          verify.mutate(payment.id);
-                        }
-                      }}
-                    >
-                      {t("verify")}
-                    </Button>
+                    <ConfirmDialog
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          {t("verify")}
+                        </Button>
+                      }
+                      title={t("verify")}
+                      description={t("verifyConfirm")}
+                      cancelLabel={tActions("cancel")}
+                      confirmLabel={t("verify")}
+                      onConfirm={() => verify.mutateAsync(payment.id)}
+                      destructive={false}
+                    />
                   ) : null}
                 </td>
               </tr>

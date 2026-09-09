@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -131,22 +132,18 @@ export function PropertyDetail({ propertyId }: { propertyId: string }) {
               ) : null}
 
               {property.can_archive ? (
-                <Button
-                  variant="outline"
-                  disabled={archive.isPending}
-                  onClick={() => {
-                    setActionError(null);
-
-                    // Nothing in the product reverses this: `properties.restore` is not a
-                    // canonical capability, so there is no un-archive path (O-045). The
-                    // wording says so rather than implying an undo.
-                    if (window.confirm(t("archiveConfirm"))) {
-                      archive.mutate();
-                    }
-                  }}
-                >
-                  {t("archive")}
-                </Button>
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="outline" onClick={() => setActionError(null)}>
+                      {t("archive")}
+                    </Button>
+                  }
+                  title={t("archive")}
+                  description={t("archiveConfirm")}
+                  cancelLabel={tActions("cancel")}
+                  confirmLabel={t("archive")}
+                  onConfirm={() => archive.mutateAsync()}
+                />
               ) : null}
             </>
           ) : undefined

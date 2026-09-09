@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
 import { BaseErrorState } from "@/components/feedback/base-error-state";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { EmptyState } from "@/components/feedback/empty-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -264,10 +265,7 @@ export function WarkahSection({ deedId }: { deedId: string }) {
               item={item}
               onRemove={() => {
                 setActionError(null);
-
-                if (window.confirm(t("removeItemConfirm"))) {
-                  remove.mutate(item.id);
-                }
+                return remove.mutateAsync(item.id);
               }}
               removing={remove.isPending}
             />
@@ -303,10 +301,11 @@ function WarkahLine({
 }: {
   deedId: string;
   item: WarkahItem;
-  onRemove: () => void;
+  onRemove: () => Promise<unknown>;
   removing: boolean;
 }) {
   const t = useTranslations("warkah");
+  const tActions = useTranslations("actions");
 
   return (
     <li className="border-border flex flex-col gap-3 rounded-lg border p-4">
@@ -345,15 +344,18 @@ function WarkahLine({
         </div>
 
         {item.can_manage ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t("removeItem")}
-            disabled={removing}
-            onClick={onRemove}
-          >
-            <Trash2 aria-hidden="true" className="size-4" />
-          </Button>
+          <ConfirmDialog
+            trigger={
+              <Button variant="ghost" size="sm" aria-label={t("removeItem")} disabled={removing}>
+                <Trash2 aria-hidden="true" className="size-4" />
+              </Button>
+            }
+            title={t("removeItem")}
+            description={t("removeItemConfirm")}
+            cancelLabel={tActions("cancel")}
+            confirmLabel={t("removeItem")}
+            onConfirm={onRemove}
+          />
         ) : null}
       </div>
 
