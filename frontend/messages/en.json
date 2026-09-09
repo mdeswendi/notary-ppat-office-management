@@ -18,6 +18,7 @@
   },
   "auth": {
     "signIn": "Sign In",
+    "signInSubtitle": "Use your office account to continue.",
     "signingIn": "Signing in...",
     "signOut": "Sign Out",
     "signingOut": "Signing out...",

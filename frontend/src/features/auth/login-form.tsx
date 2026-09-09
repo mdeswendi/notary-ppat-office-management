@@ -5,10 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
+import { PasswordInput } from "@/components/forms/password-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,6 @@ export function LoginForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [showPassword, setShowPassword] = useState(false);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
 
   // The password was accepted but the account requires a second factor. Nothing
@@ -111,7 +110,7 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+    <form onSubmit={onSubmit} noValidate aria-busy={isSubmitting} className="flex flex-col gap-5">
       {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
       <div className="flex flex-col gap-2">
@@ -120,6 +119,9 @@ export function LoginForm() {
           id="email"
           type="email"
           autoComplete="username"
+          autoCapitalize="none"
+          autoFocus
+          spellCheck={false}
           aria-invalid={form.formState.errors.email ? true : undefined}
           aria-describedby={form.formState.errors.email ? "email-error" : undefined}
           {...form.register("email")}
@@ -133,30 +135,15 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">{t("password")}</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            className="pr-10"
-            aria-invalid={form.formState.errors.password ? true : undefined}
-            aria-describedby={form.formState.errors.password ? "password-error" : undefined}
-            {...form.register("password")}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((visible) => !visible)}
-            aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-            aria-pressed={showPassword}
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute inset-y-0 right-0 flex items-center rounded-md px-3 focus-visible:ring-2 focus-visible:outline-none"
-          >
-            {showPassword ? (
-              <EyeOff aria-hidden="true" className="size-4" />
-            ) : (
-              <Eye aria-hidden="true" className="size-4" />
-            )}
-          </button>
-        </div>
+        <PasswordInput
+          id="password"
+          autoComplete="current-password"
+          showLabel={t("showPassword")}
+          hideLabel={t("hidePassword")}
+          aria-invalid={form.formState.errors.password ? true : undefined}
+          aria-describedby={form.formState.errors.password ? "password-error" : undefined}
+          {...form.register("password")}
+        />
         {form.formState.errors.password ? (
           <p id="password-error" className="text-destructive text-sm">
             {form.formState.errors.password.message}

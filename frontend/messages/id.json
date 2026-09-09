@@ -18,6 +18,7 @@
   },
   "auth": {
     "signIn": "Masuk",
+    "signInSubtitle": "Gunakan akun kantor Anda untuk melanjutkan.",
     "signingIn": "Memproses...",
     "signOut": "Keluar",
     "signingOut": "Memproses...",
