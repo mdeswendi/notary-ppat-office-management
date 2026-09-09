@@ -78,6 +78,7 @@ export function TwoFactorChallengeForm({ onExpired }: { onExpired: () => void })
   return (
     <form
       noValidate
+      aria-busy={isSubmitting}
       className="flex flex-col gap-5"
       onSubmit={(event) => {
         event.preventDefault();
@@ -104,6 +105,7 @@ export function TwoFactorChallengeForm({ onExpired }: { onExpired: () => void })
             autoComplete="off"
             autoFocus
             spellCheck={false}
+            className="font-mono"
             value={recoveryCode}
             onChange={(event) => setRecoveryCode(event.target.value)}
           />
@@ -114,12 +116,15 @@ export function TwoFactorChallengeForm({ onExpired }: { onExpired: () => void })
           <Input
             id="two-factor-code"
             inputMode="numeric"
+            enterKeyHint="done"
             // The one autocomplete token browsers and password managers use for
             // a one-time code, so a phone can offer it from an SMS or an
             // authenticator without the value being retained.
             autoComplete="one-time-code"
             autoFocus
             maxLength={6}
+            pattern="[0-9]*"
+            className="font-mono tracking-[0.25em]"
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
           />

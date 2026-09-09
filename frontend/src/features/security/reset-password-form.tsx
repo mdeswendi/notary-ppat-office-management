@@ -8,9 +8,9 @@ import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PasswordInput } from "@/components/forms/password-input";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SecurityError, SecurityNotice } from "@/features/security/security-section";
 import { toApiErrorKey } from "@/lib/api/errors";
@@ -97,6 +97,7 @@ export function ResetPasswordForm() {
   return (
     <form
       noValidate
+      aria-busy={mutation.isPending}
       className="flex flex-col gap-5"
       onSubmit={form.handleSubmit((values) => {
         form.clearErrors("root");
@@ -109,31 +110,47 @@ export function ResetPasswordForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="reset-password">{t("newPasswordLabel")}</Label>
-        <Input
+        <PasswordInput
           id="reset-password"
-          type="password"
           autoComplete="new-password"
           autoFocus
+          showLabel={tAuth("showPassword")}
+          hideLabel={tAuth("hidePassword")}
           aria-invalid={form.formState.errors.password ? true : undefined}
+          aria-describedby={
+            form.formState.errors.password
+              ? "reset-password-hint reset-password-error"
+              : "reset-password-hint"
+          }
           {...form.register("password")}
         />
-        <p className="text-muted-foreground text-xs">{t("passwordHint")}</p>
+        <p id="reset-password-hint" className="text-muted-foreground text-xs">
+          {t("passwordHint")}
+        </p>
         {form.formState.errors.password ? (
-          <p className="text-destructive text-sm">{form.formState.errors.password.message}</p>
+          <p id="reset-password-error" className="text-destructive text-sm">
+            {form.formState.errors.password.message}
+          </p>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="reset-password-confirmation">{t("confirmPasswordLabel")}</Label>
-        <Input
+        <PasswordInput
           id="reset-password-confirmation"
-          type="password"
           autoComplete="new-password"
+          showLabel={tAuth("showPassword")}
+          hideLabel={tAuth("hidePassword")}
           aria-invalid={form.formState.errors.password_confirmation ? true : undefined}
+          aria-describedby={
+            form.formState.errors.password_confirmation
+              ? "reset-password-confirmation-error"
+              : undefined
+          }
           {...form.register("password_confirmation")}
         />
         {form.formState.errors.password_confirmation ? (
-          <p className="text-destructive text-sm">
+          <p id="reset-password-confirmation-error" className="text-destructive text-sm">
             {form.formState.errors.password_confirmation.message}
           </p>
         ) : null}

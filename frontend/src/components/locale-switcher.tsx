@@ -69,7 +69,7 @@ export function LocaleSwitcher() {
         {routing.locales.map((locale) => {
           const isActive = locale === activeLocale;
           const className = cn(
-            "block rounded-[0.3rem] px-2 py-1 text-xs font-medium transition-colors",
+            "focus-visible:ring-ring block rounded-[0.3rem] px-2 py-1 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none",
             isActive
               ? "bg-secondary text-secondary-foreground"
               : "text-muted-foreground hover:text-foreground",

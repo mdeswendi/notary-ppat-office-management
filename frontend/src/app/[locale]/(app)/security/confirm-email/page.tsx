@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { PageBackLink } from "@/components/layout/page-back-link";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmEmailPanel } from "@/features/security/confirm-email-panel";
 
@@ -33,9 +34,11 @@ export default async function ConfirmEmailPage({
 
       {/* `useSearchParams` needs a Suspense boundary to keep the rest of the
           route statically renderable. */}
-      <Suspense fallback={<Skeleton className="h-20 w-full" />}>
-        <ConfirmEmailPanel />
-      </Suspense>
+      <Card className="max-w-xl">
+        <Suspense fallback={<Skeleton className="h-20 w-full" />}>
+          <ConfirmEmailPanel />
+        </Suspense>
+      </Card>
     </PageContainer>
   );
 }
