@@ -38,10 +38,11 @@ class UserResource extends JsonResource
      * role name (D-032, D-045); that is what the permission fields are for.
      *
      * **`office` is the account's own Office, and it is identity rather than
-     * authority.** The interface needs it to say whose system this is — the header
-     * showed the product's name because the browser had no way to learn the
-     * office's. It is the same `{id, code, name}` shape every other resource
-     * serialises an Office as.
+     * authority.** The interface needs both its Organization name and Office name
+     * to distinguish whose system this is from which location the account belongs
+     * to. `organization` is deliberately nested under the Office: that is the
+     * relationship the data model owns, and it avoids inventing a second source
+     * of truth on the User resource.
      *
      * It grants nothing. Data Scope is resolved server-side per request and
      * `OFFICE` reach comes from the resolver, never from this field; a browser
@@ -69,6 +70,13 @@ class UserResource extends JsonResource
                     'id' => $this->office->id,
                     'code' => $this->office->code,
                     'name' => $this->office->name,
+                    'organization' => $this->office->relationLoaded('organization')
+                        && $this->office->organization !== null
+                            ? [
+                                'id' => $this->office->organization->id,
+                                'name' => $this->office->organization->name,
+                            ]
+                            : null,
                 ]
                 : null,
 

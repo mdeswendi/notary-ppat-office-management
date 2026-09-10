@@ -29,7 +29,12 @@ const user: CurrentUser = {
   name: "Pengguna Uji",
   email: "uji@example.test",
   preferred_locale: "id",
-  office: { id: "01OFFICE0000000000000000000", code: "TEST-01", name: "Kantor Uji" },
+  office: {
+    id: "01OFFICE0000000000000000000",
+    code: "TEST-01",
+    name: "Kantor Uji",
+    organization: { id: "01ORG000000000000000000000", name: "Organisasi Uji" },
+  },
   roles: [],
   permissions: ["notary.matters.view", "roles.view"],
   permission_scopes: { "notary.matters.view": ["ALL"], "roles.view": ["ALL"] },

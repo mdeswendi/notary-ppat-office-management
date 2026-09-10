@@ -15,13 +15,13 @@ class MeController extends Controller
      * as `{"data": {...}}` by the resource, matching the single-resource shape
      * in docs/06_API_CONVENTIONS.md section 6.
      *
-     * The Office is loaded explicitly. `UserResource` serialises it only when the
-     * relation is present — the guard every other resource uses — so without this
-     * the field would be `null` here and the interface would silently fall back
-     * to the product's name.
+     * The Office and its Organization are loaded explicitly. `UserResource`
+     * serialises them only when the relations are present — the guard every
+     * other resource uses — so without this the interface would silently fall
+     * back to the product's name instead of naming the deployment and location.
      */
     public function __invoke(Request $request): UserResource
     {
-        return new UserResource($request->user()->loadMissing('office'));
+        return new UserResource($request->user()->loadMissing('office.organization'));
     }
 }

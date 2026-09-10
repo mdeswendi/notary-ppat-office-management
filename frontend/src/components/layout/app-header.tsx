@@ -27,17 +27,18 @@ import type { CurrentUser } from "@/types/auth";
  * header was the control an office touches least. The mark anchors the left, and
  * the switcher is a two-letter segment now.
  *
- * **It names the office, not the product.** A person opening this every morning
- * is looking at their own office's system, and *Kantor Notaris & PPAT Mila
- * Widyahastuti, S.H., M.Kn.* says that where *Notary & PPAT Office Management
- * System* says only what the software is.
+ * **It names the Organization and Office, not the product.** A person opening
+ * this every morning needs both contexts: whose legal-office deployment this is
+ * on the first line, and which operating location their account belongs to on
+ * the second. Folding both into `offices.name` loses that distinction and makes
+ * every branch repeat the Organization's identity.
  *
- * The name is **read from the account's own Office record**, never written here.
- * A second office deploying this sees its own name with no code change, and a
- * hard-coded string would be a lie on the first day that happened.
+ * Both names are **read through the account's own Office record**, never written
+ * here. A second Office sees the same Organization with its own location below;
+ * another deployment sees its own names without a code change.
  *
- * The application name remains the fallback, because `office` is genuinely
- * nullable — the backend sends `null` when the relation was not loaded — and a
+ * The Office name and then the application name remain fallbacks, because the
+ * nested relations are genuinely nullable in the frontend contract — and a
  * blank header would be worse than a generic one.
  * The mark and name link to Dashboard, giving every viewport a persistent home
  * route without adding another header control.
@@ -47,15 +48,17 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
     getTranslations("common"),
     getTranslations("navigation"),
   ]);
+  const organizationName = user.office?.organization?.name ?? user.office?.name ?? t("appName");
+  const officeName = user.office?.organization ? user.office.name : null;
 
   return (
-    <header className="bg-card border-border flex h-14 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
+    <header className="bg-card border-border flex h-16 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
       <MobileNav user={user} />
 
       <Link
         href="/dashboard"
         aria-label={tNavigation("dashboard")}
-        className="focus-visible:ring-ring flex min-w-0 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-md focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
       >
         <span
           aria-hidden="true"
@@ -63,12 +66,15 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
         >
           <Scale className="size-4" />
         </span>
-        <span className="truncate text-sm font-semibold tracking-tight">
-          {user.office?.name ?? t("appName")}
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-sm font-semibold tracking-tight">{organizationName}</span>
+          {officeName ? (
+            <span className="text-muted-foreground truncate text-xs">{officeName}</span>
+          ) : null}
         </span>
       </Link>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <LocaleSwitcher />
         <UserMenu user={user} />
       </div>

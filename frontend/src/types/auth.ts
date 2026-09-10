@@ -29,16 +29,22 @@ export type CurrentUser = {
   /**
    * The account's own Office — **identity, not authority.**
    *
-   * It exists so the interface can name whose deployment this is; the header
-   * showed the product's name because the browser had no way to learn the
-   * office's. Nothing may decide reach from it: Data Scope is resolved
+   * It exists so the interface can name whose deployment this is and which
+   * operating location the account belongs to. The nested Organization mirrors
+   * the backend relationship rather than duplicating Organization identity on
+   * the User. Nothing may decide reach from it: Data Scope is resolved
    * server-side per request, and a browser rewriting this field reaches no other
    * Office's records.
    *
    * `null` is a real possibility rather than a formality — the backend sends it
    * whenever the relation was not loaded — so every reader must handle it.
    */
-  office: { id: string; code: string; name: string } | null;
+  office: {
+    id: string;
+    code: string;
+    name: string;
+    organization: { id: string; name: string } | null;
+  } | null;
   /**
    * Role names, for display only.
    *
