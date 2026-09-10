@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AuthShell } from "@/components/layout/auth-shell";
+import { publicOfficeBrand } from "@/config/public-brand";
 import { LoginForm } from "@/features/auth/login-form";
 
 /**
@@ -20,7 +21,7 @@ export default async function LoginPage({ params }: PageProps<"/[locale]/login">
 
   return (
     <AuthShell
-      officeLabel={tCommon("officeLabel")}
+      officeLabel={publicOfficeBrand(tCommon("officeLabel"))}
       title={t("signIn")}
       description={t("signInSubtitle")}
     >

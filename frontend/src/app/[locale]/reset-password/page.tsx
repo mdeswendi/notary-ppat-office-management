@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { AuthShell } from "@/components/layout/auth-shell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { publicOfficeBrand } from "@/config/public-brand";
 import { ResetPasswordForm } from "@/features/security/reset-password-form";
 
 /**
@@ -29,7 +30,7 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthShell
-      officeLabel={tCommon("officeLabel")}
+      officeLabel={publicOfficeBrand(tCommon("officeLabel"))}
       title={t("resetTitle")}
       description={t("resetSubtitle")}
     >
