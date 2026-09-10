@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Office;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -74,6 +75,10 @@ it('returns the current user for a session authenticated request', function (): 
                     'id' => $user->office->id,
                     'code' => $user->office->code,
                     'name' => $user->office->name,
+                    'organization' => [
+                        'id' => $user->office->organization->id,
+                        'name' => $user->office->organization->name,
+                    ],
                 ],
                 // Present since M0.8. Empty here because this user holds no
                 // assignments; AuthorizationTest covers populated cases.
@@ -86,12 +91,13 @@ it('returns the current user for a session authenticated request', function (): 
         ]);
 });
 
-it('carries the account own Office, so the interface can name the deployment', function (): void {
-    // The header showed the product's name because the browser had no way to
-    // learn the office's. This field is why it can.
-    $office = Office::factory()->create([
-        'code' => 'Pusat',
-        'name' => 'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn.',
+it('carries the account Organization and Office so the interface can name both contexts', function (): void {
+    $organization = Organization::factory()->create([
+        'name' => 'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn',
+    ]);
+    $office = Office::factory()->for($organization)->create([
+        'code' => 'SBG-01',
+        'name' => 'Kantor Pusat - Subang',
     ]);
 
     $user = User::factory()->for($office)->create();
@@ -100,8 +106,13 @@ it('carries the account own Office, so the interface can name the deployment', f
         ->getJson('/api/v1/me')
         ->assertOk()
         ->assertJsonPath('data.office.id', $office->id)
-        ->assertJsonPath('data.office.code', 'Pusat')
-        ->assertJsonPath('data.office.name', 'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn.');
+        ->assertJsonPath('data.office.code', 'SBG-01')
+        ->assertJsonPath('data.office.name', 'Kantor Pusat - Subang')
+        ->assertJsonPath('data.office.organization.id', $organization->id)
+        ->assertJsonPath(
+            'data.office.organization.name',
+            'Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn',
+        );
 });
 
 it('reports no Office but its own', function (): void {
