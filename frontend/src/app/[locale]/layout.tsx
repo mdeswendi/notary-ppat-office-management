@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
@@ -20,6 +20,12 @@ const inter = Inter({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#172554",
+};
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
@@ -33,6 +39,8 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "common" });
 
   return {
+    applicationName: t("appName"),
+    manifest: "/manifest.webmanifest",
     title: t("appName"),
   };
 }
