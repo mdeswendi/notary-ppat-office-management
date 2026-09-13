@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\MatterParty;
 use App\Models\NotaryDeed;
+use App\Models\Office;
 use App\Models\Payment;
 use App\Models\PpatDeed;
 use App\Models\PpatWarkah;
@@ -29,6 +30,7 @@ use App\Policies\InvoicePolicy;
 use App\Policies\MatterPartyPolicy;
 use App\Policies\MatterPolicy;
 use App\Policies\NotaryDeedPolicy;
+use App\Policies\OfficePolicy;
 use App\Policies\PaymentPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\PpatDeedPolicy;
@@ -79,6 +81,7 @@ class AppServiceProvider extends ServiceProvider
         // finding both policies in one place beats knowing which of two
         // mechanisms applies to which model.
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Office::class, OfficePolicy::class);
 
         // The authorization configuration itself: the permission catalogue,
         // role grants, and role membership all authorize through this.

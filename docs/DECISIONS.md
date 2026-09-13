@@ -5131,6 +5131,31 @@ to migrate the same database.
 
 ---
 
+### D-135 — Office practice configuration is current-office history, not account or client duplication
+
+The Office Practice settings surface reads with `offices.view` and mutates with
+`offices.update`, both through `OfficePolicy` and `EffectiveAccessResolver`. It
+addresses only the signed-in actor's Office; an Office or professional record id
+from another Office is never accepted as an alternative target. `settings.*`
+does not substitute for either capability.
+
+The professional picker deliberately returns only active Individual Parties in
+that Office and only their id and display name. The update capability authorizes
+that narrow lookup without granting general Party visibility or exposing NIK,
+NPWP, contact, birth, or address data. Recording an appointment creates no User
+account and no second client/person record.
+
+Professional appointments are append-and-end history. An active appointment can
+be added, and it can later receive an explicit end date; there is no delete or
+in-place change of its profession and relationship. This preserves the current
+facts—Mila as internal PPAT for Kabupaten Sambas and collaborating Notaries as
+external professionals—without claiming a future Notary appointment. No
+production identity is seeded or guessed: verified facts are entered through the
+authenticated surface after deployment, and public branding remains a separate
+final deployment step.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

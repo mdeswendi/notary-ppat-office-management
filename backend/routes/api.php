@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotaryDeedController;
 use App\Http\Controllers\Api\V1\NotaryMinutaController;
 use App\Http\Controllers\Api\V1\NotaryReportController;
+use App\Http\Controllers\Api\V1\OfficePracticeController;
 use App\Http\Controllers\Api\V1\OperationalReportController;
 use App\Http\Controllers\Api\V1\PartyDirectoryController;
 use App\Http\Controllers\Api\V1\PartyDuplicateController;
@@ -64,6 +65,16 @@ Route::prefix('v1')->group(function (): void {
     // requests. No bearer token is involved.
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('me', MeController::class)->name('api.v1.me');
+
+        Route::prefix('office-practice')->name('api.v1.office-practice.')->group(function (): void {
+            Route::get('/', [OfficePracticeController::class, 'show'])->name('show');
+            Route::patch('/', [OfficePracticeController::class, 'update'])->name('update');
+            Route::get('options', [OfficePracticeController::class, 'options'])->name('options');
+            Route::post('professionals', [OfficePracticeController::class, 'storeProfessional'])
+                ->name('professionals.store');
+            Route::post('professionals/{appointment}/end', [OfficePracticeController::class, 'endProfessional'])
+                ->whereUlid('appointment')->name('professionals.end');
+        });
 
         /*
          * The operational overview (M8.1, D-122).
