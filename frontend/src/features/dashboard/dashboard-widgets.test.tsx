@@ -63,28 +63,32 @@ describe("StatsCards", () => {
   it("renders a zero, because permitted-and-empty is a real answer", async () => {
     vi.mocked(services.getDashboardStats).mockResolvedValue({
       ...NOTHING_PERMITTED,
-      active_projects: 0,
+      active_matters: 0,
     });
 
     renderWithProviders(<StatsCards />);
 
     expect(await screen.findByText("0")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.noDataYet")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
+    expect(screen.getAllByText("dashboard.notAvailable")).toHaveLength(3);
   });
 
   it("omits only the cards the caller may not see", async () => {
     vi.mocked(services.getDashboardStats).mockResolvedValue({
       ...NOTHING_PERMITTED,
-      active_projects: 12,
+      active_matters: 12,
       overdue_tasks: 3,
     });
 
     renderWithProviders(<StatsCards />);
 
     expect(await screen.findByText("12")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.queryByText("3")).not.toBeInTheDocument();
 
-    // Three of the five figures were null; only two cards exist.
-    expect(screen.getAllByText(/^\d+$/)).toHaveLength(2);
+    // Only the reference layout's active-work figure is numeric. The three
+    // reserved cards say they are unavailable rather than inventing counts.
+    expect(screen.getAllByText(/^\d+$/)).toHaveLength(1);
   });
 
   it("shows a generic message rather than raw server text on failure", async () => {
