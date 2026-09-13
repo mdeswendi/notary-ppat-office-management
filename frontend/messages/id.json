@@ -2,6 +2,7 @@
   "common": {
     "appName": "Sistem Manajemen Kantor PPAT",
     "officeLabel": "Kantor PPAT",
+    "sidebarMotto": "Profesional, amanah, dan tertata dalam setiap layanan.",
     "practiceTypes": {
       "PPAT": "PPAT",
       "NOTARY": "Notaris",
@@ -109,6 +110,11 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Ringkasan pekerjaan kantor ini, sebatas yang boleh Anda lihat.",
+    "welcome": "Selamat datang",
+    "welcomeDescription": "Kelola pekerjaan PPAT, dokumen, pihak, dan kolaborasi profesional dalam satu ruang kerja yang tertata.",
+    "practiceWorkspace": "Ruang kerja praktik PPAT",
+    "practiceContext": "Praktik PPAT · Kolaborasi profesional",
+    "summaryTitle": "Ringkasan hari ini",
     "loading": "Memuat…",
     "panelUnavailable": "Panel ini sedang tidak dapat ditampilkan.",
     "viewAll": "Lihat semua",
@@ -138,6 +144,18 @@
     "workloadDescription": "Bar membandingkan total penugasan dalam daftar ini, bukan kapasitas maksimum.",
     "noWorkload": "Belum ada pekerjaan yang ditugaskan.",
     "workloadCounts": "{matters} pekerjaan · {tasks} tugas",
+    "professionalCollaborators": "Kolaborator Profesional",
+    "professionalCollaboratorsDescription": "Profesional aktif yang tercatat untuk praktik kantor ini.",
+    "noProfessionalCollaborators": "Belum ada profesional aktif yang tercatat.",
+    "unnamedProfessional": "Profesional tanpa nama",
+    "professionTypes": {
+      "PPAT": "PPAT",
+      "NOTARY": "Notaris"
+    },
+    "relationshipTypes": {
+      "INTERNAL": "Internal",
+      "EXTERNAL": "Kolaborator eksternal"
+    },
     "activity": "Aktivitas Terbaru",
     "activityDescription": "Enam perubahan terbaru yang tercatat.",
     "noActivity": "Belum ada aktivitas. Catatan dimulai sejak fitur ini aktif dan akan terisi seiring pekerjaan berjalan.",

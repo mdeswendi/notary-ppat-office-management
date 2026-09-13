@@ -42,13 +42,13 @@ const CARDS: ReadonlyArray<{
   key: keyof DashboardStats;
   label: string;
   icon: LucideIcon;
-  tone: "neutral" | "warning" | "danger";
+  tone: "primary" | "ppat" | "warning" | "danger" | "notary";
 }> = [
-  { key: "active_projects", label: "activeProjects", icon: FolderKanban, tone: "neutral" },
-  { key: "active_matters", label: "activeMatters", icon: BriefcaseBusiness, tone: "neutral" },
+  { key: "active_projects", label: "activeProjects", icon: FolderKanban, tone: "primary" },
+  { key: "active_matters", label: "activeMatters", icon: BriefcaseBusiness, tone: "ppat" },
   { key: "pending_reviews", label: "pendingReviews", icon: ClipboardCheck, tone: "warning" },
   { key: "overdue_tasks", label: "overdueTasks", icon: ClockAlert, tone: "danger" },
-  { key: "total_deeds_this_month", label: "totalDeeds", icon: FileSignature, tone: "neutral" },
+  { key: "total_deeds_this_month", label: "totalDeeds", icon: FileSignature, tone: "notary" },
 ];
 
 export function StatsCards() {
@@ -62,7 +62,7 @@ export function StatsCards() {
   if (query.isPending) {
     return (
       <div
-        className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:gap-4"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] sm:gap-4"
         aria-busy="true"
         aria-live="polite"
       >
@@ -85,7 +85,7 @@ export function StatsCards() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] sm:gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] sm:gap-4">
       {visible.map(({ key, label, icon, tone }, index) => (
         <StatCard
           key={key}
@@ -114,30 +114,47 @@ function StatCard({
   label: string;
   value: ScopedCount;
   icon: LucideIcon;
-  tone: "neutral" | "warning" | "danger";
+  tone: "primary" | "ppat" | "warning" | "danger" | "notary";
   className?: string;
 }) {
-  const iconTone = {
-    neutral: "bg-primary/5 text-primary",
-    warning: "bg-warning/10 text-warning",
-    danger: "bg-destructive/5 text-destructive",
+  const tones = {
+    primary: {
+      card: "border-primary/10 bg-primary/[0.035]",
+      icon: "bg-info/10 text-info",
+    },
+    ppat: {
+      card: "border-ppat/15 bg-ppat/[0.045]",
+      icon: "bg-ppat/12 text-ppat",
+    },
+    warning: {
+      card: "border-warning/15 bg-warning/[0.045]",
+      icon: "bg-warning/12 text-warning",
+    },
+    danger: {
+      card: "border-destructive/15 bg-destructive/[0.035]",
+      icon: "bg-destructive/10 text-destructive",
+    },
+    notary: {
+      card: "border-notary/15 bg-notary/[0.035]",
+      icon: "bg-notary/10 text-notary",
+    },
   }[tone];
 
   return (
     <div
-      className={`border-border bg-card flex min-h-28 items-start justify-between gap-3 rounded-lg border p-4 sm:p-5 ${className ?? ""}`}
+      className={`shadow-primary/[0.02] flex min-h-28 items-start justify-between gap-3 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
     >
       <dl className="flex min-h-full flex-col justify-between gap-3">
         <dt className="text-muted-foreground text-sm">{label}</dt>
         {/* Tabular figures so the row of cards lines up rather than shimmying. */}
-        <dd className="text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
+        <dd className="text-3xl font-semibold tracking-tight tabular-nums">{value}</dd>
       </dl>
       <div className="flex items-start justify-between gap-3">
         <span
-          className={`flex size-8 shrink-0 items-center justify-center rounded-md ${iconTone}`}
+          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tones.icon}`}
           aria-hidden="true"
         >
-          <Icon className="size-4" />
+          <Icon className="size-[1.125rem]" />
         </span>
       </div>
     </div>

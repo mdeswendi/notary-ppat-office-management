@@ -57,7 +57,7 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
     : null;
 
   return (
-    <header className="bg-card border-border flex h-16 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
+    <header className="border-border/80 bg-card/78 supports-[backdrop-filter]:bg-card/68 sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-2 border-b px-4 shadow-[0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl sm:px-6">
       <MobileNav user={user} />
 
       <Link

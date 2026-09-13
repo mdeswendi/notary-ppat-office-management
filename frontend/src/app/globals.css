@@ -64,6 +64,9 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-gold-foreground: var(--brand-gold-foreground);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -115,14 +118,19 @@
   --input: oklch(0.9288 0.0126 255.51);
   --ring: oklch(0.2823 0.0874 267.94);
 
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.2077 0.0398 265.75);
-  --sidebar-primary: oklch(0.2823 0.0874 267.94);
-  --sidebar-primary-foreground: oklch(0.9842 0.0034 247.86);
-  --sidebar-accent: oklch(0.9683 0.0069 247.9);
-  --sidebar-accent-foreground: oklch(0.2823 0.0874 267.94);
-  --sidebar-border: oklch(0.9288 0.0126 255.51);
-  --sidebar-ring: oklch(0.2823 0.0874 267.94);
+  /* Warm legal-office accent. Kept semantic so components never embed a
+     one-off gold value and the contrast pairing remains reviewable. */
+  --brand-gold: oklch(0.7165 0.1162 78.63); /* muted antique gold */
+  --brand-gold-foreground: oklch(0.2077 0.0398 265.75);
+
+  --sidebar: oklch(0.2387 0.0576 251.82); /* calm legal-office navy */
+  --sidebar-foreground: oklch(0.9702 0.0072 247.9);
+  --sidebar-primary: oklch(0.7165 0.1162 78.63);
+  --sidebar-primary-foreground: oklch(0.2077 0.0398 265.75);
+  --sidebar-accent: oklch(0.3237 0.0649 250.66);
+  --sidebar-accent-foreground: oklch(0.9842 0.0034 247.86);
+  --sidebar-border: oklch(0.9842 0.0034 247.86 / 14%);
+  --sidebar-ring: oklch(0.8047 0.1176 78.44);
 }
 
 /*
@@ -164,6 +172,9 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.7107 0.0351 256.79);
+
+  --brand-gold: oklch(0.8047 0.1176 78.44);
+  --brand-gold-foreground: oklch(0.1288 0.0406 264.7);
 
   --sidebar: oklch(0.2077 0.0398 265.75);
   --sidebar-foreground: oklch(0.9842 0.0034 247.86);

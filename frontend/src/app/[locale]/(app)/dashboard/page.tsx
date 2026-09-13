@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { PageHeader } from "@/components/layout/page-header";
 import { ActivityWidget } from "@/features/dashboard/activity-widget";
+import { DashboardHero } from "@/features/dashboard/dashboard-hero";
 import { NeedsAttentionWidget } from "@/features/dashboard/needs-attention-widget";
+import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
 import { TasksWidget } from "@/features/dashboard/tasks-widget";
 import { WorkloadWidget } from "@/features/dashboard/workload-widget";
@@ -41,18 +42,31 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const t = await getTranslations({ locale, namespace: "dashboard" });
 
   return (
-    <PageContainer>
-      <PageHeader title={t("title")} description={t("subtitle")} />
+    <PageContainer className="gap-5">
+      <DashboardHero />
 
-      <StatsCards />
+      <section aria-labelledby="dashboard-summary" className="flex flex-col gap-3">
+        <div>
+          <h2 id="dashboard-summary" className="text-lg font-semibold tracking-tight">
+            {t("summaryTitle")}
+          </h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">{t("subtitle")}</p>
+        </div>
+        <StatsCards />
+      </section>
 
       {/* Two columns on wide screens, stacking on narrow ones. Desktop-first, but
           the office reads this on a laptop and sometimes a tablet (§50). */}
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,0.9fr)]">
-        <TasksWidget />
-        <NeedsAttentionWidget />
-        <WorkloadWidget />
-        <ActivityWidget />
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.75fr)]">
+        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2 xl:grid-cols-1">
+          <TasksWidget />
+          <NeedsAttentionWidget />
+          <ActivityWidget />
+        </div>
+        <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2 xl:grid-cols-1">
+          <ProfessionalCollaboratorsWidget />
+          <WorkloadWidget />
+        </div>
       </div>
     </PageContainer>
   );

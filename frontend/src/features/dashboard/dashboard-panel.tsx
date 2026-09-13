@@ -59,7 +59,7 @@ export function DashboardPanel({
   }
 
   return (
-    <Card className="p-4 sm:p-5">
+    <Card className="border-border/80 bg-card/96 shadow-primary/[0.025] p-4 shadow-sm sm:p-5">
       <CardHeader title={title} description={description} action={action} />
 
       {isPending ? (

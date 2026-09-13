@@ -43,7 +43,7 @@ export function SidebarNav({ user, onNavigate }: SidebarNavProps) {
     if (item.children) {
       return (
         <li key={item.key} className="flex flex-col gap-1">
-          <div className="text-muted-foreground flex items-center gap-3 px-3 pt-3 pb-1 text-xs font-medium tracking-wide uppercase">
+          <div className="text-sidebar-foreground/50 flex items-center gap-3 px-3 pt-3 pb-1 text-[11px] font-medium tracking-[0.12em] uppercase">
             <Icon aria-hidden="true" className="size-3.5 shrink-0" />
             {t(item.translationKey)}
           </div>
@@ -67,10 +67,10 @@ export function SidebarNav({ user, onNavigate }: SidebarNavProps) {
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "focus-visible:ring-sidebar-ring flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none",
+            "focus-visible:ring-sidebar-ring relative flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none",
             active
-              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              ? "border-brand-gold bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm shadow-black/10"
+              : "text-sidebar-foreground/68 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent",
           )}
         >
           <Icon aria-hidden="true" className="size-4 shrink-0" />
