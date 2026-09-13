@@ -8,18 +8,15 @@ afterEach(() => {
 
 describe("web app manifest", () => {
   it("uses the configured public office identity", () => {
-    vi.stubEnv(
-      "NEXT_PUBLIC_OFFICE_BRAND_NAME",
-      "Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn",
-    );
+    vi.stubEnv("NEXT_PUBLIC_OFFICE_BRAND_NAME", "Kantor PPAT Mila Widyahastuti, S.H., M.Kn.");
 
-    expect(manifest().name).toBe("Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn");
+    expect(manifest().name).toBe("Kantor PPAT Mila Widyahastuti, S.H., M.Kn.");
   });
 
   it("opens the Indonesian dashboard as a standalone application", () => {
     expect(manifest()).toMatchObject({
       id: "/id/",
-      short_name: "Notaris & PPAT",
+      short_name: "Kantor PPAT",
       start_url: "/id/dashboard",
       scope: "/",
       display: "standalone",

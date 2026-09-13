@@ -5086,6 +5086,33 @@ rows are identical and so is the Office predicate.
 
 ---
 
+### D-133 — Current PPAT identity and collaborating Notaries are explicit data, not branding guesses
+
+The application must represent the office as it exists today without deleting the
+Notary domain needed for collaboration and future appointment. An Office therefore
+has an optional `practice_type` and `jurisdiction`; both remain null for existing
+rows until an authorized configuration step supplies verified facts. A deployment
+must never acquire a legal-office identity merely by running a migration.
+
+A professional is still an **Individual Party**, never a duplicate person, client,
+or User. `professional_appointments` records the capacity (`PPAT` or `NOTARY`) and
+whether that appointment is internal or belongs to an external collaborator. The
+appointment does not grant system access. `matter_professionals` then identifies
+the professional capacity responsible for a Matter, separately from the clients,
+signers, witnesses, and other participants in `matter_parties`.
+
+This supports the present facts: Mila Widyahastuti can be recorded as the internal
+PPAT for Kabupaten Sambas, Kalimantan Barat, while work handled with Notaries in
+Subang names those Notaries as external collaborators. It does not present Mila as
+a Notary before that appointment exists, and it preserves the Notary module rather
+than making a future legal status change require a new schema.
+
+Public-code fallbacks now say PPAT and professional collaboration. Production
+branding remains controlled by environment and database configuration and is a
+separate, final deployment step after the structure and interface are accepted.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

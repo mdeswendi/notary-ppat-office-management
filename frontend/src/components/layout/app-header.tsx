@@ -50,6 +50,11 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
   ]);
   const organizationName = user.office?.organization?.name ?? user.office?.name ?? t("appName");
   const officeName = user.office?.organization ? user.office.name : null;
+  const practiceContext = user.office?.practice_type
+    ? [t(`practiceTypes.${user.office.practice_type}`), user.office.jurisdiction]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
 
   return (
     <header className="bg-card border-border flex h-16 shrink-0 items-center gap-2 border-b px-4 sm:px-6">
@@ -70,6 +75,9 @@ export async function AppHeader({ user }: { user: CurrentUser }) {
           <span className="truncate text-sm font-semibold tracking-tight">{organizationName}</span>
           {officeName ? (
             <span className="text-muted-foreground truncate text-xs">{officeName}</span>
+          ) : null}
+          {practiceContext ? (
+            <span className="text-muted-foreground truncate text-[11px]">{practiceContext}</span>
           ) : null}
         </span>
       </Link>

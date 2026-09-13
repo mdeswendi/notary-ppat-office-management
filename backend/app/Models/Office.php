@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Office\Enums\OfficePracticeType;
 use Database\Factories\OfficeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -21,9 +22,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'code',
     'name',
+    'practice_type',
     'address',
     'city',
     'province',
+    'jurisdiction',
     'postal_code',
     'phone',
     'email',
@@ -55,6 +58,11 @@ class Office extends Model
         return $this->hasMany(User::class);
     }
 
+    public function professionalAppointments(): HasMany
+    {
+        return $this->hasMany(ProfessionalAppointment::class);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -62,6 +70,7 @@ class Office extends Model
     {
         return [
             'is_active' => 'boolean',
+            'practice_type' => OfficePracticeType::class,
         ];
     }
 }

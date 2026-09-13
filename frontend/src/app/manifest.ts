@@ -5,9 +5,9 @@ import { publicOfficeBrand } from "@/config/public-brand";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/id/",
-    name: publicOfficeBrand("Kantor Notaris & PPAT"),
-    short_name: "Notaris & PPAT",
-    description: "Aplikasi manajemen pekerjaan Kantor Notaris dan PPAT.",
+    name: publicOfficeBrand("Kantor PPAT"),
+    short_name: "Kantor PPAT",
+    description: "Aplikasi manajemen pekerjaan kantor PPAT dan kolaborasi profesional.",
     start_url: "/id/dashboard",
     scope: "/",
     display: "standalone",

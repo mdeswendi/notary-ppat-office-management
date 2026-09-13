@@ -33,6 +33,8 @@ const user: CurrentUser = {
     id: "01OFFICE0000000000000000000",
     code: "TEST-01",
     name: "Kantor Uji",
+    practice_type: null,
+    jurisdiction: null,
     organization: { id: "01ORG000000000000000000000", name: "Organisasi Uji" },
   },
   roles: [],

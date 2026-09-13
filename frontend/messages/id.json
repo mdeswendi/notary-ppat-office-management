@@ -1,7 +1,13 @@
 {
   "common": {
-    "appName": "Notary & PPAT Office Management System",
-    "officeLabel": "Kantor Notaris & PPAT",
+    "appName": "Sistem Manajemen Kantor PPAT",
+    "officeLabel": "Kantor PPAT",
+    "practiceTypes": {
+      "PPAT": "PPAT",
+      "NOTARY": "Notaris",
+      "NOTARY_AND_PPAT": "Notaris & PPAT",
+      "COLLABORATION": "Kolaborasi Profesional"
+    },
     "skipToContent": "Lewati ke konten utama",
     "close": "Tutup",
     "back": "Kembali",

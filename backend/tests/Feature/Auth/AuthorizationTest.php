@@ -142,11 +142,13 @@ it('returns empty roles and permissions for a user with no assignments', functio
                 'office' => [
                     'id' => $user->office->id,
                     'code' => $user->office->code,
+                    'jurisdiction' => null,
                     'name' => $user->office->name,
                     'organization' => [
                         'id' => $user->office->organization->id,
                         'name' => $user->office->organization->name,
                     ],
+                    'practice_type' => null,
                 ],
                 'roles' => [],
                 'permissions' => [],

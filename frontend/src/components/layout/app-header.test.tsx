@@ -21,6 +21,8 @@ const user: CurrentUser = {
     id: "01OFFICE0000000000000000000",
     code: "SBG-01",
     name: "Kantor Pusat - Subang",
+    practice_type: "PPAT",
+    jurisdiction: "Kabupaten Sambas, Kalimantan Barat",
     organization: {
       id: "01ORG000000000000000000000",
       name: "Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn",
@@ -41,6 +43,11 @@ describe("AppHeader", () => {
       within(dashboardLink).getByText("Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn"),
     ).toBeInTheDocument();
     expect(within(dashboardLink).getByText("Kantor Pusat - Subang")).toBeInTheDocument();
+    expect(
+      within(dashboardLink).getByText(
+        "common.practiceTypes.PPAT · Kabupaten Sambas, Kalimantan Barat",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("falls back to one line when Organization context is unavailable", async () => {
