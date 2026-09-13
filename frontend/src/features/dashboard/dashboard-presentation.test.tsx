@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
+import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
 import { renderWithProviders } from "@/test/render";
 import type { CurrentUser } from "@/types/auth";
 
@@ -43,6 +44,31 @@ describe("DashboardHero", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("dashboard.welcome");
     expect(container.querySelector("img")).toHaveAttribute("alt", "");
+  });
+
+  it("names the active PPAT practice below the welcome heading", () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: {
+        ...user,
+        office: {
+          id: "01OFFICE0000000000000000000",
+          code: "SBG-01",
+          name: "Kantor Pusat - Subang",
+          practice_type: "PPAT",
+          jurisdiction: "Kabupaten Sambas, Kalimantan Barat",
+          organization: {
+            id: "01ORG000000000000000000000",
+            name: "Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn.",
+          },
+        },
+      },
+      isPending: false,
+    } as unknown as ReturnType<typeof auth.useCurrentUser>);
+
+    render(<DashboardHero />);
+
+    expect(screen.getByText("Kantor PPAT Mila Widyahastuti, S.H., M.Kn.")).toBeInTheDocument();
+    expect(screen.queryByText(/Kantor Notaris & PPAT/)).not.toBeInTheDocument();
   });
 });
 
@@ -112,5 +138,34 @@ describe("ProfessionalCollaboratorsWidget", () => {
     expect(await screen.findByText("Mila")).toBeInTheDocument();
     expect(screen.getByText(/dashboard\.relationshipTypes\.INTERNAL/)).toBeInTheDocument();
     expect(screen.queryByText("Riwayat Berakhir")).not.toBeInTheDocument();
+  });
+});
+
+describe("SchedulePlaceholderWidget", () => {
+  it("reserves the schedule position only for an actor who may read tasks", () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: {
+        ...user,
+        permissions: ["tasks.view"],
+        permission_scopes: { "tasks.view": ["OWN"] },
+      },
+      isPending: false,
+    } as unknown as ReturnType<typeof auth.useCurrentUser>);
+
+    render(<SchedulePlaceholderWidget />);
+
+    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.notAvailable")).toBeInTheDocument();
+  });
+
+  it("reveals no schedule panel without task visibility", () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: { ...user, permissions: [], permission_scopes: {} },
+      isPending: false,
+    } as unknown as ReturnType<typeof auth.useCurrentUser>);
+
+    const { container } = render(<SchedulePlaceholderWidget />);
+
+    expect(container.textContent).toBe("");
   });
 });
