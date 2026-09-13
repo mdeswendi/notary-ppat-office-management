@@ -38,6 +38,11 @@ export function DashboardHero() {
         </div>
       </div>
 
+      <div
+        aria-hidden="true"
+        className="dashboard-liquid-glass pointer-events-none absolute top-7 right-5 hidden h-36 w-[min(36vw,25rem)] sm:block"
+      />
+
       <div className="pointer-events-none absolute right-[-11rem] bottom-[-1.5rem] hidden w-[45rem] max-w-[58%] opacity-95 sm:block lg:right-[-4rem] lg:max-w-[52%]">
         <Image
           src="/illustrations/ppat-practice-dashboard.png"
@@ -49,11 +54,6 @@ export function DashboardHero() {
           className="h-auto w-full object-contain drop-shadow-[0_24px_28px_rgba(15,23,42,0.13)]"
         />
       </div>
-
-      <div
-        aria-hidden="true"
-        className="shadow-primary/5 absolute right-6 bottom-5 hidden h-16 w-40 rounded-full border border-white/60 bg-white/22 shadow-lg backdrop-blur-xl sm:block"
-      />
     </section>
   );
 }
