@@ -85,6 +85,13 @@ describe("visibleNavigation", () => {
     expect(visible).not.toContain("settings.roles");
   });
 
+  it("shows office practice settings only with offices.view", () => {
+    expect(keysOf(visibleNavigation(user(["offices.view"])))).toContain("settings.officePractice");
+    expect(keysOf(visibleNavigation(user(["offices.update"])))).not.toContain(
+      "settings.officePractice",
+    );
+  });
+
   it("does not mutate the source configuration while filtering children", () => {
     // `visibleNavigation` rebuilds parents with a narrowed `children` array; if
     // it narrowed in place, the second render of a session would show fewer

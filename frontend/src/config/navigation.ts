@@ -517,6 +517,14 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     implemented: true,
     children: [
       {
+        key: "settings.officePractice",
+        translationKey: "settingsOfficePractice",
+        href: "/settings/office-practice",
+        icon: Building2,
+        implemented: true,
+        requiredPermission: "offices.view",
+      },
+      {
         key: "settings.users",
         translationKey: "settingsUsers",
         href: "/settings/users",
