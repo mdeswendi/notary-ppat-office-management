@@ -57,12 +57,23 @@ export function MobileNav({ user }: { user: CurrentUser }) {
         }
       />
 
-      <SheetContent side="left" showCloseButton={false} className="w-72 p-0">
+      <SheetContent
+        side="left"
+        showCloseButton={false}
+        className="border-sidebar-border bg-sidebar text-sidebar-foreground supports-[backdrop-filter]:bg-sidebar/94 w-72 p-0 shadow-2xl supports-[backdrop-filter]:backdrop-blur-xl"
+      >
         <SheetHeader className="flex-row items-center justify-between gap-2 p-3">
-          <SheetTitle className="text-sm font-semibold">{tCommon("officeLabel")}</SheetTitle>
+          <SheetTitle className="text-sidebar-foreground text-sm font-semibold">
+            {tCommon("officeLabel")}
+          </SheetTitle>
           <SheetClose
             render={
-              <Button variant="ghost" size="icon-sm" aria-label={t("closeNavigation")}>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                aria-label={t("closeNavigation")}
+              >
                 <X aria-hidden="true" />
               </Button>
             }

@@ -1,7 +1,9 @@
+import { Landmark } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Separator } from "@/components/ui/separator";
+import { Link } from "@/i18n/navigation";
 import type { CurrentUser } from "@/types/auth";
 
 /**
@@ -26,16 +28,47 @@ import type { CurrentUser } from "@/types/auth";
 export async function AppSidebar({ user }: { user: CurrentUser }) {
   const t = await getTranslations("navigation");
   const tCommon = await getTranslations("common");
+  const practiceLabel = user.office?.practice_type
+    ? tCommon(`practiceTypes.${user.office.practice_type}`)
+    : tCommon("officeLabel");
 
   return (
-    <aside className="bg-sidebar border-sidebar-border sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r lg:flex">
-      <nav aria-label={t("mainLabel")} className="flex-1 overflow-y-auto overscroll-contain p-3">
+    <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border shadow-primary/10 sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r shadow-xl lg:flex">
+      <Link
+        href="/dashboard"
+        aria-label={t("dashboard")}
+        className="focus-visible:ring-sidebar-ring mx-4 mt-5 flex items-center gap-3 rounded-lg p-2 focus-visible:ring-2 focus-visible:outline-none"
+      >
+        <span
+          aria-hidden="true"
+          className="text-brand-gold border-brand-gold/35 grid size-10 shrink-0 place-items-center rounded-lg border bg-white/5 shadow-inner shadow-white/10"
+        >
+          <Landmark className="size-5" />
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold tracking-wide">
+            {practiceLabel}
+          </span>
+          <span className="text-sidebar-foreground/60 block truncate text-[11px]">
+            {tCommon("appName")}
+          </span>
+        </span>
+      </Link>
+
+      <div className="from-brand-gold/60 via-sidebar-border mx-5 mt-4 h-px bg-gradient-to-r to-transparent" />
+
+      <nav
+        aria-label={t("mainLabel")}
+        className="mt-2 flex-1 overflow-y-auto overscroll-contain p-3"
+      >
         <SidebarNav user={user} />
       </nav>
 
-      <div className="p-3">
-        <Separator />
-        <p className="text-muted-foreground px-3 pt-3 text-xs">{tCommon("officeLabel")}</p>
+      <div className="p-4">
+        <Separator className="bg-sidebar-border" />
+        <p className="text-sidebar-foreground/60 px-2 pt-4 text-xs leading-relaxed">
+          {tCommon("sidebarMotto")}
+        </p>
       </div>
     </aside>
   );

@@ -2,6 +2,7 @@
   "common": {
     "appName": "PPAT Office Management System",
     "officeLabel": "PPAT Office",
+    "sidebarMotto": "Professional, trustworthy, and structured in every service.",
     "practiceTypes": {
       "PPAT": "PPAT",
       "NOTARY": "Notary",
@@ -109,6 +110,11 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "This office's work at a glance, limited to what you may see.",
+    "welcome": "Welcome",
+    "welcomeDescription": "Manage PPAT work, documents, parties, and professional collaboration in one structured workspace.",
+    "practiceWorkspace": "PPAT practice workspace",
+    "practiceContext": "PPAT practice · Professional collaboration",
+    "summaryTitle": "Today's overview",
     "loading": "Loading…",
     "panelUnavailable": "This panel is unavailable right now.",
     "viewAll": "View all",
@@ -138,6 +144,18 @@
     "workloadDescription": "Bars compare total assignments in this list, not maximum capacity.",
     "noWorkload": "No work is assigned yet.",
     "workloadCounts": "{matters} matters · {tasks} tasks",
+    "professionalCollaborators": "Professional Collaborators",
+    "professionalCollaboratorsDescription": "Active professionals recorded for this office practice.",
+    "noProfessionalCollaborators": "No active professionals are recorded yet.",
+    "unnamedProfessional": "Unnamed professional",
+    "professionTypes": {
+      "PPAT": "PPAT",
+      "NOTARY": "Notary"
+    },
+    "relationshipTypes": {
+      "INTERNAL": "Internal",
+      "EXTERNAL": "External collaborator"
+    },
     "activity": "Recent Activity",
     "activityDescription": "The six most recently recorded changes.",
     "noActivity": "No activity yet. The record starts when this feature was enabled and fills as work happens.",

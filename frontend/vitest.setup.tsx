@@ -23,9 +23,9 @@ afterEach(() => {
 /**
  * The App Router hooks, which throw outside a Next.js request context.
  *
- * `next/image` is deliberately **not** mocked: the application imports it
- * nowhere, so a mock would be configuration describing something that does not
- * exist — the kind of dead setup nobody later dares delete.
+ * `next/image` is deliberately **not** mocked: its rendered image semantics are
+ * useful to test (including decorative alt text), while layout optimisation is
+ * Next.js' responsibility rather than application behaviour.
  */
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
