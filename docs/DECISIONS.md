@@ -5113,6 +5113,24 @@ separate, final deployment step after the structure and interface are accepted.
 
 ---
 
+### D-134 — Render Free applies migrations at container startup
+
+The production backend currently runs as a single Render Free web-service
+instance. That plan provides neither dashboard/SSH shell access nor a pre-deploy
+command, so a successful image rebuild alone cannot apply forward database
+migrations. The Docker entrypoint therefore runs `php artisan migrate --force`
+before configuration caching, route caching, and Apache startup. Its existing
+`set -eu` behavior makes migration failure fail the new deployment rather than
+serving application code against an older schema.
+
+This is a constraint-specific deployment mechanism, not the permanent choice for
+scaled infrastructure. If the service moves to a paid plan or more than one
+instance, migration ownership moves to Render's pre-deploy command and the
+entrypoint invocation is removed so concurrent application starts never compete
+to migrate the same database.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
