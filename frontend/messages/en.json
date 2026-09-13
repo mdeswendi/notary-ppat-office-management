@@ -1,7 +1,13 @@
 {
   "common": {
-    "appName": "Notary & PPAT Office Management System",
-    "officeLabel": "Notary & PPAT Office",
+    "appName": "PPAT Office Management System",
+    "officeLabel": "PPAT Office",
+    "practiceTypes": {
+      "PPAT": "PPAT",
+      "NOTARY": "Notary",
+      "NOTARY_AND_PPAT": "Notary & PPAT",
+      "COLLABORATION": "Professional Collaboration"
+    },
     "skipToContent": "Skip to main content",
     "close": "Close",
     "back": "Back",

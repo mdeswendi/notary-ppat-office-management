@@ -75,6 +75,8 @@ it('returns the current user for a session authenticated request', function (): 
                     'id' => $user->office->id,
                     'code' => $user->office->code,
                     'name' => $user->office->name,
+                    'practice_type' => null,
+                    'jurisdiction' => null,
                     'organization' => [
                         'id' => $user->office->organization->id,
                         'name' => $user->office->organization->name,
@@ -98,6 +100,8 @@ it('carries the account Organization and Office so the interface can name both c
     $office = Office::factory()->for($organization)->create([
         'code' => 'SBG-01',
         'name' => 'Kantor Pusat - Subang',
+        'practice_type' => 'PPAT',
+        'jurisdiction' => 'Kabupaten Sambas, Kalimantan Barat',
     ]);
 
     $user = User::factory()->for($office)->create();
@@ -108,6 +112,8 @@ it('carries the account Organization and Office so the interface can name both c
         ->assertJsonPath('data.office.id', $office->id)
         ->assertJsonPath('data.office.code', 'SBG-01')
         ->assertJsonPath('data.office.name', 'Kantor Pusat - Subang')
+        ->assertJsonPath('data.office.practice_type', 'PPAT')
+        ->assertJsonPath('data.office.jurisdiction', 'Kabupaten Sambas, Kalimantan Barat')
         ->assertJsonPath('data.office.organization.id', $organization->id)
         ->assertJsonPath(
             'data.office.organization.name',

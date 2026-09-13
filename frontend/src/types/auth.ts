@@ -43,6 +43,8 @@ export type CurrentUser = {
     id: string;
     code: string;
     name: string;
+    practice_type: "PPAT" | "NOTARY" | "NOTARY_AND_PPAT" | "COLLABORATION" | null;
+    jurisdiction: string | null;
     organization: { id: string; name: string } | null;
   } | null;
   /**

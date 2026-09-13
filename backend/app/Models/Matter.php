@@ -254,6 +254,11 @@ class Matter extends Model
         return $this->hasMany(PpatDeed::class);
     }
 
+    public function matterProfessionals(): HasMany
+    {
+        return $this->hasMany(MatterProfessional::class);
+    }
+
     /**
      * The land objects this Matter concerns (M7.1, D-121).
      *

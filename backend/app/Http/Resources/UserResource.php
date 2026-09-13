@@ -70,6 +70,8 @@ class UserResource extends JsonResource
                     'id' => $this->office->id,
                     'code' => $this->office->code,
                     'name' => $this->office->name,
+                    'practice_type' => $this->office->practice_type?->value,
+                    'jurisdiction' => $this->office->jurisdiction,
                     'organization' => $this->office->relationLoaded('organization')
                         && $this->office->organization !== null
                             ? [
