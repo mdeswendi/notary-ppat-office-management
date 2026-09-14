@@ -76,6 +76,13 @@ describe("MobileNav", () => {
     expect(screen.getByRole("link", { name: "navigation.settingsRoles" })).toBeInTheDocument();
   });
 
+  it("keeps the office identity in the mobile brand block", async () => {
+    await openDrawer();
+
+    expect(await screen.findByText("Organisasi Uji")).toBeInTheDocument();
+    expect(screen.getByText("common.sidebarBrandTagline")).toBeInTheDocument();
+  });
+
   it("lets the last destination receive keyboard focus", async () => {
     await openDrawer();
 

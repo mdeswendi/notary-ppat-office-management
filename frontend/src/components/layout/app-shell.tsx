@@ -29,10 +29,6 @@ export function AppShell({ user, children }: AppShellProps) {
       <SkipLink />
       <AppSidebar user={user} />
       <div className="relative flex min-w-0 flex-1 flex-col overflow-clip">
-        <div
-          aria-hidden="true"
-          className="bg-ppat/5 pointer-events-none absolute -top-32 right-0 h-96 w-96 rounded-full blur-3xl"
-        />
         <AppHeader user={user} />
         <main
           id="main-content"

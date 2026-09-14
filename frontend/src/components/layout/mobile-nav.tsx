@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Menu, X } from "lucide-react";
+import { House, Leaf, Menu, X } from "lucide-react";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { resolveOfficeIdentity } from "@/lib/office-identity";
 import type { CurrentUser } from "@/types/auth";
 
 /**
@@ -41,6 +42,12 @@ export function MobileNav({ user }: { user: CurrentUser }) {
   const t = useTranslations("navigation");
   const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
+  const officeIdentity = resolveOfficeIdentity(user.office) ?? tCommon("officeLabel");
+  const isPpatPractice = user.office?.practice_type === "PPAT";
+  const brandHeading = isPpatPractice ? tCommon("officeLabel") : null;
+  const brandName = isPpatPractice
+    ? officeIdentity.replace(/^Kantor\s+PPAT\s*/i, "")
+    : officeIdentity;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -62,9 +69,21 @@ export function MobileNav({ user }: { user: CurrentUser }) {
         showCloseButton={false}
         className="border-sidebar-border bg-sidebar text-sidebar-foreground supports-[backdrop-filter]:bg-sidebar/94 w-72 p-0 shadow-2xl supports-[backdrop-filter]:backdrop-blur-xl"
       >
-        <SheetHeader className="flex-row items-center justify-between gap-2 p-3">
-          <SheetTitle className="text-sidebar-foreground text-sm font-semibold">
-            {tCommon("officeLabel")}
+        <SheetHeader className="flex-row items-start justify-between gap-3 px-5 pt-5 pb-4">
+          <SheetTitle className="flex min-w-0 flex-1 items-center gap-3 text-left">
+            <span aria-hidden="true" className="text-brand-gold relative block size-11 shrink-0">
+              <House className="absolute inset-0 size-11 stroke-[1.4]" />
+              <Leaf className="absolute right-0.5 bottom-0.5 size-5 -rotate-12 stroke-[1.7]" />
+            </span>
+            <span className="min-w-0">
+              <span className="text-sidebar-foreground block font-serif leading-tight font-semibold">
+                {brandHeading ? <span className="block text-sm">{brandHeading}</span> : null}
+                <span className="block text-xs">{brandName}</span>
+              </span>
+              <span className="text-brand-gold mt-1 block text-[8px] leading-relaxed font-semibold tracking-[0.08em] uppercase">
+                {tCommon("sidebarBrandTagline")}
+              </span>
+            </span>
           </SheetTitle>
           <SheetClose
             render={
