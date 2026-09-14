@@ -2,7 +2,6 @@ import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
-import { DashboardSearch } from "@/features/dashboard/dashboard-search";
 import { LatestPpatMattersWidget } from "@/features/dashboard/latest-ppat-matters-widget";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
 import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
@@ -42,8 +41,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
   return (
     <PageContainer className="gap-5">
-      <DashboardSearch />
-      <DashboardHero />
+      <DashboardHero currentDate={new Date().toISOString()} />
 
       <section aria-labelledby="dashboard-summary" className="flex flex-col gap-3">
         <div>

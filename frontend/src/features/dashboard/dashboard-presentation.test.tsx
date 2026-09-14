@@ -47,9 +47,12 @@ beforeEach(() => {
 
 describe("DashboardHero", () => {
   it("keeps the illustration decorative and the welcome text accessible", () => {
-    const { container } = render(<DashboardHero />);
+    const { container } = render(<DashboardHero currentDate="2026-09-14T00:00:00.000Z" />);
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("dashboard.welcome");
+    expect(screen.getByText(/dashboard\.practiceMotto/)).toBeInTheDocument();
+    expect(screen.getByText("dashboard.landMotto")).toBeInTheDocument();
+    expect(container.querySelector("time")).toHaveAttribute("datetime", "2026-09-14T00:00:00.000Z");
     expect(container.querySelector("img")).toHaveAttribute("alt", "");
   });
 
@@ -72,7 +75,7 @@ describe("DashboardHero", () => {
       isPending: false,
     } as unknown as ReturnType<typeof auth.useCurrentUser>);
 
-    render(<DashboardHero />);
+    render(<DashboardHero currentDate="2026-09-14T00:00:00.000Z" />);
 
     expect(screen.getByText("Kantor PPAT Mila Widyahastuti, S.H., M.Kn.")).toBeInTheDocument();
     expect(screen.queryByText(/Kantor Notaris & PPAT/)).not.toBeInTheDocument();

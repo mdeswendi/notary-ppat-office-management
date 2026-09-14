@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { House, Leaf, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
+import { OfficeBrandMark } from "@/components/layout/office-brand-mark";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -71,10 +72,7 @@ export function MobileNav({ user }: { user: CurrentUser }) {
       >
         <SheetHeader className="flex-row items-start justify-between gap-3 px-5 pt-5 pb-4">
           <SheetTitle className="flex min-w-0 flex-1 items-center gap-3 text-left">
-            <span aria-hidden="true" className="text-brand-gold relative block size-11 shrink-0">
-              <House className="absolute inset-0 size-11 stroke-[1.4]" />
-              <Leaf className="absolute right-0.5 bottom-0.5 size-5 -rotate-12 stroke-[1.7]" />
-            </span>
+            <OfficeBrandMark aria-hidden="true" className="text-brand-gold size-12 shrink-0" />
             <span className="min-w-0">
               <span className="text-sidebar-foreground block font-serif leading-tight font-semibold">
                 {brandHeading ? <span className="block text-sm">{brandHeading}</span> : null}

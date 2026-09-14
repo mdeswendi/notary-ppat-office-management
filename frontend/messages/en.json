@@ -114,6 +114,7 @@
     "welcome": "Welcome",
     "officeIdentityFallback": "PPAT Office",
     "practiceMotto": "Every parcel of land has a story; we are here to provide certainty.",
+    "landMotto": "Land for a Better Life",
     "welcomeDescription": "Manage PPAT work, documents, parties, and professional collaboration in one structured workspace.",
     "practiceWorkspace": "PPAT practice workspace",
     "practiceContext": "PPAT practice · Professional collaboration",
@@ -129,6 +130,10 @@
         "property": "Land Object",
         "matter": "PPAT Matter"
       }
+    },
+    "notifications": {
+      "label": "Task notifications",
+      "withCount": "{count} tasks need attention"
     },
     "summaryTitle": "Today's overview",
     "noDataYet": "No data yet",
