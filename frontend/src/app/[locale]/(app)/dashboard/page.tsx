@@ -1,13 +1,11 @@
 import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { ActivityWidget } from "@/features/dashboard/activity-widget";
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
-import { NeedsAttentionWidget } from "@/features/dashboard/needs-attention-widget";
+import { LatestPpatMattersWidget } from "@/features/dashboard/latest-ppat-matters-widget";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
 import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
-import { TasksWidget } from "@/features/dashboard/tasks-widget";
 
 /**
  * Dashboard (M8.1, D-122).
@@ -58,17 +56,14 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       {/* Two columns on wide screens, stacking on narrow ones. Desktop-first, but
           the office reads this on a laptop and sometimes a tablet (§50). */}
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.75fr)]">
-        <div className="grid min-w-0 items-start gap-4">
-          <TasksWidget />
-          <NeedsAttentionWidget />
+        <div className="min-w-0">
+          <LatestPpatMattersWidget />
         </div>
         <div className="grid min-w-0 items-start gap-4">
           <SchedulePlaceholderWidget />
           <ProfessionalCollaboratorsWidget />
         </div>
       </div>
-
-      <ActivityWidget />
     </PageContainer>
   );
 }

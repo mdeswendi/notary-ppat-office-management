@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
+import { LatestPpatMattersWidget } from "@/features/dashboard/latest-ppat-matters-widget";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
 import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
 import { renderWithProviders } from "@/test/render";
@@ -16,8 +17,14 @@ vi.mock("@/services/office-practice", () => ({
   getOfficePractice: vi.fn(),
 }));
 
+vi.mock("@/services/matters", () => ({
+  matterQueryKeys: { list: (domain: string) => ["matters", domain, "list"] },
+  getMatters: vi.fn(),
+}));
+
 const auth = await import("@/features/auth/use-current-user");
 const officePractice = await import("@/services/office-practice");
+const mattersService = await import("@/services/matters");
 
 const user: CurrentUser = {
   id: "01USER00000000000000000000",
@@ -138,6 +145,54 @@ describe("ProfessionalCollaboratorsWidget", () => {
     expect(await screen.findByText("Mila")).toBeInTheDocument();
     expect(screen.getByText(/dashboard\.relationshipTypes\.INTERNAL/)).toBeInTheDocument();
     expect(screen.queryByText("Riwayat Berakhir")).not.toBeInTheDocument();
+  });
+});
+
+describe("LatestPpatMattersWidget", () => {
+  it("does not request PPAT matters without PPAT matter visibility", () => {
+    const { container } = renderWithProviders(<LatestPpatMattersWidget />);
+
+    expect(container.textContent).toBe("");
+    expect(mattersService.getMatters).not.toHaveBeenCalled();
+  });
+
+  it("places real recent PPAT matters in the main dashboard table", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: {
+        ...user,
+        permissions: ["ppat.matters.view"],
+        permission_scopes: { "ppat.matters.view": ["OFFICE"] },
+      },
+      isPending: false,
+    } as unknown as ReturnType<typeof auth.useCurrentUser>);
+    vi.mocked(mattersService.getMatters).mockResolvedValue({
+      data: [
+        {
+          id: "01MATTER000000000000000000",
+          matter_number: "PPAT-2026-001",
+          domain: "PPAT",
+          title: "Peralihan Hak",
+          status: "OPEN",
+          priority: null,
+          notes: null,
+          opened_at: "2026-09-14",
+          target_completion_date: null,
+          completed_at: null,
+          office: null,
+          project: null,
+          service_type: null,
+          pic: null,
+          created_at: "2026-09-14T00:00:00Z",
+          updated_at: "2026-09-14T00:00:00Z",
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, per_page: 5, total: 1 },
+    });
+
+    renderWithProviders(<LatestPpatMattersWidget />);
+
+    expect(await screen.findByText("Peralihan Hak")).toBeInTheDocument();
+    expect(screen.getByText("PPAT-2026-001")).toBeInTheDocument();
   });
 });
 

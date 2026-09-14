@@ -1,9 +1,10 @@
-import { Landmark } from "lucide-react";
+import { House, Leaf } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "@/i18n/navigation";
+import { resolveOfficeIdentity } from "@/lib/office-identity";
 import type { CurrentUser } from "@/types/auth";
 
 /**
@@ -31,31 +32,34 @@ export async function AppSidebar({ user }: { user: CurrentUser }) {
   const practiceLabel = user.office?.practice_type
     ? tCommon(`practiceTypes.${user.office.practice_type}`)
     : tCommon("officeLabel");
+  const officeIdentity = resolveOfficeIdentity(user.office) ?? practiceLabel;
+  const isPpatPractice = user.office?.practice_type === "PPAT";
+  const brandHeading = isPpatPractice ? tCommon("officeLabel") : practiceLabel;
+  const brandName = isPpatPractice
+    ? officeIdentity.replace(/^Kantor\s+PPAT\s*/i, "")
+    : officeIdentity;
 
   return (
     <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border shadow-primary/10 sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r shadow-xl lg:flex">
       <Link
         href="/dashboard"
         aria-label={t("dashboard")}
-        className="focus-visible:ring-sidebar-ring mx-4 mt-5 flex items-center gap-3 rounded-lg p-2 focus-visible:ring-2 focus-visible:outline-none"
+        className="focus-visible:ring-sidebar-ring mx-5 mt-6 flex flex-col items-start rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:outline-none"
       >
-        <span
-          aria-hidden="true"
-          className="text-brand-gold border-brand-gold/35 grid size-10 shrink-0 place-items-center rounded-lg border bg-white/5 shadow-inner shadow-white/10"
-        >
-          <Landmark className="size-5" />
+        <span aria-hidden="true" className="text-brand-gold relative mb-3 block size-14">
+          <House className="absolute inset-0 size-14 stroke-[1.4]" />
+          <Leaf className="absolute right-1 bottom-1 size-7 -rotate-12 stroke-[1.7]" />
         </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold tracking-wide">
-            {practiceLabel}
-          </span>
-          <span className="text-sidebar-foreground/60 block truncate text-[11px]">
-            {tCommon("appName")}
-          </span>
+        <span className="block max-w-full font-serif leading-tight font-semibold text-white">
+          <span className="block text-lg">{brandHeading}</span>
+          <span className="block text-sm">{brandName}</span>
+        </span>
+        <span className="text-brand-gold mt-2 block text-[9px] leading-relaxed font-semibold tracking-[0.1em] uppercase">
+          {tCommon("sidebarBrandTagline")}
         </span>
       </Link>
 
-      <div className="from-brand-gold/60 via-sidebar-border mx-5 mt-4 h-px bg-gradient-to-r to-transparent" />
+      <div className="from-brand-gold/60 via-sidebar-border mx-5 mt-5 h-px bg-gradient-to-r to-transparent" />
 
       <nav
         aria-label={t("mainLabel")}
