@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
@@ -123,6 +123,42 @@ describe("ProfessionalCollaboratorsWidget", () => {
           },
         },
         {
+          id: "01EXTERNALNOTARY00000000000",
+          profession_type: "NOTARY",
+          relationship_type: "EXTERNAL",
+          registration_number: "AHU-001",
+          appointed_at: "2017-06-16",
+          ended_at: null,
+          professional_office_name: "Kantor Notaris & PPAT Siska",
+          office_city: "Kabupaten Subang",
+          province: "Jawa Barat",
+          jurisdiction: "Provinsi Jawa Barat",
+          is_active: true,
+          individual: {
+            id: "01PERSON300000000000000000",
+            display_name: "Siska Berlianti",
+            is_archived: false,
+          },
+        },
+        {
+          id: "01EXTERNALPPAT000000000000",
+          profession_type: "PPAT",
+          relationship_type: "EXTERNAL",
+          registration_number: "417/KEP",
+          appointed_at: "2017-11-02",
+          ended_at: null,
+          professional_office_name: "Kantor Notaris & PPAT Siska",
+          office_city: "Kabupaten Subang",
+          province: "Jawa Barat",
+          jurisdiction: "Kabupaten Subang",
+          is_active: true,
+          individual: {
+            id: "01PERSON300000000000000000",
+            display_name: "Siska Berlianti",
+            is_archived: false,
+          },
+        },
+        {
           id: "01ENDED0000000000000000000",
           profession_type: "NOTARY",
           relationship_type: "EXTERNAL",
@@ -146,8 +182,22 @@ describe("ProfessionalCollaboratorsWidget", () => {
     renderWithProviders(<ProfessionalCollaboratorsWidget />);
 
     expect(await screen.findByText("Mila")).toBeInTheDocument();
-    expect(screen.getByText(/dashboard\.relationshipTypes\.INTERNAL/)).toBeInTheDocument();
+    expect(screen.getByText("Siska Berlianti")).toBeInTheDocument();
+    expect(screen.getAllByText("Siska Berlianti")).toHaveLength(1);
     expect(screen.queryByText("Riwayat Berakhir")).not.toBeInTheDocument();
+
+    const internal = screen.getByRole("region", {
+      name: "dashboard.internalProfessionalsGroup",
+    });
+    const external = screen.getByRole("region", {
+      name: "dashboard.externalProfessionalsGroup",
+    });
+
+    expect(internal).toHaveClass("bg-gradient-to-br");
+    expect(external).toHaveClass("bg-gradient-to-br");
+    expect(within(internal).getByText("Mila")).toBeInTheDocument();
+    expect(within(external).getByText("Siska Berlianti")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.collaborationMotto")).toBeInTheDocument();
   });
 });
 
