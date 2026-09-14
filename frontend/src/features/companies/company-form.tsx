@@ -360,7 +360,7 @@ export function CompanyForm({ company }: { company?: Company }) {
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
-        <legend className="text-sm font-medium">{t("addressSection")}</legend>
+        <legend className="sr-only">{t("addressSection")}</legend>
         <Field
           id="address"
           label={t("addressLabel")}

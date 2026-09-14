@@ -14,6 +14,39 @@ type SidebarNavProps = {
 };
 
 /**
+ * Selects one active destination when route prefixes overlap.
+ *
+ * For example, `/parties` (Directory) is a prefix of
+ * `/parties/individuals` (Individuals). A simple prefix check would mark both
+ * links active, so the longest matching destination wins while still keeping
+ * detail routes such as `/parties/individuals/01...` attached to Individuals.
+ */
+export function resolveActiveNavigationHref(
+  pathname: string,
+  items: ReadonlyArray<NavigationItem>,
+): string | undefined {
+  let activeHref: string | undefined;
+
+  const visit = (entries: ReadonlyArray<NavigationItem>) => {
+    for (const item of entries) {
+      if (item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`))) {
+        if (!activeHref || item.href.length > activeHref.length) {
+          activeHref = item.href;
+        }
+      }
+
+      if (item.children) {
+        visit(item.children);
+      }
+    }
+  };
+
+  visit(items);
+
+  return activeHref;
+}
+
+/**
  * The navigation list itself, shared by the desktop sidebar and the mobile
  * drawer so there is exactly one menu definition and one filter.
  *
@@ -30,12 +63,7 @@ export function SidebarNav({ user, onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
 
   const items = visibleNavigation(user);
-
-  /**
-   * Nested routes keep their parent entry active — `/settings/roles/7` should
-   * still highlight Roles.
-   */
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const activeHref = resolveActiveNavigationHref(pathname, items);
 
   const renderItem = (item: NavigationItem) => {
     const Icon = item.icon;
@@ -58,7 +86,7 @@ export function SidebarNav({ user, onNavigate }: SidebarNavProps) {
       return null;
     }
 
-    const active = isActive(item.href);
+    const active = item.href === activeHref;
 
     return (
       <li key={item.key}>
