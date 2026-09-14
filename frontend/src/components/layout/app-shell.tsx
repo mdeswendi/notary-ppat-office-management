@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -24,12 +27,18 @@ type AppShellProps = {
  * its own; both belong to the layout above it and to the backend respectively.
  */
 export function AppShell({ user, children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <div className="bg-background flex min-h-svh">
       <SkipLink />
-      <AppSidebar user={user} />
+      {sidebarOpen ? <AppSidebar user={user} onCollapse={() => setSidebarOpen(false)} /> : null}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-clip">
-        <AppHeader user={user} />
+        <AppHeader
+          user={user}
+          sidebarOpen={sidebarOpen}
+          onExpandSidebar={() => setSidebarOpen(true)}
+        />
         <main
           id="main-content"
           tabIndex={-1}

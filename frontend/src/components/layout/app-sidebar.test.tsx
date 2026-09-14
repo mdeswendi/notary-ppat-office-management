@@ -1,12 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
-import { vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { expect, vi } from "vitest";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import type { CurrentUser } from "@/types/auth";
-
-vi.mock("next-intl/server", () => ({
-  getTranslations: async (namespace: string) => (key: string) => `${namespace}.${key}`,
-}));
 
 vi.mock("@/components/layout/sidebar-nav", () => ({ SidebarNav: () => null }));
 
@@ -32,13 +29,23 @@ const user: CurrentUser = {
 };
 
 describe("AppSidebar", () => {
-  it("places the current PPAT office identity and brand promise above navigation", async () => {
-    render(await AppSidebar({ user }));
+  it("places the current PPAT office identity and brand promise above navigation", () => {
+    render(<AppSidebar user={user} onCollapse={vi.fn()} />);
 
     const brandLink = screen.getByRole("link", { name: "navigation.dashboard" });
 
     expect(within(brandLink).getByText("common.officeLabel")).toBeInTheDocument();
     expect(within(brandLink).getByText("Mila Widyahastuti, S.H., M.Kn.")).toBeInTheDocument();
     expect(within(brandLink).getByText("common.sidebarBrandTagline")).toBeInTheDocument();
+  });
+
+  it("lets the user collapse the desktop sidebar", async () => {
+    const events = userEvent.setup();
+    const onCollapse = vi.fn();
+    render(<AppSidebar user={user} onCollapse={onCollapse} />);
+
+    await events.click(screen.getByRole("button", { name: "navigation.collapseSidebar" }));
+
+    expect(onCollapse).toHaveBeenCalledOnce();
   });
 });

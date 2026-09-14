@@ -1,7 +1,11 @@
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { PanelLeftClose } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { OfficeBrandMark } from "@/components/layout/office-brand-mark";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "@/i18n/navigation";
 import { resolveOfficeIdentity } from "@/lib/office-identity";
@@ -26,9 +30,9 @@ import type { CurrentUser } from "@/types/auth";
  * survives. `overscroll-contain` stops a scroll that reaches the end of the
  * menu from continuing into the page behind it.
  */
-export async function AppSidebar({ user }: { user: CurrentUser }) {
-  const t = await getTranslations("navigation");
-  const tCommon = await getTranslations("common");
+export function AppSidebar({ user, onCollapse }: { user: CurrentUser; onCollapse: () => void }) {
+  const t = useTranslations("navigation");
+  const tCommon = useTranslations("common");
   const practiceLabel = user.office?.practice_type
     ? tCommon(`practiceTypes.${user.office.practice_type}`)
     : tCommon("officeLabel");
@@ -41,10 +45,21 @@ export async function AppSidebar({ user }: { user: CurrentUser }) {
 
   return (
     <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border shadow-primary/10 sticky top-0 hidden h-svh w-64 shrink-0 flex-col border-r shadow-xl lg:flex">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={onCollapse}
+        aria-label={t("collapseSidebar")}
+        title={t("collapseSidebar")}
+        className="text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground absolute top-3 right-3 z-10"
+      >
+        <PanelLeftClose aria-hidden="true" />
+      </Button>
       <Link
         href="/dashboard"
         aria-label={t("dashboard")}
-        className="focus-visible:ring-sidebar-ring mx-5 mt-6 flex flex-col items-start rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:outline-none"
+        className="focus-visible:ring-sidebar-ring mx-5 mt-6 flex flex-col items-start rounded-lg px-1 py-2 pr-8 focus-visible:ring-2 focus-visible:outline-none"
       >
         <OfficeBrandMark aria-hidden="true" className="text-brand-gold mb-3 size-16" />
         <span className="block max-w-full font-serif leading-tight font-semibold text-white">

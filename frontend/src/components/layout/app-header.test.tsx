@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { AppHeader } from "@/components/layout/app-header";
@@ -39,9 +40,25 @@ const user: CurrentUser = {
 
 describe("AppHeader", () => {
   it("puts global search in the top bar and enables task notifications by permission", () => {
-    render(<AppHeader user={{ ...user, permissions: ["tasks.view"] }} />);
+    render(
+      <AppHeader
+        user={{ ...user, permissions: ["tasks.view"] }}
+        sidebarOpen
+        onExpandSidebar={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("office-search")).toBeInTheDocument();
     expect(screen.getByText("notifications-enabled")).toBeInTheDocument();
+  });
+
+  it("offers a desktop reopen control after the sidebar is hidden", async () => {
+    const events = userEvent.setup();
+    const onExpandSidebar = vi.fn();
+    render(<AppHeader user={user} sidebarOpen={false} onExpandSidebar={onExpandSidebar} />);
+
+    await events.click(screen.getByRole("button", { name: "navigation.expandSidebar" }));
+
+    expect(onExpandSidebar).toHaveBeenCalledOnce();
   });
 });

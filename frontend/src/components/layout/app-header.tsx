@@ -1,9 +1,13 @@
+import { PanelLeftOpen } from "lucide-react";
+
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { HeaderNotifications } from "@/components/layout/header-notifications";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { DashboardSearch } from "@/features/dashboard/dashboard-search";
 import { can } from "@/lib/permissions/can";
+import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import type { CurrentUser } from "@/types/auth";
 
 /**
@@ -14,10 +18,33 @@ import type { CurrentUser } from "@/types/auth";
  * this row operational matches the approved reference and gives the search
  * enough width to remain useful on an office laptop.
  */
-export function AppHeader({ user }: { user: CurrentUser }) {
+export function AppHeader({
+  user,
+  sidebarOpen,
+  onExpandSidebar,
+}: {
+  user: CurrentUser;
+  sidebarOpen: boolean;
+  onExpandSidebar: () => void;
+}) {
+  const tNavigation = useTranslations("navigation");
+
   return (
     <header className="border-border/80 bg-card sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-6">
       <MobileNav user={user} />
+      {!sidebarOpen ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onExpandSidebar}
+          aria-label={tNavigation("expandSidebar")}
+          title={tNavigation("expandSidebar")}
+          className="hidden lg:inline-flex"
+        >
+          <PanelLeftOpen aria-hidden="true" />
+        </Button>
+      ) : null}
 
       <div className="min-w-0 flex-1 sm:max-w-xl">
         <DashboardSearch />

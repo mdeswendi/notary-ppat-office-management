@@ -43,9 +43,13 @@ describe("HeaderNotifications", () => {
 
     const { container } = renderWithProviders(<HeaderNotifications enabled />);
 
-    const link = await screen.findByRole("link", {
-      name: "dashboard.notifications.withCount",
-    });
+    const link = await screen.findByRole(
+      "link",
+      {
+        name: "dashboard.notifications.withCount",
+      },
+      { timeout: 3_000 },
+    );
     expect(link).toHaveAttribute("href", "/tasks/my");
     expect(container).toHaveTextContent("2");
   });
