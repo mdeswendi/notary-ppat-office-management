@@ -185,6 +185,12 @@
     "professionalCollaboratorsDescription": "Active professionals recorded for this office practice.",
     "noProfessionalCollaborators": "No active professionals are recorded yet.",
     "unnamedProfessional": "Unnamed professional",
+    "internalProfessionalsGroup": "Internal PPAT",
+    "externalProfessionalsGroup": "Notary Collaborators",
+    "externalShort": "External",
+    "internalProfessionalRole": "{profession} office holder at this office",
+    "collaborationPartner": "Collaboration partner",
+    "collaborationMotto": "Moving Forward Together, Toward Legal Certainty",
     "professionTypes": {
       "PPAT": "PPAT",
       "NOTARY": "Notary"

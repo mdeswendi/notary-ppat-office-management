@@ -185,6 +185,12 @@
     "professionalCollaboratorsDescription": "Profesional aktif yang tercatat untuk praktik kantor ini.",
     "noProfessionalCollaborators": "Belum ada profesional aktif yang tercatat.",
     "unnamedProfessional": "Profesional tanpa nama",
+    "internalProfessionalsGroup": "PPAT Internal",
+    "externalProfessionalsGroup": "Notaris Kolaborator",
+    "externalShort": "Eksternal",
+    "internalProfessionalRole": "Pemegang jabatan {profession} di kantor ini",
+    "collaborationPartner": "Rekan kolaborasi",
+    "collaborationMotto": "Melangkah Bersama, Menuju Kepastian Hukum",
     "professionTypes": {
       "PPAT": "PPAT",
       "NOTARY": "Notaris"
