@@ -117,6 +117,19 @@
     "welcomeDescription": "Kelola pekerjaan PPAT, dokumen, pihak, dan kolaborasi profesional dalam satu ruang kerja yang tertata.",
     "practiceWorkspace": "Ruang kerja praktik PPAT",
     "practiceContext": "Praktik PPAT · Kolaborasi profesional",
+    "search": {
+      "label": "Cari data kantor",
+      "placeholder": "Cari klien, nomor akta, objek tanah, atau pekerjaan...",
+      "loading": "Mencari...",
+      "empty": "Tidak ada hasil yang cocok.",
+      "unavailable": "Pencarian sedang tidak tersedia.",
+      "types": {
+        "party": "Klien & Pihak",
+        "deed": "Akta PPAT",
+        "property": "Objek Tanah",
+        "matter": "Pekerjaan PPAT"
+      }
+    },
     "summaryTitle": "Ringkasan hari ini",
     "noDataYet": "Belum ada data",
     "notAvailable": "Belum tersedia",

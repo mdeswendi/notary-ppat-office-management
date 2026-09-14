@@ -117,6 +117,19 @@
     "welcomeDescription": "Manage PPAT work, documents, parties, and professional collaboration in one structured workspace.",
     "practiceWorkspace": "PPAT practice workspace",
     "practiceContext": "PPAT practice · Professional collaboration",
+    "search": {
+      "label": "Search office records",
+      "placeholder": "Search clients, deed numbers, land objects, or matters...",
+      "loading": "Searching...",
+      "empty": "No matching results.",
+      "unavailable": "Search is currently unavailable.",
+      "types": {
+        "party": "Clients & Parties",
+        "deed": "PPAT Deed",
+        "property": "Land Object",
+        "matter": "PPAT Matter"
+      }
+    },
     "summaryTitle": "Today's overview",
     "noDataYet": "No data yet",
     "notAvailable": "Not available yet",
