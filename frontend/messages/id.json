@@ -63,6 +63,8 @@
     "mainLabel": "Navigasi utama",
     "openNavigation": "Buka navigasi",
     "closeNavigation": "Tutup navigasi",
+    "collapseSidebar": "Sembunyikan sidebar",
+    "expandSidebar": "Tampilkan sidebar",
     "dashboard": "Dashboard",
     "settings": "Pengaturan",
     "settingsOfficePractice": "Praktik Kantor",

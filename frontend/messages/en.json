@@ -63,6 +63,8 @@
     "mainLabel": "Main navigation",
     "openNavigation": "Open navigation",
     "closeNavigation": "Close navigation",
+    "collapseSidebar": "Hide sidebar",
+    "expandSidebar": "Show sidebar",
     "dashboard": "Dashboard",
     "settings": "Settings",
     "settingsOfficePractice": "Office Practice",
