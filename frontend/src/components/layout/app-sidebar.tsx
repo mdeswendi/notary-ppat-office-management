@@ -1,6 +1,6 @@
-import { House, Leaf } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { OfficeBrandMark } from "@/components/layout/office-brand-mark";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "@/i18n/navigation";
@@ -46,10 +46,7 @@ export async function AppSidebar({ user }: { user: CurrentUser }) {
         aria-label={t("dashboard")}
         className="focus-visible:ring-sidebar-ring mx-5 mt-6 flex flex-col items-start rounded-lg px-1 py-2 focus-visible:ring-2 focus-visible:outline-none"
       >
-        <span aria-hidden="true" className="text-brand-gold relative mb-3 block size-14">
-          <House className="absolute inset-0 size-14 stroke-[1.4]" />
-          <Leaf className="absolute right-1 bottom-1 size-7 -rotate-12 stroke-[1.7]" />
-        </span>
+        <OfficeBrandMark aria-hidden="true" className="text-brand-gold mb-3 size-16" />
         <span className="block max-w-full font-serif leading-tight font-semibold text-white">
           <span className="block text-lg">{brandHeading}</span>
           <span className="block text-sm">{brandName}</span>

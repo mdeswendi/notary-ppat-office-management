@@ -146,8 +146,14 @@ function StatCard({
 
   return (
     <div
-      className={`shadow-primary/[0.02] flex min-h-28 items-start justify-between gap-3 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
+      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
     >
+      <span
+        className={`flex size-12 shrink-0 items-center justify-center rounded-xl sm:size-14 ${tones.icon}`}
+        aria-hidden="true"
+      >
+        <Icon className="size-6" />
+      </span>
       <dl className="flex min-h-full flex-col justify-between gap-3">
         <dt className="text-muted-foreground text-sm">{label}</dt>
         {/* Tabular figures so the row of cards lines up rather than shimmying. */}
@@ -158,14 +164,6 @@ function StatCard({
           ) : null}
         </dd>
       </dl>
-      <div className="flex items-start justify-between gap-3">
-        <span
-          className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tones.icon}`}
-          aria-hidden="true"
-        >
-          <Icon className="size-[1.125rem]" />
-        </span>
-      </div>
     </div>
   );
 }
@@ -204,18 +202,18 @@ function ReservedStatCard({
 
   return (
     <div
-      className={`shadow-primary/[0.02] flex min-h-28 items-start justify-between gap-3 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
+      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
     >
+      <span
+        className={`flex size-12 shrink-0 items-center justify-center rounded-xl sm:size-14 ${tones.icon}`}
+        aria-hidden="true"
+      >
+        <Icon className="size-6" />
+      </span>
       <dl className="flex min-h-full flex-col justify-between gap-3">
         <dt className="text-muted-foreground text-sm">{label}</dt>
         <dd className="text-muted-foreground text-sm font-medium">{status}</dd>
       </dl>
-      <span
-        className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${tones.icon}`}
-        aria-hidden="true"
-      >
-        <Icon className="size-[1.125rem]" />
-      </span>
     </div>
   );
 }

@@ -1,16 +1,20 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
 import { AppHeader } from "@/components/layout/app-header";
 import type { CurrentUser } from "@/types/auth";
 
-vi.mock("next-intl/server", () => ({
-  getTranslations: async (namespace: string) => (key: string) => `${namespace}.${key}`,
-}));
-
 vi.mock("@/components/layout/mobile-nav", () => ({ MobileNav: () => null }));
 vi.mock("@/components/layout/user-menu", () => ({ UserMenu: () => null }));
 vi.mock("@/components/locale-switcher", () => ({ LocaleSwitcher: () => null }));
+vi.mock("@/features/dashboard/dashboard-search", () => ({
+  DashboardSearch: () => <div>office-search</div>,
+}));
+vi.mock("@/components/layout/header-notifications", () => ({
+  HeaderNotifications: ({ enabled }: { enabled: boolean }) => (
+    <div>{enabled ? "notifications-enabled" : "notifications-disabled"}</div>
+  ),
+}));
 
 const user: CurrentUser = {
   id: "01USER00000000000000000000",
@@ -34,32 +38,10 @@ const user: CurrentUser = {
 };
 
 describe("AppHeader", () => {
-  it("shows the Organization above the account Office", async () => {
-    render(await AppHeader({ user }));
+  it("puts global search in the top bar and enables task notifications by permission", () => {
+    render(<AppHeader user={{ ...user, permissions: ["tasks.view"] }} />);
 
-    const dashboardLink = screen.getByRole("link", { name: "navigation.dashboard" });
-
-    expect(
-      within(dashboardLink).getByText("Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn"),
-    ).toBeInTheDocument();
-    expect(within(dashboardLink).getByText("Kantor Pusat - Subang")).toBeInTheDocument();
-    expect(
-      within(dashboardLink).getByText(
-        "common.practiceTypes.PPAT · Kabupaten Sambas, Kalimantan Barat",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("falls back to one line when Organization context is unavailable", async () => {
-    render(
-      await AppHeader({
-        user: { ...user, office: { ...user.office!, organization: null } },
-      }),
-    );
-
-    expect(screen.getByText("Kantor Pusat - Subang")).toBeInTheDocument();
-    expect(
-      screen.queryByText("Kantor Notaris & PPAT Mila Widyahastuti, S.H., M.Kn"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("office-search")).toBeInTheDocument();
+    expect(screen.getByText("notifications-enabled")).toBeInTheDocument();
   });
 });

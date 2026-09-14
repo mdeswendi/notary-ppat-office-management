@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useCurrentUser } from "@/features/auth/use-current-user";
 import { resolveOfficeIdentity } from "@/lib/office-identity";
@@ -13,10 +13,17 @@ import { resolveOfficeIdentity } from "@/lib/office-identity";
  * bilingual, and the factual panels below remain the only place where counts
  * and operational state are disclosed.
  */
-export function DashboardHero() {
+export function DashboardHero({ currentDate }: { currentDate: string }) {
   const t = useTranslations("dashboard");
+  const format = useFormatter();
   const { data: user } = useCurrentUser();
   const officeIdentity = resolveOfficeIdentity(user?.office) ?? t("officeIdentityFallback");
+  const formattedDate = format.dateTime(new Date(currentDate), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <section className="border-border/80 bg-card grid min-h-64 overflow-hidden rounded-xl border shadow-sm lg:grid-cols-[minmax(22rem,1.05fr)_minmax(24rem,1.35fr)_minmax(13rem,0.65fr)]">
@@ -27,11 +34,17 @@ export function DashboardHero() {
         <p className="text-primary mt-1 max-w-2xl font-serif text-xl font-semibold tracking-tight text-balance sm:text-2xl">
           {officeIdentity}
         </p>
+        <div className="mt-4 flex items-start gap-3">
+          <span className="bg-brand-gold mt-2 h-0.5 w-12 shrink-0" aria-hidden="true" />
+          <p className="text-muted-foreground max-w-md font-serif text-sm leading-relaxed italic sm:text-base">
+            “{t("practiceMotto")}”
+          </p>
+        </div>
       </div>
 
       <div className="relative min-h-52 overflow-hidden sm:min-h-60 lg:min-h-64">
         <Image
-          src="/illustrations/ppat-practice-hero-v3.png"
+          src="/illustrations/ppat-practice-hero-v4.png"
           alt=""
           fill
           priority
@@ -48,13 +61,16 @@ export function DashboardHero() {
         />
       </div>
 
-      <div className="flex items-center px-5 pt-1 pb-8 sm:px-8 lg:px-5 lg:py-8">
-        <div className="flex items-start gap-3 lg:flex-col lg:items-end lg:text-right">
-          <span className="bg-brand-gold mt-2 h-0.5 w-12 shrink-0 lg:order-2" aria-hidden="true" />
-          <p className="text-muted-foreground max-w-xs text-sm leading-relaxed italic sm:text-base">
-            “{t("practiceMotto")}”
+      <div className="flex flex-col justify-between gap-6 px-5 pt-6 pb-8 sm:px-8 lg:px-5 lg:py-8">
+        <div className="flex flex-col items-start lg:items-end lg:text-right">
+          <p className="text-primary/75 max-w-48 -rotate-2 font-['Segoe_Print','Bradley_Hand',cursive] text-lg leading-snug italic sm:text-xl">
+            {t("landMotto")}
           </p>
+          <span className="bg-brand-gold mt-3 h-0.5 w-10" aria-hidden="true" />
         </div>
+        <time dateTime={currentDate} className="text-muted-foreground text-xs lg:text-right">
+          {formattedDate}
+        </time>
       </div>
     </section>
   );
