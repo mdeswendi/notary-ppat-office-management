@@ -252,13 +252,39 @@ it('issues no URL of any kind', function (): void {
 
 /*
 |--------------------------------------------------------------------------
-| Disk is a constructor parameter, not a constant
+| Disk follows configuration and remains injectable
 |--------------------------------------------------------------------------
 */
 
-it('defaults to the local disk when constructed with no argument, unchanged from before', function (): void {
+it('uses the configured default disk when constructed with no argument', function (): void {
     expect(app(DocumentStorage::class)->diskName())->toBe('local')
         ->and((new DocumentStorage)->diskName())->toBe('local');
+});
+
+it('follows the configured production disk instead of pinning uploads to local', function (): void {
+    Storage::fake('configured_test');
+    config()->set('filesystems.default', 'configured_test');
+
+    $document = Document::factory()->create();
+    $storage = app(DocumentStorage::class);
+    $metadata = $storage->store(
+        UploadedFile::fake()->createWithContent('document.pdf', 'remote-compatible content'),
+        $document,
+    );
+
+    expect($storage->diskName())->toBe('configured_test')
+        ->and($metadata['storage_disk'])->toBe('configured_test')
+        ->and(Storage::disk('configured_test')->exists($metadata['storage_path']))->toBeTrue()
+        ->and(Storage::disk('local')->exists($metadata['storage_path']))->toBeFalse();
+});
+
+it('checksums through a stream rather than requiring a local filesystem path', function (): void {
+    $source = file_get_contents(app_path('Domains/Document/DocumentStorage.php'));
+
+    expect($source)->toContain('readStream($storagePath)')
+        ->and($source)->toContain('hash_update_stream')
+        ->and($source)->not->toContain('hash_file(')
+        ->and($source)->not->toContain('->path($storagePath)');
 });
 
 it('stores to whatever disk it was constructed with, and never touches local instead', function (): void {
