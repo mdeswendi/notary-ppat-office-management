@@ -24,6 +24,11 @@
     "notFoundTitle": "Halaman tidak ditemukan",
     "notFoundDescription": "Halaman yang Anda cari tidak tersedia."
   },
+  "appUpdate": {
+    "title": "Pembaruan aplikasi tersedia",
+    "description": "Selesaikan atau simpan pekerjaan Anda, lalu muat ulang untuk menggunakan versi terbaru.",
+    "reload": "Muat ulang"
+  },
   "auth": {
     "signIn": "Masuk",
     "signInSubtitle": "Gunakan akun kantor Anda untuk melanjutkan.",
