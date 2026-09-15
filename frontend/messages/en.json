@@ -24,6 +24,11 @@
     "notFoundTitle": "Page not found",
     "notFoundDescription": "The page you are looking for is not available."
   },
+  "appUpdate": {
+    "title": "An application update is available",
+    "description": "Finish or save your work, then reload to use the latest version.",
+    "reload": "Reload"
+  },
   "auth": {
     "signIn": "Sign In",
     "signInSubtitle": "Use your office account to continue.",

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppUpdateNotice } from "@/components/layout/app-update-notice";
 import { SkipLink } from "@/components/layout/skip-link";
 import type { CurrentUser } from "@/types/auth";
 
@@ -28,6 +29,7 @@ type AppShellProps = {
  */
 export function AppShell({ user, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "development";
 
   return (
     <div className="bg-background flex min-h-svh">
@@ -46,6 +48,7 @@ export function AppShell({ user, children }: AppShellProps) {
         >
           {children}
         </main>
+        <AppUpdateNotice currentVersion={appVersion} />
       </div>
     </div>
   );
