@@ -55,20 +55,22 @@ use RuntimeException;
  * upload before it lands. Hashing the source would attest to something other than
  * what is stored, which is precisely the case a checksum exists to catch.
  *
- * ## The disk is a constructor parameter, not a constant
+ * ## The disk follows configuration and remains injectable
  *
- * Every real document goes through the default — `app(DocumentStorage::class)`
- * resolves this with no disk argument. Keeping the disk injectable lets tests
- * verify storage isolation without changing production behaviour. Nothing in
- * this class decides which disk that is beyond taking whatever it is handed.
+ * Every real document goes through the configured default filesystem disk.
+ * Keeping an explicit disk injectable lets tests verify storage isolation
+ * without changing production behaviour.
  */
 class DocumentStorage
 {
     public const ROOT = 'documents';
 
-    public function __construct(
-        private readonly string $disk = 'local',
-    ) {}
+    private readonly string $disk;
+
+    public function __construct(?string $disk = null)
+    {
+        $this->disk = $disk ?? (string) config('filesystems.default', 'local');
+    }
 
     /**
      * The disk this instance stores to and reads from — never a credential or a
@@ -136,15 +138,20 @@ class DocumentStorage
      */
     public function checksum(string $storagePath): string
     {
-        $absolute = $this->disk()->path($storagePath);
+        $stream = $this->disk()->readStream($storagePath);
 
-        $digest = hash_file('sha256', $absolute);
-
-        if ($digest === false) {
+        if (! is_resource($stream)) {
             throw new RuntimeException("Could not checksum the stored file at [{$storagePath}].");
         }
 
-        return $digest;
+        try {
+            $context = hash_init('sha256');
+            hash_update_stream($context, $stream);
+
+            return hash_final($context);
+        } finally {
+            fclose($stream);
+        }
     }
 
     /**
