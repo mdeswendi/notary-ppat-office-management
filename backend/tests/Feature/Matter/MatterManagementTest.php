@@ -85,13 +85,14 @@ it('registers exactly the expected matter routes and nothing more', function ():
     // applied twice, which is how one of the two copies goes stale.
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
-        // **`reports/` excluded at M8.3.** `api/v1/reports/operational/matters`
-        // contains "matters" but is a Report route: it answers to
-        // `reports.operational.view`, not to `notary.matters.*` or
-        // `ppat.matters.*`, and it belongs to the inventory in the Reports suite.
+        // **`reports/` excluded at M8.3 and `dashboard/` excluded with the latest
+        // matters widget.** Both routes contain "matters" but belong to their own
+        // bounded surfaces with their own permissions and feature suites, not to
+        // the `notary.matters.*` or `ppat.matters.*` lifecycle owned here.
         // The same substring collision M8.1 hit with `dashboard/tasks`.
         ->filter(fn (string $route): bool => str_contains($route, 'matters')
             && ! str_contains($route, 'reports/')
+            && ! str_contains($route, 'dashboard/')
             && ! str_contains($route, 'parties')
             && ! str_contains($route, 'party-options')
             && ! str_contains($route, 'properties')
