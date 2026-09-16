@@ -17,14 +17,14 @@ vi.mock("@/services/office-practice", () => ({
   getOfficePractice: vi.fn(),
 }));
 
-vi.mock("@/services/matters", () => ({
-  matterQueryKeys: { list: (domain: string) => ["matters", domain, "list"] },
-  getMatters: vi.fn(),
+vi.mock("@/services/dashboard", () => ({
+  dashboardQueryKeys: { latestPpatMatters: () => ["dashboard", "latest-ppat-matters"] },
+  getDashboardLatestPpatMatters: vi.fn(),
 }));
 
 const auth = await import("@/features/auth/use-current-user");
 const officePractice = await import("@/services/office-practice");
-const mattersService = await import("@/services/matters");
+const dashboardService = await import("@/services/dashboard");
 
 const user: CurrentUser = {
   id: "01USER00000000000000000000",
@@ -202,50 +202,37 @@ describe("ProfessionalCollaboratorsWidget", () => {
 });
 
 describe("LatestPpatMattersWidget", () => {
-  it("does not request PPAT matters without PPAT matter visibility", () => {
+  it("renders nothing when the scoped Dashboard endpoint returns null", async () => {
+    vi.mocked(dashboardService.getDashboardLatestPpatMatters).mockResolvedValue(null);
+
     const { container } = renderWithProviders(<LatestPpatMattersWidget />);
 
-    expect(container.textContent).toBe("");
-    expect(mattersService.getMatters).not.toHaveBeenCalled();
+    await waitFor(() => expect(container.textContent).toBe(""));
   });
 
-  it("places real recent PPAT matters in the main dashboard table", async () => {
-    vi.mocked(auth.useCurrentUser).mockReturnValue({
-      data: {
-        ...user,
-        permissions: ["ppat.matters.view"],
-        permission_scopes: { "ppat.matters.view": ["OFFICE"] },
+  it("places the complete recent PPAT matter summary in the main dashboard table", async () => {
+    vi.mocked(dashboardService.getDashboardLatestPpatMatters).mockResolvedValue([
+      {
+        id: "01MATTER000000000000000000",
+        matter_number: "P-2026-000001",
+        title: "Peralihan Hak",
+        status: "OPEN",
+        opened_at: "2026-09-14",
+        target_completion_date: "2026-10-14",
+        primary_parties: ["Saman", "Ria Oktaviani"],
       },
-      isPending: false,
-    } as unknown as ReturnType<typeof auth.useCurrentUser>);
-    vi.mocked(mattersService.getMatters).mockResolvedValue({
-      data: [
-        {
-          id: "01MATTER000000000000000000",
-          matter_number: "PPAT-2026-001",
-          domain: "PPAT",
-          title: "Peralihan Hak",
-          status: "OPEN",
-          priority: null,
-          notes: null,
-          opened_at: "2026-09-14",
-          target_completion_date: null,
-          completed_at: null,
-          office: null,
-          project: null,
-          service_type: null,
-          pic: null,
-          created_at: "2026-09-14T00:00:00Z",
-          updated_at: "2026-09-14T00:00:00Z",
-        },
-      ],
-      meta: { current_page: 1, last_page: 1, per_page: 5, total: 1 },
-    });
+    ]);
 
     renderWithProviders(<LatestPpatMattersWidget />);
 
     expect(await screen.findByText("Peralihan Hak")).toBeInTheDocument();
-    expect(screen.getByText("PPAT-2026-001")).toBeInTheDocument();
+    expect(screen.getByText("P-2026-000001")).toBeInTheDocument();
+    expect(screen.getByText("Saman, Ria Oktaviani")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.matterParties")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "dashboard.openMatter" })).toHaveAttribute(
+      "href",
+      "/ppat/matters/01MATTER000000000000000000",
+    );
   });
 });
 

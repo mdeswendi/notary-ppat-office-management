@@ -11,6 +11,7 @@
  * the widgets check for `null` before rendering anything at all.
  */
 
+import type { MatterStatus } from "@/types/matter";
 import type { TaskStatus } from "@/types/task";
 
 /** A count the actor may not see is `null`, never `0`. */
@@ -22,6 +23,23 @@ export interface DashboardStats {
   pending_reviews: ScopedCount;
   overdue_tasks: ScopedCount;
   total_deeds_this_month: ScopedCount;
+}
+
+/**
+ * One PPAT Matter in the compact Dashboard table.
+ *
+ * `primary_parties` is empty when the Project has none designated or when the
+ * caller cannot independently read Project participation. Matter visibility
+ * alone never discloses those names.
+ */
+export interface DashboardMatter {
+  id: string;
+  matter_number: string;
+  title: string;
+  status: MatterStatus;
+  opened_at: string | null;
+  target_completion_date: string | null;
+  primary_parties: string[];
 }
 
 export type TaskPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";

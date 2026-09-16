@@ -86,11 +86,13 @@ Route::prefix('v1')->group(function (): void {
          * caller may not see comes back `null`, and an actor holding nothing gets
          * a page of nulls and a 200 — correct behaviour, not an error state.
          *
-         * Six addresses rather than one, so the cheapest panel never waits for
+         * Separate addresses rather than one, so the cheapest panel never waits for
          * the most expensive and a client can skip what its user cannot see.
          */
         Route::prefix('dashboard')->name('api.v1.dashboard.')->group(function (): void {
             Route::get('stats', [DashboardController::class, 'stats'])->name('stats');
+            Route::get('latest-ppat-matters', [DashboardController::class, 'latestPpatMatters'])
+                ->name('latest-ppat-matters');
             Route::get('tasks', [DashboardController::class, 'tasks'])->name('tasks');
             Route::get('needs-attention', [DashboardController::class, 'needsAttention'])->name('needs-attention');
             Route::get('workload', [DashboardController::class, 'workload'])->name('workload');

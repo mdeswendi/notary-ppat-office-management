@@ -1,42 +1,25 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Ellipsis } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 
-import { useCurrentUser } from "@/features/auth/use-current-user";
 import { DashboardPanel } from "@/features/dashboard/dashboard-panel";
 import { MatterStatusBadge } from "@/features/matters/matter-badges";
 import { Link } from "@/i18n/navigation";
-import { can } from "@/lib/permissions/can";
-import { getMatters, matterQueryKeys } from "@/services/matters";
-
-const LATEST_QUERY = {
-  page: 1,
-  per_page: 5,
-  search: "",
-  status: "" as const,
-  priority: "" as const,
-  project_id: "",
-};
+import { dashboardQueryKeys, getDashboardLatestPpatMatters } from "@/services/dashboard";
 
 /** The latest real PPAT matters, occupying the reference layout's main table. */
 export function LatestPpatMattersWidget() {
   const t = useTranslations("dashboard");
   const format = useFormatter();
-  const { data: user } = useCurrentUser();
-  const canView = can(user, "ppat.matters.view");
 
   const query = useQuery({
-    queryKey: matterQueryKeys.list("PPAT", LATEST_QUERY),
-    queryFn: () => getMatters("PPAT", LATEST_QUERY),
-    enabled: canView,
+    queryKey: dashboardQueryKeys.latestPpatMatters(),
+    queryFn: getDashboardLatestPpatMatters,
   });
 
-  if (!canView) {
-    return null;
-  }
-
-  const matters = query.data?.data ?? [];
+  const matters = query.data ?? [];
 
   return (
     <DashboardPanel
@@ -51,46 +34,83 @@ export function LatestPpatMattersWidget() {
       }
       isPending={query.isPending}
       isError={query.isError}
-      unavailable={false}
+      unavailable={query.data === null}
       isEmpty={matters.length === 0}
       emptyMessage={t("noLatestMatters")}
       skeletonRows={5}
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
+        <table className="w-full min-w-[36rem] table-fixed border-collapse text-left text-xs xl:min-w-0">
+          <caption className="sr-only">{t("latestMatters")}</caption>
+          <colgroup>
+            <col className="w-[15%]" />
+            <col className="w-[13%]" />
+            <col className="w-[24%]" />
+            <col className="w-[17%]" />
+            <col className="w-[12%]" />
+            <col className="w-[14%]" />
+            <col className="w-[5%]" />
+          </colgroup>
           <thead>
             <tr className="border-border bg-muted/55 border-y">
-              <th className="px-3 py-2.5 font-medium">{t("matterNumber")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("openedDate")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("matterTitle")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("matterStatus")}</th>
-              <th className="px-3 py-2.5 font-medium">{t("targetDate")}</th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("matterNumber")}
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("openedDate")}
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("matterTitle")}
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("matterParties")}
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("matterStatus")}
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                {t("targetDate")}
+              </th>
+              <th scope="col" className="px-1 py-2.5 text-center font-medium">
+                <span className="sr-only">{t("matterActions")}</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-border divide-y">
             {matters.map((matter) => (
-              <tr key={matter.id}>
-                <td className="px-3 py-3 font-medium tabular-nums">
-                  <Link href={`/ppat/matters/${matter.id}`} className="hover:underline">
-                    {matter.matter_number}
-                  </Link>
+              <tr key={matter.id} className="hover:bg-muted/25">
+                <td className="px-2 py-3 font-medium tabular-nums">
+                  <span className="line-clamp-2 break-words">{matter.matter_number}</span>
                 </td>
-                <td className="text-muted-foreground px-3 py-3 whitespace-nowrap tabular-nums">
+                <td className="text-muted-foreground px-2 py-3 tabular-nums">
                   {formatDate(matter.opened_at, format)}
                 </td>
-                <td className="px-3 py-3">
-                  <span className="line-clamp-1 font-medium">{matter.title}</span>
-                  {matter.service_type ? (
-                    <span className="text-muted-foreground mt-0.5 block text-xs">
-                      {matter.service_type.name_id}
-                    </span>
-                  ) : null}
+                <td className="px-2 py-3">
+                  <Link
+                    href={`/ppat/matters/${matter.id}`}
+                    className="line-clamp-2 font-medium underline-offset-4 hover:underline"
+                  >
+                    {matter.title}
+                  </Link>
                 </td>
-                <td className="px-3 py-3">
+                <td className="text-muted-foreground px-2 py-3">
+                  <span className="line-clamp-2">{formatParties(matter.primary_parties)}</span>
+                </td>
+                <td className="px-2 py-3">
                   <MatterStatusBadge status={matter.status} />
                 </td>
-                <td className="text-muted-foreground px-3 py-3 whitespace-nowrap tabular-nums">
+                <td className="text-muted-foreground px-2 py-3 tabular-nums">
                   {formatDate(matter.target_completion_date, format)}
+                </td>
+                <td className="px-1 py-3 text-center">
+                  <Link
+                    href={`/ppat/matters/${matter.id}`}
+                    aria-label={t("openMatter", { title: matter.title })}
+                    title={t("openMatter", { title: matter.title })}
+                    className="hover:bg-muted focus-visible:ring-ring inline-flex size-7 items-center justify-center rounded-md outline-none focus-visible:ring-2"
+                  >
+                    <Ellipsis className="size-4" aria-hidden="true" />
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -99,6 +119,10 @@ export function LatestPpatMattersWidget() {
       </div>
     </DashboardPanel>
   );
+}
+
+function formatParties(parties: string[]): string {
+  return parties.length > 0 ? parties.join(", ") : "—";
 }
 
 function formatDate(value: string | null, format: ReturnType<typeof useFormatter>): string {

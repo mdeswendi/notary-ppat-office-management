@@ -30,10 +30,10 @@ use Illuminate\Http\Request;
  * `$this->authorize()` here would be inventing a capability the catalogue does
  * not define — the D-064 mistake in reverse.
  *
- * ## Six endpoints rather than one
+ * ## Separate endpoints rather than one
  *
  * The panels have very different costs, and a single `/dashboard` call would make
- * the cheapest one wait for the most expensive. Six addresses also let the
+ * the cheapest one wait for the most expensive. Separate addresses also let the
  * interface refresh the task queue without recomputing deed histograms, and let a
  * client skip entirely what its user cannot see.
  */
@@ -52,6 +52,17 @@ class DashboardController extends Controller
     {
         return response()->json([
             'data' => $this->aggregator->stats($request->user()),
+        ]);
+    }
+
+    /**
+     * The five latest PPAT Matters, plus primary Project parties only where the
+     * caller independently holds Project-participation visibility.
+     */
+    public function latestPpatMatters(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->aggregator->latestPpatMatters($request->user()),
         ]);
     }
 
