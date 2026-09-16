@@ -9,7 +9,9 @@ use App\Domains\Project\Enums\ProjectStatus;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Models\Matter;
 use App\Models\Office;
+use App\Models\Party;
 use App\Models\Project;
+use App\Models\ProjectParty;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,11 +58,11 @@ it('serves the dashboard to any authenticated actor', function (string $path): v
     [$actor] = dashboardActor();
 
     $this->actingAs($actor)->getJson("/api/v1/dashboard/{$path}")->assertOk();
-})->with(['stats', 'tasks', 'needs-attention', 'workload', 'activity', 'deeds']);
+})->with(['stats', 'latest-ppat-matters', 'tasks', 'needs-attention', 'workload', 'activity', 'deeds']);
 
 it('refuses the dashboard to an unauthenticated caller', function (string $path): void {
     $this->getJson("/api/v1/dashboard/{$path}")->assertUnauthorized();
-})->with(['stats', 'tasks', 'needs-attention', 'workload', 'activity', 'deeds']);
+})->with(['stats', 'latest-ppat-matters', 'tasks', 'needs-attention', 'workload', 'activity', 'deeds']);
 
 it('nulls every panel the actor holds no capability for', function (): void {
     [$actor] = dashboardActor();
@@ -164,6 +166,87 @@ it('counts only the matter domain the actor may read', function (): void {
     $this->actingAs($actor)->getJson('/api/v1/dashboard/stats')
         ->assertOk()
         ->assertJsonPath('data.active_matters', 2);
+});
+
+it('lists the latest visible PPAT matters with independently visible primary project parties', function (): void {
+    [$actor, $office] = dashboardActor(['ppat.matters.view', 'projects.parties.view']);
+
+    $project = Project::factory()->create(['office_id' => $office->getKey()]);
+    $seller = Party::factory()->create([
+        'office_id' => $office->getKey(),
+        'display_name' => 'Saman',
+    ]);
+    $buyer = Party::factory()->create([
+        'office_id' => $office->getKey(),
+        'display_name' => 'Ria Oktaviani',
+    ]);
+
+    ProjectParty::factory()->create([
+        'project_id' => $project->getKey(),
+        'party_id' => $seller->getKey(),
+        'office_id' => $office->getKey(),
+        'is_primary' => true,
+    ]);
+    ProjectParty::factory()->create([
+        'project_id' => $project->getKey(),
+        'party_id' => $buyer->getKey(),
+        'office_id' => $office->getKey(),
+        'is_primary' => true,
+    ]);
+
+    $matter = Matter::factory()->create([
+        'office_id' => $office->getKey(),
+        'project_id' => $project->getKey(),
+        'domain' => MatterDomain::PPAT,
+        'title' => 'Pengurusan AJB SHM 04419',
+        'opened_at' => '2026-09-13',
+        'target_completion_date' => '2026-10-13',
+    ]);
+
+    $response = $this->actingAs($actor)
+        ->getJson('/api/v1/dashboard/latest-ppat-matters')
+        ->assertOk();
+
+    expect($response->json('data'))->toHaveCount(1)
+        ->and($response->json('data.0.id'))->toBe($matter->getKey())
+        ->and($response->json('data.0.primary_parties'))->toBe(['Saman', 'Ria Oktaviani']);
+});
+
+it('does not disclose project parties through PPAT matter visibility alone', function (): void {
+    [$actor, $office] = dashboardActor(['ppat.matters.view']);
+
+    $project = Project::factory()->create(['office_id' => $office->getKey()]);
+    $party = Party::factory()->create([
+        'office_id' => $office->getKey(),
+        'display_name' => 'Hidden Project Party',
+    ]);
+
+    ProjectParty::factory()->create([
+        'project_id' => $project->getKey(),
+        'party_id' => $party->getKey(),
+        'office_id' => $office->getKey(),
+        'is_primary' => true,
+    ]);
+
+    Matter::factory()->create([
+        'office_id' => $office->getKey(),
+        'project_id' => $project->getKey(),
+        'domain' => MatterDomain::PPAT,
+    ]);
+
+    $this->actingAs($actor)
+        ->getJson('/api/v1/dashboard/latest-ppat-matters')
+        ->assertOk()
+        ->assertJsonPath('data.0.primary_parties', []);
+});
+
+it('nulls the latest PPAT matters panel without PPAT matter visibility', function (): void {
+    [$actor] = dashboardActor(['projects.parties.view']);
+
+    $this->actingAs($actor)
+        ->getJson('/api/v1/dashboard/latest-ppat-matters')
+        ->assertOk()
+        ->assertJsonPath('data', null);
 });
 
 /*

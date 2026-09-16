@@ -27,6 +27,7 @@ use App\Models\NotaryDeed;
 use App\Models\Payment;
 use App\Models\PpatDeed;
 use App\Models\Project;
+use App\Models\ProjectParty;
 use App\Models\Quotation;
 use App\Models\Task;
 use App\Models\User;
@@ -153,6 +154,82 @@ class DashboardAggregator
             // construction: these are only the invoices already past due.
             ->filter(static fn (Invoice $invoice): bool => ! $invoice->isSettled())
             ->count();
+    }
+
+    /**
+     * The latest PPAT work, shaped specifically for the Dashboard table.
+     *
+     * Matter visibility and Project-participation visibility remain independent:
+     * the row may be visible while its primary Parties are not. In that case the
+     * row is returned with an empty `primary_parties` list rather than using the
+     * Matter grant as a back door into Project participation (D-100).
+     *
+     * @return list<array<string, mixed>>|null
+     */
+    public function latestPpatMatters(User $actor): ?array
+    {
+        $matterAccess = $this->resolver->resolve($actor, MatterDomain::PPAT->permission('view'));
+
+        if (! $this->matters->hasUsableScope($matterAccess)) {
+            return null;
+        }
+
+        $matters = $this->matters
+            ->scope(
+                Matter::query()->where('domain', MatterDomain::PPAT->value),
+                $actor,
+                $matterAccess,
+            )
+            ->orderByDesc('created_at')
+            ->orderBy('id')
+            ->limit(5)
+            ->get([
+                'id',
+                'project_id',
+                'matter_number',
+                'title',
+                'status',
+                'opened_at',
+                'target_completion_date',
+            ]);
+
+        $primaryParties = collect();
+        $projectIds = $matters->pluck('project_id')->filter()->unique()->values();
+        $partyAccess = $this->resolver->resolve($actor, 'projects.parties.view');
+
+        if ($projectIds->isNotEmpty() && $this->projects->hasUsableScope($partyAccess)) {
+            $visibleProjectIds = $this->projects
+                ->scope(Project::query()->whereIn('id', $projectIds), $actor, $partyAccess)
+                ->pluck('id');
+
+            $primaryParties = ProjectParty::query()
+                ->whereIn('project_id', $visibleProjectIds)
+                ->where('is_primary', true)
+                ->with(['party' => fn ($query) => $query->withTrashed()])
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->get()
+                ->groupBy('project_id');
+        }
+
+        return $matters->map(static function (Matter $matter) use ($primaryParties): array {
+            $names = $primaryParties
+                ->get($matter->project_id, collect())
+                ->pluck('party.display_name')
+                ->filter()
+                ->values()
+                ->all();
+
+            return [
+                'id' => $matter->getKey(),
+                'matter_number' => $matter->matter_number,
+                'title' => $matter->title,
+                'status' => $matter->status->value,
+                'opened_at' => $matter->opened_at?->toDateString(),
+                'target_completion_date' => $matter->target_completion_date?->toDateString(),
+                'primary_parties' => $names,
+            ];
+        })->all();
     }
 
     /**

@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/api/client";
 import type {
   ActivityItem,
   DashboardDeeds,
+  DashboardMatter,
   DashboardStats,
   DashboardTaskBuckets,
   NeedsAttentionItem,
@@ -13,7 +14,7 @@ const ROOT = "/api/v1/dashboard";
 /**
  * The Dashboard surface (M8.1, D-122).
  *
- * **Six calls rather than one.** The panels have very different costs, so a
+ * **Separate calls rather than one.** The panels have very different costs, so a
  * single request would make the cheapest wait for the most expensive; separate
  * keys also let the task queue refresh without recomputing deed histograms.
  *
@@ -24,12 +25,21 @@ const ROOT = "/api/v1/dashboard";
 export const dashboardQueryKeys = {
   all: () => ["dashboard"] as const,
   stats: () => ["dashboard", "stats"] as const,
+  latestPpatMatters: () => ["dashboard", "latest-ppat-matters"] as const,
   tasks: () => ["dashboard", "tasks"] as const,
   needsAttention: () => ["dashboard", "needs-attention"] as const,
   workload: () => ["dashboard", "workload"] as const,
   activity: (limit: number) => ["dashboard", "activity", limit] as const,
   deeds: () => ["dashboard", "deeds"] as const,
 };
+
+export async function getDashboardLatestPpatMatters(): Promise<DashboardMatter[] | null> {
+  const response = await apiClient.get<{ data: DashboardMatter[] | null }>(
+    `${ROOT}/latest-ppat-matters`,
+  );
+
+  return response.data.data;
+}
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const response = await apiClient.get<{ data: DashboardStats }>(`${ROOT}/stats`);
