@@ -4,8 +4,8 @@ namespace App\Domains\Dashboard\Services;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Billing\BillingVisibility;
-use App\Domains\Calendar\CalendarVisibility;
 use App\Domains\Billing\Enums\InvoiceStatus;
+use App\Domains\Calendar\CalendarVisibility;
 use App\Domains\Document\DocumentVisibility;
 use App\Domains\Identity\UserVisibility;
 use App\Domains\Matter\Enums\MatterDomain;
