@@ -151,6 +151,8 @@
     "scheduleDescription": "Today's meetings, signings, deadlines, and reminders.",
     "noScheduleToday": "No events scheduled for today.",
     "scheduleUnavailableDescription": "Events will appear automatically after Calendar is available and schedules are recorded.",
+    "footerCopyright": "© {year} Mila Widyahastuti, S.H., M.Kn. PPAT Office",
+    "footerTagline": "Professional land services",
     "loading": "Loading…",
     "panelUnavailable": "This panel is unavailable right now.",
     "viewAll": "View all",
