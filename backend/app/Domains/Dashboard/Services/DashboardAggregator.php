@@ -109,7 +109,9 @@ class DashboardAggregator
         private readonly UserVisibility $users,
         private readonly BillingVisibility $billing,
         private readonly CalendarVisibility $calendar,
-    ) {}
+    ) {
+        // Dependencies are promoted; no additional initialization is required.
+    }
 
     /**
      * Headline figures, plus this month's deed total and other dashboard summaries.
