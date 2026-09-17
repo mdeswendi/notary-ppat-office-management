@@ -40,7 +40,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   const t = await getTranslations({ locale, namespace: "dashboard" });
 
   return (
-    <PageContainer className="gap-5">
+    <PageContainer className="gap-5 font-serif">
       <DashboardHero currentDate={new Date().toISOString()} />
 
       <section aria-labelledby="dashboard-summary" className="flex flex-col gap-3">
@@ -55,7 +55,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       {/* Two columns on wide screens, stacking on narrow ones. Desktop-first, but
           the office reads this on a laptop and sometimes a tablet (§50). */}
-      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.75fr)]">
+      <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.75fr)]">
         <div className="min-w-0">
           <LatestPpatMattersWidget />
         </div>

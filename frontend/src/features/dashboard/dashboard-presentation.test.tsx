@@ -229,6 +229,13 @@ describe("LatestPpatMattersWidget", () => {
     expect(screen.getByText("P-2026-000001")).toBeInTheDocument();
     expect(screen.getByText("Saman, Ria Oktaviani")).toBeInTheDocument();
     expect(screen.getByText("dashboard.matterParties")).toBeInTheDocument();
+    expect(screen.getByLabelText("matters.statusLabel: matters.statuses.OPEN")).toHaveClass(
+      "bg-info/10",
+      "min-w-16",
+    );
+    expect(screen.getByRole("table", { name: "dashboard.latestMatters" })).toHaveClass(
+      "text-[13px]",
+    );
     expect(screen.getByRole("link", { name: "dashboard.openMatter" })).toHaveAttribute(
       "href",
       "/ppat/matters/01MATTER000000000000000000",

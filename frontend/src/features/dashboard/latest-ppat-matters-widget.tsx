@@ -40,7 +40,7 @@ export function LatestPpatMattersWidget() {
       skeletonRows={5}
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[36rem] table-fixed border-collapse text-left text-xs xl:min-w-0">
+        <table className="w-full min-w-[46rem] table-fixed border-collapse text-left text-[13px] 2xl:min-w-0">
           <caption className="sr-only">{t("latestMatters")}</caption>
           <colgroup>
             <col className="w-[15%]" />
@@ -97,7 +97,11 @@ export function LatestPpatMattersWidget() {
                   <span className="line-clamp-2">{formatParties(matter.primary_parties)}</span>
                 </td>
                 <td className="px-2 py-3">
-                  <MatterStatusBadge status={matter.status} />
+                  <MatterStatusBadge
+                    status={matter.status}
+                    appearance="soft"
+                    className="inline-flex min-w-16 justify-center"
+                  />
                 </td>
                 <td className="text-muted-foreground px-2 py-3 tabular-nums">
                   {formatDate(matter.target_completion_date, format)}
