@@ -15,5 +15,6 @@ describe("SkipLink", () => {
 
     expect(link).toHaveFocus();
     expect(link).toHaveAttribute("href", "#main-content");
+    expect(link).toHaveClass("focus-visible:not-sr-only", "focus-visible:fixed");
   });
 });
