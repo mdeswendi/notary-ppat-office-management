@@ -91,7 +91,9 @@ class DashboardController extends Controller
     {
         $events = $this->aggregator->todaySchedule($request->user());
 
-        return response()->json(['data' => $events === null ? null : CalendarEventResource::collection($events)->resolve()]);
+        return response()->json([
+            'data' => $events === null ? null : CalendarEventResource::collection($events)->resolve(),
+        ]);
     }
 
     /**
