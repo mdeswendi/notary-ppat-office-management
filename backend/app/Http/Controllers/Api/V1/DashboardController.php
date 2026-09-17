@@ -87,6 +87,9 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * The calendar events starting today, scoped by calendar visibility.
+     */
     public function todaySchedule(Request $request): JsonResponse
     {
         $events = $this->aggregator->todaySchedule($request->user());
