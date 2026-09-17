@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/api/client";
 import type {
   ActivityItem,
   DashboardDeeds,
+  DashboardCalendarEvent,
   DashboardMatter,
   DashboardStats,
   DashboardTaskBuckets,
@@ -50,6 +51,13 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 export async function getDashboardTasks(): Promise<DashboardTaskBuckets | null> {
   const response = await apiClient.get<{ data: DashboardTaskBuckets | null }>(`${ROOT}/tasks`);
 
+  return response.data.data;
+}
+
+export async function getDashboardTodaySchedule(): Promise<DashboardCalendarEvent[] | null> {
+  const response = await apiClient.get<{ data: DashboardCalendarEvent[] | null }>(
+    `${ROOT}/today-schedule`,
+  );
   return response.data.data;
 }
 

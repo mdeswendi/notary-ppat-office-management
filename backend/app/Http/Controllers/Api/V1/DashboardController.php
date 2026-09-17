@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domains\Dashboard\Services\DashboardAggregator;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityResource;
+use App\Http\Resources\CalendarEventResource;
 use App\Http\Resources\DashboardTaskResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,6 +84,18 @@ class DashboardController extends Controller
                 'overdue' => DashboardTaskResource::collection($buckets['overdue'])->resolve(),
                 'upcoming' => DashboardTaskResource::collection($buckets['upcoming'])->resolve(),
             ],
+        ]);
+    }
+
+    /**
+     * The calendar events starting today, scoped by calendar visibility.
+     */
+    public function todaySchedule(Request $request): JsonResponse
+    {
+        $events = $this->aggregator->todaySchedule($request->user());
+
+        return response()->json([
+            'data' => $events === null ? null : CalendarEventResource::collection($events)->resolve(),
         ]);
     }
 

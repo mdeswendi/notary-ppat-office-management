@@ -32,6 +32,8 @@ const services = await import("@/services/dashboard");
 const NOTHING_PERMITTED: DashboardStats = {
   active_projects: null,
   active_matters: null,
+  clients: null,
+  documents: null,
   pending_reviews: null,
   overdue_tasks: null,
   total_deeds_this_month: null,
@@ -71,7 +73,8 @@ describe("StatsCards", () => {
     expect(await screen.findByText("0")).toBeInTheDocument();
     expect(screen.getByText("dashboard.noDataYet")).toBeInTheDocument();
     expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
-    expect(screen.getAllByText("dashboard.notAvailable")).toHaveLength(3);
+    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
+    expect(screen.getAllByText("dashboard.notAvailable")).toHaveLength(1);
   });
 
   it("omits only the cards the caller may not see", async () => {
@@ -86,7 +89,7 @@ describe("StatsCards", () => {
     expect(await screen.findByText("12")).toBeInTheDocument();
     expect(screen.queryByText("3")).not.toBeInTheDocument();
 
-    // Only the reference layout's active-work figure is numeric. The three
+    // Only the reference layout's active-work figure is numeric. The two
     // reserved cards say they are unavailable rather than inventing counts.
     expect(screen.getAllByText(/^\d+$/)).toHaveLength(1);
   });

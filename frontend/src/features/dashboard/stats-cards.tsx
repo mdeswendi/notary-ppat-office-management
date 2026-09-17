@@ -27,26 +27,25 @@ import type { DashboardStats, ScopedCount } from "@/types/dashboard";
  * means by an actor holding nothing seeing a Dashboard with no panels.
  *
  * The visual order follows the approved dashboard reference: active work,
- * clients, today's schedule, and documents. Only active work has a Dashboard
- * aggregate today; the other positions identify themselves as unavailable
- * until their scoped aggregates or Calendar module exist.
+ * clients, today's schedule, and documents. Today's schedule remains reserved
+ * until the Calendar module exists.
  */
 const CARDS: ReadonlyArray<{
   key: keyof DashboardStats;
   label: string;
   icon: LucideIcon;
   tone: "primary" | "ppat" | "warning" | "danger" | "notary";
-}> = [{ key: "active_matters", label: "activeMatters", icon: BriefcaseBusiness, tone: "ppat" }];
+}> = [
+  { key: "active_matters", label: "activeMatters", icon: BriefcaseBusiness, tone: "ppat" },
+  { key: "clients", label: "clients", icon: UsersRound, tone: "ppat" },
+  { key: "documents", label: "documents", icon: FolderOpen, tone: "notary" },
+];
 
 const RESERVED_CARDS: ReadonlyArray<{
   label: string;
   icon: LucideIcon;
   tone: "ppat" | "warning" | "notary";
-}> = [
-  { label: "clients", icon: UsersRound, tone: "ppat" },
-  { label: "scheduleToday", icon: CalendarDays, tone: "warning" },
-  { label: "documents", icon: FolderOpen, tone: "notary" },
-];
+}> = [{ label: "scheduleToday", icon: CalendarDays, tone: "warning" }];
 
 export function StatsCards() {
   const t = useTranslations("dashboard");

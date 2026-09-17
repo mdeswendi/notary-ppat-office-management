@@ -94,6 +94,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('latest-ppat-matters', [DashboardController::class, 'latestPpatMatters'])
                 ->name('latest-ppat-matters');
             Route::get('tasks', [DashboardController::class, 'tasks'])->name('tasks');
+            Route::get('today-schedule', [DashboardController::class, 'todaySchedule'])->name('today-schedule');
             Route::get('needs-attention', [DashboardController::class, 'needsAttention'])->name('needs-attention');
             Route::get('workload', [DashboardController::class, 'workload'])->name('workload');
             Route::get('activity', [DashboardController::class, 'activity'])->name('activity');
