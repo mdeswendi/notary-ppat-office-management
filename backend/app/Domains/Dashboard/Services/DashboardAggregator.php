@@ -209,7 +209,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'invoices.view');
 
-        if (! $this->billing->hasUsableScope($access)) {
+        if ($this->billing->hasUsableScope($access) === false) {
             return null;
         }
 
@@ -241,7 +241,7 @@ class DashboardAggregator
     {
         $matterAccess = $this->resolver->resolve($actor, MatterDomain::PPAT->permission('view'));
 
-        if (! $this->matters->hasUsableScope($matterAccess)) {
+        if ($this->matters->hasUsableScope($matterAccess) === false) {
             return null;
         }
 
@@ -317,7 +317,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'tasks.view');
 
-        if (! $this->tasks->hasUsableScope($access)) {
+        if ($this->tasks->hasUsableScope($access) === false) {
             return null;
         }
 
@@ -447,7 +447,7 @@ class DashboardAggregator
             }
         }
 
-        if (! $permitted) {
+        if ($permitted === false) {
             return null;
         }
 
@@ -476,7 +476,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'users.view');
 
-        if (! $access->granted) {
+        if ($access->granted === false) {
             return null;
         }
 
@@ -578,7 +578,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'projects.view');
 
-        if (! $this->projects->hasUsableScope($access)) {
+        if ($this->projects->hasUsableScope($access) === false) {
             return null;
         }
 
@@ -610,7 +610,7 @@ class DashboardAggregator
         foreach (MatterDomain::cases() as $domain) {
             $access = $this->resolver->resolve($actor, $this->matterCode($domain));
 
-            if (! $this->matters->hasUsableScope($access)) {
+            if ($this->matters->hasUsableScope($access) === false) {
                 continue;
             }
 
@@ -752,7 +752,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'tasks.view');
 
-        if (! $this->tasks->hasUsableScope($access)) {
+        if ($this->tasks->hasUsableScope($access) === false) {
             return null;
         }
 
@@ -796,7 +796,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'tasks.view');
 
-        if (! $this->tasks->hasUsableScope($access)) {
+        if ($this->tasks->hasUsableScope($access) === false) {
             return [];
         }
 
@@ -915,7 +915,7 @@ class DashboardAggregator
         ] as [$model, $code, $column]) {
             $access = $this->resolver->resolve($actor, $code);
 
-            if (! $this->billing->hasUsableScope($access)) {
+            if ($this->billing->hasUsableScope($access) === false) {
                 continue;
             }
 
