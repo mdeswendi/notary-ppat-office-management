@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domains\Dashboard\Services\DashboardAggregator;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityResource;
-use App\Http\Resources\DashboardTaskResource;
 use App\Http\Resources\CalendarEventResource;
+use App\Http\Resources\DashboardTaskResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

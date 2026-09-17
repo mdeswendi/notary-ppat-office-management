@@ -135,7 +135,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'calendar.view');
 
-        if (!$this->calendar->hasUsableScope($access)) {
+        if (! $this->calendar->hasUsableScope($access)) {
             return null;
         }
 
@@ -166,7 +166,7 @@ class DashboardAggregator
         ] as [$permission, $type]) {
             $access = $this->resolver->resolve($actor, $permission);
 
-            if (!$this->parties->hasUsableScope($access)) {
+            if (! $this->parties->hasUsableScope($access)) {
                 continue;
             }
 
@@ -184,7 +184,7 @@ class DashboardAggregator
     {
         $access = $this->resolver->resolve($actor, 'documents.view');
 
-        if (!$this->documents->hasUsableScope($access)) {
+        if (! $this->documents->hasUsableScope($access)) {
             return null;
         }
 
