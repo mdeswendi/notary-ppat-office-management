@@ -39,6 +39,16 @@ describe("MatterStatusBadge", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers a softly filled status treatment for compact dashboard summaries", () => {
+    render(<MatterStatusBadge status="WAITING" appearance="soft" />);
+
+    const badge = screen.getByText("matters.statuses.WAITING");
+
+    expect(badge).toHaveClass("bg-warning/10");
+    expect(badge).toHaveClass("text-warning");
+    expect(badge).toHaveAttribute("aria-label", "matters.statusLabel: matters.statuses.WAITING");
+  });
+
   it("renders a dash rather than an empty badge for a null status", () => {
     render(<MatterStatusBadge status={null} />);
 

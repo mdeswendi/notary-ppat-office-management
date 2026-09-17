@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { MatterDomain, MatterStatus } from "@/types/matter";
 import type { ProjectPriority } from "@/types/project";
 
@@ -36,7 +37,25 @@ const STATUS_TONE: Record<MatterStatus, BadgeTone> = {
   ARCHIVED: "muted",
 };
 
-export function MatterStatusBadge({ status }: { status: MatterStatus | null }) {
+const SOFT_STATUS_CLASS: Record<MatterStatus, string> = {
+  OPEN: "border-info/20 bg-info/10 text-info",
+  IN_PROGRESS: "border-info/20 bg-info/10 text-info",
+  WAITING: "border-warning/20 bg-warning/10 text-warning",
+  ON_HOLD: "border-notary/20 bg-notary/10 text-notary",
+  COMPLETED: "border-success/20 bg-success/10 text-success",
+  CANCELLED: "border-destructive/20 bg-destructive/10 text-destructive",
+  ARCHIVED: "border-border bg-muted text-muted-foreground",
+};
+
+export function MatterStatusBadge({
+  status,
+  appearance = "outline",
+  className,
+}: {
+  status: MatterStatus | null;
+  appearance?: "outline" | "soft";
+  className?: string;
+}) {
   const t = useTranslations("matters");
 
   if (status === null) {
@@ -46,6 +65,7 @@ export function MatterStatusBadge({ status }: { status: MatterStatus | null }) {
   return (
     <Badge
       tone={STATUS_TONE[status]}
+      className={cn(appearance === "soft" && SOFT_STATUS_CLASS[status], className)}
       aria-label={`${t("statusLabel")}: ${t(`statuses.${status}`)}`}
     >
       {t(`statuses.${status}`)}
