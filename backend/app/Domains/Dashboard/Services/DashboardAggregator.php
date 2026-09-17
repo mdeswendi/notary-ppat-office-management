@@ -223,7 +223,7 @@ class DashboardAggregator
             // Settlement is an aggregate rather than a column, so "still owed"
             // is judged per row rather than in SQL. The set is small by
             // construction: these are only the invoices already past due.
-            ->filter(static fn (Invoice $invoice): bool => ! $invoice->isSettled())
+            ->filter(static fn (Invoice $invoice): bool => !$invoice->isSettled())
             ->count();
     }
 
