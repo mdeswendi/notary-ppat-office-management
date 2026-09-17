@@ -4,6 +4,7 @@ namespace App\Domains\Dashboard\Services;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
 use App\Domains\Billing\BillingVisibility;
+use App\Domains\Calendar\CalendarVisibility;
 use App\Domains\Billing\Enums\InvoiceStatus;
 use App\Domains\Document\DocumentVisibility;
 use App\Domains\Identity\UserVisibility;
@@ -12,6 +13,8 @@ use App\Domains\Matter\Enums\MatterStatus;
 use App\Domains\Matter\MatterVisibility;
 use App\Domains\Notary\Enums\NotaryDeedStatus;
 use App\Domains\Notary\NotaryDeedVisibility;
+use App\Domains\Party\Enums\PartyType;
+use App\Domains\Party\PartyVisibility;
 use App\Domains\Ppat\Enums\PpatDeedStatus;
 use App\Domains\Ppat\PpatDeedVisibility;
 use App\Domains\Project\Enums\ProjectStatus;
@@ -19,6 +22,7 @@ use App\Domains\Project\ProjectVisibility;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Domains\Task\TaskVisibility;
 use App\Models\Activity;
+use App\Models\CalendarEvent;
 use App\Models\Disbursement;
 use App\Models\Document;
 use App\Models\Invoice;
@@ -101,12 +105,14 @@ class DashboardAggregator
         private readonly DocumentVisibility $documents,
         private readonly NotaryDeedVisibility $notaryDeeds,
         private readonly PpatDeedVisibility $ppatDeeds,
+        private readonly PartyVisibility $parties,
         private readonly UserVisibility $users,
         private readonly BillingVisibility $billing,
+        private readonly CalendarVisibility $calendar,
     ) {}
 
     /**
-     * The four headline figures, plus this month's deed total.
+     * Headline figures, plus this month's deed total and other dashboard summaries.
      *
      * @return array<string, int|null>
      */
@@ -115,11 +121,76 @@ class DashboardAggregator
         return [
             'active_projects' => $this->countProjects($actor, ProjectStatus::activeValues()),
             'active_matters' => $this->countMatters($actor, MatterStatus::activeValues()),
+            'clients' => $this->countClients($actor),
+            'documents' => $this->countDocuments($actor),
             'pending_reviews' => $this->countDeedsUnderReview($actor),
             'overdue_tasks' => $this->countOverdueTasks($actor),
             'total_deeds_this_month' => $this->countDeedsThisMonth($actor),
             'overdue_invoices' => $this->countOverdueInvoices($actor),
         ];
+    }
+
+    /** @return Collection<int, CalendarEvent>|null */
+    public function todaySchedule(User $actor): ?Collection
+    {
+        $access = $this->resolver->resolve($actor, 'calendar.view');
+
+        if (! $this->calendar->hasUsableScope($access)) {
+            return null;
+        }
+
+        return $this->calendar
+            ->scope(CalendarEvent::query(), $actor, $access)
+            ->whereDate('starts_at', Date::now()->toDateString())
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->limit(self::PANEL_LIMIT)
+            ->get();
+    }
+
+    /**
+     * Count the live client directory records the actor may read.
+     *
+     * Individuals and companies have separate permissions, so each subtype is
+     * scoped independently and then combined. A missing capability returns
+     * null; a permitted office with no records returns zero.
+     */
+    private function countClients(User $actor): ?int
+    {
+        $count = 0;
+        $permitted = false;
+
+        foreach ([
+            ['parties.view', PartyType::INDIVIDUAL],
+            ['companies.view', PartyType::COMPANY],
+        ] as [$permission, $type]) {
+            $access = $this->resolver->resolve($actor, $permission);
+
+            if (! $this->parties->hasUsableScope($access)) {
+                continue;
+            }
+
+            $permitted = true;
+            $count += $this->parties
+                ->scope(Party::query()->where('party_type', $type->value), $actor, $access)
+                ->count();
+        }
+
+        return $permitted ? $count : null;
+    }
+
+    /** Count documents reachable under the actor's document visibility scope. */
+    private function countDocuments(User $actor): ?int
+    {
+        $access = $this->resolver->resolve($actor, 'documents.view');
+
+        if (! $this->documents->hasUsableScope($access)) {
+            return null;
+        }
+
+        return $this->documents
+            ->scope(Document::query(), $actor, $access)
+            ->count();
     }
 
     /**

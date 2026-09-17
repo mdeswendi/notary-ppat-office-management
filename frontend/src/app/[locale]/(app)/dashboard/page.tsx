@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
 import { LatestPpatMattersWidget } from "@/features/dashboard/latest-ppat-matters-widget";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
-import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
+import { TodayScheduleWidget } from "@/features/dashboard/today-schedule-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
 
 /**
@@ -60,7 +60,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
           <LatestPpatMattersWidget />
         </div>
         <div className="grid min-w-0 items-start gap-4">
-          <SchedulePlaceholderWidget />
+          <TodayScheduleWidget />
           <ProfessionalCollaboratorsWidget />
         </div>
       </div>

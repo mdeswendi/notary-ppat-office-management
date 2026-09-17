@@ -6,6 +6,7 @@ use App\Domains\Dashboard\Services\DashboardAggregator;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityResource;
 use App\Http\Resources\DashboardTaskResource;
+use App\Http\Resources\CalendarEventResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -84,6 +85,13 @@ class DashboardController extends Controller
                 'upcoming' => DashboardTaskResource::collection($buckets['upcoming'])->resolve(),
             ],
         ]);
+    }
+
+    public function todaySchedule(Request $request): JsonResponse
+    {
+        $events = $this->aggregator->todaySchedule($request->user());
+
+        return response()->json(['data' => $events === null ? null : CalendarEventResource::collection($events)->resolve()]);
     }
 
     /**

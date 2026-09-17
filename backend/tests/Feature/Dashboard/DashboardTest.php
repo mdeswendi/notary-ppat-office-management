@@ -8,6 +8,7 @@ use App\Domains\Matter\Enums\MatterStatus;
 use App\Domains\Project\Enums\ProjectStatus;
 use App\Domains\Task\Enums\TaskStatus;
 use App\Models\Matter;
+use App\Models\Document;
 use App\Models\Office;
 use App\Models\Party;
 use App\Models\Project;
@@ -73,6 +74,8 @@ it('nulls every panel the actor holds no capability for', function (): void {
         // not know the number of — the position O-046 took for document counts.
         ->assertJsonPath('data.active_projects', null)
         ->assertJsonPath('data.active_matters', null)
+        ->assertJsonPath('data.clients', null)
+        ->assertJsonPath('data.documents', null)
         ->assertJsonPath('data.pending_reviews', null)
         ->assertJsonPath('data.overdue_tasks', null)
         ->assertJsonPath('data.total_deeds_this_month', null);
@@ -85,7 +88,31 @@ it('reports zero rather than null once the capability is held', function (): voi
     $this->actingAs($actor)->getJson('/api/v1/dashboard/stats')
         ->assertOk()
         ->assertJsonPath('data.active_projects', 0)
-        ->assertJsonPath('data.active_matters', null);
+        ->assertJsonPath('data.active_matters', null)
+        ->assertJsonPath('data.clients', null)
+        ->assertJsonPath('data.documents', null);
+});
+
+it('counts visible clients inside the actor office', function (): void {
+    [$actor, $office] = dashboardActor(['parties.view']);
+
+    Party::factory()->count(2)->create(['office_id' => $office->getKey()]);
+    Party::factory()->count(3)->create(['office_id' => Office::factory()->create()->getKey()]);
+
+    $this->actingAs($actor)->getJson('/api/v1/dashboard/stats')
+        ->assertOk()
+        ->assertJsonPath('data.clients', 2);
+});
+
+it('counts visible documents inside the actor office', function (): void {
+    [$actor, $office] = dashboardActor(['documents.view']);
+
+    Document::factory()->count(2)->create(['office_id' => $office->getKey()]);
+    Document::factory()->count(3)->create(['office_id' => Office::factory()->create()->getKey()]);
+
+    $this->actingAs($actor)->getJson('/api/v1/dashboard/stats')
+        ->assertOk()
+        ->assertJsonPath('data.documents', 2);
 });
 
 /*

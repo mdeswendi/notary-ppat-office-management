@@ -20,6 +20,8 @@ export type ScopedCount = number | null;
 export interface DashboardStats {
   active_projects: ScopedCount;
   active_matters: ScopedCount;
+  clients: ScopedCount;
+  documents: ScopedCount;
   pending_reviews: ScopedCount;
   overdue_tasks: ScopedCount;
   total_deeds_this_month: ScopedCount;
@@ -66,6 +68,18 @@ export interface DashboardTaskBuckets {
   today: DashboardTask[];
   overdue: DashboardTask[];
   upcoming: DashboardTask[];
+}
+
+export interface DashboardCalendarEvent {
+  id: string;
+  event_type: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  location: string | null;
+  project_id: string | null;
+  matter_id: string | null;
 }
 
 /**
