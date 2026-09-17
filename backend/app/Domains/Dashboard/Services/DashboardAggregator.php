@@ -109,8 +109,7 @@ class DashboardAggregator
         private readonly UserVisibility $users,
         private readonly BillingVisibility $billing,
         private readonly CalendarVisibility $calendar,
-    ) {
-    }
+    ) {}
 
     /**
      * Headline figures, plus this month's deed total and other dashboard summaries.
