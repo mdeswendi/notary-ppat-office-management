@@ -29,6 +29,7 @@ use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\NotaryDeed;
 use App\Models\Payment;
+use App\Models\Party;
 use App\Models\PpatDeed;
 use App\Models\Project;
 use App\Models\ProjectParty;
