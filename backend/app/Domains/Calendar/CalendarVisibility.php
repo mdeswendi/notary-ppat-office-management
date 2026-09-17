@@ -19,7 +19,14 @@ class CalendarVisibility
             return $query->whereRaw('1 = 0');
         }
 
-        $scopes = array_filter($access->scopes, static fn (DataScope $scope): bool => in_array($scope, [DataScope::ALL, DataScope::OFFICE], true));
+        $scopes = array_filter(
+            $access->scopes,
+            static fn (DataScope $scope): bool => in_array(
+                $scope,
+                [DataScope::ALL, DataScope::OFFICE],
+                true,
+            ),
+        );
 
         if ($scopes === []) {
             return $query->whereRaw('1 = 0');
