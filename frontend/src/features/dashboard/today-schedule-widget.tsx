@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ClipboardList } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Card, CardHeader } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ export function TodayScheduleWidget() {
 
   if (query.isPending)
     return (
-      <Card className="p-5">
+      <Card className="border-border/80 bg-card/96 p-5 shadow-sm">
         <CardHeader title={t("scheduleToday")} description={t("scheduleDescription")} />
         <p className="text-muted-foreground text-sm">{t("loading")}</p>
       </Card>
@@ -28,7 +28,18 @@ export function TodayScheduleWidget() {
     <Card className="border-border/80 bg-card/96 p-4 shadow-sm sm:p-5">
       <CardHeader title={t("scheduleToday")} description={t("scheduleDescription")} />
       {events.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t("noScheduleToday")}</p>
+        <div className="border-warning/20 bg-warning/[0.045] flex min-h-32 flex-col items-center justify-center rounded-lg border px-4 py-6 text-center">
+          <span
+            className="bg-warning/12 text-warning mb-3 grid size-11 place-items-center rounded-full"
+            aria-hidden="true"
+          >
+            <ClipboardList className="size-5" />
+          </span>
+          <p className="text-foreground text-sm font-medium">{t("noScheduleToday")}</p>
+          <p className="text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed">
+            {t("scheduleUnavailableDescription")}
+          </p>
+        </div>
       ) : (
         <ul className="divide-border divide-y">
           {events.map((event) => (

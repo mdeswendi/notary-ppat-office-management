@@ -154,7 +154,7 @@ export function ProfessionalCollaboratorsWidget() {
         <div className="grid gap-3 sm:grid-cols-2">
           <section
             aria-labelledby="dashboard-internal-professionals"
-            className="border-brand-gold/25 from-brand-gold/15 via-card to-brand-gold/5 min-w-0 rounded-lg border bg-gradient-to-br p-3"
+            className="border-brand-gold/25 from-brand-gold/15 via-card to-brand-gold/5 flex min-h-36 min-w-0 flex-col rounded-xl border bg-gradient-to-br p-4"
           >
             <h3
               id="dashboard-internal-professionals"
@@ -175,7 +175,7 @@ export function ProfessionalCollaboratorsWidget() {
 
           <section
             aria-labelledby="dashboard-external-professionals"
-            className="border-notary/15 from-notary/10 via-card to-primary/5 min-w-0 rounded-lg border bg-gradient-to-br p-3"
+            className="border-notary/15 from-notary/10 via-card to-primary/5 flex min-h-36 min-w-0 flex-col rounded-xl border bg-gradient-to-br p-4"
           >
             <h3
               id="dashboard-external-professionals"

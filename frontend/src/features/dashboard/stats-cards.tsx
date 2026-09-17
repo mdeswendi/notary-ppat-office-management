@@ -81,7 +81,7 @@ export function StatsCards() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
       {visible.map(({ key, label, icon, tone }) => (
         <StatCard
           key={key}
@@ -145,7 +145,7 @@ function StatCard({
 
   return (
     <div
-      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
+      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-xl border p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-5 ${tones.card} ${className ?? ""}`}
     >
       <span
         className={`flex size-12 shrink-0 items-center justify-center rounded-xl sm:size-14 ${tones.icon}`}
@@ -153,7 +153,7 @@ function StatCard({
       >
         <Icon className="size-6" />
       </span>
-      <dl className="flex min-h-full flex-col justify-between gap-3">
+      <dl className="flex min-h-full min-w-0 flex-1 flex-col justify-between gap-3">
         <dt className="text-muted-foreground text-sm">{label}</dt>
         {/* Tabular figures so the row of cards lines up rather than shimmying. */}
         <dd className="flex flex-col gap-1">
@@ -201,7 +201,7 @@ function ReservedStatCard({
 
   return (
     <div
-      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-lg border p-4 shadow-sm sm:p-5 ${tones.card} ${className ?? ""}`}
+      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-xl border p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-5 ${tones.card} ${className ?? ""}`}
     >
       <span
         className={`flex size-12 shrink-0 items-center justify-center rounded-xl sm:size-14 ${tones.icon}`}
@@ -209,7 +209,7 @@ function ReservedStatCard({
       >
         <Icon className="size-6" />
       </span>
-      <dl className="flex min-h-full flex-col justify-between gap-3">
+      <dl className="flex min-h-full min-w-0 flex-1 flex-col justify-between gap-3">
         <dt className="text-muted-foreground text-sm">{label}</dt>
         <dd className="text-muted-foreground text-sm font-medium">{status}</dd>
       </dl>
