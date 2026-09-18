@@ -55,7 +55,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
       {/* Two columns on wide screens, stacking on narrow ones. Desktop-first, but
           the office reads this on a laptop and sometimes a tablet (§50). */}
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,22rem)]">
+      <div
+        id="latest-matters"
+        className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,22rem)]"
+      >
         <div className="min-w-0">
           <LatestPpatMattersWidget />
         </div>
