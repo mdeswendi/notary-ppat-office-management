@@ -4,6 +4,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { HeaderNotifications } from "@/components/layout/header-notifications";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardSearch } from "@/features/dashboard/dashboard-search";
 import { can } from "@/lib/permissions/can";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function AppHeader({
 
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <HeaderNotifications enabled={can(user, "tasks.view")} />
+        <ThemeToggle />
         <div className="hidden sm:block">
           <LocaleSwitcher />
         </div>

@@ -135,8 +135,8 @@
 
 /*
  * Dark-mode token parity is preserved from the shadcn scaffold so the
- * foundation stays theme-ready. No theme switch is shipped at M0.6 —
- * docs/10_M0_FOUNDATION.md section 34 requires light only for MVP.
+ * Theme switching is opt-in from the header and uses the same semantic tokens,
+ * so text and controls keep their contrast in both modes.
  */
 .dark {
   --background: oklch(0.1288 0.0406 264.7); /* #020617 */
