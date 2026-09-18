@@ -71,6 +71,7 @@
     "collapseSidebar": "Sembunyikan sidebar",
     "expandSidebar": "Tampilkan sidebar",
     "dashboard": "Dashboard",
+    "calendar": "Kalender",
     "settings": "Pengaturan",
     "settingsOfficePractice": "Praktik Kantor",
     "settingsUsers": "Pengguna",
@@ -2066,6 +2067,36 @@
       "tooManyAttempts": "Terlalu banyak percobaan. Coba lagi nanti.",
       "network": "Koneksi terputus. Periksa jaringan Anda.",
       "server": "Terjadi kesalahan. Coba lagi nanti."
+    }
+  },
+  "calendar": {
+    "title": "Kalender",
+    "description": "Catat agenda rapat, penandatanganan, tenggat, dan pengingat kantor.",
+    "add": "Tambah Jadwal",
+    "formTitle": "Jadwal Baru",
+    "upcoming": "Daftar Jadwal",
+    "empty": "Belum ada jadwal yang dicatat.",
+    "loading": "Memuat jadwal…",
+    "loadError": "Jadwal tidak dapat dimuat.",
+    "saveError": "Jadwal tidak dapat disimpan. Periksa isian Anda.",
+    "cancel": "Batal",
+    "save": "Simpan Jadwal",
+    "saving": "Menyimpan…",
+    "fields": {
+      "title": "Judul agenda",
+      "type": "Jenis agenda",
+      "startsAt": "Mulai",
+      "endsAt": "Selesai",
+      "location": "Lokasi",
+      "description": "Catatan"
+    },
+    "types": {
+      "APPOINTMENT": "Pertemuan",
+      "SIGNING": "Penandatanganan",
+      "DEADLINE": "Tenggat",
+      "REMINDER": "Pengingat",
+      "INTERNAL_MEETING": "Rapat internal",
+      "OTHER": "Lainnya"
     }
   }
 }

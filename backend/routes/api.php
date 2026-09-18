@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
 use App\Http\Controllers\Api\V1\CompanyShareholderController;
+use App\Http\Controllers\Api\V1\CalendarEventController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DisbursementController;
 use App\Http\Controllers\Api\V1\DocumentController;
@@ -100,6 +101,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('activity', [DashboardController::class, 'activity'])->name('activity');
             Route::get('deeds', [DashboardController::class, 'deeds'])->name('deeds');
         });
+
+        Route::get('calendar/events', [CalendarEventController::class, 'index'])
+            ->name('api.v1.calendar.events.index');
+        Route::post('calendar/events', [CalendarEventController::class, 'store'])
+            ->name('api.v1.calendar.events.store');
 
         /*
          * The audit trail (M8.1, D-123, closing D-115).

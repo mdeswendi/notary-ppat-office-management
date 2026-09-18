@@ -1,5 +1,6 @@
 import {
   ArchiveRestore,
+  CalendarDays,
   BookUser,
   Briefcase,
   Building2,
@@ -107,6 +108,14 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // No permission: no canonical document defines one for the Dashboard, and
     // inventing a gate for the landing page would lock people out of the only
     // destination they have.
+  },
+  {
+    key: "calendar",
+    translationKey: "calendar",
+    href: "/calendar",
+    icon: CalendarDays,
+    implemented: true,
+    requiredPermission: "calendar.view",
   },
   {
     key: "projects",
