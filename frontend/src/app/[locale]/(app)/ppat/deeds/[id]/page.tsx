@@ -1,4 +1,5 @@
 import { PageContainer } from "@/components/layout/page-container";
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { PpatDeedDetail } from "@/features/ppat/deed-detail";
 
 /**
@@ -14,6 +15,7 @@ export default async function PpatDeedPage({ params }: { params: Promise<{ id: s
 
   return (
     <PageContainer>
+      <PageBackLink href="/ppat/deeds" preferHistory={false} />
       <PpatDeedDetail deedId={id} />
     </PageContainer>
   );
