@@ -703,8 +703,8 @@
       "PPAT": "PPAT"
     },
     "statuses": {
-      "OPEN": "Open",
-      "IN_PROGRESS": "In progress",
+      "OPEN": "Process",
+      "IN_PROGRESS": "Process",
       "WAITING": "Waiting",
       "ON_HOLD": "On hold",
       "COMPLETED": "Completed",
