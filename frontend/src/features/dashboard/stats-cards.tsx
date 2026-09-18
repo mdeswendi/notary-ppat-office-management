@@ -15,7 +15,6 @@ import { useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardQueryKeys, getDashboardStats } from "@/services/dashboard";
 import type {
-  DashboardStats,
   DashboardTrend,
   DashboardTrendKey,
   ScopedCount,
