@@ -71,6 +71,7 @@
     "collapseSidebar": "Hide sidebar",
     "expandSidebar": "Show sidebar",
     "dashboard": "Dashboard",
+    "calendar": "Calendar",
     "settings": "Settings",
     "settingsOfficePractice": "Office Practice",
     "settingsUsers": "Users",
@@ -153,6 +154,7 @@
     "scheduleUnavailableDescription": "Events will appear automatically after Calendar is available and schedules are recorded.",
     "footerCopyright": "© {year} Mila Widyahastuti, S.H., M.Kn. PPAT Office",
     "footerTagline": "Professional land services",
+    "trendComparedToPreviousPeriod": "vs previous period",
     "loading": "Loading…",
     "panelUnavailable": "This panel is unavailable right now.",
     "viewAll": "View all",
@@ -2065,6 +2067,36 @@
       "tooManyAttempts": "Too many attempts. Please try again later.",
       "network": "The connection dropped. Check your network.",
       "server": "Something went wrong. Please try again later."
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "description": "Record office meetings, signings, deadlines, and reminders.",
+    "add": "Add schedule",
+    "formTitle": "New schedule",
+    "upcoming": "Schedule list",
+    "empty": "No schedules have been recorded yet.",
+    "loading": "Loading schedules…",
+    "loadError": "Schedules could not be loaded.",
+    "saveError": "The schedule could not be saved. Check the form.",
+    "cancel": "Cancel",
+    "save": "Save schedule",
+    "saving": "Saving…",
+    "fields": {
+      "title": "Schedule title",
+      "type": "Schedule type",
+      "startsAt": "Starts",
+      "endsAt": "Ends",
+      "location": "Location",
+      "description": "Notes"
+    },
+    "types": {
+      "APPOINTMENT": "Appointment",
+      "SIGNING": "Signing",
+      "DEADLINE": "Deadline",
+      "REMINDER": "Reminder",
+      "INTERNAL_MEETING": "Internal meeting",
+      "OTHER": "Other"
     }
   }
 }

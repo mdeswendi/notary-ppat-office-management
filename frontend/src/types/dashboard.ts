@@ -17,6 +17,14 @@ import type { TaskStatus } from "@/types/task";
 /** A count the actor may not see is `null`, never `0`. */
 export type ScopedCount = number | null;
 
+/** Optional period-over-period change supplied by a future stats response. */
+export interface DashboardTrend {
+  value: number;
+  direction: "up" | "down";
+}
+
+export type DashboardTrendKey = "active_matters" | "clients" | "documents";
+
 export interface DashboardStats {
   active_projects: ScopedCount;
   active_matters: ScopedCount;
@@ -25,6 +33,8 @@ export interface DashboardStats {
   pending_reviews: ScopedCount;
   overdue_tasks: ScopedCount;
   total_deeds_this_month: ScopedCount;
+  /** Absent until the API can provide a truthful comparison period. */
+  trends?: Partial<Record<DashboardTrendKey, DashboardTrend | null>>;
 }
 
 /**

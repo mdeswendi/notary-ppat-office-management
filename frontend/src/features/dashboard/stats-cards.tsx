@@ -5,6 +5,8 @@ import {
   BriefcaseBusiness,
   CalendarDays,
   FolderOpen,
+  TrendingDown,
+  TrendingUp,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -12,7 +14,12 @@ import { useTranslations } from "next-intl";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { dashboardQueryKeys, getDashboardStats } from "@/services/dashboard";
-import type { DashboardStats, ScopedCount } from "@/types/dashboard";
+import type {
+  DashboardStats,
+  DashboardTrend,
+  DashboardTrendKey,
+  ScopedCount,
+} from "@/types/dashboard";
 
 /**
  * The headline figures (M8.1, D-122).
@@ -31,7 +38,7 @@ import type { DashboardStats, ScopedCount } from "@/types/dashboard";
  * until the Calendar module exists.
  */
 const CARDS: ReadonlyArray<{
-  key: keyof DashboardStats;
+  key: DashboardTrendKey;
   label: string;
   icon: LucideIcon;
   tone: "primary" | "ppat" | "warning" | "danger" | "notary";
@@ -90,6 +97,7 @@ export function StatsCards() {
           icon={icon}
           tone={tone}
           emptyLabel={t("noDataYet")}
+          trend={query.data.trends?.[key]}
         />
       ))}
       {RESERVED_CARDS.map(({ label, icon, tone }) => (
@@ -111,6 +119,7 @@ function StatCard({
   icon: Icon,
   tone,
   emptyLabel,
+  trend,
   className,
 }: {
   label: string;
@@ -118,8 +127,10 @@ function StatCard({
   icon: LucideIcon;
   tone: "primary" | "ppat" | "warning" | "danger" | "notary";
   emptyLabel: string;
+  trend?: DashboardTrend | null;
   className?: string;
 }) {
+  const t = useTranslations("dashboard");
   const tones = {
     primary: {
       card: "border-primary/10 bg-primary/[0.035]",
@@ -161,9 +172,25 @@ function StatCard({
           {value === 0 ? (
             <span className="text-muted-foreground text-xs font-normal">{emptyLabel}</span>
           ) : null}
+          {trend ? (
+            <TrendIndicator trend={trend} label={t("trendComparedToPreviousPeriod")} />
+          ) : null}
         </dd>
       </dl>
     </div>
+  );
+}
+
+function TrendIndicator({ trend, label }: { trend: DashboardTrend; label: string }) {
+  const Icon = trend.direction === "up" ? TrendingUp : TrendingDown;
+  const tone = trend.direction === "up" ? "text-emerald-600" : "text-rose-600";
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-medium ${tone}`}>
+      <Icon className="size-3.5" aria-hidden="true" />
+      {trend.direction === "up" ? "+" : "−"}
+      {Math.abs(trend.value)} <span className="text-muted-foreground font-normal">{label}</span>
+    </span>
   );
 }
 

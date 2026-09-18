@@ -4,6 +4,7 @@ use App\Domains\Matter\Enums\MatterDomain;
 use App\Http\Controllers\Api\V1\ArchivedProjectController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuditReportController;
+use App\Http\Controllers\Api\V1\CalendarEventController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
@@ -100,6 +101,11 @@ Route::prefix('v1')->group(function (): void {
             Route::get('activity', [DashboardController::class, 'activity'])->name('activity');
             Route::get('deeds', [DashboardController::class, 'deeds'])->name('deeds');
         });
+
+        Route::get('calendar/events', [CalendarEventController::class, 'index'])
+            ->name('api.v1.calendar.events.index');
+        Route::post('calendar/events', [CalendarEventController::class, 'store'])
+            ->name('api.v1.calendar.events.store');
 
         /*
          * The audit trail (M8.1, D-123, closing D-115).
