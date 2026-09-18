@@ -19,6 +19,8 @@
     "languageSaveFailed": "Your language choice could not be saved. Please try again.",
     "localeIndonesian": "Bahasa Indonesia",
     "localeEnglish": "English",
+    "switchToDarkMode": "Enable dark mode",
+    "switchToLightMode": "Enable light mode",
     "errorTitle": "Something went wrong",
     "errorDescription": "An unexpected error occurred. Please try again.",
     "notFoundTitle": "Page not found",

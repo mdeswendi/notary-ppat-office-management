@@ -19,6 +19,8 @@
     "languageSaveFailed": "Pilihan bahasa gagal disimpan. Silakan coba lagi.",
     "localeIndonesian": "Bahasa Indonesia",
     "localeEnglish": "English",
+    "switchToDarkMode": "Aktifkan mode malam",
+    "switchToLightMode": "Aktifkan mode terang",
     "errorTitle": "Terjadi kesalahan",
     "errorDescription": "Terjadi kesalahan yang tidak terduga. Silakan coba lagi.",
     "notFoundTitle": "Halaman tidak ditemukan",
