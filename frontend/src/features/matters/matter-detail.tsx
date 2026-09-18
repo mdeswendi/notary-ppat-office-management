@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
 import { DetailHeader } from "@/components/layout/detail-header";
+import { PageBackLink } from "@/components/layout/page-back-link";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Label } from "@/components/ui/label";
@@ -135,6 +136,11 @@ export function MatterDetail({ domain, matterId }: { domain: MatterDomain; matte
 
   return (
     <div className="flex flex-col gap-8">
+      <PageBackLink
+        href={domain === "PPAT" ? "/dashboard#latest-matters" : matterBasePath(domain)}
+        preferHistory={false}
+      />
+
       <DetailHeader
         reference={matter.matter_number}
         title={matter.title}

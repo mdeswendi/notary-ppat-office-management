@@ -703,7 +703,7 @@
       "PPAT": "PPAT"
     },
     "statuses": {
-      "OPEN": "Terbuka",
+      "OPEN": "Proses",
       "IN_PROGRESS": "Sedang berjalan",
       "WAITING": "Menunggu",
       "ON_HOLD": "Ditangguhkan",

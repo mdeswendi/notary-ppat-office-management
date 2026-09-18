@@ -6,14 +6,18 @@ import { useTranslations } from "next-intl";
 
 import { ButtonLink } from "@/components/ui/button-link";
 
-type PageBackLinkProps = Pick<ComponentProps<typeof ButtonLink>, "href">;
+type PageBackLinkProps = Pick<ComponentProps<typeof ButtonLink>, "href"> & {
+  /** Keep a deterministic destination when a detail page has one clear parent. */
+  preferHistory?: boolean;
+};
 
 /** Returns to in-app history when safe, with a predictable parent-route fallback. */
-export function PageBackLink({ href }: PageBackLinkProps) {
+export function PageBackLink({ href, preferHistory = true }: PageBackLinkProps) {
   const t = useTranslations("common");
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (
+      !preferHistory ||
       event.defaultPrevented ||
       event.button !== 0 ||
       event.metaKey ||

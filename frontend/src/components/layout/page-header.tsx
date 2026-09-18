@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { PageBackLink } from "@/components/layout/page-back-link";
 
 type PageHeaderProps = {
   title: ReactNode;
@@ -60,7 +61,7 @@ export function PageHeader({
 
   return (
     <header className={cn("flex min-w-0 flex-col gap-1", className)}>
-      {breadcrumb}
+      {breadcrumb ?? <PageBackLink href="/dashboard" />}
 
       {actions ? (
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
