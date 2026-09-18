@@ -704,7 +704,7 @@
     },
     "statuses": {
       "OPEN": "Proses",
-      "IN_PROGRESS": "Proses",
+      "IN_PROGRESS": "Sedang berjalan",
       "WAITING": "Menunggu",
       "ON_HOLD": "Ditangguhkan",
       "COMPLETED": "Selesai",

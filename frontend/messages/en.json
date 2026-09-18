@@ -704,10 +704,10 @@
     },
     "statuses": {
       "OPEN": "Process",
-      "IN_PROGRESS": "Process",
+      "IN_PROGRESS": "In progress",
       "WAITING": "Waiting",
       "ON_HOLD": "On hold",
-      "COMPLETED": "Completed",
+      "COMPLETED": "Done",
       "CANCELLED": "Cancelled",
       "ARCHIVED": "Archived"
     },
