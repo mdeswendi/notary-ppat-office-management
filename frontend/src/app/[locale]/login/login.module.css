@@ -1,0 +1,240 @@
+.page {
+  color-scheme: light;
+  --background: oklch(0.9842 0.0034 247.86);
+  --foreground: oklch(0.2077 0.0398 265.75);
+  --card: white;
+  --primary: oklch(0.2823 0.0874 267.94);
+  --primary-foreground: white;
+  --secondary: oklch(0.9683 0.0069 247.9);
+  --secondary-foreground: oklch(0.2823 0.0874 267.94);
+  --muted-foreground: oklch(0.5544 0.0407 257.42);
+  --border: oklch(0.9288 0.0126 255.51);
+  --input: oklch(0.9288 0.0126 255.51);
+  --ring: oklch(0.2823 0.0874 267.94);
+  --brand-gold: oklch(0.7165 0.1162 78.63);
+  --sidebar: oklch(0.2387 0.0576 251.82);
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  color: var(--foreground);
+  background:
+    radial-gradient(
+      ellipse 62% 70% at 52% 39%,
+      color-mix(in oklch, var(--secondary) 75%, white),
+      transparent 80%
+    ),
+    linear-gradient(120deg, white 0%, var(--background) 65%, white 100%);
+}
+
+.page::before {
+  position: absolute;
+  top: -42rem;
+  left: 50%;
+  width: 100rem;
+  height: 100rem;
+  transform: translateX(-50%);
+  border: 10rem solid rgb(255 255 255 / 52%);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 100svh;
+  max-width: 93rem;
+  flex-direction: column;
+  margin-inline: auto;
+  padding: 2.25rem clamp(1.25rem, 3vw, 3rem) 1.5rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.brandMark {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--brand-gold) 30%, transparent);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, var(--sidebar), var(--primary));
+  box-shadow: 0 12px 24px rgb(15 23 42 / 16%);
+  color: var(--brand-gold);
+}
+
+.officeName {
+  margin-top: 1rem;
+  color: var(--foreground);
+  font-family: Georgia, Cambria, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 2.3vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+.brandDivider,
+.introductionDivider {
+  display: block;
+  width: 2.75rem;
+  height: 2px;
+  background: var(--brand-gold);
+}
+
+.brandDivider {
+  margin-top: 0.9rem;
+}
+
+.officeDescriptor,
+.officeValues {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.officeDescriptor {
+  margin-top: 0.9rem;
+}
+
+.officeValues {
+  margin-top: 0.35rem;
+  letter-spacing: 0.16em;
+}
+
+.layout {
+  display: grid;
+  width: 100%;
+  flex: 1;
+  grid-template-columns: minmax(12rem, 0.76fr) minmax(22rem, 1.2fr) minmax(14rem, 0.86fr);
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 3.5rem);
+  margin-top: 1rem;
+}
+
+.introduction {
+  max-width: 18rem;
+  border-left: 2px solid var(--brand-gold);
+  padding-left: clamp(1rem, 2vw, 1.75rem);
+}
+
+.introductionTitle {
+  color: var(--foreground);
+  font-family: Georgia, Cambria, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 2.1vw, 2rem);
+  line-height: 1.2;
+}
+
+.introductionDivider {
+  width: 2rem;
+  margin-top: 1.25rem;
+}
+
+.introductionBody {
+  margin-top: 1.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.94rem;
+  line-height: 1.65;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 30rem;
+  justify-self: center;
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  border-radius: 1.25rem;
+  background: var(--card);
+  box-shadow: 0 24px 70px rgb(15 23 42 / 10%);
+  padding: clamp(1.5rem, 3.1vw, 2.5rem);
+}
+
+.illustration {
+  width: 100%;
+  max-width: 24rem;
+  justify-self: end;
+  filter: drop-shadow(0 20px 25px rgb(15 23 42 / 9%));
+}
+
+.credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding-top: 1.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.credit::before,
+.credit::after {
+  width: 2.25rem;
+  height: 1px;
+  background: var(--border);
+  content: "";
+}
+
+@media (max-width: 950px) {
+  .layout {
+    max-width: 48rem;
+    grid-template-columns: minmax(12rem, 0.72fr) minmax(21rem, 1.2fr);
+    margin-inline: auto;
+  }
+
+  .illustration {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .content {
+    padding: 1.75rem 1rem 1.25rem;
+  }
+
+  .brandMark {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+
+  .officeName {
+    font-size: clamp(1.35rem, 5.4vw, 1.75rem);
+  }
+
+  .officeDescriptor,
+  .officeValues {
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+  }
+
+  .layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .introduction {
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+
+  .introductionTitle {
+    font-size: 1.35rem;
+  }
+
+  .introductionDivider,
+  .introductionBody {
+    display: none;
+  }
+
+  .loginCard {
+    margin-inline: auto;
+  }
+}

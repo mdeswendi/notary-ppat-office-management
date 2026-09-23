@@ -32,8 +32,17 @@
     "reload": "Muat ulang"
   },
   "auth": {
+    "officeType": "Kantor Notaris & PPAT",
+    "officeName": "Mila Widyahastuti, S.H., M.Kn",
+    "officeDescriptor": "Notaris | Pejabat Pembuat Akta Tanah",
+    "officeValues": "Profesional · Amanah · Terpercaya",
+    "introLineOne": "Solusi Hukum",
+    "introLineTwo": "untuk Masa Depan yang Lebih Pasti",
+    "introDescription": "Melayani dengan integritas, ketelitian, dan profesionalisme dalam setiap akta dan layanan pertanahan.",
+    "illustrationAlt": "Timbangan keadilan di atas buku Notaris dan PPAT",
+    "developerCredit": "Pengembang: Muhammad Deswendi",
     "signIn": "Masuk",
-    "signInSubtitle": "Gunakan akun kantor Anda untuk melanjutkan.",
+    "signInSubtitle": "Gunakan akun kantor Anda untuk melanjutkan ke sistem manajemen kantor.",
     "signingIn": "Memproses...",
     "signOut": "Keluar",
     "signingOut": "Memproses...",

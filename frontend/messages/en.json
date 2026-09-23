@@ -32,8 +32,17 @@
     "reload": "Reload"
   },
   "auth": {
+    "officeType": "Notary & PPAT Office",
+    "officeName": "Mila Widyahastuti, S.H., M.Kn",
+    "officeDescriptor": "Notary | Land Deed Official",
+    "officeValues": "Professional · Trustworthy · Reliable",
+    "introLineOne": "Legal Solutions",
+    "introLineTwo": "for a More Certain Future",
+    "introDescription": "Serving with integrity, care, and professionalism in every deed and land service.",
+    "illustrationAlt": "Scales of justice above Notary and PPAT law books",
+    "developerCredit": "Developer: Muhammad Deswendi",
     "signIn": "Sign In",
-    "signInSubtitle": "Use your office account to continue.",
+    "signInSubtitle": "Use your office account to continue to the office management system.",
     "signingIn": "Signing in...",
     "signOut": "Sign Out",
     "signingOut": "Signing out...",

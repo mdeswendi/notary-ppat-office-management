@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { ArrowRight, LockKeyhole, Mail } from "lucide-react";
 import { z } from "zod";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
@@ -46,6 +47,7 @@ export function LoginForm() {
     resolver: zodResolver(schema),
     defaultValues: { email: "", password: "", remember: false },
   });
+  const remember = useWatch({ control: form.control, name: "remember" });
 
   const mutation = useMutation({
     mutationFn: async (values: z.infer<typeof schema>) => {
@@ -115,17 +117,24 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("email")}</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="username"
-          autoCapitalize="none"
-          autoFocus
-          spellCheck={false}
-          aria-invalid={form.formState.errors.email ? true : undefined}
-          aria-describedby={form.formState.errors.email ? "email-error" : undefined}
-          {...form.register("email")}
-        />
+        <div className="relative">
+          <Mail
+            aria-hidden="true"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+          />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoFocus
+            spellCheck={false}
+            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-12"
+            aria-invalid={form.formState.errors.email ? true : undefined}
+            aria-describedby={form.formState.errors.email ? "email-error" : undefined}
+            {...form.register("email")}
+          />
+        </div>
         {form.formState.errors.email ? (
           <p id="email-error" className="text-destructive text-sm">
             {form.formState.errors.email.message}
@@ -135,15 +144,22 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="password">{t("password")}</Label>
-        <PasswordInput
-          id="password"
-          autoComplete="current-password"
-          showLabel={t("showPassword")}
-          hideLabel={t("hidePassword")}
-          aria-invalid={form.formState.errors.password ? true : undefined}
-          aria-describedby={form.formState.errors.password ? "password-error" : undefined}
-          {...form.register("password")}
-        />
+        <div className="relative">
+          <LockKeyhole
+            aria-hidden="true"
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2"
+          />
+          <PasswordInput
+            id="password"
+            autoComplete="current-password"
+            showLabel={t("showPassword")}
+            hideLabel={t("hidePassword")}
+            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-12"
+            aria-invalid={form.formState.errors.password ? true : undefined}
+            aria-describedby={form.formState.errors.password ? "password-error" : undefined}
+            {...form.register("password")}
+          />
+        </div>
         {form.formState.errors.password ? (
           <p id="password-error" className="text-destructive text-sm">
             {form.formState.errors.password.message}
@@ -154,14 +170,20 @@ export function LoginForm() {
       <Label htmlFor="remember" className="cursor-pointer font-normal">
         <Checkbox
           id="remember"
-          checked={form.watch("remember")}
+          checked={remember}
           onCheckedChange={(checked) => form.setValue("remember", checked === true)}
         />
         {t("rememberMe")}
       </Label>
 
-      <Button type="submit" size="lg" disabled={isSubmitting}>
+      <Button
+        type="submit"
+        size="lg"
+        disabled={isSubmitting}
+        className="mt-1 h-12 w-full text-base sm:h-12"
+      >
         {isSubmitting ? t("signingIn") : t("signIn")}
+        {!isSubmitting ? <ArrowRight aria-hidden="true" className="ml-1 size-4" /> : null}
       </Button>
     </form>
   );
