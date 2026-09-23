@@ -20,6 +20,7 @@ describe("web app manifest", () => {
       start_url: "/id/dashboard",
       scope: "/",
       display: "standalone",
+      display_override: ["window-controls-overlay", "standalone"],
       theme_color: "#172554",
     });
   });

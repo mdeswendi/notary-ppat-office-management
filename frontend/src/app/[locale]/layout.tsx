@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { QueryProvider } from "@/providers/query-provider";
 import { routing } from "@/i18n/routing";
 
@@ -40,6 +41,11 @@ export async function generateMetadata({
 
   return {
     applicationName: t("appName"),
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: t("appName"),
+    },
     manifest: "/manifest.webmanifest",
     title: t("appName"),
   };
@@ -64,6 +70,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps<"/[
         <NextIntlClientProvider>
           <QueryProvider>{children}</QueryProvider>
         </NextIntlClientProvider>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
