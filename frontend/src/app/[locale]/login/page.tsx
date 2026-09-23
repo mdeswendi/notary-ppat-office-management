@@ -43,7 +43,7 @@ export default async function LoginPage({ params }: PageProps<"/[locale]/login">
           </aside>
 
           <section className={styles.loginCard} aria-labelledby="login-title">
-            <div className="mb-7">
+            <div className="mb-5 sm:mb-4">
               <h1
                 id="login-title"
                 className="text-foreground text-3xl font-semibold tracking-tight"
@@ -55,7 +55,7 @@ export default async function LoginPage({ params }: PageProps<"/[locale]/login">
               </p>
             </div>
             <LoginForm />
-            <div className="mt-7 flex justify-center">
+            <div className="mt-5 flex justify-center sm:mt-3">
               <LocaleSwitcher />
             </div>
           </section>

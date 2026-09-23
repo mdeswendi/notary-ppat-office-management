@@ -112,10 +112,15 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate aria-busy={isSubmitting} className="flex flex-col gap-5">
+    <form
+      onSubmit={onSubmit}
+      noValidate
+      aria-busy={isSubmitting}
+      className="flex flex-col gap-4 sm:gap-3"
+    >
       {errorKey ? <InlineAlert>{t(`errors.${errorKey}`)}</InlineAlert> : null}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:gap-1">
         <Label htmlFor="email">{t("email")}</Label>
         <div className="relative">
           <Mail
@@ -129,7 +134,7 @@ export function LoginForm() {
             autoCapitalize="none"
             autoFocus
             spellCheck={false}
-            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-12"
+            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-11"
             aria-invalid={form.formState.errors.email ? true : undefined}
             aria-describedby={form.formState.errors.email ? "email-error" : undefined}
             {...form.register("email")}
@@ -142,7 +147,7 @@ export function LoginForm() {
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:gap-1">
         <Label htmlFor="password">{t("password")}</Label>
         <div className="relative">
           <LockKeyhole
@@ -154,7 +159,7 @@ export function LoginForm() {
             autoComplete="current-password"
             showLabel={t("showPassword")}
             hideLabel={t("hidePassword")}
-            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-12"
+            className="bg-secondary/60 dark:bg-secondary/60 h-12 pl-11 sm:h-11"
             aria-invalid={form.formState.errors.password ? true : undefined}
             aria-describedby={form.formState.errors.password ? "password-error" : undefined}
             {...form.register("password")}
@@ -180,7 +185,7 @@ export function LoginForm() {
         type="submit"
         size="lg"
         disabled={isSubmitting}
-        className="mt-1 h-12 w-full text-base sm:h-12"
+        className="mt-1 h-12 w-full text-base sm:mt-0 sm:h-11"
       >
         {isSubmitting ? t("signingIn") : t("signIn")}
         {!isSubmitting ? <ArrowRight aria-hidden="true" className="ml-1 size-4" /> : null}
