@@ -26,11 +26,9 @@ use RuntimeException;
  * predicate, and moving a parcel between Offices would strand every composite key
  * holding its owners, Matters and Warkah lines to that Office.
  *
- * **`property_number` is immutable once assigned**, following `matter_number`
- * (D-103) and `document_number` (D-116): a reference belongs to the record that
- * received it. It is nullable at M7.1 because no creation path exists to allocate one
- * — the allocator arrives with the creation surface at M7.3, exactly as M4.3 followed
- * M4.2 and M5.2 followed M5.1.
+ * **`property_number` is allocated by the system and immutable once assigned.**
+ * The `PROP-NNNNNN` value is an Office-scoped internal reference; it is separate
+ * from the certificate number and carries no legal meaning.
  *
  * **`status` is not fillable and nothing writes it.** The ERD names the column and
  * gives it no values; `properties.archive` is a canonical capability whose meaning is

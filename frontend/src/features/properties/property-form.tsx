@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { hasFieldError, toPropertyErrorKey } from "@/features/properties/property-errors";
+import { toPropertyErrorKey } from "@/features/properties/property-errors";
 import { useRouter } from "@/i18n/navigation";
 import {
   createProperty,
@@ -48,16 +48,8 @@ import { PROPERTY_TYPES, type Property, type PropertyType } from "@/types/proper
  *            never be a way to rewrite who owns the land.
  * ```
  *
- * ## `property_number` is required at creation and immutable afterwards
- *
- * Required, because the office's own reference is how it finds the record again;
- * **office-supplied**, because the ERD gives no format and `AGENTS.md` section 38 shows
- * `PROP-000001` without a year, alone among the internal references. No format is
- * validated and none is suggested — the placeholder is deliberately not an example
- * number, for the reason the deed-number field is not either.
- *
- * On edit the field renders read-only: a reference belongs to the record that received
- * it (D-103), and the API answers 422 rather than ignoring a change.
+ * The backend allocates `property_number` as `PROP-NNNNNN`. On edit the assigned
+ * reference is shown read-only.
  */
 export function PropertyForm({ property }: { property?: Property }) {
   const t = useTranslations("properties");
@@ -79,13 +71,6 @@ export function PropertyForm({ property }: { property?: Property }) {
       .max(max, { message: t("validation.tooLong") });
 
   const schema = z.object({
-    property_number: isEdit
-      ? z.string().trim()
-      : z
-          .string()
-          .trim()
-          .min(1, { message: t("validation.propertyNumberRequired") })
-          .max(50, { message: t("validation.tooLong") }),
     property_type: z.enum(PROPERTY_TYPES),
     right_type: z
       .string()
@@ -119,7 +104,6 @@ export function PropertyForm({ property }: { property?: Property }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      property_number: property?.property_number ?? "",
       property_type: property?.property_type ?? "LAND",
       right_type: property?.right_type ?? "",
       certificate_number: property?.certificate_number ?? "",
@@ -163,11 +147,7 @@ export function PropertyForm({ property }: { property?: Property }) {
         postal_code: blank(values.postal_code),
       };
 
-      // `property_number` is sent only on creation. It is immutable once assigned
-      // (D-103), and the API refuses it outright rather than ignoring it.
-      return isEdit
-        ? updateProperty(property.id, payload)
-        : createProperty({ ...payload, property_number: values.property_number.trim() });
+      return isEdit ? updateProperty(property.id, payload) : createProperty(payload);
     },
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: propertyKeys.all() });
@@ -175,14 +155,6 @@ export function PropertyForm({ property }: { property?: Property }) {
       router.push(`/ppat/properties/${saved.id}`);
     },
     onError: (error: unknown) => {
-      // The server knows what the browser cannot: whether this reference is still
-      // free within the Office.
-      if (hasFieldError(error, "property_number")) {
-        form.setError("property_number", { message: t("validation.propertyNumberTaken") });
-
-        return;
-      }
-
       form.setError("root", { message: t(`errors.${toPropertyErrorKey(error)}`) });
     },
   });
@@ -208,15 +180,13 @@ export function PropertyForm({ property }: { property?: Property }) {
             <Label htmlFor="property_number">{t("propertyNumber")}</Label>
             <Input
               id="property_number"
-              readOnly={isEdit}
-              aria-invalid={form.formState.errors.property_number !== undefined}
-              {...form.register("property_number")}
+              readOnly
+              value={
+                isEdit
+                  ? (property.property_number ?? t("unnumbered"))
+                  : t("propertyNumberGenerated")
+              }
             />
-            {form.formState.errors.property_number ? (
-              <p role="alert" className="text-destructive text-sm">
-                {form.formState.errors.property_number.message}
-              </p>
-            ) : null}
             <p className="text-muted-foreground text-xs">
               {isEdit ? t("propertyNumberImmutable") : t("propertyNumberHint")}
             </p>

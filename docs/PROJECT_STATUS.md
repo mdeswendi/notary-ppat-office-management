@@ -576,10 +576,10 @@ batches 8 and 10, so neither domain reaches a batch further than the other (O-04
   several current owners at once; it is a *"this row applies now"* flag on many rows, not the
   *"this is the one"* pointer D-116 removed from `document_versions`. Do not "fix" it.
 
-**M7.1 owed one explicit decision** — whether `property_number` is allocated or office-supplied.
-**M7.3 settled it: office-supplied**, unique per Office, no format validated, immutable once
-assigned. The ERD gives no format, `AGENTS.md` §38 shows `PROP-000001` without a year (alone among
-the internal references), and an allocator would need a counter table. Lock §15.
+**Property references are system allocated** as `PROP-NNNNNN`, beginning at
+`PROP-000001` per Office and never resetting by year (D-136). They are immutable
+internal references, separate from certificate numbers and legal numbering. This
+supersedes M7.3's earlier office-supplied choice.
 
 **M7.2's own finding: `ppat.deeds.delete` is not in the registry**, and neither is `.void` or
 `.lock`. The brief conditioned a `destroy` endpoint on that code existing, so its own condition ruled

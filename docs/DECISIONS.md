@@ -5156,6 +5156,24 @@ final deployment step.
 
 ---
 
+### D-136 — Property references are system allocated per Office without an annual reset
+
+The accepted office convention is `PROP-NNNNNN`, beginning at `PROP-000001` in
+each Office. The number is an internal application reference only; it is separate
+from `certificate_number` and carries no legal, deed, or land-registration meaning.
+
+Creation allocates the value atomically from an Office-scoped counter. The request
+cannot supply or override it, and the assigned reference remains immutable. The
+sequence does not reset by year because a Property is permanent reference data.
+Existing conforming references are preserved; legacy, blank, or mistyped references
+are normalized in creation order when the counter migration runs.
+
+This supersedes M7.3's earlier office-supplied choice. It adopts the internal pattern
+already recorded in `AGENTS.md` section 38 and `03_DATABASE_ERD.md` section 27 while
+leaving every legal identifier and ownership fact unchanged.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

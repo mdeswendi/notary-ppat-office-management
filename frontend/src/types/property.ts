@@ -183,18 +183,10 @@ export type PropertyListPage = {
 /**
  * What the create form sends.
  *
- * **`property_number` is required and office-supplied.** M7.3 settled the M7 lock's
- * open question that way: the ERD gives the column no format, `AGENTS.md` section 38
- * shows `PROP-000001` without a year — alone among the internal references it lists —
- * and an allocator would need a counter table this milestone has no migration for. The
- * software validates uniqueness within the Office and nothing else, which is the shape
- * `ppat.deeds.number` has.
- *
- * Office and `status` are refused outright: the first is the actor's own, the second
- * has no vocabulary at all.
+ * `property_number` is absent because the backend allocates the Office-scoped
+ * `PROP-NNNNNN` reference. Office and `status` are also server-controlled.
  */
 export type PropertyCreateInput = {
-  property_number: string;
   property_type: PropertyType;
   right_type: string;
   certificate_number: string;
@@ -212,13 +204,9 @@ export type PropertyCreateInput = {
 };
 
 /**
- * Everything the create form sends, minus the reference.
- *
- * `property_number` is absent because it is immutable once assigned (D-103): a
- * reference belongs to the record that received it, and the API answers 422 rather
- * than ignoring the field.
+ * Everything the edit form may send. The allocated reference is absent and immutable.
  */
-export type PropertyUpdateInput = Partial<Omit<PropertyCreateInput, "property_number">>;
+export type PropertyUpdateInput = Partial<PropertyCreateInput>;
 
 export type PropertyOptions = {
   data: {
