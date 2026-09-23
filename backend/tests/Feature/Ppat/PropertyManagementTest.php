@@ -290,7 +290,6 @@ it('records a property in the actor own office', function (): void {
     [$actor, $office] = propertyApiActor(['properties.create', 'properties.view']);
 
     $response = $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000001',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-001',
@@ -309,18 +308,23 @@ it('records a property in the actor own office', function (): void {
     expect($property->status)->toBeNull();
 });
 
-it('refuses a property number another parcel in the same office holds', function (): void {
-    [$actor, $office] = propertyApiActor(['properties.create', 'properties.view']);
+it('allocates consecutive property numbers in the same office', function (): void {
+    [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
-    Property::factory()->inOffice($office)->numbered('PROP-000001')->create();
-
-    $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000001',
+    $payload = [
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-002',
         'address' => 'Jalan Uji No. 2',
-    ])->assertStatus(422)->assertJsonValidationErrors('property_number');
+    ];
+
+    $this->actingAs($actor)->postJson('/api/v1/properties', $payload)
+        ->assertCreated()->assertJsonPath('data.property_number', 'PROP-000001');
+
+    $this->actingAs($actor)->postJson('/api/v1/properties', [
+        ...$payload,
+        'certificate_number' => 'UJI-003',
+    ])->assertCreated()->assertJsonPath('data.property_number', 'PROP-000002');
 });
 
 it('permits the same property number in another office', function (): void {
@@ -331,28 +335,25 @@ it('permits the same property number in another office', function (): void {
     Property::factory()->numbered('PROP-000001')->create();
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000001',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-003',
         'address' => 'Jalan Uji No. 3',
-    ])->assertCreated();
+    ])->assertCreated()->assertJsonPath('data.property_number', 'PROP-000001');
 
     expect(Property::query()->where('office_id', $office->getKey())->count())->toBe(1);
 });
 
-it('validates no property number format', function (): void {
-    // The ERD gives none, and `AGENTS.md` section 62 names numbering rules among the
-    // things not to invent. The office supplies whatever it uses.
+it('refuses a caller supplied property number', function (): void {
     [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'kavling blok C/7',
+        'property_number' => 'PROP-999999',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-004',
         'address' => 'Jalan Uji No. 4',
-    ])->assertCreated()->assertJsonPath('data.property_number', 'kavling blok C/7');
+    ])->assertStatus(422)->assertJsonValidationErrors('property_number');
 });
 
 it('accepts a right type the erd never listed', function (): void {
@@ -361,7 +362,6 @@ it('accepts a right type the erd never listed', function (): void {
     [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000009',
         'property_type' => 'LAND',
         'right_type' => 'HAK_ULAYAT',
         'certificate_number' => 'UJI-009',
@@ -373,7 +373,6 @@ it('refuses a property type outside the closed list', function (): void {
     [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000010',
         // The M7 brief's spelling. The ERD says APARTMENT_UNIT, and a stable machine
         // code is only stable if copied exactly (M7.1).
         'property_type' => 'APARTMENT',
@@ -391,7 +390,6 @@ it('permits two parcels to share a certificate number', function (): void {
     Property::factory()->inOffice($office)->create(['certificate_number' => 'UJI-SAMA']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000011',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-SAMA',
@@ -403,7 +401,6 @@ it('refuses every system-controlled field on presence', function (string $field,
     [$actor] = propertyApiActor(['properties.create', 'properties.view']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000012',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-012',
@@ -412,6 +409,7 @@ it('refuses every system-controlled field on presence', function (string $field,
     ])->assertStatus(422)->assertJsonValidationErrors($field);
 })->with([
     ['office_id', '01ARZ3NDEKTSV4RRFFQ69G5FAV'],
+    ['property_number', 'PROP-999999'],
     // No canonical vocabulary at all — refused rather than silently dropped.
     ['status', 'ACTIVE'],
     ['created_by', '01ARZ3NDEKTSV4RRFFQ69G5FAV'],
@@ -422,7 +420,6 @@ it('refuses creation without the capability', function (): void {
     [$actor] = propertyApiActor(['properties.view']);
 
     $this->actingAs($actor)->postJson('/api/v1/properties', [
-        'property_number' => 'PROP-000013',
         'property_type' => 'LAND',
         'right_type' => 'HAK_MILIK',
         'certificate_number' => 'UJI-013',

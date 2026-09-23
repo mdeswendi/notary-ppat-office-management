@@ -294,10 +294,8 @@ inventing `ACTIVE / INACTIVE` would be inventing a lifecycle.
 
 **`property_number` is an internal reference**, not a certificate number — `certificate_number` is
 the legal identifier and they are different concepts, exactly as `matter_number` and `deed_number`
-are (D-103, D-120). M7.1 decides whether it is allocated (the `PROP-000001` shape `AGENTS.md`
-section 38 names) or office-supplied; **section 14 records that as an open question for M7.1 rather
-than settling it here**, because the ERD gives no format and D-103's allocator pattern is about
-Office+year namespaces which `PROP-000001` does not obviously carry.
+are (D-103, D-120). M7.3 originally made it office-supplied. **D-136 supersedes that choice:** the
+system allocates `PROP-NNNNNN` per Office without an annual reset.
 
 ### 7.2 Ownership history
 
@@ -675,7 +673,8 @@ Three of its rulings settle questions this document left open, and section 7 now
 
 - **`properties.archive` soft-deletes** and never writes `status` — the reading that leaves neither
   the ERD's `deleted_at` nor the catalogue's `archive` code dead. There is no un-archive (O-045).
-- **`property_number` is office-supplied**, which answers section 15's last M7.1 question.
+- **`property_number` was office-supplied at M7.3. D-136 supersedes that choice:**
+  the system now allocates `PROP-NNNNNN` per Office without an annual reset.
 - **Adding a co-owner does not close the existing holders**, which is section 7.2 honoured against a
   brief that asked for the opposite.
 
@@ -723,7 +722,7 @@ templates, no workflow stages, no right-type catalogue.
 | Monthly reporting obligation, deadline, recipient | **OPEN — §6.** M8; `ppat.reports.*` stays unimplemented (O-043) | **No** |
 | Binding and archiving of deeds with their Warkah | **OPEN — §6.** `ppat.warkah.finalize` and `.archive` stay unimplemented (O-041) | **No** |
 | Correction mechanisms after finalization | **OPEN — §6 and `AGENTS.md` §29.** `VOID`, `SUPERSEDED`, `locked_at` are stored vocabulary with no path | **No** |
-| Whether `property_number` is allocated or office-supplied | **RESOLVED 2026-08-25 by M7.3: office-supplied.** The ERD gives no format; `AGENTS.md` §38 names `PROP-000001` as an example internal reference **without a year**, alone among the ones it lists, so D-108's Office+year allocator does not fit; and an allocator needs a counter table. Required at creation, unique per Office (D-103), immutable once assigned, **no format validated** — the `ppat.deeds.number` shape | **No** |
+| Whether `property_number` is allocated or office-supplied | **SUPERSEDED 2026-09-23 by D-136: system allocated.** The accepted internal format is `PROP-NNNNNN`, beginning at `PROP-000001` per Office, with no annual reset. The request cannot supply it; it remains immutable and distinct from the certificate number. | **No** |
 | What `properties.archive` does | **RESOLVED 2026-08-25 by M7.3: it soft-deletes.** The ERD gives `properties` a `deleted_at` and the catalogue gives `archive` while withholding `properties.delete`; read separately each is dead, read together they are one mechanism. `status` stays unwritten — it has no ERD vocabulary. **One-way**: no `properties.restore` exists (O-045) | **No** |
 | Whether ownership percentages must total 100 | **OPEN.** A rule about Indonesian co-ownership; the column stores what the office records. M7.3 displays the arithmetic total and attaches no judgement to it | **No** |
 | `ppat_deed_documents` junction | **UNBLOCKED but not built** (§3.6) | **No** |
