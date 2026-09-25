@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppUpdateNotice } from "@/components/layout/app-update-notice";
+import { SessionExpiryGuard } from "@/components/layout/session-expiry-guard";
 import { SkipLink } from "@/components/layout/skip-link";
 import type { CurrentUser } from "@/types/auth";
 
@@ -33,6 +34,7 @@ export function AppShell({ user, children }: AppShellProps) {
 
   return (
     <div className="bg-background flex min-h-svh">
+      <SessionExpiryGuard />
       <SkipLink />
       {sidebarOpen ? <AppSidebar user={user} onCollapse={() => setSidebarOpen(false)} /> : null}
       <div className="relative flex min-w-0 flex-1 flex-col overflow-clip">
