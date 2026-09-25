@@ -7,6 +7,7 @@ import { renderWithProviders } from "@/test/render";
 import type { CurrentUser } from "@/types/auth";
 
 vi.mock("@/components/layout/skip-link", () => ({ SkipLink: () => null }));
+vi.mock("@/components/layout/session-expiry-guard", () => ({ SessionExpiryGuard: () => null }));
 vi.mock("@/components/layout/app-sidebar", () => ({
   AppSidebar: ({ onCollapse }: { onCollapse: () => void }) => (
     <button type="button" onClick={onCollapse}>
