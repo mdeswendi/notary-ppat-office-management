@@ -33,10 +33,12 @@ class CreateQuotation
     public function __construct(
         private readonly AllocateBillingReference $allocator,
         private readonly EventRecorder $events,
+        private readonly ManageBillingLines $lines,
     ) {}
 
     /**
      * @param  array<string, mixed>  $attributes  ordinary fields only
+     * @param  list<array<string, mixed>>  $items  optional priced lines
      */
     public function handle(
         User $actor,
@@ -44,8 +46,9 @@ class CreateQuotation
         ?Party $party = null,
         ?Project $project = null,
         ?Matter $matter = null,
+        array $items = [],
     ): Quotation {
-        return DB::transaction(function () use ($actor, $attributes, $party, $project, $matter): Quotation {
+        return DB::transaction(function () use ($actor, $attributes, $party, $project, $matter, $items): Quotation {
             $quotation = new Quotation;
 
             // None of these is fillable, by design: assigning them explicitly
@@ -74,6 +77,10 @@ class CreateQuotation
                 'reference' => $quotation->quotation_number,
                 'title' => $quotation->title,
             ]);
+
+            foreach ($items as $item) {
+                $this->lines->addToQuotation($actor, $quotation, $item);
+            }
 
             return $quotation;
         });

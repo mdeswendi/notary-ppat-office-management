@@ -46,6 +46,15 @@ class StoreQuotationRequest extends FormRequest
             'project_id' => ['nullable', 'string', 'ulid'],
             'matter_id' => ['nullable', 'string', 'ulid'],
 
+            // The UI raises the draft and its priced lines as one operation. This
+            // keeps a failed line validation from leaving an uneditable empty draft.
+            'items' => ['sometimes', 'array', 'min:1', 'max:100'],
+            'items.*' => ['required', 'array:description,quantity,unit_amount'],
+            'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0', 'max:9999999999'],
+            'items.*.unit_amount' => ['required', 'numeric', 'min:0', 'max:9999999999999'],
+            'items.*.line_amount' => ['prohibited'],
+
             'status' => ['prohibited'],
             'quotation_number' => ['prohibited'],
             'subtotal_amount' => ['prohibited'],
@@ -65,5 +74,13 @@ class StoreQuotationRequest extends FormRequest
             $this->validated(),
             array_flip(['title', 'description', 'currency', 'valid_until', 'notes']),
         );
+    }
+
+    /**
+     * @return list<array{description: string, quantity: int|float|string, unit_amount: int|float|string}>
+     */
+    public function lineAttributes(): array
+    {
+        return $this->validated()['items'] ?? [];
     }
 }
