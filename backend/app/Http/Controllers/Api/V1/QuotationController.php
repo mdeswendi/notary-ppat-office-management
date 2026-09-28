@@ -95,6 +95,7 @@ class QuotationController extends Controller
             $this->resolveParty($request, $request->input('client_party_id')),
             $this->resolveProject($request, $request->input('project_id')),
             $this->resolveMatter($request, $request->input('matter_id')),
+            $request->lineAttributes(),
         );
 
         return (new QuotationResource($this->loadForDetail($quotation)))->withCapabilities($this->capabilitiesFor($quotation))

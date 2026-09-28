@@ -71,7 +71,11 @@ Billing
 ├── Quotations
 ├── Invoices
 ├── Payments
-└── Disbursements
+└── Biaya Proses Transaksi
+
+The last item is the office-facing label for the internal `disbursements` resource. Do not call it
+"third-party costs": that term is not appropriate for this Notary/PPAT workflow. Keep the technical
+resource and permission names unchanged unless a separately approved schema/API migration is made.
 
 Reports
 ├── Operational

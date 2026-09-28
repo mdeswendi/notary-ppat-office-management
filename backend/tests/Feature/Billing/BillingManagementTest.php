@@ -129,6 +129,37 @@ it('creates a quotation as a draft with an allocated number', function (): void 
         ->and($response->json('data.total_amount'))->toBe('0.00');
 });
 
+it('creates a quotation with its priced lines and computed total atomically', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+
+    $response = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Jasa AJB',
+        'currency' => 'IDR',
+        'items' => [
+            ['description' => 'Jasa notaris', 'quantity' => '1', 'unit_amount' => '2500000'],
+            ['description' => 'Pemeriksaan berkas', 'quantity' => '2', 'unit_amount' => '150000'],
+        ],
+    ])->assertCreated()
+        ->assertJsonPath('data.status', 'DRAFT')
+        ->assertJsonPath('data.total_amount', '2800000.00')
+        ->assertJsonCount(2, 'data.items');
+
+    expect($response->json('data.items.0.line_amount'))->toBe('2500000.00')
+        ->and($response->json('data.items.1.line_amount'))->toBe('300000.00');
+});
+
+it('rejects malformed quotation lines before creating a draft', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+
+    $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Jasa AJB',
+        'items' => [['description' => '', 'quantity' => '1', 'unit_amount' => '-1']],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['items.0.description', 'items.0.unit_amount']);
+
+    expect(Quotation::query()->count())->toBe(0);
+});
+
 it('refuses a submitted status, number, total or tax', function (string $field): void {
     [$actor] = billingActor(billingCapabilities());
 

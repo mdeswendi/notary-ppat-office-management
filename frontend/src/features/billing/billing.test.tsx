@@ -5,8 +5,10 @@ import { AmountField } from "@/features/billing/amount-field";
 import { InvoiceList } from "@/features/billing/invoice-list";
 import { PaymentList } from "@/features/billing/payment-list";
 import { QuotationList } from "@/features/billing/quotation-list";
+import { QuotationCreateForm } from "@/features/billing/quotation-create-form";
 import { renderWithProviders } from "@/test/render";
 import type { Invoice, Payment, Quotation } from "@/types/billing";
+import type { CurrentUser } from "@/types/auth";
 
 vi.mock("@/services/billing", () => ({
   billingQueryKeys: {
@@ -23,11 +25,34 @@ vi.mock("@/services/billing", () => ({
   getInvoices: vi.fn(),
   getPayments: vi.fn(),
   getQuotations: vi.fn(),
+  createQuotation: vi.fn(),
+  getPartyDirectory: vi.fn(),
   getDisbursements: vi.fn(),
   verifyPayment: vi.fn(),
 }));
 
+vi.mock("@/features/auth/use-current-user", () => ({ useCurrentUser: vi.fn() }));
+vi.mock("@/services/parties", () => ({
+  partyDirectoryKeys: { list: (query: unknown) => ["parties", "directory", query] },
+  getPartyDirectory: vi.fn(),
+}));
+
 const services = await import("@/services/billing");
+const parties = await import("@/services/parties");
+const auth = await import("@/features/auth/use-current-user");
+
+function actor(permissions: string[]): CurrentUser {
+  return {
+    id: "u1",
+    name: "Kurnia",
+    email: "kurnia@example.test",
+    preferred_locale: "id",
+    roles: ["Front Office", "Finance"],
+    permissions,
+    permission_scopes: {},
+    office: null,
+  };
+}
 
 function invoice(overrides: Partial<Invoice> = {}): Invoice {
   return {
@@ -93,6 +118,7 @@ function payment(overrides: Partial<Payment> = {}): Payment {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(auth.useCurrentUser).mockReturnValue({ data: actor([]) } as never);
 });
 
 /**
@@ -159,11 +185,71 @@ describe("QuotationList", () => {
 
   it("uses the shared empty state when no quotations exist", async () => {
     vi.mocked(services.getQuotations).mockResolvedValue({ data: [] });
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["quotations.create"]),
+    } as never);
 
     renderWithProviders(<QuotationList />);
 
     expect(await screen.findByText("billing.emptyTitle")).toBeInTheDocument();
     expect(screen.getByText("billing.noQuotations")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "billing.newQuotation" })).toBeInTheDocument();
+  });
+});
+
+describe("QuotationCreateForm", () => {
+  it("hides the create action without quotations.create", () => {
+    renderWithProviders(<QuotationCreateForm />);
+
+    expect(screen.queryByRole("button", { name: "billing.newQuotation" })).not.toBeInTheDocument();
+  });
+
+  it("creates a draft with a client and priced lines for an authorized user", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["quotations.create"]),
+    } as never);
+    vi.mocked(parties.getPartyDirectory).mockResolvedValue({
+      data: [
+        {
+          id: "party1",
+          party_type: "INDIVIDUAL",
+          display_name: "Khemal",
+          primary_phone: null,
+          primary_email: null,
+          office: null,
+          individual: { full_name: "Khemal" },
+          company: null,
+          created_at: null,
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 1 },
+    });
+    vi.mocked(services.createQuotation).mockResolvedValue(quotation());
+
+    renderWithProviders(<QuotationCreateForm />);
+
+    fireEvent.click(screen.getByRole("button", { name: "billing.newQuotation" }));
+    expect(await screen.findByRole("option", { name: "Khemal" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.title"), { target: { value: "Jasa AJB" } });
+    fireEvent.change(screen.getByLabelText("billing.client"), { target: { value: "party1" } });
+    const descriptions = screen.getAllByLabelText("billing.description");
+    fireEvent.change(descriptions[0], { target: { value: "Akta jual beli" } });
+    fireEvent.change(descriptions[1], { target: { value: "Jasa notaris" } });
+    fireEvent.change(screen.getByLabelText("billing.unitAmount"), { target: { value: "2500000" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+
+    await waitFor(() =>
+      expect(services.createQuotation).toHaveBeenCalledWith({
+        title: "Jasa AJB",
+        client_party_id: "party1",
+        description: "Akta jual beli",
+        currency: "IDR",
+        valid_until: null,
+        notes: null,
+        items: [{ description: "Jasa notaris", quantity: "1", unit_amount: "2500000" }],
+      }),
+    );
   });
 });
 
