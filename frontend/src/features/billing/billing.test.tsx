@@ -2,6 +2,8 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AmountField } from "@/features/billing/amount-field";
+import { DisbursementCreateForm } from "@/features/billing/disbursement-create-form";
+import { DisbursementList } from "@/features/billing/disbursement-list";
 import { InvoiceList } from "@/features/billing/invoice-list";
 import { PaymentList } from "@/features/billing/payment-list";
 import { QuotationList } from "@/features/billing/quotation-list";
@@ -26,6 +28,7 @@ vi.mock("@/services/billing", () => ({
   getPayments: vi.fn(),
   getQuotations: vi.fn(),
   createQuotation: vi.fn(),
+  createDisbursement: vi.fn(),
   getPartyDirectory: vi.fn(),
   getDisbursements: vi.fn(),
   verifyPayment: vi.fn(),
@@ -250,6 +253,116 @@ describe("QuotationCreateForm", () => {
         items: [{ description: "Jasa notaris", quantity: "1", unit_amount: "2500000" }],
       }),
     );
+  });
+});
+
+describe("DisbursementCreateForm", () => {
+  it("explains a missing create permission instead of silently omitting the button", () => {
+    renderWithProviders(<DisbursementCreateForm />);
+
+    expect(
+      screen.queryByRole("button", { name: "billing.newProcessCost" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("billing.costCreatePermissionRequired")).toBeInTheDocument();
+  });
+
+  it("records only a paid process cost for the selected client", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["disbursements.view", "disbursements.create"]),
+    } as never);
+    vi.mocked(parties.getPartyDirectory).mockResolvedValue({
+      data: [
+        {
+          id: "party1",
+          party_type: "INDIVIDUAL",
+          display_name: "Saman",
+          primary_phone: null,
+          primary_email: null,
+          office: null,
+          individual: { full_name: "Saman" },
+          company: null,
+          created_at: null,
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 1 },
+    });
+    vi.mocked(services.createDisbursement).mockResolvedValue({ id: "cost1" } as never);
+
+    const { queryClient } = renderWithProviders(<DisbursementCreateForm />);
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+
+    fireEvent.click(screen.getByRole("button", { name: "billing.newProcessCost" }));
+    expect(await screen.findByRole("option", { name: "Saman" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.client"), { target: { value: "party1" } });
+    fireEvent.change(screen.getByLabelText("billing.processCostDescription"), {
+      target: { value: "BPHTB" },
+    });
+    fireEvent.change(screen.getByLabelText("billing.amount"), { target: { value: "1250000" } });
+    fireEvent.change(screen.getByLabelText("billing.processCostPaidOn"), {
+      target: { value: "2026-01-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+
+    await waitFor(() =>
+      expect(services.createDisbursement).toHaveBeenCalledWith({
+        client_party_id: "party1",
+        description: "BPHTB",
+        amount: "1250000",
+        incurred_on: "2026-01-01",
+        reference: null,
+        notes: null,
+        currency: "IDR",
+      }),
+    );
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["billing", "disbursements", {}] }),
+    );
+  });
+
+  it("rejects an empty or unpaid cost before calling the API", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["disbursements.create"]),
+    } as never);
+    vi.mocked(parties.getPartyDirectory).mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
+    });
+
+    renderWithProviders(<DisbursementCreateForm />);
+    fireEvent.click(screen.getByRole("button", { name: "billing.newProcessCost" }));
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+
+    expect(await screen.findByText("billing.costValidation.clientRequired")).toBeInTheDocument();
+    expect(services.createDisbursement).not.toHaveBeenCalled();
+  });
+});
+
+describe("DisbursementList", () => {
+  it("identifies the client for a process cost without surfacing client invoice references", async () => {
+    vi.mocked(services.getDisbursements).mockResolvedValue({
+      data: [
+        {
+          id: "cost1",
+          description: "BPHTB",
+          currency: "IDR",
+          incurred_on: "2026-01-01",
+          reference: null,
+          notes: null,
+          amount: "1250000.00",
+          amounts_visible: true,
+          client_party: { id: "party1", display_name: "Saman" },
+          invoice: { id: "invoice1", reference: "INV-PRIVATE" },
+          created_at: null,
+          updated_at: null,
+        },
+      ],
+    });
+
+    renderWithProviders(<DisbursementList />);
+
+    expect(await screen.findByText("Saman")).toBeInTheDocument();
+    expect(screen.getByText("BPHTB")).toBeInTheDocument();
+    expect(screen.queryByText("INV-PRIVATE")).not.toBeInTheDocument();
   });
 });
 
