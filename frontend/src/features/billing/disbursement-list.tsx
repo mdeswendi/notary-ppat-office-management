@@ -66,16 +66,13 @@ export function DisbursementList() {
         <thead className="bg-muted/40 text-muted-foreground text-xs">
           <tr>
             <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("client")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
               {t("description")}
             </th>
             <th scope="col" className="px-3 py-2 text-left font-medium">
               {t("incurredOn")}
-            </th>
-            <th scope="col" className="px-3 py-2 text-left font-medium">
-              {t("matter")}
-            </th>
-            <th scope="col" className="px-3 py-2 text-left font-medium">
-              {t("rebilledOn")}
             </th>
             <th scope="col" className="px-3 py-2 text-right font-medium">
               {t("amount")}
@@ -86,13 +83,11 @@ export function DisbursementList() {
         <tbody className="divide-border divide-y">
           {disbursements.map((disbursement) => (
             <tr key={disbursement.id}>
+              <td className="px-3 py-2">{disbursement.client_party?.display_name ?? "—"}</td>
               <td className="px-3 py-2">{disbursement.description}</td>
               <td className="px-3 py-2 whitespace-nowrap">
                 <DateText value={disbursement.incurred_on} />
               </td>
-              <td className="px-3 py-2">{disbursement.matter?.reference ?? "—"}</td>
-              <td className="px-3 py-2">{disbursement.invoice?.reference ?? "—"}</td>
-
               <td className="px-3 py-2 text-right">
                 <AmountField
                   amount={disbursement.amount}
