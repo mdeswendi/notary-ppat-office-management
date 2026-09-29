@@ -481,4 +481,3 @@ describe("PaymentList", () => {
     expect(screen.queryByRole("button", { name: "billing.verify" })).not.toBeInTheDocument();
   });
 });
-
