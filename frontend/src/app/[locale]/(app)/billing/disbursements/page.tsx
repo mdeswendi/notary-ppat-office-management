@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
+import { DisbursementCreateForm } from "@/features/billing/disbursement-create-form";
 import { DisbursementList } from "@/features/billing/disbursement-list";
 
 export default async function BillingPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -13,6 +14,7 @@ export default async function BillingPage({ params }: { params: Promise<{ locale
     <PageContainer>
       <PageHeader title={t("disbursements")} description={t("disbursementsSubtitle")} />
 
+      <DisbursementCreateForm />
       <DisbursementList />
     </PageContainer>
   );
