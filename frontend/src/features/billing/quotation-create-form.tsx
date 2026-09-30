@@ -17,15 +17,13 @@ import type { PartyDirectoryQuery } from "@/types/party";
 type QuotationLineDraft = {
   id: string;
   description: string;
-  quantity: string;
-  unit_amount: string;
+  amount: string;
 };
 
 const emptyLine = (id: string): QuotationLineDraft => ({
   id,
   description: "",
-  quantity: "1",
-  unit_amount: "",
+  amount: "",
 });
 
 /** Create a draft quotation and all its priced lines in one atomic API request. */
@@ -69,8 +67,7 @@ export function QuotationCreateForm() {
         notes: notes.trim() || null,
         items: lines.map((line) => ({
           description: line.description.trim(),
-          quantity: line.quantity,
-          unit_amount: line.unit_amount,
+          amount: line.amount,
         })),
       }),
     onSuccess: async () => {
@@ -171,7 +168,7 @@ export function QuotationCreateForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="quotation-currency">{t("currency")}</Label>
                   <Select
@@ -219,7 +216,7 @@ export function QuotationCreateForm() {
               {lines.map((line, index) => (
                 <fieldset
                   key={line.id}
-                  className="border-border grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,2fr)_minmax(6rem,1fr)_minmax(8rem,1fr)_auto]"
+                  className="border-border grid min-w-0 gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,2fr)_minmax(8rem,1fr)_auto]"
                 >
                   <legend className="sr-only">
                     {t("quotationItemNumber", { number: index + 1 })}
@@ -237,29 +234,16 @@ export function QuotationCreateForm() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor={`quotation-line-quantity-${index}`}>{t("quantity")}</Label>
-                    <Input
-                      id={`quotation-line-quantity-${index}`}
-                      type="number"
-                      required
-                      min="0"
-                      max="9999999999"
-                      step="any"
-                      value={line.quantity}
-                      onChange={(event) => updateLine(index, "quantity", event.target.value)}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor={`quotation-line-amount-${index}`}>{t("unitAmount")}</Label>
+                    <Label htmlFor={`quotation-line-amount-${index}`}>{t("costNominal")}</Label>
                     <Input
                       id={`quotation-line-amount-${index}`}
                       type="number"
                       required
                       min="0"
                       max="9999999999999"
-                      step="any"
-                      value={line.unit_amount}
-                      onChange={(event) => updateLine(index, "unit_amount", event.target.value)}
+                      step="0.01"
+                      value={line.amount}
+                      onChange={(event) => updateLine(index, "amount", event.target.value)}
                     />
                   </div>
                   <div className="flex items-end">
@@ -302,7 +286,7 @@ export function QuotationCreateForm() {
                   mutation.isPending ||
                   title.trim() === "" ||
                   clientPartyId === "" ||
-                  lines.some((line) => line.description.trim() === "" || line.unit_amount === "")
+                  lines.some((line) => line.description.trim() === "" || line.amount === "")
                 }
               >
                 {mutation.isPending ? tActions("saving") : tActions("save")}

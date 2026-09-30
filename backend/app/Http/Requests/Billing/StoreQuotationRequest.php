@@ -21,6 +21,26 @@ use Illuminate\Validation\Rule;
  */
 class StoreQuotationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $items = $this->input('items');
+
+        if (! is_array($items)) {
+            return;
+        }
+
+        foreach ($items as &$item) {
+            if (is_array($item) && array_key_exists('amount', $item)
+                && ! array_key_exists('quantity', $item) && ! array_key_exists('unit_amount', $item)) {
+                $item['quantity'] = '1';
+                $item['unit_amount'] = $item['amount'];
+                unset($item['amount']);
+            }
+        }
+
+        $this->merge(['items' => $items]);
+    }
+
     public function authorize(): bool
     {
         // The Policy decides, in the controller. A Form Request that authorized
@@ -52,7 +72,7 @@ class StoreQuotationRequest extends FormRequest
             'items.*' => ['required', 'array:description,quantity,unit_amount'],
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0', 'max:9999999999'],
-            'items.*.unit_amount' => ['required', 'numeric', 'min:0', 'max:9999999999999'],
+            'items.*.unit_amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999'],
             'items.*.line_amount' => ['prohibited'],
 
             'status' => ['prohibited'],

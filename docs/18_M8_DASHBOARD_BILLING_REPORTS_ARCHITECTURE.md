@@ -585,6 +585,12 @@ disbursements
   created_by, updated_by, created_at, updated_at, deleted_at
 ```
 
+The principal-facing quotation form asks for a description and one nominal amount per line.
+For new or edited lines, the API stores that amount as `unit_amount` with `quantity = 1`,
+and calculates `line_amount` on the server. The quantity/unit-price columns remain for
+backward compatibility: existing lines retain their original values until edited, and the
+principal reads their actual `line_amount` in detail/edit. No data migration rewrites old offers.
+
 > **Amended at M8.2 — what shipped differs from this list in five places**, each recorded in D-129
 > and each a consequence of applying section 9.2 more strictly than this draft did.
 >

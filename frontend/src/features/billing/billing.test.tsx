@@ -27,7 +27,9 @@ vi.mock("@/services/billing", () => ({
   getInvoices: vi.fn(),
   getPayments: vi.fn(),
   getQuotations: vi.fn(),
+  getQuotation: vi.fn(),
   createQuotation: vi.fn(),
+  updateQuotation: vi.fn(),
   createDisbursement: vi.fn(),
   getPartyDirectory: vi.fn(),
   getDisbursements: vi.fn(),
@@ -198,6 +200,30 @@ describe("QuotationList", () => {
     expect(screen.getByText("billing.noQuotations")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "billing.newQuotation" })).toBeInTheDocument();
   });
+
+  it("explains a 403 scope mismatch instead of reporting an unexplained list failure", async () => {
+    vi.mocked(services.getQuotations).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 403 },
+    });
+
+    renderWithProviders(<QuotationList />);
+
+    expect(await screen.findByText("billing.quotationAccessTitle")).toBeInTheDocument();
+    expect(screen.getByText("billing.quotationAccessHint")).toBeInTheDocument();
+  });
+
+  it("keeps server failures visible instead of turning them into an empty list", async () => {
+    vi.mocked(services.getQuotations).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 500 },
+    });
+
+    renderWithProviders(<QuotationList />);
+
+    expect(await screen.findByText("billing.listErrorTitle")).toBeInTheDocument();
+    expect(screen.queryByText("billing.noQuotations")).not.toBeInTheDocument();
+  });
 });
 
 describe("QuotationCreateForm", () => {
@@ -238,7 +264,11 @@ describe("QuotationCreateForm", () => {
     const descriptions = screen.getAllByLabelText("billing.description");
     fireEvent.change(descriptions[0], { target: { value: "Akta jual beli" } });
     fireEvent.change(descriptions[1], { target: { value: "Jasa notaris" } });
-    fireEvent.change(screen.getByLabelText("billing.unitAmount"), { target: { value: "2500000" } });
+    expect(screen.queryByLabelText("billing.quantity")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("billing.unitAmount")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.costNominal"), {
+      target: { value: "2500000" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
 
@@ -250,8 +280,56 @@ describe("QuotationCreateForm", () => {
         currency: "IDR",
         valid_until: null,
         notes: null,
-        items: [{ description: "Jasa notaris", quantity: "1", unit_amount: "2500000" }],
+        items: [{ description: "Jasa notaris", amount: "2500000" }],
       }),
+    );
+  });
+});
+
+describe("QuotationDetail", () => {
+  it("opens a legacy quotation and edits its full line amount without showing quantity or unit price", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["quotations.view", "quotations.update", "billing.amount.view"]),
+    } as never);
+    const old = quotation({
+      items: [
+        {
+          id: "line1",
+          line_number: 1,
+          description: "Layanan",
+          quantity: "2.00",
+          unit_amount: "150000.00",
+          line_amount: "300000.00",
+          amounts_visible: true,
+        },
+      ],
+      total_amount: "300000.00",
+      capabilities: { can_update: true, can_approve: false },
+    });
+    vi.mocked(services.getQuotations).mockResolvedValue({ data: [old] });
+    vi.mocked(services.getQuotation).mockResolvedValue(old);
+    vi.mocked(services.updateQuotation).mockResolvedValue(quotation({ ...old, title: "Revisi" }));
+
+    renderWithProviders(<QuotationList />);
+    fireEvent.click(await screen.findByRole("button", { name: "billing.viewQuotation" }));
+    expect(
+      await screen.findByRole("region", { name: "billing.quotationDetail" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("300.000,00").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "actions.edit" }));
+    expect(screen.queryByLabelText("billing.quantity")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("billing.unitAmount")).not.toBeInTheDocument();
+    const nominal = screen.getByLabelText("billing.costNominal") as HTMLInputElement;
+    expect(nominal.value).toBe("300000.00");
+    fireEvent.change(nominal, { target: { value: "350000" } });
+    fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
+    await waitFor(() =>
+      expect(services.updateQuotation).toHaveBeenCalledWith(
+        "quo1",
+        expect.objectContaining({
+          items: [{ id: "line1", description: "Layanan", amount: "350000" }],
+        }),
+      ),
     );
   });
 });

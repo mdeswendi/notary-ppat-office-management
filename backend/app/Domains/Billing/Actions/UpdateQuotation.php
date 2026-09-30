@@ -25,19 +25,26 @@ use Illuminate\Support\Facades\DB;
  */
 class UpdateQuotation
 {
-    public function __construct(private readonly EventRecorder $events) {}
+    public function __construct(
+        private readonly EventRecorder $events,
+        private readonly ManageBillingLines $lines,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $attributes  ordinary fields only
      */
-    public function handle(User $actor, Quotation $quotation, array $attributes): Quotation
+    public function handle(User $actor, Quotation $quotation, array $attributes, ?array $items = null): Quotation
     {
-        return DB::transaction(function () use ($actor, $quotation, $attributes): Quotation {
+        return DB::transaction(function () use ($actor, $quotation, $attributes, $items): Quotation {
             $quotation->fill($attributes);
             $quotation->updated_by = $actor->getKey();
             $quotation->save();
 
-            $this->events->updated($quotation, $actor);
+            if ($items !== null) {
+                $this->lines->replaceQuotation($actor, $quotation, $items);
+            } else {
+                $this->events->updated($quotation, $actor);
+            }
 
             return $quotation;
         });

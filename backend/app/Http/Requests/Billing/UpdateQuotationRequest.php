@@ -17,6 +17,26 @@ use Illuminate\Validation\Rule;
  */
 class UpdateQuotationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $items = $this->input('items');
+
+        if (! is_array($items)) {
+            return;
+        }
+
+        foreach ($items as &$item) {
+            if (is_array($item) && array_key_exists('amount', $item)
+                && ! array_key_exists('quantity', $item) && ! array_key_exists('unit_amount', $item)) {
+                $item['quantity'] = '1';
+                $item['unit_amount'] = $item['amount'];
+                unset($item['amount']);
+            }
+        }
+
+        $this->merge(['items' => $items]);
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -33,6 +53,14 @@ class UpdateQuotationRequest extends FormRequest
             'currency' => ['sometimes', 'string', 'size:3', Rule::in(['IDR', 'USD', 'SGD', 'EUR'])],
             'valid_until' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+
+            'items' => ['sometimes', 'array', 'min:1', 'max:100'],
+            'items.*' => ['required', 'array:id,description,quantity,unit_amount'],
+            'items.*.id' => ['sometimes', 'ulid', 'distinct'],
+            'items.*.description' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0', 'max:9999999999'],
+            'items.*.unit_amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999'],
+            'items.*.line_amount' => ['prohibited'],
 
             'status' => ['prohibited'],
             'quotation_number' => ['prohibited'],
@@ -54,5 +82,13 @@ class UpdateQuotationRequest extends FormRequest
             $this->validated(),
             array_flip(['title', 'description', 'currency', 'valid_until', 'notes']),
         );
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    public function lineAttributes(): ?array
+    {
+        return $this->has('items') ? $this->validated()['items'] : null;
     }
 }

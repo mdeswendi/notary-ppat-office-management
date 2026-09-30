@@ -125,7 +125,12 @@ class QuotationController extends Controller
 
         QuotationResource::resolveAmountVisibility($request);
 
-        $updated = $update->handle($request->user(), $record, $request->quotationAttributes());
+        $updated = $update->handle(
+            $request->user(),
+            $record,
+            $request->quotationAttributes(),
+            $request->lineAttributes(),
+        );
 
         return (new QuotationResource($this->loadForDetail($updated)))->withCapabilities($this->capabilitiesFor($updated));
     }

@@ -11,6 +11,7 @@ use App\Models\QuotationItem;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Add, correct and remove the lines of a quotation or an invoice (M8.2, D-124).
@@ -54,6 +55,35 @@ class ManageBillingLines
         private readonly RecalculateBillingTotals $totals,
         private readonly EventRecorder $events,
     ) {}
+
+    /**
+     * Replace a draft quotation's lines in one transaction, preserving the ids
+     * of retained lines. Old quantity-priced lines remain readable until edited.
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    public function replaceQuotation(User $actor, Quotation $quotation, array $items): void
+    {
+        $existing = $quotation->items()->get()->keyBy('id');
+        $kept = [];
+
+        foreach ($items as $index => $attributes) {
+            $id = $attributes['id'] ?? null;
+
+            if ($id !== null && ! $existing->has($id)) {
+                throw ValidationException::withMessages(['items' => 'A quotation line is no longer available.']);
+            }
+
+            $line = $id === null ? new QuotationItem : $existing->get($id);
+            $line->office_id = $quotation->office_id;
+            $line->quotation_id = $quotation->getKey();
+            $this->writeLine($line, [...$attributes, 'line_number' => $index + 1], $index + 1);
+            $kept[] = $line->getKey();
+        }
+
+        $quotation->items()->whereNotIn('id', $kept)->delete();
+        $this->afterQuotationChange($actor, $quotation);
+    }
 
     /**
      * @param  array<string, mixed>  $attributes
