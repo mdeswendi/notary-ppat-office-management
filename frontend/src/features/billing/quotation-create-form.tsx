@@ -226,7 +226,7 @@ export function QuotationCreateForm() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="quotation-description">{t("description")}</Label>
+                <Label htmlFor="quotation-description">{t("workDescription")}</Label>
                 <Input
                   id="quotation-description"
                   maxLength={5000}
@@ -290,7 +290,7 @@ export function QuotationCreateForm() {
                   </legend>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor={`quotation-line-description-${index}`}>
-                      {t("description")}
+                      {t("costComponent")}
                     </Label>
                     <Input
                       id={`quotation-line-description-${index}`}

@@ -360,6 +360,8 @@
     "changeClient": "Change",
     "loadingClients": "Loading clients…",
     "clientsUnavailable": "The client list could not be loaded. Make sure you can view parties.",
+    "workDescription": "Work description",
+    "costComponent": "Cost component",
     "currency": "Currency",
     "quotationItems": "Cost details",
     "addLine": "Add detail",

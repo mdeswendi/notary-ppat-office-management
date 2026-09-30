@@ -360,6 +360,8 @@
     "changeClient": "Ganti",
     "loadingClients": "Memuat daftar klien…",
     "clientsUnavailable": "Daftar klien tidak dapat dimuat. Pastikan Anda memiliki hak akses melihat pihak.",
+    "workDescription": "Uraian pekerjaan",
+    "costComponent": "Komponen biaya",
     "currency": "Mata uang",
     "quotationItems": "Rincian biaya",
     "addLine": "Tambah rincian",
