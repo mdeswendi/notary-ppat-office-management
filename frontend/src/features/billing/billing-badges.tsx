@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { InvoiceStatus, PaymentStatus, QuotationStatus } from "@/types/billing";
+import type { InvoiceStatus, PaymentStatus } from "@/types/billing";
 
 /**
  * Status chips for the billing surfaces (M8.2).
@@ -17,11 +17,6 @@ import type { InvoiceStatus, PaymentStatus, QuotationStatus } from "@/types/bill
  * §39 rules out the traffic-light treatment a status chip usually gets: this is a
  * professional office system, not a dashboard toy.
  */
-const QUOTATION_TONE: Record<QuotationStatus, BadgeTone> = {
-  DRAFT: "muted",
-  APPROVED: "primarySubtle",
-};
-
 const INVOICE_TONE: Record<InvoiceStatus, BadgeTone> = {
   DRAFT: "muted",
   ISSUED: "primarySubtle",
@@ -55,18 +50,6 @@ function Chip({
     <Badge tone={tone} className={cn("shrink-0", className)} aria-label={`${field}: ${label}`}>
       {label}
     </Badge>
-  );
-}
-
-export function QuotationStatusBadge({ status }: { status: QuotationStatus }) {
-  const t = useTranslations("billing");
-
-  return (
-    <Chip
-      label={t(`quotationStatuses.${status}`)}
-      field={t("status")}
-      tone={QUOTATION_TONE[status]}
-    />
   );
 }
 

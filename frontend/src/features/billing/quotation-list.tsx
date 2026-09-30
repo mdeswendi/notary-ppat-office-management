@@ -11,7 +11,6 @@ import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
-import { QuotationStatusBadge } from "@/features/billing/billing-badges";
 import { QuotationCreateForm } from "@/features/billing/quotation-create-form";
 import { QuotationDetail } from "@/features/billing/quotation-detail";
 import { billingQueryKeys, getQuotations } from "@/services/billing";
@@ -19,13 +18,9 @@ import { billingQueryKeys, getQuotations } from "@/services/billing";
 /**
  * Quotations the caller may see (M8.2, D-124).
  *
- * **Two statuses, not six.** `quotations.approve` is the only lifecycle verb the
- * catalogue gives, so a quotation is either `DRAFT` or `APPROVED` — an offer that
- * came to nothing stays `DRAFT`, which is the honest record of what the office
- * knows.
- *
- * `invoices_count` answers the question this list is actually scanned for —
- * whether an agreed offer has been billed yet — and discloses no money.
+ * A quotation is an internal office price record. It has no client-approval
+ * status and no billed/invoiced indicator; late or unforeseen costs are added as
+ * additional detail lines by an authorized Principal.
  */
 export function QuotationList() {
   const t = useTranslations("billing");
@@ -93,7 +88,7 @@ export function QuotationList() {
         </div>
       ) : null}
       <div className="border-border overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[48rem] text-sm">
+        <table className="w-full min-w-[40rem] text-sm">
           <caption className="sr-only">{t("quotations")}</caption>
           <thead className="bg-muted/40 text-muted-foreground text-xs">
             <tr>
@@ -104,16 +99,10 @@ export function QuotationList() {
                 {t("client")}
               </th>
               <th scope="col" className="px-3 py-2 text-left font-medium">
-                {t("status")}
-              </th>
-              <th scope="col" className="px-3 py-2 text-left font-medium">
                 {t("validUntil")}
               </th>
               <th scope="col" className="px-3 py-2 text-right font-medium">
                 {t("total")}
-              </th>
-              <th scope="col" className="px-3 py-2 text-right font-medium">
-                {t("invoiced")}
               </th>
               <th scope="col" className="px-3 py-2 text-right font-medium">
                 {t("actions")}
@@ -131,10 +120,6 @@ export function QuotationList() {
 
                 <td className="px-3 py-2">{quotation.client_party?.display_name ?? "—"}</td>
 
-                <td className="px-3 py-2">
-                  <QuotationStatusBadge status={quotation.status} />
-                </td>
-
                 <td className="px-3 py-2 whitespace-nowrap">
                   <DateText value={quotation.valid_until} />
                 </td>
@@ -147,9 +132,6 @@ export function QuotationList() {
                   />
                 </td>
 
-                <td className="px-3 py-2 text-right tabular-nums">
-                  {quotation.invoices_count ?? 0}
-                </td>
                 <td className="px-3 py-2 text-right">
                   <Button
                     type="button"

@@ -21,11 +21,13 @@ use Illuminate\Support\Facades\DB;
  * than accidental (D-098). **177 since M4.5**, which added the four Matter
  * participation codes, two per domain, exactly as D-105 scheduled at M4.0.
  *
- * This constant is the one place the total is pinned; milestone tests assert
+ * **176 currently**, after D-137 retired `quotations.approve` because the office
+ * does not manage client acceptance as an application status. This constant is
+ * the one place the total is pinned; milestone tests assert
  * that *their own* domain group is unchanged instead, so a later milestone's
  * legitimate addition does not have to be applied in six places.
  */
-const CANONICAL_PERMISSION_COUNT = 177;
+const CANONICAL_PERMISSION_COUNT = 176;
 
 it('publishes a non-empty catalogue', function (): void {
     expect(PermissionRegistry::all())->not->toBeEmpty();
@@ -244,7 +246,6 @@ it('includes the billing permissions across every financial document', function 
     expect(PermissionRegistry::all())->toContain(
         'billing.view',
         'billing.amount.view',
-        'quotations.approve',
         'invoices.issue',
         'invoices.cancel',
         'payments.verify',

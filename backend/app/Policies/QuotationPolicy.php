@@ -10,12 +10,9 @@ use App\Models\User;
 /**
  * Who may work with Quotations (M8.2, D-124).
  *
- * Four abilities for four canonical codes — `quotations.view`, `.create`,
- * `.update`, `.approve` — and **no fifth**. The M8.2 brief asked for `send`,
- * `reject`, `convert` and `delete`; not one of those codes exists in the
- * catalogue, and the brief also forbade adding permissions, so its own constraint
- * rules them out. There is no ability here for an act nothing authorizes, and no
- * route reaches one.
+ * Three abilities for the quotation record — `quotations.view`, `.create`,
+ * `.update`. A quotation is an office price record, not a client-approval
+ * workflow. Client acceptance happens outside the application.
  *
  * **`billing.amount.view` is not consulted here.** Masking money is a
  * serialization concern (D-125): it decides what a reachable record discloses,
@@ -62,39 +59,15 @@ class QuotationPolicy
     }
 
     /**
-     * May the actor correct this Quotation, or its lines?
-     *
-     * **`DRAFT` only.** Approving is the finalization act: the figures have been
-     * agreed with a client, so `AGENTS.md` section 64's discipline applies and
-     * the row displays read-only from then on.
+     * May the actor correct this Quotation, or add/correct/remove its lines?
      *
      * This governs the line items too — editing what a quotation offers is
-     * editing the quotation.
+     * editing the quotation. Historical status values do not freeze the office's
+     * internal price record; unexpected process costs may be added later.
      */
     public function update(User $actor, Quotation $quotation): bool
     {
-        return $quotation->status->isEditable()
-            && $this->reaches($actor, 'quotations.update', $quotation);
-    }
-
-    /**
-     * May the actor approve this Quotation?
-     *
-     * Its own capability, never implied by `update` (D-091).
-     *
-     * **No status check here, unlike `update`.** The M6 and M7 policies draw the
-     * same line: a lifecycle act asks only whether the actor holds the
-     * capability, and the Action refuses an ineligible state with **422**.
-     * Approving an already-approved quotation is a problem with the record's
-     * state, not with the actor's authority, and answering 403 would tell them
-     * they may not do this when they may.
-     *
-     * `update` gates on state because "this row is frozen" makes editing
-     * meaningless and `can_update` has to say so honestly.
-     */
-    public function approve(User $actor, Quotation $quotation): bool
-    {
-        return $this->reaches($actor, 'quotations.approve', $quotation);
+        return $this->reaches($actor, 'quotations.update', $quotation);
     }
 
     private function reaches(User $actor, string $permission, Quotation $quotation): bool

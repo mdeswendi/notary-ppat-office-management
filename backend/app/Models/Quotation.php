@@ -14,17 +14,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use RuntimeException;
 
 /**
- * A priced offer to a client (M8.2, D-124).
+ * The office's internal price record for a client (M8.2, D-124, D-137).
  *
- * Two states — `DRAFT` and `APPROVED` — because `quotations.approve` is the only
- * lifecycle verb the catalogue gives. {@see QuotationStatus} records why the
- * brief's six became two, and why a quotation that comes to nothing stays
- * `DRAFT` rather than being marked rejected or expired.
+ * Status and approval columns remain as legacy storage for existing rows only.
+ * The quotation workflow no longer reads or exposes them; acceptance happens
+ * outside the application. See {@see QuotationStatus} for the legacy values.
  *
  * **Converting is a property of the invoice, not of this record.** There is no
  * `quotations.convert` code; an invoice created from a quotation carries
- * `quotation_id`, which is why `invoices()` here is a `hasMany` rather than a
- * status this row would have to be told about.
+ * `quotation_id`, which is why `invoices()` remains available for historical
+ * invoice links. New quotation records do not expose billed state.
  */
 #[Fillable([
     'title',

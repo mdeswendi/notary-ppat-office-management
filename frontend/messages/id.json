@@ -415,7 +415,6 @@
     "dueDate": "Jatuh Tempo",
     "total": "Total",
     "outstanding": "Sisa",
-    "invoiced": "Ditagihkan",
     "amount": "Jumlah",
     "paidAt": "Tanggal Bayar",
     "method": "Metode",
@@ -432,10 +431,6 @@
     "noDisbursements": "Belum ada biaya proses transaksi.",
     "amountWithheld": "—",
     "amountWithheldHint": "Nilai disembunyikan. Diperlukan izin billing.amount.view.",
-    "quotationStatuses": {
-      "DRAFT": "Draf",
-      "APPROVED": "Disetujui"
-    },
     "invoiceStatuses": {
       "DRAFT": "Draf",
       "ISSUED": "Diterbitkan",

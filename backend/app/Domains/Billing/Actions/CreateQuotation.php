@@ -6,7 +6,6 @@ use App\Domains\Activity\Enums\ActivityType;
 use App\Domains\Audit\Services\EventRecorder;
 use App\Domains\Billing\AllocateBillingReference;
 use App\Domains\Billing\BillingReference;
-use App\Domains\Billing\Enums\QuotationStatus;
 use App\Models\Matter;
 use App\Models\Party;
 use App\Models\Project;
@@ -58,7 +57,8 @@ class CreateQuotation
                 BillingReference::QUOTATION,
                 $actor->office_id,
             );
-            $quotation->status = QuotationStatus::DRAFT;
+            // Legacy schema still requires a status value. It is intentionally
+            // omitted from the API and is not used as a quotation workflow.
             $quotation->subtotal_amount = '0.00';
             $quotation->total_amount = '0.00';
 

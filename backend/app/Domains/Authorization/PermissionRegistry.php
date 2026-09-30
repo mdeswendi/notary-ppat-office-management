@@ -246,7 +246,6 @@ final class PermissionRegistry
                 'quotations.view',
                 'quotations.create',
                 'quotations.update',
-                'quotations.approve',
 
                 'invoices.view',
                 'invoices.create',

@@ -28,7 +28,7 @@ const emptyLine = (id: string): QuotationLineDraft => ({
   amount: "",
 });
 
-/** Create a draft quotation and all its priced lines in one atomic API request. */
+/** Create an office price record and all its priced lines in one atomic API request. */
 export function QuotationCreateForm() {
   const t = useTranslations("billing");
   const tActions = useTranslations("actions");

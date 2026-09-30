@@ -21,8 +21,8 @@ use Illuminate\Validation\ValidationException;
  * A line is not a thing the catalogue authorizes separately: there is no
  * `invoices.items.*` family, and editing what an invoice charges for **is**
  * editing the invoice. So every method here is reached under the parent's
- * `update` ability, which is `DRAFT`-only — an issued invoice's lines are as
- * fixed as its total.
+ * `update` ability. Invoice lines remain DRAFT-only; quotation lines are
+ * editable later so a Principal can append an unforeseen process cost.
  *
  * The two parents share this class for the same reason their tables share a
  * migration: the logic is identical, and two copies would be two places for one
@@ -57,7 +57,7 @@ class ManageBillingLines
     ) {}
 
     /**
-     * Replace a draft quotation's lines in one transaction, preserving the ids
+     * Replace quotation lines in one transaction, preserving the ids
      * of retained lines. Old quantity-priced lines remain readable until edited.
      *
      * @param  list<array<string, mixed>>  $items
@@ -160,10 +160,9 @@ class ManageBillingLines
     public function removeQuotationLine(User $actor, Quotation $quotation, QuotationItem $line): void
     {
         DB::transaction(function () use ($actor, $quotation, $line): void {
-            // A hard delete, deliberately. A line on a draft document is
-            // working material rather than a record of anything: nobody outside
-            // the office has seen it, and a soft-deleted line would still have
-            // to be excluded from every sum by hand.
+            // A hard delete, deliberately. A quotation line is an internal price
+            // detail; a soft-deleted line would still have to be excluded from
+            // every sum by hand.
             $line->delete();
 
             $this->afterQuotationChange($actor, $quotation);
