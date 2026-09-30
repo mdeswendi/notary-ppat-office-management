@@ -5,11 +5,12 @@ use App\Domains\Audit\Services\AuditLogger;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Authorization\PermissionRegistry;
 use App\Domains\Matter\Enums\MatterDomain;
-use App\Models\Document;
 use App\Models\ClientReceipt;
+use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\Office;
+use App\Models\Party;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\User;
@@ -348,7 +349,7 @@ it('sums only actual client receipt records into revenue', function (): void {
         'reports.financial.view', 'client_receipts.view', 'billing.amount.view',
     ]);
 
-    $client = \App\Models\Party::factory()->create(['office_id' => $office->getKey()]);
+    $client = Party::factory()->create(['office_id' => $office->getKey()]);
     $receipt = new ClientReceipt;
     $receipt->office_id = $office->getKey();
     $receipt->client_party_id = $client->getKey();

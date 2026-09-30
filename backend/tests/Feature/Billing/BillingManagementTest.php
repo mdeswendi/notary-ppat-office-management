@@ -12,6 +12,7 @@ use App\Models\ClientReceipt;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Office;
+use App\Models\Party;
 use App\Models\Payment;
 use App\Models\Quotation;
 use App\Models\User;
@@ -700,7 +701,7 @@ it('audits every billing act', function (): void {
 
 it('records each client payment separately and allows an audited correction', function (): void {
     [$actor, $office] = billingActor([...billingCapabilities(), 'parties.view']);
-    $client = \App\Models\Party::factory()->create(['office_id' => $office->getKey()]);
+    $client = Party::factory()->create(['office_id' => $office->getKey()]);
     $payload = [
         'client_party_id' => $client->getKey(),
         'amount' => '1250000.00',
