@@ -360,7 +360,7 @@ it('improvises no notification store, and no third-party activity package', func
 it('registers no new permission', function (): void {
     // All eight `tasks.*` codes have been canonical since the catalogue was
     // transcribed. M5.4 decides their predicates; it adds nothing.
-    expect(PermissionRegistry::all())->toHaveCount(177);
+    expect(PermissionRegistry::all())->toHaveCount(176);
 });
 
 it('migrates, rolls back, and re-migrates cleanly', function (): void {

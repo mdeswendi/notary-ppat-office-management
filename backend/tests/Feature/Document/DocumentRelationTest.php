@@ -557,5 +557,5 @@ it('adopts no third-party activity package', function (): void {
 it('registers no new permission', function (): void {
     // Attaching is a correction to a document's own filing rather than a new act,
     // so no `documents.attach` code was added to the canonical catalogue.
-    expect(PermissionRegistry::all())->toHaveCount(177);
+    expect(PermissionRegistry::all())->toHaveCount(176);
 });

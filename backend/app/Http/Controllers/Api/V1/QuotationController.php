@@ -66,7 +66,7 @@ class QuotationController extends Controller
             Quotation::query(),
             $actor,
             $this->resolver->resolve($actor, 'quotations.view'),
-            )->with(['clientParty:id,display_name', 'project:id,project_number,title', 'matter:id,matter_number,title'])
+        )->with(['clientParty:id,display_name', 'project:id,project_number,title', 'matter:id,matter_number,title'])
             ->withCount('items');
 
         $this->applyFilters($query, $request);

@@ -1056,7 +1056,7 @@ it('filters by the party who currently owns the parcel', function (): void {
 */
 
 it('exposes no delete route for a property or a link', function (string $method, string $path, int $status): void {
-    // `properties.delete` is absent from the 177-code catalogue, and `property_owners`
+    // `properties.delete` is absent from the permission catalogue, and `property_owners`
     // has no `deleted_at`. Neither act has an address.
     [$actor, $office] = propertyApiActor([
         'properties.view', 'properties.update', 'properties.archive',

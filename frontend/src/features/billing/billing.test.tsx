@@ -179,7 +179,9 @@ describe("QuotationList", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "billing.quotations" })).toBeInTheDocument();
     expect(screen.queryByRole("columnheader", { name: "billing.status" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("columnheader", { name: "billing.invoiced" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "billing.invoiced" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "billing.quotationNumber" })).toHaveAttribute(
       "scope",
       "col",

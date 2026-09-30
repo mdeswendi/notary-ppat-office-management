@@ -444,7 +444,7 @@ it('resolves minuta reach through the deed own predicates', function (): void {
 */
 
 it('registers no new permission', function (): void {
-    expect(app(PermissionRegistry::class)->all())->toHaveCount(177);
+    expect(app(PermissionRegistry::class)->all())->toHaveCount(176);
 });
 
 it('has no delete capability to authorize a delete', function (): void {

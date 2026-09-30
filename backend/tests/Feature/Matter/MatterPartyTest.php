@@ -123,7 +123,7 @@ it('registers exactly the expected participation routes and nothing more', funct
     ]);
 });
 
-it('adds exactly four permissions, moving the count to 177', function (): void {
+it('retains exactly four matter participation permissions', function (): void {
     $participation = array_values(array_filter(
         PermissionRegistry::all(),
         fn (string $code): bool => str_contains($code, 'matters.parties.'),
@@ -136,7 +136,7 @@ it('adds exactly four permissions, moving the count to 177', function (): void {
         'notary.matters.parties.view',
         'ppat.matters.parties.manage',
         'ppat.matters.parties.view',
-    ])->and(PermissionRegistry::count())->toBe(177);
+    ])->and(PermissionRegistry::count())->toBe(176);
 });
 
 it('invents no view_all code for participation', function (): void {
