@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api/client";
 import type {
   BillingListQuery,
+  ClientReceipt,
   Disbursement,
   Invoice,
   Paginated,
@@ -37,6 +38,7 @@ export const billingQueryKeys = {
 
   disbursements: (query: BillingListQuery) => ["billing", "disbursements", query] as const,
   disbursement: (id: string) => ["billing", "disbursements", "detail", id] as const,
+  clientReceipts: (query: BillingListQuery) => ["billing", "client-receipts", query] as const,
 };
 
 function listParams(query: BillingListQuery) {
@@ -227,6 +229,41 @@ export async function updateDisbursement(
 ): Promise<Disbursement> {
   const response = await apiClient.put<{ data: Disbursement }>(
     `/api/v1/disbursements/${id}`,
+    payload,
+  );
+
+  return response.data.data;
+}
+
+/* -------------------------------------------------------------- client receipts */
+
+export async function getClientReceipts(
+  query: BillingListQuery = {},
+): Promise<Paginated<ClientReceipt>> {
+  const response = await apiClient.get<Paginated<ClientReceipt>>("/api/v1/client-receipts", {
+    params: listParams(query),
+  });
+
+  return response.data;
+}
+
+export async function createClientReceipt(
+  payload: Record<string, unknown>,
+): Promise<ClientReceipt> {
+  const response = await apiClient.post<{ data: ClientReceipt }>(
+    "/api/v1/client-receipts",
+    payload,
+  );
+
+  return response.data.data;
+}
+
+export async function updateClientReceipt(
+  id: string,
+  payload: Record<string, unknown>,
+): Promise<ClientReceipt> {
+  const response = await apiClient.put<{ data: ClientReceipt }>(
+    `/api/v1/client-receipts/${id}`,
     payload,
   );
 

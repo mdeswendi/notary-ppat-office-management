@@ -566,7 +566,7 @@ it('reaches the whole PPAT chain', function (): void {
 
 it('registers no new permission', function (): void {
     // Every PPAT and Property code has been canonical since M1.2.
-    expect(app(PermissionRegistry::class)->all())->toHaveCount(176);
+    expect(app(PermissionRegistry::class)->all())->toHaveCount(179);
 });
 
 it('adds no code for an act nobody has documented', function (string $code): void {

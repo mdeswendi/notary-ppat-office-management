@@ -306,6 +306,8 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
     // since the catalogue was transcribed and this group stayed absent for every
     // milestone since.
     implemented: true,
+    // User-facing Finance menu; existing billing capabilities and routes remain
+    // canonical so legacy invoice/payment workflows are not deleted.
     // Gated on `billing.view`, the module code, while each child is gated on its
     // own entity code. Neither implies the other (D-091): somebody may be given
     // the Billing module and only the disbursement surface inside it.
@@ -320,20 +322,12 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         requiredPermission: "quotations.view",
       },
       {
-        key: "billing.invoices",
-        translationKey: "billingInvoices",
-        href: "/billing/invoices",
+        key: "billing.client-receipts",
+        translationKey: "billingClientReceipts",
+        href: "/billing/client-receipts",
         icon: Wallet,
         implemented: true,
-        requiredPermission: "invoices.view",
-      },
-      {
-        key: "billing.payments",
-        translationKey: "billingPayments",
-        href: "/billing/payments",
-        icon: Wallet,
-        implemented: true,
-        requiredPermission: "payments.view",
+        requiredPermission: "client_receipts.view",
       },
       {
         key: "billing.disbursements",
@@ -434,17 +428,9 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         requiredPermission: "reports.ppat.view",
       },
       {
-        key: "reports.financial.invoices",
-        translationKey: "reportsInvoices",
-        href: "/reports/financial/invoices",
-        icon: ChartColumn,
-        implemented: true,
-        requiredPermission: "reports.financial.view",
-      },
-      {
-        key: "reports.financial.payments",
-        translationKey: "reportsPayments",
-        href: "/reports/financial/payments",
+        key: "reports.financial.disbursements",
+        translationKey: "reportsDisbursements",
+        href: "/reports/financial/disbursements",
         icon: ChartColumn,
         implemented: true,
         requiredPermission: "reports.financial.view",

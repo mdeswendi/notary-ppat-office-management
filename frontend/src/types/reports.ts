@@ -43,13 +43,8 @@ export interface RevenuePage {
 
 export interface RevenueRow {
   period: string;
-  domain: string | null;
-  service_type_code: string | null;
-  /** Both names ship; the client picks. Never a language chosen in SQL. */
-  service_type_name_id: string | null;
-  service_type_name_en: string | null;
   total_amount: string;
-  payment_count: number;
+  receipt_count: number;
 }
 
 export interface DeedSummary {

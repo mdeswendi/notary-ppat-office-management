@@ -8,6 +8,7 @@ use App\Domains\Billing\BillingReference;
 use App\Domains\Billing\Enums\InvoiceStatus;
 use App\Models\Activity;
 use App\Models\AuditLog;
+use App\Models\ClientReceipt;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Office;
@@ -44,6 +45,7 @@ function billingCapabilities(): array
         'invoices.view', 'invoices.create', 'invoices.update', 'invoices.issue', 'invoices.cancel',
         'payments.view', 'payments.create', 'payments.verify',
         'disbursements.view', 'disbursements.create', 'disbursements.update',
+        'client_receipts.view', 'client_receipts.create', 'client_receipts.update',
     ];
 }
 
@@ -53,11 +55,11 @@ function billingCapabilities(): array
 |--------------------------------------------------------------------------
 */
 
-it('builds the five billing tables plus a counter', function (string $table): void {
+it('builds the billing tables plus a counter', function (string $table): void {
     expect(Schema::hasTable($table))->toBeTrue();
 })->with([
     'quotations', 'quotation_items', 'invoices', 'invoice_items',
-    'payments', 'disbursements', 'billing_reference_counters',
+    'payments', 'disbursements', 'client_receipts', 'billing_reference_counters',
 ]);
 
 it('gives no billing table a tax column', function (string $table): void {
@@ -67,7 +69,7 @@ it('gives no billing table a tax column', function (string $table): void {
     foreach (['tax', 'tax_amount', 'tax_rate', 'ppn', 'vat'] as $column) {
         expect(Schema::hasColumn($table, $column))->toBeFalse();
     }
-})->with(['quotations', 'invoices', 'invoice_items', 'payments', 'disbursements']);
+})->with(['quotations', 'invoices', 'invoice_items', 'payments', 'disbursements', 'client_receipts']);
 
 it('gives disbursements no status column', function (): void {
     // `disbursements.*` has no lifecycle verb, so a status would be vocabulary
@@ -86,8 +88,8 @@ it('stores no derived settlement column on invoices', function (string $column):
     expect(Schema::hasColumn('invoices', $column))->toBeFalse();
 })->with(['paid_amount', 'remaining_amount', 'issue_date', 'sent_at']);
 
-it('registers no new permission', function (): void {
-    expect(PermissionRegistry::all())->toHaveCount(176)
+it('registers the office receipt permissions without quotation approval', function (): void {
+    expect(PermissionRegistry::all())->toHaveCount(179)
         ->and(PermissionRegistry::all())->not->toContain('quotations.approve');
 });
 
@@ -696,6 +698,38 @@ it('audits every billing act', function (): void {
         ->and($events)->not->toContain(AuditEvent::STATUS_CHANGED->value);
 });
 
+it('records each client payment separately and allows an audited correction', function (): void {
+    [$actor, $office] = billingActor([...billingCapabilities(), 'parties.view']);
+    $client = \App\Models\Party::factory()->create(['office_id' => $office->getKey()]);
+    $payload = [
+        'client_party_id' => $client->getKey(),
+        'amount' => '1250000.00',
+        'received_on' => now()->toDateString(),
+        'method_code' => 'BANK_TRANSFER',
+    ];
+
+    $first = $this->actingAs($actor)->postJson('/api/v1/client-receipts', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.client_party.id', $client->getKey())
+        ->assertJsonPath('data.amount', '1250000.00')
+        ->assertJsonPath('data.method_code', 'BANK_TRANSFER')
+        ->assertJsonMissingPath('data.reference')
+        ->json('data.id');
+
+    $this->actingAs($actor)->postJson('/api/v1/client-receipts', [
+        ...$payload,
+        'amount' => '500000.00',
+        'method_code' => 'CASH',
+    ])->assertCreated();
+
+    $this->actingAs($actor)->putJson("/api/v1/client-receipts/{$first}", [
+        'amount' => '1300000.00',
+    ])->assertOk()->assertJsonPath('data.amount', '1300000.00');
+
+    expect(ClientReceipt::query()->where('office_id', $office->getKey())->count())->toBe(2)
+        ->and(AuditLog::query()->where('auditable_type', ClientReceipt::class)->count())->toBe(3);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Surface boundary
@@ -706,7 +740,7 @@ it('exposes exactly the billing routes the catalogue authorizes', function (): v
     $routes = collect(Route::getRoutes())
         ->map(fn ($route): string => strtoupper(implode('|', array_diff($route->methods(), ['HEAD']))).' '.$route->uri())
         ->filter(fn (string $route): bool => (bool) preg_match(
-            '#api/v1/(quotations|invoices|payments|disbursements)#',
+            '#api/v1/(quotations|invoices|payments|disbursements|client-receipts)#',
             $route,
         ))
         ->sort()
@@ -727,5 +761,5 @@ it('exposes exactly the billing routes the catalogue authorizes', function (): v
         ->and($routes)->not->toContain('PATCH api/v1/invoices/{invoice}/send')
         ->and($routes)->not->toContain('PATCH api/v1/payments/{payment}/reject');
 
-    expect($routes)->toHaveCount(25);
+    expect($routes)->toHaveCount(29);
 });

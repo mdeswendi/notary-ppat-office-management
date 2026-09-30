@@ -137,6 +137,20 @@ export interface Disbursement extends Maskable {
   capabilities?: { can_update: boolean };
 }
 
+/** One payment actually received from a client, independent of invoice settlement. */
+export interface ClientReceipt extends Maskable {
+  id: string;
+  received_on: string;
+  method_code: PaymentMethod;
+  currency: string;
+  amount?: string;
+  client_party?: PartyRef | null;
+  created_by?: { id: string; name: string } | null;
+  created_at: string | null;
+  updated_at: string | null;
+  capabilities?: { can_update: boolean };
+}
+
 export interface BillingListQuery {
   page?: number;
   per_page?: number;

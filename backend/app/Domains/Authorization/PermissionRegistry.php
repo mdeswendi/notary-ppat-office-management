@@ -260,6 +260,10 @@ final class PermissionRegistry
                 'disbursements.view',
                 'disbursements.create',
                 'disbursements.update',
+
+                'client_receipts.view',
+                'client_receipts.create',
+                'client_receipts.update',
             ],
 
             // Section 17

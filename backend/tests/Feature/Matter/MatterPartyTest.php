@@ -136,7 +136,7 @@ it('retains exactly four matter participation permissions', function (): void {
         'notary.matters.parties.view',
         'ppat.matters.parties.manage',
         'ppat.matters.parties.view',
-    ])->and(PermissionRegistry::count())->toBe(176);
+    ])->and(PermissionRegistry::count())->toBe(179);
 });
 
 it('invents no view_all code for participation', function (): void {

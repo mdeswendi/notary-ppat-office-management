@@ -6,6 +6,7 @@ use App\Domains\Reports\Report;
 use App\Listeners\RecordAuthenticationAudit;
 use App\Models\Company;
 use App\Models\Disbursement;
+use App\Models\ClientReceipt;
 use App\Models\Document;
 use App\Models\Individual;
 use App\Models\Invoice;
@@ -24,6 +25,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Policies\DisbursementPolicy;
+use App\Policies\ClientReceiptPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\IndividualPolicy;
 use App\Policies\InvoicePolicy;
@@ -187,6 +189,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Disbursement::class, DisbursementPolicy::class);
+        Gate::policy(ClientReceipt::class, ClientReceiptPolicy::class);
 
         // Reports (M8.3, D-126). **Registered against a marker class, not a
         // model**: there is no `reports` table and never will be, because no

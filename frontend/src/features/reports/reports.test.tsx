@@ -218,17 +218,13 @@ describe("RevenueReport", () => {
     expect(screen.queryByText("reports.noData")).not.toBeInTheDocument();
   });
 
-  it("renders a period with its total once the grant is held", async () => {
+  it("renders monthly client receipt totals and counts", async () => {
     vi.mocked(services.getRevenue).mockResolvedValue({
       data: [
         {
           period: "2026-08",
-          domain: "NOTARY",
-          service_type_code: "AJB",
-          service_type_name_id: "Akta Jual Beli",
-          service_type_name_en: "Deed of Sale and Purchase",
           total_amount: "1000000.00",
-          payment_count: 1,
+          receipt_count: 1,
         },
       ],
       meta: { amounts_visible: true },
@@ -238,25 +234,17 @@ describe("RevenueReport", () => {
 
     expect(await screen.findByText("2026-08")).toBeInTheDocument();
 
-    // The Indonesian name, because the test locale is `id` — chosen here rather
-    // than in SQL, where no locale is known.
-    expect(screen.getByText("Akta Jual Beli")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("1.000.000,00")).toBeInTheDocument();
   });
 
-  it("keeps a payment with no service type in the total", async () => {
-    // A payment against an invoice with no Matter is still revenue; the server
-    // buckets it rather than dropping it.
+  it("renders receipt counts greater than one", async () => {
     vi.mocked(services.getRevenue).mockResolvedValue({
       data: [
         {
           period: "2026-08",
-          domain: null,
-          service_type_code: null,
-          service_type_name_id: null,
-          service_type_name_en: null,
           total_amount: "500000.00",
-          payment_count: 2,
+          receipt_count: 2,
         },
       ],
       meta: { amounts_visible: true },
