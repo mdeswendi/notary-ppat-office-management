@@ -258,9 +258,13 @@ describe("QuotationCreateForm", () => {
     renderWithProviders(<QuotationCreateForm />);
 
     fireEvent.click(screen.getByRole("button", { name: "billing.newQuotation" }));
-    expect(await screen.findByRole("option", { name: "Khemal" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.findClient"), {
+      target: { value: "Khemal" },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("group", { name: "billing.client" })).toHaveTextContent("Khemal"),
+    );
     fireEvent.change(screen.getByLabelText("billing.title"), { target: { value: "Jasa AJB" } });
-    fireEvent.change(screen.getByLabelText("billing.client"), { target: { value: "party1" } });
     const descriptions = screen.getAllByLabelText("billing.description");
     fireEvent.change(descriptions[0], { target: { value: "Akta jual beli" } });
     fireEvent.change(descriptions[1], { target: { value: "Jasa notaris" } });
