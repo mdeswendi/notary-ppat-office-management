@@ -389,7 +389,7 @@ it('refuses a second extension row for one matter', function (): void {
 it('registers no new permission', function (): void {
     // Every Notary code M6 implements has been canonical since M1.2. The M6 brief
     // asked for roughly 22 new codes and a total of 199; this module adds none.
-    expect(app(PermissionRegistry::class)->all())->toHaveCount(176);
+    expect(app(PermissionRegistry::class)->all())->toHaveCount(179);
 });
 
 it('adds no code for an act nobody has documented', function (string $code): void {

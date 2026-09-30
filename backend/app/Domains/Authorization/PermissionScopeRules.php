@@ -90,6 +90,17 @@ class PermissionScopeRules
     ];
 
     /**
+     * Office financial records are shared office books, not personal records.
+     */
+    private const BILLING_DOMAIN = [
+        'quotations.view', 'quotations.create', 'quotations.update',
+        'invoices.view', 'invoices.create', 'invoices.update', 'invoices.issue', 'invoices.cancel',
+        'payments.view', 'payments.create', 'payments.verify',
+        'disbursements.view', 'disbursements.create', 'disbursements.update',
+        'client_receipts.view', 'client_receipts.create', 'client_receipts.update',
+    ];
+
+    /**
      * The Project domain, whose predicates M3.0 settled (D-088).
      *
      * All four assignable scopes mean something here, which is why Project gets
@@ -473,6 +484,10 @@ class PermissionScopeRules
         }
 
         if (in_array($permission, self::PARTY_DOMAIN, true)) {
+            return [DataScope::OFFICE, DataScope::ALL];
+        }
+
+        if (in_array($permission, self::BILLING_DOMAIN, true)) {
             return [DataScope::OFFICE, DataScope::ALL];
         }
 

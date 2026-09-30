@@ -67,15 +67,17 @@ Tasks
 
 Calendar
 
-Billing
+Finance
 ├── Quotations
-├── Invoices
-├── Payments
+├── Client Receipts
 └── Biaya Proses Transaksi
 
-The last item is the office-facing label for the internal `disbursements` resource. Do not call it
-"third-party costs": that term is not appropriate for this Notary/PPAT workflow. Keep the technical
-resource and permission names unchanged unless a separately approved schema/API migration is made.
+The two visible items are the active office workflow. The legacy invoice and payment routes and their
+stored data remain available for compatibility, but are not shown in the main navigation until the
+office adopts that workflow. The process-cost item is the office-facing label for the internal
+`disbursements` resource. Do not call it "third-party costs": that term is not appropriate for this
+Notary/PPAT workflow. Keep the technical resource and permission names unchanged unless a separately
+approved schema/API migration is made.
 
 Reports
 ├── Operational
@@ -134,7 +136,7 @@ Settings
 | Dokumen | Documents |
 | Tugas | Tasks |
 | Kalender | Calendar |
-| Penagihan | Billing |
+| Keuangan | Finance |
 | Laporan | Reports |
 | Data Master | Master Data |
 | Pengaturan | Settings |
@@ -672,6 +674,10 @@ payments.verify
 disbursements.view
 disbursements.create
 disbursements.update
+
+client_receipts.view
+client_receipts.create
+client_receipts.update
 ```
 
 ---
