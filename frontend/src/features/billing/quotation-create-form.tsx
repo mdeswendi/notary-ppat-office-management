@@ -12,13 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { billingQueryKeys, createQuotation } from "@/services/billing";
 import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
-import type { PartyDirectoryQuery } from "@/types/party";
+import type { PartyDirectoryEntry, PartyDirectoryQuery } from "@/types/party";
 
 type QuotationLineDraft = {
   id: string;
   description: string;
   amount: string;
 };
+
+const emptyClientOptions: PartyDirectoryEntry[] = [];
 
 const emptyLine = (id: string): QuotationLineDraft => ({
   id,
@@ -36,7 +38,7 @@ export function QuotationCreateForm() {
   const [title, setTitle] = useState("");
   const [clientSearchInput, setClientSearchInput] = useState("");
   const [clientSearch, setClientSearch] = useState("");
-  const [clientPartyId, setClientPartyId] = useState("");
+  const [selectedClient, setSelectedClient] = useState<PartyDirectoryEntry | null>(null);
   const [description, setDescription] = useState("");
   const [currency, setCurrency] = useState("IDR");
   const [validUntil, setValidUntil] = useState("");
@@ -55,12 +57,26 @@ export function QuotationCreateForm() {
     queryFn: () => getPartyDirectory(partyQuery),
     enabled: open,
   });
+  const clientOptions = parties.data?.data ?? emptyClientOptions;
+  const trimmedClientSearch = clientSearchInput.trim();
+  const exactMatches =
+    trimmedClientSearch.length >= 2 &&
+    clientSearch === trimmedClientSearch &&
+    !parties.isPending &&
+    !parties.isFetching &&
+    !parties.isError
+      ? clientOptions.filter(
+          (party) =>
+            party.display_name?.toLocaleLowerCase() === trimmedClientSearch.toLocaleLowerCase(),
+        )
+      : [];
+  const activeClient = selectedClient ?? (exactMatches.length === 1 ? exactMatches[0] : null);
 
   const mutation = useMutation({
     mutationFn: () =>
       createQuotation({
         title: title.trim(),
-        client_party_id: clientPartyId,
+        client_party_id: activeClient?.id ?? "",
         description: description.trim() || null,
         currency,
         valid_until: validUntil || null,
@@ -75,7 +91,7 @@ export function QuotationCreateForm() {
       setTitle("");
       setClientSearchInput("");
       setClientSearch("");
-      setClientPartyId("");
+      setSelectedClient(null);
       setDescription("");
       setCurrency("IDR");
       setValidUntil("");
@@ -107,6 +123,7 @@ export function QuotationCreateForm() {
             className="border-border bg-card flex w-full flex-col gap-4 rounded-lg border p-4"
             onSubmit={(event) => {
               event.preventDefault();
+              if (!activeClient) return;
               mutation.mutate();
             }}
           >
@@ -137,25 +154,75 @@ export function QuotationCreateForm() {
                   id="quotation-client-search"
                   type="search"
                   value={clientSearchInput}
-                  onChange={(event) => setClientSearchInput(event.target.value)}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={trimmedClientSearch.length >= 2 && !activeClient}
+                  aria-controls="quotation-client-options"
+                  onChange={(event) => {
+                    setClientSearchInput(event.target.value);
+                    setSelectedClient(null);
+                  }}
                   placeholder={t("findClientPlaceholder")}
                 />
                 <Label htmlFor="quotation-client">{t("client")}</Label>
-                <Select
+                <div
                   id="quotation-client"
-                  required
-                  value={clientPartyId}
-                  onChange={(event) => setClientPartyId(event.target.value)}
+                  role="group"
+                  aria-label={t("client")}
+                  className="border-input bg-background min-h-10 rounded-lg border px-3 py-2"
                 >
-                  <option value="">
-                    {parties.isPending ? t("loadingClients") : t("selectClient")}
-                  </option>
-                  {(parties.data?.data ?? []).map((party) => (
-                    <option key={party.id} value={party.id}>
-                      {party.display_name ?? party.id}
-                    </option>
-                  ))}
-                </Select>
+                  {activeClient ? (
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                      <span className="truncate">
+                        {activeClient.display_name ?? activeClient.id}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedClient(null);
+                          setClientSearchInput("");
+                          setClientSearch("");
+                        }}
+                      >
+                        {t("changeClient")}
+                      </Button>
+                    </div>
+                  ) : trimmedClientSearch.length < 2 ? (
+                    <span className="text-muted-foreground">{t("clientSearchHint")}</span>
+                  ) : clientSearch !== trimmedClientSearch || parties.isPending ? (
+                    <span className="text-muted-foreground" aria-live="polite">
+                      {t("loadingClients")}
+                    </span>
+                  ) : parties.isError ? (
+                    <span className="text-destructive" role="alert">
+                      {t("clientsUnavailable")}
+                    </span>
+                  ) : clientOptions.length === 0 ? (
+                    <span className="text-muted-foreground" role="status">
+                      {t("noMatchingClients")}
+                    </span>
+                  ) : (
+                    <ul id="quotation-client-options" role="listbox" className="-mx-2 -my-1">
+                      {clientOptions.map((party) => (
+                        <li key={party.id} role="option" aria-selected="false">
+                          <button
+                            type="button"
+                            className="hover:bg-accent focus-visible:bg-accent w-full rounded-md px-2 py-2 text-left outline-none"
+                            onClick={() => {
+                              setSelectedClient(party);
+                              setClientSearchInput(party.display_name ?? "");
+                            }}
+                          >
+                            {party.display_name ?? party.id}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -285,7 +352,7 @@ export function QuotationCreateForm() {
                 disabled={
                   mutation.isPending ||
                   title.trim() === "" ||
-                  clientPartyId === "" ||
+                  activeClient === null ||
                   lines.some((line) => line.description.trim() === "" || line.amount === "")
                 }
               >
