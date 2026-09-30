@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { useTranslations } from "next-intl";
 
 import { BaseErrorState } from "@/components/feedback/base-error-state";
@@ -11,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
 import { QuotationStatusBadge } from "@/features/billing/billing-badges";
 import { QuotationCreateForm } from "@/features/billing/quotation-create-form";
+import { QuotationDetail } from "@/features/billing/quotation-detail";
 import { billingQueryKeys, getQuotations } from "@/services/billing";
 
 /**
@@ -27,6 +30,12 @@ import { billingQueryKeys, getQuotations } from "@/services/billing";
 export function QuotationList() {
   const t = useTranslations("billing");
   const tActions = useTranslations("actions");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedId) detailRef.current?.scrollIntoView?.({ block: "start" });
+  }, [selectedId]);
 
   const query = useQuery({
     queryKey: billingQueryKeys.quotations({}),
@@ -49,12 +58,13 @@ export function QuotationList() {
   }
 
   if (query.isError) {
+    const accessDenied = isAxiosError(query.error) && query.error.response?.status === 403;
     return (
       <div className="flex flex-col gap-4">
         <QuotationCreateForm />
         <BaseErrorState
-          title={t("listErrorTitle")}
-          description={t("listUnavailable")}
+          title={accessDenied ? t("quotationAccessTitle") : t("listErrorTitle")}
+          description={accessDenied ? t("quotationAccessHint") : t("listUnavailable")}
           action={
             <Button variant="outline" onClick={() => void query.refetch()}>
               {tActions("retry")}
@@ -77,6 +87,11 @@ export function QuotationList() {
   return (
     <div className="flex flex-col gap-4">
       <QuotationCreateForm />
+      {selectedId ? (
+        <div ref={detailRef} className="scroll-mt-4">
+          <QuotationDetail key={selectedId} id={selectedId} onClose={() => setSelectedId(null)} />
+        </div>
+      ) : null}
       <div className="border-border overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[48rem] text-sm">
           <caption className="sr-only">{t("quotations")}</caption>
@@ -99,6 +114,9 @@ export function QuotationList() {
               </th>
               <th scope="col" className="px-3 py-2 text-right font-medium">
                 {t("invoiced")}
+              </th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -131,6 +149,16 @@ export function QuotationList() {
 
                 <td className="px-3 py-2 text-right tabular-nums">
                   {quotation.invoices_count ?? 0}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedId(quotation.id)}
+                  >
+                    {t("viewQuotation")}
+                  </Button>
                 </td>
               </tr>
             ))}

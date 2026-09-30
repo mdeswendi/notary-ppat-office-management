@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
@@ -148,6 +149,102 @@ it('creates a quotation with its priced lines and computed total atomically', fu
         ->and($response->json('data.items.1.line_amount'))->toBe('300000.00');
 });
 
+it('lets a principal list, create, reopen and edit a single-amount quotation', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+    $actor->assignRole(Role::firstOrCreate(['name' => 'PRINCIPAL', 'guard_name' => 'web']));
+
+    $created = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Balik nama',
+        'items' => [['description' => 'Pengurusan', 'amount' => '10000000']],
+    ])->assertCreated()
+        ->assertJsonPath('data.status', 'DRAFT')
+        ->assertJsonPath('data.total_amount', '10000000.00')
+        ->assertJsonPath('data.items.0.quantity', '1.00');
+
+    $id = $created->json('data.id');
+    $lineId = $created->json('data.items.0.id');
+
+    $this->actingAs($actor)->getJson('/api/v1/quotations')
+        ->assertOk()
+        ->assertJsonFragment(['id' => $id]);
+
+    $this->actingAs($actor)->getJson("/api/v1/quotations/{$id}")
+        ->assertOk()
+        ->assertJsonPath('data.items.0.line_amount', '10000000.00');
+
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", [
+        'title' => 'Balik nama revisi',
+        'items' => [['id' => $lineId, 'description' => 'Pengurusan lengkap', 'amount' => '9500000']],
+    ])->assertOk()
+        ->assertJsonPath('data.total_amount', '9500000.00')
+        ->assertJsonPath('data.items.0.id', $lineId);
+
+    $this->actingAs($actor)->getJson("/api/v1/quotations/{$id}")
+        ->assertJsonPath('data.items.0.line_amount', '9500000.00');
+});
+
+it('rejects an unusable quotation list scope instead of treating it as an empty list', function (): void {
+    [$actor] = billingActor(['quotations.view'], DataScope::OWN);
+
+    $this->actingAs($actor)->getJson('/api/v1/quotations')->assertForbidden();
+
+    grantPermissionScope($actor, 'quotations.view', DataScope::OFFICE);
+    $this->actingAs($actor->fresh())->getJson('/api/v1/quotations')->assertOk();
+});
+
+it('keeps a legacy quantity-priced quotation readable and editable by total amount', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+
+    $created = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Penawaran lama',
+        'items' => [['description' => 'Layanan', 'quantity' => '2', 'unit_amount' => '150000']],
+    ])->assertCreated();
+
+    $id = $created->json('data.id');
+    $lineId = $created->json('data.items.0.id');
+    $this->actingAs($actor)->getJson("/api/v1/quotations/{$id}")
+        ->assertOk()->assertJsonPath('data.items.0.line_amount', '300000.00');
+
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", [
+        'items' => [['id' => $lineId, 'description' => 'Layanan', 'amount' => '300000']],
+    ])->assertOk()
+        ->assertJsonPath('data.total_amount', '300000.00')
+        ->assertJsonPath('data.items.0.quantity', '1.00');
+});
+
+it('replaces draft quotation lines atomically without changing another quotation', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+
+    $first = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Penawaran pertama',
+        'items' => [
+            ['description' => 'A', 'amount' => '100'],
+            ['description' => 'B', 'amount' => '200'],
+        ],
+    ])->assertCreated();
+    $other = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Penawaran kedua',
+        'items' => [['description' => 'Milik kedua', 'amount' => '500']],
+    ])->assertCreated();
+
+    $id = $first->json('data.id');
+    $foreignLine = $other->json('data.items.0.id');
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", [
+        'items' => [['id' => $foreignLine, 'description' => 'Salah', 'amount' => '1']],
+    ])->assertStatus(422);
+    $this->actingAs($actor)->getJson("/api/v1/quotations/{$id}")
+        ->assertJsonPath('data.total_amount', '300.00');
+
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", [
+        'items' => [
+            ['id' => $first->json('data.items.0.id'), 'description' => 'A revisi', 'amount' => '150'],
+            ['description' => 'C', 'amount' => '50'],
+        ],
+    ])->assertOk()
+        ->assertJsonPath('data.total_amount', '200.00')
+        ->assertJsonCount(2, 'data.items');
+});
+
 it('rejects malformed quotation lines before creating a draft', function (): void {
     [$actor] = billingActor(billingCapabilities());
 
@@ -156,6 +253,17 @@ it('rejects malformed quotation lines before creating a draft', function (): voi
         'items' => [['description' => '', 'quantity' => '1', 'unit_amount' => '-1']],
     ])->assertStatus(422)
         ->assertJsonValidationErrors(['items.0.description', 'items.0.unit_amount']);
+
+    expect(Quotation::query()->count())->toBe(0);
+});
+
+it('rejects a nominal with more than two decimal places', function (): void {
+    [$actor] = billingActor(billingCapabilities());
+
+    $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Uji nominal',
+        'items' => [['description' => 'Biaya', 'amount' => '100.123']],
+    ])->assertStatus(422)->assertJsonValidationErrors('items.0.unit_amount');
 
     expect(Quotation::query()->count())->toBe(0);
 });
