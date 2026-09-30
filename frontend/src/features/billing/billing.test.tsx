@@ -265,9 +265,12 @@ describe("QuotationCreateForm", () => {
       expect(screen.getByRole("group", { name: "billing.client" })).toHaveTextContent("Khemal"),
     );
     fireEvent.change(screen.getByLabelText("billing.title"), { target: { value: "Jasa AJB" } });
-    const descriptions = screen.getAllByLabelText("billing.description");
-    fireEvent.change(descriptions[0], { target: { value: "Akta jual beli" } });
-    fireEvent.change(descriptions[1], { target: { value: "Jasa notaris" } });
+    fireEvent.change(screen.getByLabelText("billing.workDescription"), {
+      target: { value: "Akta jual beli" },
+    });
+    fireEvent.change(screen.getByLabelText("billing.costComponent"), {
+      target: { value: "Jasa notaris" },
+    });
     expect(screen.queryByLabelText("billing.quantity")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("billing.unitAmount")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("billing.costNominal"), {

@@ -83,7 +83,7 @@ function QuotationEditForm({ quotation, onSaved }: { quotation: Quotation; onSav
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="edit-quotation-description">{t("description")}</Label>
+          <Label htmlFor="edit-quotation-description">{t("workDescription")}</Label>
           <Input
             id="edit-quotation-description"
             maxLength={5000}
@@ -142,7 +142,7 @@ function QuotationEditForm({ quotation, onSaved }: { quotation: Quotation; onSav
         >
           <legend className="sr-only">{t("quotationItemNumber", { number: index + 1 })}</legend>
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`edit-quotation-description-${index}`}>{t("description")}</Label>
+            <Label htmlFor={`edit-quotation-description-${index}`}>{t("costComponent")}</Label>
             <Input
               id={`edit-quotation-description-${index}`}
               required
