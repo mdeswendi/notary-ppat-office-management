@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { AmountField } from "@/features/billing/amount-field";
-import { QuotationStatusBadge } from "@/features/billing/billing-badges";
 import { billingQueryKeys, getQuotation, updateQuotation } from "@/services/billing";
 import type { Quotation } from "@/types/billing";
 
@@ -263,7 +262,6 @@ export function QuotationDetail({ id, onClose }: { id: string; onClose: () => vo
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <QuotationStatusBadge status={quotation.status} />
           {!editing && quotation.capabilities?.can_update && quotation.amounts_visible ? (
             <Button type="button" variant="outline" onClick={() => setEditing(true)}>
               {actions("edit")}

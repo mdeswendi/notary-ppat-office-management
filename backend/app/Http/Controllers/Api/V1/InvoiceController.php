@@ -10,7 +10,6 @@ use App\Domains\Billing\Actions\ManageBillingLines;
 use App\Domains\Billing\Actions\UpdateInvoice;
 use App\Domains\Billing\BillingVisibility;
 use App\Domains\Billing\Enums\InvoiceStatus;
-use App\Domains\Billing\Enums\QuotationStatus;
 use App\Domains\Matter\MatterVisibility;
 use App\Domains\Party\PartyVisibility;
 use App\Domains\Project\ProjectVisibility;
@@ -242,10 +241,9 @@ class InvoiceController extends Controller
     /**
      * The quotation this invoice is being raised from, if any.
      *
-     * **Re-resolved under `quotations.view`, and it must be approved.** Billing
-     * an offer nobody agreed to is the one sequencing rule this surface has, and
-     * it follows from what the two states mean rather than from an invented
-     * workflow. A 422 rather than a 404: the id is a field on this request.
+     * **Re-resolved under `quotations.view`.** Client acceptance happens outside
+     * the application; a legacy quotation status is not an authorization gate.
+     * A 422 rather than a 404: the id is a field on this request.
      */
     private function resolveQuotationForConversion(Request $request, ?string $id): ?Quotation
     {
@@ -262,12 +260,6 @@ class InvoiceController extends Controller
         )->first();
 
         abort_if($quotation === null, 422, 'The selected quotation is not available.');
-
-        abort_if(
-            $quotation->status !== QuotationStatus::APPROVED,
-            422,
-            'Only an approved quotation can be billed.',
-        );
 
         return $quotation;
     }

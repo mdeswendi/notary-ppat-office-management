@@ -40,7 +40,7 @@ function billingCapabilities(): array
 {
     return [
         'billing.view', 'billing.amount.view',
-        'quotations.view', 'quotations.create', 'quotations.update', 'quotations.approve',
+        'quotations.view', 'quotations.create', 'quotations.update',
         'invoices.view', 'invoices.create', 'invoices.update', 'invoices.issue', 'invoices.cancel',
         'payments.view', 'payments.create', 'payments.verify',
         'disbursements.view', 'disbursements.create', 'disbursements.update',
@@ -87,7 +87,8 @@ it('stores no derived settlement column on invoices', function (string $column):
 })->with(['paid_amount', 'remaining_amount', 'issue_date', 'sent_at']);
 
 it('registers no new permission', function (): void {
-    expect(PermissionRegistry::all())->toHaveCount(177);
+    expect(PermissionRegistry::all())->toHaveCount(176)
+        ->and(PermissionRegistry::all())->not->toContain('quotations.approve');
 });
 
 /*
@@ -118,14 +119,14 @@ it('allocates quotation and invoice references per office and year', function ()
 |--------------------------------------------------------------------------
 */
 
-it('creates a quotation as a draft with an allocated number', function (): void {
+it('creates a quotation price record with an allocated number and no status in the API', function (): void {
     [$actor] = billingActor(billingCapabilities());
 
     $response = $this->actingAs($actor)->postJson('/api/v1/quotations', [
         'title' => 'Jasa pembuatan AJB',
     ])->assertCreated();
 
-    expect($response->json('data.status'))->toBe('DRAFT')
+    expect($response->json('data'))->not->toHaveKey('status')
         ->and($response->json('data.quotation_number'))->toBe('QUO-'.date('Y').'-000001')
         ->and($response->json('data.total_amount'))->toBe('0.00');
 });
@@ -141,9 +142,13 @@ it('creates a quotation with its priced lines and computed total atomically', fu
             ['description' => 'Pemeriksaan berkas', 'quantity' => '2', 'unit_amount' => '150000'],
         ],
     ])->assertCreated()
-        ->assertJsonPath('data.status', 'DRAFT')
         ->assertJsonPath('data.total_amount', '2800000.00')
         ->assertJsonCount(2, 'data.items');
+
+    expect($response->json('data'))->not->toHaveKey('status')
+        ->and($response->json('data'))->not->toHaveKey('approved_at')
+        ->and($response->json('data'))->not->toHaveKey('invoices_count')
+        ->and($response->json('data.capabilities'))->not->toHaveKey('can_approve');
 
     expect($response->json('data.items.0.line_amount'))->toBe('2500000.00')
         ->and($response->json('data.items.1.line_amount'))->toBe('300000.00');
@@ -157,7 +162,6 @@ it('lets a principal list, create, reopen and edit a single-amount quotation', f
         'title' => 'Balik nama',
         'items' => [['description' => 'Pengurusan', 'amount' => '10000000']],
     ])->assertCreated()
-        ->assertJsonPath('data.status', 'DRAFT')
         ->assertJsonPath('data.total_amount', '10000000.00')
         ->assertJsonPath('data.items.0.quantity', '1.00');
 
@@ -212,7 +216,7 @@ it('keeps a legacy quantity-priced quotation readable and editable by total amou
         ->assertJsonPath('data.items.0.quantity', '1.00');
 });
 
-it('replaces draft quotation lines atomically without changing another quotation', function (): void {
+it('replaces quotation lines atomically without changing another quotation', function (): void {
     [$actor] = billingActor(billingCapabilities());
 
     $first = $this->actingAs($actor)->postJson('/api/v1/quotations', [
@@ -245,7 +249,7 @@ it('replaces draft quotation lines atomically without changing another quotation
         ->assertJsonCount(2, 'data.items');
 });
 
-it('rejects malformed quotation lines before creating a draft', function (): void {
+it('rejects malformed quotation lines before creating a price record', function (): void {
     [$actor] = billingActor(billingCapabilities());
 
     $this->actingAs($actor)->postJson('/api/v1/quotations', [
@@ -285,8 +289,7 @@ it('sums lines into the quotation total', function (): void {
 
     $this->actingAs($actor)->postJson("/api/v1/quotations/{$id}/items", [
         'description' => 'Jasa notaris',
-        'quantity' => 2,
-        'unit_amount' => 1500000,
+        'amount' => 3000000,
     ])->assertCreated()
         ->assertJsonPath('data.line_amount', '3000000.00');
 
@@ -294,8 +297,7 @@ it('sums lines into the quotation total', function (): void {
     // software neither recognises nor computes it.
     $this->actingAs($actor)->postJson("/api/v1/quotations/{$id}/items", [
         'description' => 'PPN 11%',
-        'quantity' => 1,
-        'unit_amount' => 330000,
+        'amount' => 330000,
     ])->assertCreated();
 
     $this->actingAs($actor)->getJson("/api/v1/quotations/{$id}")
@@ -303,36 +305,30 @@ it('sums lines into the quotation total', function (): void {
         ->assertJsonPath('data.total_amount', '3330000.00');
 });
 
-it('approves a quotation once and refuses a second approval', function (): void {
-    [$actor] = billingActor(billingCapabilities());
+it('allows an authorized principal to append an unexpected process cost to a legacy approved quotation', function (): void {
+    [$actor, $office] = billingActor(billingCapabilities());
+    $quotation = Quotation::factory()->inOffice($office, $actor)->approved()->create([
+        'title' => 'Balik nama SHM',
+        'subtotal_amount' => '15000000.00',
+        'total_amount' => '15000000.00',
+    ]);
 
-    $id = $this->actingAs($actor)->postJson('/api/v1/quotations', ['title' => 'Uji'])->json('data.id');
+    $baseLine = $this->actingAs($actor)->postJson("/api/v1/quotations/{$quotation->getKey()}/items", [
+        'description' => 'Komponen biaya awal', 'amount' => '15000000',
+    ])->assertCreated()->json('data.id');
 
-    $this->actingAs($actor)->patchJson("/api/v1/quotations/{$id}/approve")
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$quotation->getKey()}", [
+        'items' => [
+            ['id' => $baseLine, 'description' => 'Komponen biaya awal', 'amount' => '15000000'],
+            ['description' => 'Biaya proses tak terduga', 'amount' => '750000'],
+        ],
+    ])->assertOk();
+
+    $this->actingAs($actor)->getJson("/api/v1/quotations/{$quotation->getKey()}")
         ->assertOk()
-        ->assertJsonPath('data.status', 'APPROVED');
-
-    // Refused by state, not by capability: 422, never 403.
-    $this->actingAs($actor)->patchJson("/api/v1/quotations/{$id}/approve")
-        ->assertStatus(422);
-});
-
-it('refuses to edit an approved quotation', function (): void {
-    // Approving is the finalization act: AGENTS.md §64 applied to a commercial
-    // record, because a client has agreed the figures.
-    [$actor] = billingActor(billingCapabilities());
-
-    $id = $this->actingAs($actor)->postJson('/api/v1/quotations', ['title' => 'Uji'])->json('data.id');
-
-    $this->actingAs($actor)->patchJson("/api/v1/quotations/{$id}/approve")->assertOk();
-
-    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", ['title' => 'Diubah'])
-        ->assertForbidden();
-
-    // And its lines are as fixed as its total.
-    $this->actingAs($actor)->postJson("/api/v1/quotations/{$id}/items", [
-        'description' => 'Tambahan', 'quantity' => 1, 'unit_amount' => 1,
-    ])->assertForbidden();
+        ->assertJsonPath('data.total_amount', '15750000.00')
+        ->assertJsonCount(2, 'data.items')
+        ->assertJsonMissingPath('data.status');
 });
 
 /*
@@ -341,22 +337,20 @@ it('refuses to edit an approved quotation', function (): void {
 |--------------------------------------------------------------------------
 */
 
-it('bills an approved quotation by copying its lines', function (): void {
-    // The brief's `convert` verb, delivered as `invoices.create` — the code that
-    // actually exists.
-    [$actor] = billingActor(billingCapabilities());
+it('preserves legacy invoice references to previously approved quotations', function (): void {
+    [$actor, $office] = billingActor(billingCapabilities());
+    $quotation = Quotation::factory()->inOffice($office, $actor)->approved()->create([
+        'title' => 'Jasa AJB',
+        'subtotal_amount' => '5000000.00',
+        'total_amount' => '5000000.00',
+    ]);
 
-    $quotationId = $this->actingAs($actor)->postJson('/api/v1/quotations', ['title' => 'Jasa AJB'])
-        ->json('data.id');
-
-    $this->actingAs($actor)->postJson("/api/v1/quotations/{$quotationId}/items", [
-        'description' => 'Jasa notaris', 'quantity' => 1, 'unit_amount' => 5000000,
+    $this->actingAs($actor)->postJson("/api/v1/quotations/{$quotation->getKey()}/items", [
+        'description' => 'Jasa notaris', 'amount' => 5000000,
     ])->assertCreated();
 
-    $this->actingAs($actor)->patchJson("/api/v1/quotations/{$quotationId}/approve")->assertOk();
-
     $response = $this->actingAs($actor)->postJson('/api/v1/invoices', [
-        'quotation_id' => $quotationId,
+        'quotation_id' => $quotation->getKey(),
     ])->assertCreated();
 
     expect($response->json('data.total_amount'))->toBe('5000000.00')
@@ -364,14 +358,17 @@ it('bills an approved quotation by copying its lines', function (): void {
         ->and($response->json('data.title'))->toBe('Jasa AJB');
 });
 
-it('refuses to bill a quotation nobody approved', function (): void {
+it('does not require an application quotation status to create a separate invoice', function (): void {
     [$actor] = billingActor(billingCapabilities());
 
-    $quotationId = $this->actingAs($actor)->postJson('/api/v1/quotations', ['title' => 'Uji'])
-        ->json('data.id');
+    $quotationId = $this->actingAs($actor)->postJson('/api/v1/quotations', [
+        'title' => 'Uji',
+        'items' => [['description' => 'Jasa', 'amount' => '1000000']],
+    ])->assertCreated()->json('data.id');
 
     $this->actingAs($actor)->postJson('/api/v1/invoices', ['quotation_id' => $quotationId])
-        ->assertStatus(422);
+        ->assertCreated()
+        ->assertJsonPath('data.total_amount', '1000000.00');
 });
 
 it('refuses to issue an invoice with no lines', function (): void {
@@ -684,7 +681,9 @@ it('audits every billing act', function (): void {
 
     $id = $this->actingAs($actor)->postJson('/api/v1/quotations', ['title' => 'Uji'])->json('data.id');
 
-    $this->actingAs($actor)->patchJson("/api/v1/quotations/{$id}/approve")->assertOk();
+    $this->actingAs($actor)->putJson("/api/v1/quotations/{$id}", [
+        'notes' => 'Tambahan biaya proses dicatat manual.',
+    ])->assertOk();
 
     $events = AuditLog::query()
         ->where('auditable_type', Quotation::class)
@@ -693,7 +692,8 @@ it('audits every billing act', function (): void {
         ->all();
 
     expect($events)->toContain(AuditEvent::CREATED->value)
-        ->and($events)->toContain(AuditEvent::STATUS_CHANGED->value);
+        ->and($events)->toContain(AuditEvent::UPDATED->value)
+        ->and($events)->not->toContain(AuditEvent::STATUS_CHANGED->value);
 });
 
 /*
@@ -713,10 +713,12 @@ it('exposes exactly the billing routes the catalogue authorizes', function (): v
         ->values()
         ->all();
 
-    // Nine acts the M8.2 brief asked for are absent, because their codes are:
+    // Quotations have no status or approval route. Other uncatalogued acts are
+    // absent as required by the permission catalogue:
     // quotations.send/.reject/.convert/.delete, invoices.send/.delete,
     // payments.reject, disbursements.delete.
     expect($routes)->not->toContain('DELETE api/v1/quotations/{quotation}')
+        ->and($routes)->not->toContain('PATCH api/v1/quotations/{quotation}/approve')
         ->and($routes)->not->toContain('DELETE api/v1/invoices/{invoice}')
         ->and($routes)->not->toContain('DELETE api/v1/disbursements/{disbursement}')
         ->and($routes)->not->toContain('PATCH api/v1/quotations/{quotation}/send')
@@ -725,5 +727,5 @@ it('exposes exactly the billing routes the catalogue authorizes', function (): v
         ->and($routes)->not->toContain('PATCH api/v1/invoices/{invoice}/send')
         ->and($routes)->not->toContain('PATCH api/v1/payments/{payment}/reject');
 
-    expect($routes)->toHaveCount(26);
+    expect($routes)->toHaveCount(25);
 });

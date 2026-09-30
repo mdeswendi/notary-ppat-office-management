@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Authorization\EffectiveAccessResolver;
-use App\Domains\Billing\Actions\ApproveQuotation;
 use App\Domains\Billing\Actions\CreateQuotation;
 use App\Domains\Billing\Actions\ManageBillingLines;
 use App\Domains\Billing\Actions\UpdateQuotation;
@@ -13,7 +12,7 @@ use App\Domains\Party\PartyVisibility;
 use App\Domains\Project\ProjectVisibility;
 use App\Http\Controllers\Api\V1\Concerns\ResolvesBillingContext;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Billing\BillingLineRequest;
+use App\Http\Requests\Billing\QuotationLineRequest;
 use App\Http\Requests\Billing\StoreQuotationRequest;
 use App\Http\Requests\Billing\UpdateQuotationRequest;
 use App\Http\Resources\QuotationItemResource;
@@ -29,16 +28,15 @@ use Illuminate\Http\Response;
 /**
  * The Quotation surface (M8.2, D-124).
  *
- * **Four acts, because the catalogue defines four codes.** The M8.2 brief asked
+ * **Three acts, because the current catalogue defines three codes.** The M8.2 brief asked
  * for `send`, `reject`, `convert` and a `DELETE`; none of `quotations.send`,
- * `.reject`, `.convert` or `.delete` exists, and the brief itself forbade adding
+ * `.reject`, `.convert`, `.approve` or `.delete` exists, and the brief itself forbade adding
  * permissions. There is no route here for any of them — the D-064 discipline
  * applied to endpoints rather than to menu entries.
  *
  * **Line items live under this controller, not their own.** There is no
  * `quotations.items.*` family; editing what an offer contains *is* editing the
- * offer, so every line route authorizes `update` on the parent and inherits its
- * `DRAFT`-only rule.
+ * office price record, so every line route authorizes `update` on the parent.
  *
  * **`billing.amount.view` is resolved once per request**, before anything is
  * serialised. Resolving it inside the Resource would put a resolver call on every
@@ -69,7 +67,7 @@ class QuotationController extends Controller
             $actor,
             $this->resolver->resolve($actor, 'quotations.view'),
         )->with(['clientParty:id,display_name', 'project:id,project_number,title', 'matter:id,matter_number,title'])
-            ->withCount(['items', 'invoices']);
+            ->withCount('items');
 
         $this->applyFilters($query, $request);
 
@@ -135,25 +133,6 @@ class QuotationController extends Controller
         return (new QuotationResource($this->loadForDetail($updated)))->withCapabilities($this->capabilitiesFor($updated));
     }
 
-    /**
-     * Record that the client agreed the price.
-     */
-    public function approve(
-        Request $request,
-        string $quotation,
-        ApproveQuotation $approve,
-    ): QuotationResource {
-        $record = $this->resolveQuotation($request, $quotation);
-
-        $this->authorize('approve', $record);
-
-        QuotationResource::resolveAmountVisibility($request);
-
-        $approved = $approve->handle($request->user(), $record);
-
-        return (new QuotationResource($this->loadForDetail($approved)))->withCapabilities($this->capabilitiesFor($approved));
-    }
-
     /*
     |--------------------------------------------------------------------------
     | Lines — authorized as an update to the parent
@@ -161,7 +140,7 @@ class QuotationController extends Controller
     */
 
     public function storeLine(
-        BillingLineRequest $request,
+        QuotationLineRequest $request,
         string $quotation,
         ManageBillingLines $lines,
     ): JsonResponse {
@@ -177,7 +156,7 @@ class QuotationController extends Controller
     }
 
     public function updateLine(
-        BillingLineRequest $request,
+        QuotationLineRequest $request,
         string $quotation,
         string $item,
         ManageBillingLines $lines,
@@ -254,9 +233,8 @@ class QuotationController extends Controller
             'clientParty:id,display_name',
             'project:id,project_number,title',
             'matter:id,matter_number,title',
-            'approvedBy:id,name',
             'items',
-        ])->loadCount(['items', 'invoices']);
+        ])->loadCount('items');
     }
 
     /**
@@ -270,12 +248,6 @@ class QuotationController extends Controller
 
         return [
             'can_update' => $actor->can('update', $quotation),
-
-            // Capability **and** state. The Policy checks only the first, so a
-            // flag built from `can()` alone would offer a button that answers
-            // 422 on an already-approved quotation.
-            'can_approve' => $quotation->status->isApprovable()
-                && $actor->can('approve', $quotation),
         ];
     }
 
@@ -284,12 +256,6 @@ class QuotationController extends Controller
      */
     private function applyFilters($query, Request $request): void
     {
-        $status = $request->query('status');
-
-        if (is_string($status) && $status !== '') {
-            $query->where('status', $status);
-        }
-
         foreach (['client_party_id', 'project_id', 'matter_id'] as $column) {
             $value = $request->query($column);
 

@@ -8,10 +8,9 @@ use Illuminate\Validation\Rule;
 /**
  * Raising a quotation (M8.2, D-124).
  *
- * **No `status`, no `quotation_number`, no totals.** The status is always `DRAFT`
- * and the reference is allocated (D-103); the totals are the sum of the lines and
- * belong to the line surface. Accepting any of them would let a caller decide
- * something the office decides.
+ * **No `status`, no `quotation_number`, no totals.** The reference is allocated
+ * (D-103); totals are the sum of the lines and belong to the line surface.
+ * Legacy status columns are not part of the quotation API or business workflow.
  *
  * **No `tax` either.** D-124 section 9.4 forbids the column and the concept; an
  * office showing PPN adds a line it names itself.
@@ -66,8 +65,8 @@ class StoreQuotationRequest extends FormRequest
             'project_id' => ['nullable', 'string', 'ulid'],
             'matter_id' => ['nullable', 'string', 'ulid'],
 
-            // The UI raises the draft and its priced lines as one operation. This
-            // keeps a failed line validation from leaving an uneditable empty draft.
+            // The UI creates the price record and its lines as one operation so
+            // failed line validation cannot leave an empty record.
             'items' => ['sometimes', 'array', 'min:1', 'max:100'],
             'items.*' => ['required', 'array:description,quantity,unit_amount'],
             'items.*.description' => ['required', 'string', 'max:255'],

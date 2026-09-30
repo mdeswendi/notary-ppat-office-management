@@ -415,7 +415,6 @@
     "dueDate": "Due",
     "total": "Total",
     "outstanding": "Outstanding",
-    "invoiced": "Invoiced",
     "amount": "Amount",
     "paidAt": "Paid On",
     "method": "Method",
@@ -432,10 +431,6 @@
     "noDisbursements": "No transaction process costs yet.",
     "amountWithheld": "—",
     "amountWithheldHint": "Amount withheld. Requires the billing.amount.view permission.",
-    "quotationStatuses": {
-      "DRAFT": "Draft",
-      "APPROVED": "Approved"
-    },
     "invoiceStatuses": {
       "DRAFT": "Draft",
       "ISSUED": "Issued",

@@ -15,7 +15,7 @@ use App\Models\User;
  * (O-051), and **no lifecycle ability**, because the catalogue gives the surface
  * no lifecycle verb — which is also why the table has no `status` column.
  *
- * **Update has no status gate**, unlike Quotation and Invoice. There is no state
+ * **Update has no status gate**, unlike Invoice. There is no state
  * in which a disbursement becomes read-only, because there is no act that would
  * put it in one. Correcting a recorded cost is an ordinary edit.
  */

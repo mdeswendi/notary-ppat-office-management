@@ -209,9 +209,9 @@ Route::prefix('v1')->group(function (): void {
          * is delivered without a code that does not exist.
          *
          * **Line items sit under their parent and answer to its `update`
-         * ability.** There is no `*.items.*` family in the catalogue; editing
-         * what an invoice charges for is editing the invoice, which is why the
-         * routes inherit its DRAFT-only rule.
+         * ability.** There is no `*.items.*` family in the catalogue; quotation
+         * detail may be extended later, while invoice routes enforce their own
+         * issued-state rules.
          */
         Route::prefix('quotations')->name('api.v1.quotations.')->group(function (): void {
             Route::get('/', [QuotationController::class, 'index'])->name('index');
@@ -221,10 +221,6 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('quotation')->name('show');
             Route::put('{quotation}', [QuotationController::class, 'update'])
                 ->whereUlid('quotation')->name('update');
-
-            // The only lifecycle act `quotations.*` authorizes.
-            Route::patch('{quotation}/approve', [QuotationController::class, 'approve'])
-                ->whereUlid('quotation')->name('approve');
 
             Route::post('{quotation}/items', [QuotationController::class, 'storeLine'])
                 ->whereUlid('quotation')->name('items.store');

@@ -74,19 +74,19 @@ audit the timeline's presentation concerns.
 
 ## 3. What already exists, and what M8 inherits
 
-### 3.1 Permissions — the count stays at 177
+### 3.1 Permissions — current registry has 176
 
 **M8 registers no permission.** Every capability the three surfaces need has been canonical since the
 catalogue was transcribed at M1.2 and unimplemented ever since. Verified against the live
 `PermissionRegistry.php`:
 
-**Billing — seventeen codes** (`02_MENU_AND_PERMISSIONS.md` section 16):
+**Billing — sixteen codes** (`02_MENU_AND_PERMISSIONS.md` section 16; quotation approval was retired by D-137):
 
 ```text
 billing.view
 billing.amount.view
 
-quotations.view      quotations.create   quotations.update   quotations.approve
+quotations.view      quotations.create   quotations.update
 invoices.view        invoices.create     invoices.update     invoices.issue      invoices.cancel
 payments.view        payments.create     payments.verify
 disbursements.view   disbursements.create   disbursements.update
@@ -122,12 +122,12 @@ with no canonical capability. That is precisely the shape O-036 and O-040 refuse
 taxes — and section 8.3 explains why the same shape resolves differently here, rather than
 pretending it is not the same shape.
 
-**There is no `payments.update` and no `*.delete` anywhere in billing.** Fifteen of the seventeen
+**There is no `payments.update` and no `*.delete` anywhere in billing.** Fifteen of the sixteen
 codes are the four surfaces' verbs, and the set is conspicuously narrower than CRUD:
 
 | Surface | create | update | delete | lifecycle verbs |
 |---|---|---|---|---|
-| Quotations | yes | yes | **no** | `approve` |
+| Quotations | yes | yes | **no** | none; no status workflow (D-137) |
 | Invoices | yes | yes | **no** | `issue`, `cancel` |
 | Payments | yes | **no** | **no** | `verify` |
 | Disbursements | yes | yes | **no** | none |
@@ -135,8 +135,8 @@ codes are the four surfaces' verbs, and the set is conspicuously narrower than C
 Section 9.2 reads the lifecycles off this table rather than inventing them, and section 9.5 addresses
 the one cell that leaves a genuine dead end.
 
-**There is no `invoices.approve`**, though `quotations.approve` exists. Approval is a quotation act.
-An invoice is issued, not approved.
+**There is no `invoices.approve` or `quotations.approve`.** Invoices are issued, not approved;
+client acceptance of an office quotation happens outside the application (D-137).
 
 **The `reports.*` family has no `generate` and no `create`.** Every one of its six codes is `.view`
 plus one `reports.export`. Reports are read surfaces; nothing in that family authorizes creating a
@@ -510,14 +510,10 @@ constraints:
 The catalogue's verb set (section 3.2) determines each surface's states. Where there is no verb,
 there is no transition — this is derivation, not design.
 
-**Quotation** — verbs `create`, `update`, `approve`:
-
-```text
-DRAFT ──approve──> APPROVED
-```
-
-There is no `quotations.reject`, no `quotations.send`, no `quotations.cancel`, so there is no
-`REJECTED`, `SENT` or `CANCELLED` state. A quotation that comes to nothing stays `DRAFT`.
+**Quotation** — verbs `create` and `update`; no lifecycle. It is an internal Principal-managed
+price record. It has no application status, and client acceptance happens outside the application
+(D-137). New and existing quotations can be edited by an authorized Principal, including adding
+unexpected cost lines. Finance disbursements remain separate actual-cost records.
 
 **Invoice** — verbs `create`, `update`, `issue`, `cancel`:
 
@@ -538,7 +534,7 @@ project has repeatedly recorded as a cost rather than repeated as a design.
 **Ruling on mutability.** `invoices.update` applies to a `DRAFT` invoice only. Issuing is the
 finalization act: an issued invoice has been sent to a client, and `AGENTS.md` section 64's
 discipline for finalized records applies to it — it displays read-only, its values are preserved, and
-the only remaining act is `cancel`. The same reasoning makes `quotations.update` a `DRAFT`-only act.
+the only remaining act is `cancel`. The DRAFT-only quotation rule is superseded by D-137.
 
 ### 9.3 Field lists — designed, not transcribed
 
@@ -553,9 +549,9 @@ never reference a Project or Matter from another Office.
 ```text
 quotations
   id (ULID), office_id, project_id, matter_id (nullable), client_party_id,
-  quotation_number, status, currency, subtotal_amount, total_amount,
+  quotation_number, status (legacy compatibility only), currency, subtotal_amount, total_amount,
   valid_until, notes,
-  approved_by, approved_at,
+  approved_by, approved_at (legacy compatibility only),
   created_by, updated_by, created_at, updated_at, deleted_at
 
 quotation_items

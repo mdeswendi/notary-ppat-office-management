@@ -84,13 +84,6 @@ export async function updateQuotation(
   return response.data.data;
 }
 
-/** The only lifecycle act `quotations.*` authorizes. */
-export async function approveQuotation(id: string): Promise<Quotation> {
-  const response = await apiClient.patch<{ data: Quotation }>(`/api/v1/quotations/${id}/approve`);
-
-  return response.data.data;
-}
-
 /* -------------------------------------------------------------------- invoices */
 
 export async function getInvoices(query: BillingListQuery = {}): Promise<Paginated<Invoice>> {

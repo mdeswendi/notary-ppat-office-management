@@ -13,9 +13,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Money is absent unless `billing.amount.view` is held — see
  * {@see MasksBillingAmounts} for why absent rather than hidden.
  *
- * **`invoices_count` ships and discloses nothing about value.** Whether an
- * agreed offer has been billed yet is the question the list is actually scanned
- * for, and it is a count of rows rather than a sum of money.
+ * Quotations are standalone internal price records. The resource does not expose
+ * workflow status, approval metadata, or invoice counts.
  *
  * @mixin Quotation
  */
@@ -55,11 +54,9 @@ class QuotationResource extends JsonResource
             'quotation_number' => $this->quotation_number,
             'title' => $this->title,
             'description' => $this->description,
-            'status' => $this->status->value,
             'currency' => $this->currency,
 
             'valid_until' => $this->valid_until?->toDateString(),
-            'approved_at' => $this->approved_at?->toIso8601String(),
             'notes' => $this->notes,
 
             'amounts_visible' => $this->amountsVisible($request),
@@ -86,15 +83,9 @@ class QuotationResource extends JsonResource
                 'title' => $this->matter->title,
             ]),
 
-            'approved_by' => $this->whenLoaded('approvedBy', fn (): ?array => $this->approvedBy === null ? null : [
-                'id' => $this->approvedBy->id,
-                'name' => $this->approvedBy->name,
-            ]),
-
             'items' => QuotationItemResource::collection($this->whenLoaded('items')),
 
             'items_count' => $this->whenCounted('items'),
-            'invoices_count' => $this->whenCounted('invoices'),
 
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

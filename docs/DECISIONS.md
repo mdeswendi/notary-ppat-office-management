@@ -5174,6 +5174,27 @@ leaving every legal identifier and ownership fact unchanged.
 
 ---
 
+### D-137 — Quotations are status-free Principal price records; actual costs stay in Finance
+
+A quotation is the office's internal price record, managed by an authorized Principal. Its amounts
+may intentionally include a buffer and are not a statement of actual costs paid to BPN or another
+party. The application has **no quotation status**: no `DRAFT`, `FIX`, approval, or client-acceptance
+workflow. Whether a client accepts and any shortfall agreement are handled outside this module.
+The Principal may add or revise cost-detail lines later when an unexpected process cost arises.
+
+The quotation list therefore has no status or `Ditagihkan` column/count. Its total is the current
+office price. Finance disbursements remain separate records of actual costs paid by staff or the
+office; quotation amounts are never copied into or treated as disbursements. The `quotations.approve`
+permission and route are retired, leaving 176 canonical permissions.
+
+This supersedes D-124/D-129 only for quotation status, approval, and draft-only immutability. It does
+not remove invoices, payments, or disbursements, and it does not remove historical status/approval
+columns, old enum values, or existing invoice links from storage. Those are retained for legacy data
+compatibility, but current quotation API responses and UI must not expose or make business decisions
+from those fields. No destructive migration is authorized by this decision.
+
+---
+
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.

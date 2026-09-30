@@ -68,7 +68,7 @@ function csvLines(TestResponse $response): array
 */
 
 it('registers no new permission', function (): void {
-    expect(PermissionRegistry::all())->toHaveCount(177);
+    expect(PermissionRegistry::all())->toHaveCount(176);
 });
 
 it('builds no table', function (): void {

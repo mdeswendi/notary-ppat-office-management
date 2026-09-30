@@ -89,14 +89,11 @@ function quotation(overrides: Partial<Quotation> = {}): Quotation {
     quotation_number: "QUO-2026-000001",
     title: "Jasa AJB",
     description: null,
-    status: "DRAFT",
     currency: "IDR",
     valid_until: "2026-09-01",
-    approved_at: null,
     notes: null,
     amounts_visible: true,
     total_amount: "5000000.00",
-    invoices_count: 0,
     created_at: null,
     updated_at: null,
     ...overrides,
@@ -181,6 +178,10 @@ describe("QuotationList", () => {
 
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "billing.quotations" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "billing.status" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", { name: "billing.invoiced" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "billing.quotationNumber" })).toHaveAttribute(
       "scope",
       "col",
@@ -233,7 +234,7 @@ describe("QuotationCreateForm", () => {
     expect(screen.queryByRole("button", { name: "billing.newQuotation" })).not.toBeInTheDocument();
   });
 
-  it("creates a draft with a client and priced lines for an authorized user", async () => {
+  it("creates a price record with a client and priced lines for an authorized user", async () => {
     vi.mocked(auth.useCurrentUser).mockReturnValue({
       data: actor(["quotations.create"]),
     } as never);
@@ -311,7 +312,7 @@ describe("QuotationDetail", () => {
         },
       ],
       total_amount: "300000.00",
-      capabilities: { can_update: true, can_approve: false },
+      capabilities: { can_update: true },
     });
     vi.mocked(services.getQuotations).mockResolvedValue({ data: [old] });
     vi.mocked(services.getQuotation).mockResolvedValue(old);
@@ -322,6 +323,7 @@ describe("QuotationDetail", () => {
     expect(
       await screen.findByRole("region", { name: "billing.quotationDetail" }),
     ).toBeInTheDocument();
+    expect(screen.queryByText("billing.quotationStatuses.DRAFT")).not.toBeInTheDocument();
     expect(screen.getAllByText("300.000,00").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "actions.edit" }));
     expect(screen.queryByLabelText("billing.quantity")).not.toBeInTheDocument();

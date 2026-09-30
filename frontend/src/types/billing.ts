@@ -15,9 +15,6 @@
  * imprecision an exact column exists to avoid.
  */
 
-/** `DRAFT → APPROVED`. There is no `quotations.reject`, `.send` or `.expire`. */
-export type QuotationStatus = "DRAFT" | "APPROVED";
-
 /** `DRAFT → ISSUED → CANCELLED`. Settlement is derived, never a status. */
 export type InvoiceStatus = "DRAFT" | "ISSUED" | "CANCELLED";
 
@@ -56,23 +53,19 @@ export interface Quotation extends Maskable {
   quotation_number: string;
   title: string;
   description: string | null;
-  status: QuotationStatus;
   currency: string;
   valid_until: string | null;
-  approved_at: string | null;
   notes: string | null;
   subtotal_amount?: string;
   total_amount?: string;
   client_party?: PartyRef | null;
   project?: RecordRef | null;
   matter?: RecordRef | null;
-  approved_by?: { id: string; name: string } | null;
   items?: BillingLine[];
   items_count?: number;
-  invoices_count?: number;
   created_at: string | null;
   updated_at: string | null;
-  capabilities?: { can_update: boolean; can_approve: boolean };
+  capabilities?: { can_update: boolean };
 }
 
 export interface Payment extends Maskable {

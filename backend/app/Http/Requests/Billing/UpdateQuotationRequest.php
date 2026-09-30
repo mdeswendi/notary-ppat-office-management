@@ -6,14 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Correcting a draft quotation (M8.2, D-124).
+ * Updating a quotation price record and its details (M8.2, D-124, D-137).
  *
  * **The parents are not editable here.** Moving a quotation to a different
  * client, Project or Matter is not a correction — it is a different offer, and
  * the record of who was quoted what should not change under an existing number.
  * They are `prohibited` rather than absent so a caller is told.
  *
- * `DRAFT` only, enforced by the Policy before this runs.
+ * The Policy checks the actor's update permission and Office scope; historical
+ * status values do not lock a Principal's internal price record.
  */
 class UpdateQuotationRequest extends FormRequest
 {
