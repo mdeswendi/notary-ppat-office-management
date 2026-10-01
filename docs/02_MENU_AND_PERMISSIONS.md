@@ -77,6 +77,12 @@ The last item is the office-facing label for the internal `disbursements` resour
 "third-party costs": that term is not appropriate for this Notary/PPAT workflow. Keep the technical
 resource and permission names unchanged unless a separately approved schema/API migration is made.
 
+Current office navigation labels this group **Penawaran & Biaya** and shows only Penawaran and
+Biaya Proses Transaksi. The invoice and client-payment pages and APIs remain for historical data,
+but their menu entries are hidden while the office does not record those transactions through
+the application. For the same reason, Laporan Tagihan, Laporan Pembayaran, and Laporan Pendapatan
+are hidden from navigation. This is a visibility decision, not a change to permissions or data.
+
 Reports
 ├── Operational
 ├── Notary
@@ -134,7 +140,7 @@ Settings
 | Dokumen | Documents |
 | Tugas | Tasks |
 | Kalender | Calendar |
-| Penagihan | Billing |
+| Penawaran & Biaya (current navigation) | Quotations & Costs |
 | Laporan | Reports |
 | Data Master | Master Data |
 | Pengaturan | Settings |

@@ -319,22 +319,9 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         implemented: true,
         requiredPermission: "quotations.view",
       },
-      {
-        key: "billing.invoices",
-        translationKey: "billingInvoices",
-        href: "/billing/invoices",
-        icon: Wallet,
-        implemented: true,
-        requiredPermission: "invoices.view",
-      },
-      {
-        key: "billing.payments",
-        translationKey: "billingPayments",
-        href: "/billing/payments",
-        icon: Wallet,
-        implemented: true,
-        requiredPermission: "payments.view",
-      },
+      // Invoice and client-payment pages still exist for historical records,
+      // but the office does not use that input workflow. Keep them out of the
+      // menu until staff can record both through the application.
       {
         key: "billing.disbursements",
         translationKey: "billingDisbursements",
@@ -433,30 +420,8 @@ export const navigationItems: ReadonlyArray<NavigationItem> = [
         implemented: true,
         requiredPermission: "reports.ppat.view",
       },
-      {
-        key: "reports.financial.invoices",
-        translationKey: "reportsInvoices",
-        href: "/reports/financial/invoices",
-        icon: ChartColumn,
-        implemented: true,
-        requiredPermission: "reports.financial.view",
-      },
-      {
-        key: "reports.financial.payments",
-        translationKey: "reportsPayments",
-        href: "/reports/financial/payments",
-        icon: ChartColumn,
-        implemented: true,
-        requiredPermission: "reports.financial.view",
-      },
-      {
-        key: "reports.financial.revenue",
-        translationKey: "reportsRevenue",
-        href: "/reports/financial/revenue",
-        icon: ChartColumn,
-        implemented: true,
-        requiredPermission: "reports.financial.view",
-      },
+      // These three reports depend on invoice-linked client payments, which
+      // are not part of the office's current data-entry workflow.
       {
         key: "reports.audit.activity",
         translationKey: "reportsActivity",
