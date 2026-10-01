@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\ArchivedProjectController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuditReportController;
 use App\Http\Controllers\Api\V1\CalendarEventController;
-use App\Http\Controllers\Api\V1\ClientReceiptController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyIdentityController;
 use App\Http\Controllers\Api\V1\CompanyManagementController;
@@ -180,8 +179,6 @@ Route::prefix('v1')->group(function (): void {
                 Route::get('invoices/export', [FinancialReportController::class, 'exportInvoices'])->name('invoices.export');
                 Route::get('payments', [FinancialReportController::class, 'payments'])->name('payments');
                 Route::get('payments/export', [FinancialReportController::class, 'exportPayments'])->name('payments.export');
-                Route::get('disbursements', [FinancialReportController::class, 'disbursements'])->name('disbursements');
-                Route::get('disbursements/export', [FinancialReportController::class, 'exportDisbursements'])->name('disbursements.export');
                 // Every cell is a sum, so this one returns nothing at all
                 // without `billing.amount.view` (D-125).
                 Route::get('revenue', [FinancialReportController::class, 'revenue'])->name('revenue');
@@ -284,15 +281,6 @@ Route::prefix('v1')->group(function (): void {
                 ->whereUlid('disbursement')->name('show');
             Route::put('{disbursement}', [DisbursementController::class, 'update'])
                 ->whereUlid('disbursement')->name('update');
-        });
-
-        Route::prefix('client-receipts')->name('api.v1.client-receipts.')->group(function (): void {
-            Route::get('/', [ClientReceiptController::class, 'index'])->name('index');
-            Route::post('/', [ClientReceiptController::class, 'store'])->name('store');
-            Route::get('{receipt}', [ClientReceiptController::class, 'show'])
-                ->whereUlid('receipt')->name('show');
-            Route::put('{receipt}', [ClientReceiptController::class, 'update'])
-                ->whereUlid('receipt')->name('update');
         });
 
         // The authenticated user's own account. No permission guards these and

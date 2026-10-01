@@ -57,7 +57,6 @@ enum ActivityType: string
     case PAYMENT_RECORDED = 'PAYMENT_RECORDED';
     case PAYMENT_VERIFIED = 'PAYMENT_VERIFIED';
     case DISBURSEMENT_RECORDED = 'DISBURSEMENT_RECORDED';
-    case CLIENT_RECEIPT_RECORDED = 'CLIENT_RECEIPT_RECORDED';
 
     /**
      * @return array<int, string>

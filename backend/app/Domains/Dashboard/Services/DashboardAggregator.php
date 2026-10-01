@@ -23,7 +23,6 @@ use App\Domains\Task\Enums\TaskStatus;
 use App\Domains\Task\TaskVisibility;
 use App\Models\Activity;
 use App\Models\CalendarEvent;
-use App\Models\ClientReceipt;
 use App\Models\Disbursement;
 use App\Models\Document;
 use App\Models\Invoice;
@@ -902,7 +901,7 @@ class DashboardAggregator
             }
         }
 
-        // **Billing subjects (M8.2, D-139).** Without these branches a billing activity
+        // **Billing subjects (M8.2).** Without these branches a billing activity
         // row would match nothing and vanish from every feed — the failure mode
         // of a denylist-shaped rule in an allowlist-shaped method. Each is
         // scoped by its own capability, so somebody who may not read invoices
@@ -916,7 +915,6 @@ class DashboardAggregator
             [Invoice::class, 'invoices.view', 'invoices.id'],
             [Payment::class, 'payments.view', 'payments.id'],
             [Disbursement::class, 'disbursements.view', 'disbursements.id'],
-            [ClientReceipt::class, 'client_receipts.view', 'client_receipts.id'],
         ] as [$model, $code, $column]) {
             $access = $this->resolver->resolve($actor, $code);
 

@@ -205,25 +205,6 @@ export const REPORTS: Record<string, ReportDefinition> = {
     permission: "reports.financial.view",
   },
 
-  "financial.disbursements": {
-    titleKey: "disbursements",
-    endpoint: "/api/v1/reports/financial/disbursements",
-    exportEndpoint: "/api/v1/reports/financial/disbursements/export",
-    columns: [
-      "incurred_on",
-      "description",
-      "client",
-      "project",
-      "matter",
-      "currency",
-      "reference",
-      "amount",
-    ],
-    numeric: ["amount"],
-    filters: ["dateRange"],
-    permission: "reports.financial.view",
-  },
-
   "audit.activity": {
     titleKey: "activity",
     endpoint: "/api/v1/reports/audit/activity",

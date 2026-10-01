@@ -108,7 +108,7 @@ it('registers exactly the expected stage routes and nothing more', function (): 
 it('adds no permission to the current catalogue', function (): void {
     // `*.matters.change_stage` has been canonical since the catalogue was
     // transcribed. M4.7 gives it a route; it registers nothing.
-    expect(PermissionRegistry::count())->toBe(179)
+    expect(PermissionRegistry::count())->toBe(176)
         ->and(PermissionRegistry::all())->toContain('notary.matters.change_stage')
         ->and(PermissionRegistry::all())->toContain('ppat.matters.change_stage');
 });

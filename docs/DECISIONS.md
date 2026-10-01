@@ -5195,41 +5195,6 @@ from those fields. No destructive migration is authorized by this decision.
 
 ---
 
-### D-138 — Process-cost reporting reads actual Finance disbursements, not client payments
-
-The Principal's **Process Cost Report** is a view of amounts the office actually paid for process
-work, sourced from Finance's disbursement records. It is not a view of client payments and must not
-derive actual cost from the buffered amounts in a quotation. The report remains read-only, uses the
-same office reach as `disbursements.view`, and masks money unless `billing.amount.view` is granted.
-`reports.financial.view` opens the report family but does not widen access to source rows.
-
-At the time this decision was recorded, client-receipt capture was unresolved. D-139 supersedes that
-temporary Revenue Report source with a dedicated client-receipt record. Legacy invoices and payments
-remain in storage and their existing routes are not removed by this decision.
-
----
-
-### D-139 — Client receipts are office records, separate from invoices and quotations
-
-Money actually received from a client is recorded once per payment in a dedicated client-receipt
-record, whether or not an invoice exists. A client may have multiple receipt records. Required facts
-are the client, received date, positive amount and payment method (`CASH`, `BANK_TRANSFER`, `CARD`,
-`OTHER`); the currency defaults to IDR. Reference is not part of the form. A saved record means the
-office says the money was received: there is no draft or verification state. Finance and Principal
-may both create records under OFFICE scope; the actor is retained for audit. Reading/reporting is
-office-scoped and monetary values still require `billing.amount.view`. Corrections are allowed only
-through an audited update; there is no delete permission or route.
-
-This introduces three canonical permissions (`client_receipts.view/create/update`); the registry
-therefore contains 179 permissions after D-139. The Principal and Finance grants remain explicit
-role configuration at OFFICE scope rather than implicit behavior based on role name.
-
-Revenue is derived only from these receipt records, never from a quotation or a process-cost
-disbursement. Invoice payments remain a separate legacy workflow and do not contribute to this
-office's client-receipt revenue report.
-
----
-
 ## Open Items
 
 Not decisions — conflicts or gaps that remain unresolved.
