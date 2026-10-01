@@ -32,6 +32,7 @@ interface RecordRef {
   id: string;
   reference: string | null;
   title?: string;
+  domain?: "NOTARY" | "PPAT";
 }
 
 /** Shared by every billing payload: whether money is in it at all. */

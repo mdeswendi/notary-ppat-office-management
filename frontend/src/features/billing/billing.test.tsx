@@ -41,9 +41,19 @@ vi.mock("@/services/parties", () => ({
   partyDirectoryKeys: { list: (query: unknown) => ["parties", "directory", query] },
   getPartyDirectory: vi.fn(),
 }));
+vi.mock("@/services/projects", () => ({
+  projectQueryKeys: { list: (query: unknown) => ["projects", "list", query] },
+  getProjects: vi.fn(),
+}));
+vi.mock("@/services/matters", () => ({
+  matterQueryKeys: { list: (domain: string, query: unknown) => ["matters", domain, "list", query] },
+  getMatters: vi.fn(),
+}));
 
 const services = await import("@/services/billing");
 const parties = await import("@/services/parties");
+const projects = await import("@/services/projects");
+const matters = await import("@/services/matters");
 const auth = await import("@/features/auth/use-current-user");
 
 function actor(permissions: string[]): CurrentUser {
@@ -355,7 +365,20 @@ describe("DisbursementCreateForm", () => {
 
   it("records only a paid process cost for the selected client", async () => {
     vi.mocked(auth.useCurrentUser).mockReturnValue({
-      data: actor(["disbursements.view", "disbursements.create"]),
+      data: actor([
+        "disbursements.view",
+        "disbursements.create",
+        "projects.view",
+        "notary.matters.view",
+      ]),
+    } as never);
+    vi.mocked(projects.getProjects).mockResolvedValue({
+      data: [{ id: "project1", project_number: "PRJ-001", title: "AJB Saman" }],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 1 },
+    } as never);
+    vi.mocked(matters.getMatters).mockResolvedValue({
+      data: [{ id: "matter1", matter_number: "NOT-001", title: "Akta AJB" }],
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 1 },
     } as never);
     vi.mocked(parties.getPartyDirectory).mockResolvedValue({
       data: [
@@ -381,6 +404,12 @@ describe("DisbursementCreateForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "billing.newProcessCost" }));
     expect(await screen.findByRole("option", { name: "Saman" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("billing.client"), { target: { value: "party1" } });
+    expect(await screen.findByRole("option", { name: "PRJ-001 · AJB Saman" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.project"), { target: { value: "project1" } });
+    expect(await screen.findByRole("option", { name: "NOT-001 · Akta AJB" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("billing.matterOptional"), {
+      target: { value: "matter1" },
+    });
     fireEvent.change(screen.getByLabelText("billing.processCostDescription"), {
       target: { value: "BPHTB" },
     });
@@ -393,6 +422,8 @@ describe("DisbursementCreateForm", () => {
     await waitFor(() =>
       expect(services.createDisbursement).toHaveBeenCalledWith({
         client_party_id: "party1",
+        project_id: "project1",
+        matter_id: "matter1",
         description: "BPHTB",
         amount: "1250000",
         incurred_on: "2026-01-01",
@@ -408,8 +439,12 @@ describe("DisbursementCreateForm", () => {
 
   it("rejects an empty or unpaid cost before calling the API", async () => {
     vi.mocked(auth.useCurrentUser).mockReturnValue({
-      data: actor(["disbursements.create"]),
+      data: actor(["disbursements.create", "projects.view"]),
     } as never);
+    vi.mocked(projects.getProjects).mockResolvedValue({
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
+    });
     vi.mocked(parties.getPartyDirectory).mockResolvedValue({
       data: [],
       meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
@@ -420,12 +455,16 @@ describe("DisbursementCreateForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "actions.save" }));
 
     expect(await screen.findByText("billing.costValidation.clientRequired")).toBeInTheDocument();
+    expect(screen.getByText("billing.costValidation.projectRequired")).toBeInTheDocument();
     expect(services.createDisbursement).not.toHaveBeenCalled();
   });
 });
 
 describe("DisbursementList", () => {
   it("identifies the client for a process cost without surfacing client invoice references", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["projects.view", "notary.matters.view"]),
+    } as never);
     vi.mocked(services.getDisbursements).mockResolvedValue({
       data: [
         {
@@ -438,6 +477,8 @@ describe("DisbursementList", () => {
           amount: "1250000.00",
           amounts_visible: true,
           client_party: { id: "party1", display_name: "Saman" },
+          project: { id: "project1", reference: "PRJ-001", title: "AJB Saman" },
+          matter: { id: "matter1", reference: "NOT-001", title: "Akta AJB", domain: "NOTARY" },
           invoice: { id: "invoice1", reference: "INV-PRIVATE" },
           created_at: null,
           updated_at: null,
@@ -449,6 +490,16 @@ describe("DisbursementList", () => {
 
     expect(await screen.findByText("Saman")).toBeInTheDocument();
     expect(screen.getByText("BPHTB")).toBeInTheDocument();
+    expect(screen.getByText("PRJ-001")).toBeInTheDocument();
+    expect(screen.getByText("NOT-001")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PRJ-001" })).toHaveAttribute(
+      "href",
+      "/projects/project1",
+    );
+    expect(screen.getByRole("link", { name: "NOT-001" })).toHaveAttribute(
+      "href",
+      "/notary/matters/matter1",
+    );
     expect(screen.queryByText("INV-PRIVATE")).not.toBeInTheDocument();
   });
 });

@@ -5,17 +5,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { PermissionGuard } from "@/components/permission-guard";
+import { useCurrentUser } from "@/features/auth/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { can } from "@/lib/permissions/can";
 import { billingQueryKeys, createDisbursement } from "@/services/billing";
+import { getMatters, matterQueryKeys } from "@/services/matters";
 import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
+import { getProjects, projectQueryKeys } from "@/services/projects";
 import type { PartyDirectoryQuery } from "@/types/party";
 
 const todayLocal = () => {
@@ -29,14 +33,29 @@ export function DisbursementCreateForm() {
   const t = useTranslations("billing");
   const tActions = useTranslations("actions");
   const queryClient = useQueryClient();
+  const { data: user } = useCurrentUser();
   const [open, setOpen] = useState(false);
   const [clientSearchInput, setClientSearchInput] = useState("");
   const [clientSearch, setClientSearch] = useState("");
+  const [projectSearchInput, setProjectSearchInput] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
+  const [matterSearchInput, setMatterSearchInput] = useState("");
+  const [matterSearch, setMatterSearch] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => setClientSearch(clientSearchInput.trim()), 300);
     return () => clearTimeout(timer);
   }, [clientSearchInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setProjectSearch(projectSearchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [projectSearchInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMatterSearch(matterSearchInput.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [matterSearchInput]);
 
   const partyQuery: PartyDirectoryQuery = { page: 1, per_page: 20, search: clientSearch };
   const parties = useQuery({
@@ -45,8 +64,23 @@ export function DisbursementCreateForm() {
     enabled: open,
   });
 
+  const projectQuery = {
+    page: 1,
+    per_page: 20,
+    search: projectSearch,
+    status: "" as const,
+    priority: "" as const,
+  };
+  const projects = useQuery({
+    queryKey: projectQueryKeys.list(projectQuery),
+    queryFn: () => getProjects(projectQuery),
+    enabled: open && can(user, "projects.view"),
+  });
+
   const schema = z.object({
     client_party_id: z.string().min(1, t("costValidation.clientRequired")),
+    project_id: z.string().min(1, t("costValidation.projectRequired")),
+    matter_id: z.string(),
     description: z.string().trim().min(1, t("costValidation.descriptionRequired")).max(255),
     amount: z.string().refine((value) => {
       const number = Number(value);
@@ -67,6 +101,8 @@ export function DisbursementCreateForm() {
     resolver: zodResolver(schema),
     defaultValues: {
       client_party_id: "",
+      project_id: "",
+      matter_id: "",
       description: "",
       amount: "",
       incurred_on: "",
@@ -75,10 +111,33 @@ export function DisbursementCreateForm() {
     },
   });
 
+  const projectId = useWatch({ control: form.control, name: "project_id" });
+  const matterQuery = {
+    page: 1,
+    per_page: 20,
+    search: matterSearch,
+    status: "" as const,
+    priority: "" as const,
+    project_id: projectId,
+  };
+  const notaryMatters = useQuery({
+    queryKey: matterQueryKeys.list("NOTARY", matterQuery),
+    queryFn: () => getMatters("NOTARY", matterQuery),
+    enabled: open && !!projectId && can(user, "notary.matters.view"),
+  });
+  const ppatMatters = useQuery({
+    queryKey: matterQueryKeys.list("PPAT", matterQuery),
+    queryFn: () => getMatters("PPAT", matterQuery),
+    enabled: open && !!projectId && can(user, "ppat.matters.view"),
+  });
+  const matterOptions = [...(notaryMatters.data?.data ?? []), ...(ppatMatters.data?.data ?? [])];
+
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       createDisbursement({
         client_party_id: values.client_party_id,
+        project_id: values.project_id,
+        matter_id: values.matter_id || null,
         description: values.description.trim(),
         amount: values.amount,
         incurred_on: values.incurred_on,
@@ -90,6 +149,10 @@ export function DisbursementCreateForm() {
       form.reset();
       setClientSearchInput("");
       setClientSearch("");
+      setProjectSearchInput("");
+      setProjectSearch("");
+      setMatterSearchInput("");
+      setMatterSearch("");
       setOpen(false);
       await queryClient.invalidateQueries({ queryKey: billingQueryKeys.disbursements({}) });
     },
@@ -157,6 +220,92 @@ export function DisbursementCreateForm() {
               ) : null}
             </div>
 
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cost-project-search">{t("findProject")}</Label>
+              <Input
+                id="cost-project-search"
+                type="search"
+                value={projectSearchInput}
+                onChange={(event) => {
+                  setProjectSearchInput(event.target.value);
+                  form.setValue("project_id", "");
+                  form.setValue("matter_id", "");
+                  setMatterSearchInput("");
+                  setMatterSearch("");
+                }}
+                placeholder={t("findProjectPlaceholder")}
+                disabled={!can(user, "projects.view")}
+              />
+              <Label htmlFor="cost-project">{t("project")}</Label>
+              <Select
+                id="cost-project"
+                aria-invalid={!!form.formState.errors.project_id}
+                disabled={!can(user, "projects.view")}
+                {...form.register("project_id", {
+                  onChange: () => {
+                    form.setValue("matter_id", "");
+                    setMatterSearchInput("");
+                    setMatterSearch("");
+                  },
+                })}
+              >
+                <option value="">
+                  {projects.isPending ? t("loadingProjects") : t("selectProject")}
+                </option>
+                {(projects.data?.data ?? []).map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.project_number} · {project.title}
+                  </option>
+                ))}
+              </Select>
+              {form.formState.errors.project_id ? (
+                <p role="alert" className="text-destructive text-sm">
+                  {form.formState.errors.project_id.message}
+                </p>
+              ) : null}
+              {!can(user, "projects.view") || projects.isError ? (
+                <p role="alert" className="text-destructive text-sm">
+                  {t("projectsUnavailable")}
+                </p>
+              ) : null}
+              <Label htmlFor="cost-matter">{t("matterOptional")}</Label>
+              <Input
+                id="cost-matter-search"
+                type="search"
+                aria-label={t("findMatter")}
+                value={matterSearchInput}
+                onChange={(event) => {
+                  setMatterSearchInput(event.target.value);
+                  form.setValue("matter_id", "");
+                }}
+                placeholder={t("findMatterPlaceholder")}
+                disabled={
+                  !projectId ||
+                  (!can(user, "notary.matters.view") && !can(user, "ppat.matters.view"))
+                }
+              />
+              <Select
+                id="cost-matter"
+                disabled={
+                  !projectId ||
+                  (!can(user, "notary.matters.view") && !can(user, "ppat.matters.view"))
+                }
+                {...form.register("matter_id")}
+              >
+                <option value="">{t("selectMatterOptional")}</option>
+                {matterOptions.map((matter) => (
+                  <option key={matter.id} value={matter.id}>
+                    {matter.matter_number} · {matter.title}
+                  </option>
+                ))}
+              </Select>
+              {notaryMatters.isError || ppatMatters.isError ? (
+                <p role="alert" className="text-destructive text-sm">
+                  {t("mattersUnavailable")}
+                </p>
+              ) : null}
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <Label htmlFor="cost-description">{t("processCostDescription")}</Label>
@@ -217,7 +366,15 @@ export function DisbursementCreateForm() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={mutation.isPending || parties.isError}>
+              <Button
+                type="submit"
+                disabled={
+                  mutation.isPending ||
+                  parties.isError ||
+                  projects.isError ||
+                  !can(user, "projects.view")
+                }
+              >
                 {mutation.isPending ? tActions("saving") : tActions("save")}
               </Button>
               <Button
