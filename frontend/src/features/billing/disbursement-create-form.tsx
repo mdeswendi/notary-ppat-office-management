@@ -20,7 +20,7 @@ import { billingQueryKeys, createDisbursement } from "@/services/billing";
 import { getMatters, matterQueryKeys } from "@/services/matters";
 import { getPartyDirectory, partyDirectoryKeys } from "@/services/parties";
 import { getProjects, projectQueryKeys } from "@/services/projects";
-import type { PartyDirectoryQuery } from "@/types/party";
+import type { PartyDirectoryEntry, PartyDirectoryQuery } from "@/types/party";
 
 const todayLocal = () => {
   const now = new Date();
@@ -37,6 +37,7 @@ export function DisbursementCreateForm() {
   const [open, setOpen] = useState(false);
   const [clientSearchInput, setClientSearchInput] = useState("");
   const [clientSearch, setClientSearch] = useState("");
+  const [selectedClient, setSelectedClient] = useState<PartyDirectoryEntry | null>(null);
   const [projectSearchInput, setProjectSearchInput] = useState("");
   const [projectSearch, setProjectSearch] = useState("");
   const [matterSearchInput, setMatterSearchInput] = useState("");
@@ -61,8 +62,23 @@ export function DisbursementCreateForm() {
   const parties = useQuery({
     queryKey: partyDirectoryKeys.list(partyQuery),
     queryFn: () => getPartyDirectory(partyQuery),
-    enabled: open,
+    enabled: open && clientSearch.length >= 2,
   });
+  const clientOptions = parties.data?.data ?? [];
+  const trimmedClientSearch = clientSearchInput.trim();
+  const exactMatches =
+    trimmedClientSearch.length >= 2 &&
+    clientSearch === trimmedClientSearch &&
+    !parties.isPending &&
+    !parties.isFetching &&
+    !parties.isError
+      ? clientOptions.filter(
+          (party) =>
+            party.display_name?.toLocaleLowerCase() === trimmedClientSearch.toLocaleLowerCase(),
+        )
+      : [];
+  const activeClient = selectedClient ?? (exactMatches.length === 1 ? exactMatches[0] : null);
+  const activeClientId = activeClient?.id ?? "";
 
   const projectQuery = {
     page: 1,
@@ -110,6 +126,11 @@ export function DisbursementCreateForm() {
       notes: "",
     },
   });
+  const { setValue } = form;
+
+  useEffect(() => {
+    setValue("client_party_id", activeClientId, { shouldValidate: activeClientId !== "" });
+  }, [activeClientId, setValue]);
 
   const projectId = useWatch({ control: form.control, name: "project_id" });
   const matterQuery = {
@@ -149,6 +170,7 @@ export function DisbursementCreateForm() {
       form.reset();
       setClientSearchInput("");
       setClientSearch("");
+      setSelectedClient(null);
       setProjectSearchInput("");
       setProjectSearch("");
       setMatterSearchInput("");
@@ -190,32 +212,87 @@ export function DisbursementCreateForm() {
                 id="cost-client-search"
                 type="search"
                 value={clientSearchInput}
-                onChange={(event) => setClientSearchInput(event.target.value)}
+                autoComplete="off"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={trimmedClientSearch.length >= 2 && !activeClient}
+                aria-controls="cost-client-options"
+                aria-invalid={!!form.formState.errors.client_party_id}
+                onChange={(event) => {
+                  setClientSearchInput(event.target.value);
+                  setSelectedClient(null);
+                  form.setValue("client_party_id", "");
+                }}
                 placeholder={t("findClientPlaceholder")}
               />
-              <Label htmlFor="cost-client">{t("client")}</Label>
-              <Select
-                id="cost-client"
-                aria-invalid={!!form.formState.errors.client_party_id}
-                {...form.register("client_party_id")}
-              >
-                <option value="">
-                  {parties.isPending ? t("loadingClients") : t("selectClient")}
-                </option>
-                {(parties.data?.data ?? []).map((party) => (
-                  <option key={party.id} value={party.id}>
-                    {party.display_name ?? party.id}
-                  </option>
-                ))}
-              </Select>
+              {activeClient ? (
+                <div className="border-input bg-background flex min-h-10 items-center justify-between gap-2 rounded-lg border px-3 py-1.5">
+                  <span className="min-w-0 truncate text-sm" role="status">
+                    {t("selectedClient", { name: activeClient.display_name ?? activeClient.id })}
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedClient(null);
+                      setClientSearchInput("");
+                      setClientSearch("");
+                      form.setValue("client_party_id", "");
+                    }}
+                  >
+                    {t("changeClient")}
+                  </Button>
+                </div>
+              ) : trimmedClientSearch.length < 2 ? (
+                <p className="text-muted-foreground text-sm">{t("clientSearchHint")}</p>
+              ) : clientSearch !== trimmedClientSearch ||
+                parties.isPending ||
+                parties.isFetching ? (
+                <p className="text-muted-foreground text-sm" aria-live="polite">
+                  {t("loadingClients")}
+                </p>
+              ) : parties.isError ? (
+                <p role="alert" className="text-destructive text-sm">
+                  {t("clientsUnavailable")}
+                </p>
+              ) : clientOptions.length === 0 ? (
+                <p role="status" className="text-muted-foreground text-sm">
+                  {t("noMatchingClients")}
+                </p>
+              ) : (
+                <ul
+                  id="cost-client-options"
+                  role="listbox"
+                  className="border-input rounded-lg border p-1"
+                >
+                  {clientOptions.map((party) => (
+                    <li key={party.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected="false"
+                        className="hover:bg-accent focus-visible:bg-accent w-full rounded-md px-2 py-2 text-left text-sm outline-none"
+                        onClick={() => {
+                          setSelectedClient(party);
+                          setClientSearchInput(party.display_name ?? "");
+                          form.setValue("client_party_id", party.id, { shouldValidate: true });
+                        }}
+                      >
+                        <span className="block">{party.display_name ?? party.id}</span>
+                        {party.primary_phone || party.primary_email ? (
+                          <span className="text-muted-foreground block text-xs">
+                            {party.primary_phone ?? party.primary_email}
+                          </span>
+                        ) : null}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {form.formState.errors.client_party_id ? (
                 <p role="alert" className="text-destructive text-sm">
                   {form.formState.errors.client_party_id.message}
-                </p>
-              ) : null}
-              {parties.isError ? (
-                <p role="alert" className="text-destructive text-sm">
-                  {t("clientsUnavailable")}
                 </p>
               ) : null}
             </div>
