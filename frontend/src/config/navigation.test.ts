@@ -497,6 +497,30 @@ describe("visibleNavigation — the M5 Tasks group", () => {
 });
 
 describe("navigation configuration", () => {
+  it("shows the finance workflows in use without invoice-dependent menus", () => {
+    const permissions = [
+      "billing.view",
+      "quotations.view",
+      "disbursements.view",
+      "invoices.view",
+      "payments.view",
+      "reports.financial.view",
+      "reports.operational.view",
+    ];
+    const visible = keysOf(visibleNavigation(user(permissions)));
+
+    expect(visible).toContain("billing.quotations");
+    expect(visible).toContain("billing.disbursements");
+    expect(visible).not.toContain("billing.invoices");
+    expect(visible).not.toContain("billing.payments");
+    expect(visible).not.toContain("reports.financial.invoices");
+    expect(visible).not.toContain("reports.financial.payments");
+    expect(visible).not.toContain("reports.financial.revenue");
+    expect(visible).toContain("reports.operational.matters");
+
+    expect(keysOf(visibleNavigation(user(["reports.financial.view"])))).not.toContain("reports");
+  });
+
   it("gives every entry a stable key and a translation key", () => {
     // Keys are never translated and hrefs are locale-relative; a hardcoded
     // locale segment here would break the other locale silently.

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ActivityWidget } from "@/features/dashboard/activity-widget";
 import { NeedsAttentionWidget } from "@/features/dashboard/needs-attention-widget";
 import { StatsCards } from "@/features/dashboard/stats-cards";
+import { TodayScheduleWidget } from "@/features/dashboard/today-schedule-widget";
 import { TasksWidget } from "@/features/dashboard/tasks-widget";
 import { WorkloadWidget } from "@/features/dashboard/workload-widget";
 import { renderWithProviders } from "@/test/render";
@@ -20,6 +21,7 @@ vi.mock("@/services/dashboard", () => ({
     deeds: () => ["dashboard", "deeds"],
   },
   getDashboardStats: vi.fn(),
+  getDashboardTodaySchedule: vi.fn(),
   getDashboardTasks: vi.fn(),
   getDashboardNeedsAttention: vi.fn(),
   getDashboardWorkload: vi.fn(),
@@ -72,9 +74,8 @@ describe("StatsCards", () => {
 
     expect(await screen.findByText("0")).toBeInTheDocument();
     expect(screen.getByText("dashboard.noDataYet")).toBeInTheDocument();
-    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
-    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
-    expect(screen.getAllByText("dashboard.notAvailable")).toHaveLength(1);
+    expect(screen.queryByText("dashboard.scheduleToday")).not.toBeInTheDocument();
+    expect(screen.queryByText("dashboard.notAvailable")).not.toBeInTheDocument();
   });
 
   it("omits only the cards the caller may not see", async () => {
@@ -105,6 +106,27 @@ describe("StatsCards", () => {
     // (AGENTS.md §48).
     expect(await screen.findByText("dashboard.panelUnavailable")).toBeInTheDocument();
     expect(screen.queryByText(/SQLSTATE/)).not.toBeInTheDocument();
+  });
+});
+
+describe("TodayScheduleWidget", () => {
+  it("describes an empty calendar without calling the feature unavailable", async () => {
+    vi.mocked(services.getDashboardTodaySchedule).mockResolvedValue([]);
+
+    renderWithProviders(<TodayScheduleWidget />);
+
+    expect(await screen.findByText("dashboard.noScheduleToday")).toBeInTheDocument();
+    expect(screen.getByText("dashboard.scheduleEmptyDescription")).toBeInTheDocument();
+    expect(screen.queryByText("dashboard.notAvailable")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading failure instead of claiming there are no events", async () => {
+    vi.mocked(services.getDashboardTodaySchedule).mockRejectedValue(new Error("calendar failed"));
+
+    renderWithProviders(<TodayScheduleWidget />);
+
+    expect(await screen.findByText("dashboard.panelUnavailable")).toBeInTheDocument();
+    expect(screen.queryByText("dashboard.noScheduleToday")).not.toBeInTheDocument();
   });
 });
 

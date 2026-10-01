@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardHero } from "@/features/dashboard/dashboard-hero";
 import { LatestPpatMattersWidget } from "@/features/dashboard/latest-ppat-matters-widget";
 import { ProfessionalCollaboratorsWidget } from "@/features/dashboard/professional-collaborators-widget";
-import { SchedulePlaceholderWidget } from "@/features/dashboard/schedule-placeholder-widget";
 import { renderWithProviders } from "@/test/render";
 import type { CurrentUser } from "@/types/auth";
 
@@ -240,34 +239,5 @@ describe("LatestPpatMattersWidget", () => {
       "href",
       "/ppat/matters/01MATTER000000000000000000",
     );
-  });
-});
-
-describe("SchedulePlaceholderWidget", () => {
-  it("reserves the schedule position only for an actor who may read tasks", () => {
-    vi.mocked(auth.useCurrentUser).mockReturnValue({
-      data: {
-        ...user,
-        permissions: ["tasks.view"],
-        permission_scopes: { "tasks.view": ["OWN"] },
-      },
-      isPending: false,
-    } as unknown as ReturnType<typeof auth.useCurrentUser>);
-
-    render(<SchedulePlaceholderWidget />);
-
-    expect(screen.getByText("dashboard.scheduleToday")).toBeInTheDocument();
-    expect(screen.getByText("dashboard.notAvailable")).toBeInTheDocument();
-  });
-
-  it("reveals no schedule panel without task visibility", () => {
-    vi.mocked(auth.useCurrentUser).mockReturnValue({
-      data: { ...user, permissions: [], permission_scopes: {} },
-      isPending: false,
-    } as unknown as ReturnType<typeof auth.useCurrentUser>);
-
-    const { container } = render(<SchedulePlaceholderWidget />);
-
-    expect(container.textContent).toBe("");
   });
 });

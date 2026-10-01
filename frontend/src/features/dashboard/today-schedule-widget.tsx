@@ -21,6 +21,13 @@ export function TodayScheduleWidget() {
         <p className="text-muted-foreground text-sm">{t("loading")}</p>
       </Card>
     );
+  if (query.isError)
+    return (
+      <Card className="border-border/80 bg-card/96 p-5 shadow-sm">
+        <CardHeader title={t("scheduleToday")} description={t("scheduleDescription")} />
+        <p className="text-muted-foreground text-sm">{t("panelUnavailable")}</p>
+      </Card>
+    );
   if (query.data === null) return null;
   const events = query.data ?? [];
 
@@ -37,7 +44,7 @@ export function TodayScheduleWidget() {
           </span>
           <p className="text-foreground text-sm font-medium">{t("noScheduleToday")}</p>
           <p className="text-muted-foreground mt-1 max-w-xs text-xs leading-relaxed">
-            {t("scheduleUnavailableDescription")}
+            {t("scheduleEmptyDescription")}
           </p>
         </div>
       ) : (

@@ -3,7 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   BriefcaseBusiness,
-  CalendarDays,
   FolderOpen,
   TrendingDown,
   TrendingUp,
@@ -28,9 +27,7 @@ import type { DashboardTrend, DashboardTrendKey, ScopedCount } from "@/types/das
  * When every figure is `null` the row disappears entirely, which is what D-122
  * means by an actor holding nothing seeing a Dashboard with no panels.
  *
- * The visual order follows the approved dashboard reference: active work,
- * clients, today's schedule, and documents. Today's schedule remains reserved
- * until the Calendar module exists.
+ * Today's calendar events have their own live panel below these figures.
  */
 const CARDS: ReadonlyArray<{
   key: DashboardTrendKey;
@@ -42,12 +39,6 @@ const CARDS: ReadonlyArray<{
   { key: "clients", label: "clients", icon: UsersRound, tone: "ppat" },
   { key: "documents", label: "documents", icon: FolderOpen, tone: "notary" },
 ];
-
-const RESERVED_CARDS: ReadonlyArray<{
-  label: string;
-  icon: LucideIcon;
-  tone: "ppat" | "warning" | "notary";
-}> = [{ label: "scheduleToday", icon: CalendarDays, tone: "warning" }];
 
 export function StatsCards() {
   const t = useTranslations("dashboard");
@@ -65,7 +56,7 @@ export function StatsCards() {
         aria-live="polite"
       >
         <span className="sr-only">{t("loading")}</span>
-        {Array.from({ length: 4 }, (_, index) => (
+        {Array.from({ length: 3 }, (_, index) => (
           <Skeleton key={index} className="h-24 w-full" />
         ))}
       </div>
@@ -83,7 +74,7 @@ export function StatsCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
       {visible.map(({ key, label, icon, tone }) => (
         <StatCard
           key={key}
@@ -95,19 +86,9 @@ export function StatsCards() {
           trend={query.data.trends?.[key]}
         />
       ))}
-      {RESERVED_CARDS.map(({ label, icon, tone }) => (
-        <ReservedStatCard
-          key={label}
-          label={t(label)}
-          status={t("notAvailable")}
-          icon={icon}
-          tone={tone}
-        />
-      ))}
     </div>
   );
 }
-
 function StatCard({
   label,
   value,
@@ -186,55 +167,5 @@ function TrendIndicator({ trend, label }: { trend: DashboardTrend; label: string
       {trend.direction === "up" ? "+" : "−"}
       {Math.abs(trend.value)} <span className="text-muted-foreground font-normal">{label}</span>
     </span>
-  );
-}
-
-/**
- * A truthful reserved position for the Calendar milestone. It does not imply a
- * count, fetch calendar data, or expose records before that module exists.
- */
-function ReservedStatCard({
-  label,
-  status,
-  icon: Icon,
-  tone,
-  className,
-}: {
-  label: string;
-  status: string;
-  icon: LucideIcon;
-  tone: "ppat" | "warning" | "notary";
-  className?: string;
-}) {
-  const tones = {
-    ppat: {
-      card: "border-ppat/15 bg-ppat/[0.035]",
-      icon: "bg-ppat/12 text-ppat",
-    },
-    warning: {
-      card: "border-warning/15 bg-warning/[0.035]",
-      icon: "bg-warning/12 text-warning",
-    },
-    notary: {
-      card: "border-notary/15 bg-notary/[0.035]",
-      icon: "bg-notary/10 text-notary",
-    },
-  }[tone];
-
-  return (
-    <div
-      className={`shadow-primary/[0.02] flex min-h-28 items-center gap-4 rounded-xl border p-4 shadow-sm transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-5 ${tones.card} ${className ?? ""}`}
-    >
-      <span
-        className={`flex size-12 shrink-0 items-center justify-center rounded-xl sm:size-14 ${tones.icon}`}
-        aria-hidden="true"
-      >
-        <Icon className="size-6" />
-      </span>
-      <dl className="flex min-h-full min-w-0 flex-1 flex-col justify-between gap-3">
-        <dt className="text-muted-foreground text-sm">{label}</dt>
-        <dd className="text-muted-foreground text-sm font-medium">{status}</dd>
-      </dl>
-    </div>
   );
 }
