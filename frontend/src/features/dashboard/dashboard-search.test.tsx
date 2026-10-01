@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardSearch } from "@/features/dashboard/dashboard-search";
 import { renderWithProviders } from "@/test/render";
 import type { CurrentUser } from "@/types/auth";
+import enMessages from "../../../messages/en.json";
+import idMessages from "../../../messages/id.json";
 
 vi.mock("@/features/auth/use-current-user", () => ({ useCurrentUser: vi.fn() }));
 vi.mock("@/services/parties", () => ({ getPartyDirectory: vi.fn() }));
@@ -71,6 +73,15 @@ beforeEach(() => {
 });
 
 describe("DashboardSearch", () => {
+  it("names the four actual search surfaces in both locales", () => {
+    for (const messages of [idMessages, enMessages]) {
+      expect(messages.dashboard.search.placeholder).toMatch(/PPAT/);
+      expect(messages.dashboard.search.label).toMatch(/PPAT/);
+    }
+    expect(idMessages.dashboard.search.placeholder).toContain("Pihak");
+    expect(enMessages.dashboard.search.placeholder).toContain("Parties");
+  });
+
   it("searches permitted office surfaces and links to a real result", async () => {
     const events = userEvent.setup();
     renderWithProviders(<DashboardSearch />);

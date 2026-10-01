@@ -9,6 +9,9 @@ import { DateText } from "@/components/i18n/date-text";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AmountField } from "@/features/billing/amount-field";
+import { useCurrentUser } from "@/features/auth/use-current-user";
+import { Link } from "@/i18n/navigation";
+import { can } from "@/lib/permissions/can";
 import { billingQueryKeys, getDisbursements } from "@/services/billing";
 
 /**
@@ -23,6 +26,7 @@ import { billingQueryKeys, getDisbursements } from "@/services/billing";
 export function DisbursementList() {
   const t = useTranslations("billing");
   const tActions = useTranslations("actions");
+  const { data: user } = useCurrentUser();
 
   const query = useQuery({
     queryKey: billingQueryKeys.disbursements({}),
@@ -61,12 +65,18 @@ export function DisbursementList() {
 
   return (
     <div className="border-border overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[44rem] text-sm">
+      <table className="w-full min-w-[60rem] text-sm">
         <caption className="sr-only">{t("disbursements")}</caption>
         <thead className="bg-muted/40 text-muted-foreground text-xs">
           <tr>
             <th scope="col" className="px-3 py-2 text-left font-medium">
               {t("client")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("project")}
+            </th>
+            <th scope="col" className="px-3 py-2 text-left font-medium">
+              {t("matter")}
             </th>
             <th scope="col" className="px-3 py-2 text-left font-medium">
               {t("description")}
@@ -84,6 +94,36 @@ export function DisbursementList() {
           {disbursements.map((disbursement) => (
             <tr key={disbursement.id}>
               <td className="px-3 py-2">{disbursement.client_party?.display_name ?? "—"}</td>
+              <td className="px-3 py-2">
+                {disbursement.project && can(user, "projects.view") ? (
+                  <Link
+                    className="text-primary hover:underline"
+                    href={`/projects/${disbursement.project.id}`}
+                  >
+                    {disbursement.project.reference ?? disbursement.project.title ?? "—"}
+                  </Link>
+                ) : (
+                  (disbursement.project?.reference ?? disbursement.project?.title ?? "—")
+                )}
+              </td>
+              <td className="px-3 py-2">
+                {disbursement.matter?.domain &&
+                can(
+                  user,
+                  disbursement.matter.domain === "NOTARY"
+                    ? "notary.matters.view"
+                    : "ppat.matters.view",
+                ) ? (
+                  <Link
+                    className="text-primary hover:underline"
+                    href={`/${disbursement.matter.domain === "NOTARY" ? "notary" : "ppat"}/matters/${disbursement.matter.id}`}
+                  >
+                    {disbursement.matter.reference ?? disbursement.matter.title ?? "—"}
+                  </Link>
+                ) : (
+                  (disbursement.matter?.reference ?? disbursement.matter?.title ?? "—")
+                )}
+              </td>
               <td className="px-3 py-2">{disbursement.description}</td>
               <td className="px-3 py-2 whitespace-nowrap">
                 <DateText value={disbursement.incurred_on} />

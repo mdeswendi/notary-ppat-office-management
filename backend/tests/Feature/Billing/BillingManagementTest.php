@@ -10,8 +10,10 @@ use App\Models\Activity;
 use App\Models\AuditLog;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Matter;
 use App\Models\Office;
 use App\Models\Payment;
+use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -73,6 +75,35 @@ it('gives disbursements no status column', function (): void {
     // `disbursements.*` has no lifecycle verb, so a status would be vocabulary
     // nothing could reach — the D-109 pattern.
     expect(Schema::hasColumn('disbursements', 'status'))->toBeFalse();
+});
+
+it('links a process cost to its project and matter but rejects a mismatched pair', function (): void {
+    [$actor, $office] = billingActor([
+        'billing.amount.view', 'disbursements.create', 'disbursements.view',
+        'projects.view', 'notary.matters.view',
+    ]);
+
+    $project = Project::factory()->for($office)->create();
+    $otherProject = Project::factory()->for($office)->create();
+    $matter = Matter::factory()->for($project)->create();
+    $payload = [
+        'description' => 'Validasi sertifikat',
+        'amount' => 125000,
+        'incurred_on' => now()->toDateString(),
+        'project_id' => $project->id,
+        'matter_id' => $matter->id,
+    ];
+
+    $this->actingAs($actor)->postJson('/api/v1/disbursements', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.project.id', $project->id)
+        ->assertJsonPath('data.matter.id', $matter->id)
+        ->assertJsonPath('data.matter.domain', 'NOTARY');
+
+    $this->actingAs($actor)->postJson('/api/v1/disbursements', [
+        ...$payload,
+        'project_id' => $otherProject->id,
+    ])->assertStatus(422);
 });
 
 it('gives payments no soft delete and no updated_by', function (string $column): void {

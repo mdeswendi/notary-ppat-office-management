@@ -76,6 +76,7 @@ class DisbursementResource extends JsonResource
                 'id' => $this->matter->id,
                 'reference' => $this->matter->matter_number,
                 'title' => $this->matter->title,
+                'domain' => $this->matter->domain->value,
             ]),
 
             // Records that the cost is meant to be re-billed there. Nothing is

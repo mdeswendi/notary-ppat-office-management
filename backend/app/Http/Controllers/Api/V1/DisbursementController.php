@@ -60,7 +60,7 @@ class DisbursementController extends Controller
         )->with([
             'clientParty:id,display_name',
             'project:id,project_number,title',
-            'matter:id,matter_number,title',
+            'matter:id,matter_number,title,domain',
             'invoice:id,invoice_number',
         ]);
 
@@ -82,12 +82,18 @@ class DisbursementController extends Controller
 
         DisbursementResource::resolveAmountVisibility($request);
 
+        $project = $this->resolveProject($request, $request->input('project_id'));
+        $matter = $this->resolveMatter($request, $request->input('matter_id'));
+
+        abort_if($project !== null && $project->office_id !== $request->user()->office_id, 422, 'The selected project is not available for this office.');
+        abort_if($matter !== null && $project?->getKey() !== $matter->project_id, 422, 'The selected matter does not belong to the selected project.');
+
         $disbursement = $create->handle(
             $request->user(),
             $request->disbursementAttributes(),
             $this->resolveParty($request, $request->input('client_party_id')),
-            $this->resolveProject($request, $request->input('project_id')),
-            $this->resolveMatter($request, $request->input('matter_id')),
+            $project,
+            $matter,
             $this->resolveInvoice($request, $request->input('invoice_id')),
         );
 
@@ -175,7 +181,7 @@ class DisbursementController extends Controller
         return $disbursement->load([
             'clientParty:id,display_name',
             'project:id,project_number,title',
-            'matter:id,matter_number,title',
+            'matter:id,matter_number,title,domain',
             'invoice:id,invoice_number',
         ]);
     }
