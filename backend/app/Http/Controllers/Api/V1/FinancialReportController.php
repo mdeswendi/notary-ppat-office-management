@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Billing\Enums\InvoiceStatus;
+use App\Domains\Billing\Enums\PaymentStatus;
 use App\Domains\Reports\Report;
 use App\Domains\Reports\Services\ReportExporter;
 use App\Domains\Reports\Services\ReportFilters;
 use App\Domains\Reports\Services\ReportQueries;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Concerns\MasksBillingAmounts;
-use App\Models\Disbursement;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,10 +36,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * ## Revenue means money received, not money billed
  *
- * The revenue summary reads explicit **client receipt records**. It is separate
- * from the internal quotation price and from invoice settlement, because this
- * office records actual client receipts per payment rather than tagging an
- * invoice. Process costs are a separate outbound stream.
+ * The revenue summary sums **verified payments** in the period. That is a
+ * decision, and the alternative — issued invoice totals — answers a different
+ * question and would double-count anything billed in one period and paid in
+ * another. Only `VERIFIED` payments count, which is the same rule an invoice's
+ * paid total follows (O-050): a recorded-but-unverified payment moves no figure
+ * anywhere, including here.
  *
  * **Nothing here computes tax.** Grouping by domain and service type is
  * arithmetic over rows the office typed; no rate is applied to anything (D-129,
@@ -146,44 +148,6 @@ class FinancialReportController extends Controller
         );
     }
 
-    public function disbursements(Request $request): JsonResponse
-    {
-        $this->authorize('viewFinancial', Report::class);
-
-        $visible = self::resolveAmountVisibility($request);
-        $page = $this->disbursementQuery($request)
-            ->orderByDesc('incurred_on')
-            ->paginate($this->filters->perPage($request))
-            ->withQueryString();
-
-        return response()->json([
-            'data' => collect($page->items())
-                ->map(fn (Disbursement $disbursement): array => $this->disbursementRow($disbursement, $visible))
-                ->all(),
-            'meta' => [
-                'current_page' => $page->currentPage(),
-                'last_page' => $page->lastPage(),
-                'total' => $page->total(),
-                'amounts_visible' => $visible,
-            ],
-        ]);
-    }
-
-    public function exportDisbursements(Request $request): StreamedResponse
-    {
-        $this->authorize('viewFinancial', Report::class);
-        $this->authorize('export', Report::class);
-
-        $visible = self::resolveAmountVisibility($request);
-
-        return $this->exporter->stream(
-            $this->disbursementQuery($request)->reorder('disbursements.id'),
-            'process-costs',
-            $this->disbursementHeaders($visible),
-            fn (Disbursement $disbursement): array => array_values($this->disbursementRow($disbursement, $visible)),
-        );
-    }
-
     /*
     |--------------------------------------------------------------------------
     | Revenue
@@ -191,7 +155,7 @@ class FinancialReportController extends Controller
     */
 
     /**
-     * Actual client receipts grouped by month (D-139).
+     * Verified receipts, grouped by month and by the Matter's domain.
      *
      * **Returns nothing at all without `billing.amount.view`.** Every cell of
      * this report is a sum; there is no non-monetary half to serve, and a
@@ -263,40 +227,49 @@ class FinancialReportController extends Controller
     }
 
     /**
-     * @return Builder<Disbursement>
-     */
-    private function disbursementQuery(Request $request)
-    {
-        $query = $this->queries->disbursements($request->user());
-
-        $this->filters->exact($query, $request, 'client_party_id', 'disbursements.client_party_id');
-        $this->filters->dateRange($query, $request, 'disbursements.incurred_on');
-
-        return $query;
-    }
-
-    /**
-     * Sum office-scoped client receipts by month. Invoice payments,
-     * disbursements and quotations are separate financial facts.
+     * Sum verified payments per month and Matter domain.
+     *
+     * Built on the **already-scoped** payment query, so the totals cannot reach
+     * further than the list would. Left-joined to Matter through the invoice,
+     * because a payment against an invoice with no Matter is still revenue and
+     * must not vanish from the total — it lands in an `unassigned` bucket rather
+     * than being dropped.
      *
      * @return array<int, array<string, mixed>>
      */
     private function revenueQuery(Request $request): array
     {
-        $query = $this->queries->clientReceipts($request->user());
+        $query = $this->paymentQuery($request)
+            ->where('payments.status', PaymentStatus::VERIFIED->value);
 
         return $query
             ->getQuery()
-            ->selectRaw($this->monthExpression('client_receipts.received_on').' as period')
-            ->selectRaw('sum(client_receipts.amount) as total_amount')
-            ->selectRaw('count(*) as receipt_count')
-            ->groupBy('period')
+            ->leftJoin('invoices', 'invoices.id', '=', 'payments.invoice_id')
+            ->leftJoin('matters', 'matters.id', '=', 'invoices.matter_id')
+            ->leftJoin('service_types', 'service_types.id', '=', 'matters.service_type_id')
+            ->selectRaw($this->monthExpression().' as period')
+            ->selectRaw('matters.domain as domain')
+            ->selectRaw('service_types.code as service_type_code')
+            // Both names, never one: picking a language here would put a
+            // presentation decision in a SQL aggregate (AGENTS.md sections 6, 10).
+            ->selectRaw('service_types.name_id as service_type_name_id')
+            ->selectRaw('service_types.name_en as service_type_name_en')
+            ->selectRaw('sum(payments.amount) as total_amount')
+            ->selectRaw('count(*) as payment_count')
+            ->groupBy(
+                'period', 'matters.domain', 'service_types.code',
+                'service_types.name_id', 'service_types.name_en',
+            )
             ->orderBy('period')
             ->get()
-            ->map(fn (object $row): array => [
+            ->map(static fn (object $row): array => [
                 'period' => $row->period,
-                'total_amount' => $this->fixedAmount($row->total_amount),
-                'receipt_count' => (int) $row->receipt_count,
+                'domain' => $row->domain,
+                'service_type_code' => $row->service_type_code,
+                'service_type_name_id' => $row->service_type_name_id,
+                'service_type_name_en' => $row->service_type_name_en,
+                'total_amount' => number_format((float) $row->total_amount, 2, '.', ''),
+                'payment_count' => (int) $row->payment_count,
             ])
             ->all();
     }
@@ -309,20 +282,11 @@ class FinancialReportController extends Controller
      * rule rather than two reports that agree only by coincidence — the same
      * accommodation the CHECK-constraint migrations make.
      */
-    private function monthExpression(string $column = 'payments.paid_at'): string
+    private function monthExpression(): string
     {
         return DB::connection()->getDriverName() === 'pgsql'
-            ? "to_char({$column}, 'YYYY-MM')"
-            : "strftime('%Y-%m', {$column})";
-    }
-
-    /** Keep PostgreSQL NUMERIC totals out of binary floating-point. */
-    private function fixedAmount(mixed $amount): string
-    {
-        $value = (string) $amount;
-        [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
-
-        return $whole.'.'.str_pad(substr($fraction, 0, 2), 2, '0');
+            ? "to_char(payments.paid_at, 'YYYY-MM')"
+            : "strftime('%Y-%m', payments.paid_at)";
     }
 
     /**
@@ -391,30 +355,6 @@ class FinancialReportController extends Controller
     {
         return [
             'paid_at', 'invoice_number', 'status', 'method_code', 'reference', 'currency',
-            ...($visible ? ['amount'] : []),
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function disbursementRow(Disbursement $disbursement, bool $visible): array
-    {
-        return [
-            'incurred_on' => $disbursement->incurred_on?->toDateString(),
-            'description' => $disbursement->description,
-            'client' => $disbursement->clientParty?->display_name,
-            'project' => $disbursement->project?->project_number,
-            'matter' => $disbursement->matter?->matter_number,
-            'currency' => $disbursement->currency,
-            'reference' => $disbursement->reference,
-            ...($visible ? ['amount' => $disbursement->amount] : []),
-        ];
-    }
-
-    /** @return array<int, string> */
-    private function disbursementHeaders(bool $visible): array
-    {
-        return [
-            'incurred_on', 'description', 'client', 'project', 'matter', 'currency', 'reference',
             ...($visible ? ['amount'] : []),
         ];
     }

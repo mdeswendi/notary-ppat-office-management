@@ -284,7 +284,7 @@ it('registers no new task permission', function (): void {
     expect($tasks)->toBe([
         'tasks.assign', 'tasks.complete', 'tasks.create', 'tasks.delete',
         'tasks.reopen', 'tasks.update', 'tasks.view', 'tasks.view_all',
-    ])->and(PermissionRegistry::all())->toHaveCount(179);
+    ])->and(PermissionRegistry::all())->toHaveCount(176);
 });
 
 it('offers all four assignable scopes for every task permission', function (string $permission): void {

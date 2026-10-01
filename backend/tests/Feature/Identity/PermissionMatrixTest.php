@@ -225,12 +225,6 @@ it('allows only OFFICE and ALL for administering users', function (string $permi
         ->toBe([DataScope::OFFICE, DataScope::ALL]);
 })->with(['users.create', 'users.update', 'users.disable', 'users.reset_password']);
 
-it('allows only OFFICE and ALL for client receipt records', function (string $permission): void {
-    // Receipts are shared office records, not personal records (D-139).
-    expect(app(PermissionScopeRules::class)->allowedFor($permission))
-        ->toBe([DataScope::OFFICE, DataScope::ALL]);
-})->with(['client_receipts.view', 'client_receipts.create', 'client_receipts.update']);
-
 it('allows the generic non-TEAM set for a permission whose domain is not built yet', function (string $permission): void {
     expect(app(PermissionScopeRules::class)->allowedFor($permission))
         ->toBe([DataScope::OWN, DataScope::ASSIGNED, DataScope::OFFICE, DataScope::ALL]);

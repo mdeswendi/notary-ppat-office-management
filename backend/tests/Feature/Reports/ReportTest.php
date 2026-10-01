@@ -5,12 +5,10 @@ use App\Domains\Audit\Services\AuditLogger;
 use App\Domains\Authorization\Enums\DataScope;
 use App\Domains\Authorization\PermissionRegistry;
 use App\Domains\Matter\Enums\MatterDomain;
-use App\Models\ClientReceipt;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Matter;
 use App\Models\Office;
-use App\Models\Party;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\User;
@@ -69,8 +67,8 @@ function csvLines(TestResponse $response): array
 |--------------------------------------------------------------------------
 */
 
-it('includes the office receipt permissions in the canonical registry', function (): void {
-    expect(PermissionRegistry::all())->toHaveCount(179);
+it('registers no new permission', function (): void {
+    expect(PermissionRegistry::all())->toHaveCount(176);
 });
 
 it('builds no table', function (): void {
@@ -342,25 +340,17 @@ it('returns no revenue report at all without billing.amount.view', function (): 
         ->assertJsonPath('meta.amounts_visible', false);
 });
 
-it('sums only actual client receipt records into revenue', function (): void {
-    // Invoice payments and the principal's office-price proposal are separate
-    // facts; only individual received-money records belong in this report.
+it('sums only verified payments into revenue', function (): void {
+    // The same rule an invoice's paid total follows: a recorded-but-unverified
+    // payment moves no figure anywhere, including here (O-050).
     [$actor, $office] = reportActor([
-        'reports.financial.view', 'client_receipts.view', 'billing.amount.view',
+        'reports.financial.view', 'payments.view', 'billing.amount.view',
     ]);
 
-    $client = Party::factory()->create(['office_id' => $office->getKey()]);
-    $receipt = new ClientReceipt;
-    $receipt->office_id = $office->getKey();
-    $receipt->client_party_id = $client->getKey();
-    $receipt->created_by = $actor->getKey();
-    $receipt->amount = '1000000.00';
-    $receipt->currency = 'IDR';
-    $receipt->received_on = now()->toDateString();
-    $receipt->method_code = 'CASH';
-    $receipt->save();
     $invoice = Invoice::factory()->inOffice($office, $actor)->issued($actor)->create();
-    Payment::factory()->forInvoice($invoice, $actor)->verified($actor)->create(['amount' => '9000000.00']);
+
+    Payment::factory()->forInvoice($invoice, $actor)->verified($actor)->create(['amount' => '1000000.00']);
+    Payment::factory()->forInvoice($invoice, $actor)->create(['amount' => '9000000.00']);
 
     $response = $this->actingAs($actor)->getJson('/api/v1/reports/financial/revenue')->assertOk();
 
@@ -368,18 +358,24 @@ it('sums only actual client receipt records into revenue', function (): void {
 
     expect($rows)->toHaveCount(1)
         ->and($rows[0]['total_amount'])->toBe('1000000.00')
-        ->and($rows[0]['receipt_count'])->toBe(1);
+        ->and($rows[0]['payment_count'])->toBe(1);
 });
 
-it('returns no revenue for invoice payments without a client receipt', function (): void {
+it('reports a service type by code and both names, never one language', function (): void {
     [$actor, $office] = reportActor([
-        'reports.financial.view', 'client_receipts.view', 'billing.amount.view',
+        'reports.financial.view', 'payments.view', 'billing.amount.view',
     ]);
+
     $invoice = Invoice::factory()->inOffice($office, $actor)->issued($actor)->create();
     Payment::factory()->forInvoice($invoice, $actor)->verified($actor)->create();
 
-    $this->actingAs($actor)->getJson('/api/v1/reports/financial/revenue')
-        ->assertOk()->assertExactJson(['data' => [], 'meta' => ['amounts_visible' => true]]);
+    $row = $this->actingAs($actor)->getJson('/api/v1/reports/financial/revenue')->json('data.0');
+
+    // Present as keys even when null: the shape does not change per row, and
+    // choosing a language in SQL would put presentation in an aggregate.
+    expect($row)->toHaveKeys([
+        'service_type_code', 'service_type_name_id', 'service_type_name_en',
+    ]);
 });
 
 /*

@@ -13,8 +13,6 @@ use App\Domains\Ppat\PpatDeedVisibility;
 use App\Domains\Ppat\PropertyVisibility;
 use App\Domains\Task\TaskVisibility;
 use App\Models\AuditLog;
-use App\Models\ClientReceipt;
-use App\Models\Disbursement;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Matter;
@@ -293,48 +291,6 @@ class ReportQueries
 
         return $this->billing->scope(
             Payment::query()->with('invoice:id,invoice_number,title,client_party_id'),
-            $actor,
-            $access,
-        );
-    }
-
-    /** @return Builder<ClientReceipt> */
-    public function clientReceipts(User $actor): Builder
-    {
-        $access = $this->resolver->resolve($actor, 'client_receipts.view');
-
-        if (! $this->billing->hasUsableScope($access)) {
-            return ClientReceipt::query()->whereRaw('1 = 0');
-        }
-
-        return $this->billing->scope(
-            ClientReceipt::query()->with('clientParty:id,display_name'),
-            $actor,
-            $access,
-        );
-    }
-
-    /**
-     * Process costs paid by the Office, under the same reach rule as the
-     * operational disbursement register. A report grant does not widen source
-     * record access.
-     *
-     * @return Builder<Disbursement>
-     */
-    public function disbursements(User $actor): Builder
-    {
-        $access = $this->resolver->resolve($actor, 'disbursements.view');
-
-        if (! $this->billing->hasUsableScope($access)) {
-            return Disbursement::query()->whereRaw('1 = 0');
-        }
-
-        return $this->billing->scope(
-            Disbursement::query()->with([
-                'clientParty:id,display_name',
-                'project:id,project_number',
-                'matter:id,matter_number',
-            ]),
             $actor,
             $access,
         );

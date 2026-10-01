@@ -627,7 +627,7 @@ it('opens no route into the private disk', function (): void {
 it('registers no new permission', function (): void {
     // All nine `documents.*` codes have been canonical since the catalogue was
     // transcribed. M5.1 decides their predicates; it adds nothing.
-    expect(PermissionRegistry::all())->toHaveCount(179);
+    expect(PermissionRegistry::all())->toHaveCount(176);
 });
 
 /*
