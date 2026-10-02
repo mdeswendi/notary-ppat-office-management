@@ -355,6 +355,7 @@
     "findClient": "Find client",
     "findClientPlaceholder": "Type a party or company name",
     "selectClient": "Select a client",
+    "selectedClient": "Selected client: {name}",
     "clientSearchHint": "Type at least 2 letters to find a client.",
     "noMatchingClients": "No clients found. Try another search.",
     "changeClient": "Change",

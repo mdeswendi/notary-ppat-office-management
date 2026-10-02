@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AmountField } from "@/features/billing/amount-field";
@@ -402,8 +402,11 @@ describe("DisbursementCreateForm", () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
     fireEvent.click(screen.getByRole("button", { name: "billing.newProcessCost" }));
-    expect(await screen.findByRole("option", { name: "Saman" })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("billing.client"), { target: { value: "party1" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "billing.findClient" }), {
+      target: { value: "Saman" },
+    });
+    expect(await screen.findByText("billing.selectedClient")).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Saman" })).not.toBeInTheDocument();
     expect(await screen.findByRole("option", { name: "PRJ-001 · AJB Saman" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("billing.project"), { target: { value: "project1" } });
     expect(await screen.findByRole("option", { name: "NOT-001 · Akta AJB" })).toBeInTheDocument();
@@ -435,6 +438,54 @@ describe("DisbursementCreateForm", () => {
     await waitFor(() =>
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["billing", "disbursements", {}] }),
     );
+  });
+
+  it("does not guess when two clients have the same name and clears a changed choice", async () => {
+    vi.mocked(auth.useCurrentUser).mockReturnValue({
+      data: actor(["disbursements.create", "projects.view"]),
+    } as never);
+    vi.mocked(parties.getPartyDirectory).mockResolvedValue({
+      data: [
+        {
+          id: "party1",
+          party_type: "INDIVIDUAL",
+          display_name: "Tn. Ita Rumita",
+          primary_phone: "0811111111",
+          primary_email: null,
+          office: null,
+          individual: { full_name: "Ita Rumita" },
+          company: null,
+          created_at: null,
+        },
+        {
+          id: "party2",
+          party_type: "INDIVIDUAL",
+          display_name: "Tn. Ita Rumita",
+          primary_phone: "0822222222",
+          primary_email: null,
+          office: null,
+          individual: { full_name: "Ita Rumita" },
+          company: null,
+          created_at: null,
+        },
+      ],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 2 },
+    });
+
+    renderWithProviders(<DisbursementCreateForm />);
+    fireEvent.click(screen.getByRole("button", { name: "billing.newProcessCost" }));
+    const search = screen.getByRole("combobox", { name: "billing.findClient" });
+    fireEvent.change(search, { target: { value: "Tn. Ita Rumita" } });
+
+    const options = within(await screen.findByRole("listbox")).getAllByRole("option");
+    expect(options).toHaveLength(2);
+    expect(screen.getByText("0822222222")).toBeInTheDocument();
+    expect(screen.queryByText("billing.selectedClient")).not.toBeInTheDocument();
+    fireEvent.click(options[1]);
+    expect(screen.getByText("billing.selectedClient")).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "Nama lain" } });
+    expect(screen.queryByText("billing.selectedClient")).not.toBeInTheDocument();
   });
 
   it("rejects an empty or unpaid cost before calling the API", async () => {

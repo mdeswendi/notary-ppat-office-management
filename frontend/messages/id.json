@@ -355,6 +355,7 @@
     "findClient": "Cari klien",
     "findClientPlaceholder": "Ketik nama pihak atau perusahaan",
     "selectClient": "Pilih klien",
+    "selectedClient": "Klien dipilih: {name}",
     "clientSearchHint": "Ketik minimal 2 huruf untuk mencari klien.",
     "noMatchingClients": "Klien tidak ditemukan. Coba kata kunci lain.",
     "changeClient": "Ganti",
