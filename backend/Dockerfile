@@ -32,6 +32,7 @@ WORKDIR /var/www/html
 COPY --from=vendor /usr/bin/composer /usr/bin/composer
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 
 RUN mkdir -p storage/framework/cache storage/framework/sessions \
         storage/framework/views storage/logs bootstrap/cache \
