@@ -802,7 +802,7 @@
     "uploading": "Mengunggah...",
     "uploadInProgress": "Berkas sedang diunggah. Jangan tutup halaman ini.",
     "editTitle": "Ubah Dokumen",
-    "editSubtitle": "Hanya metadata. Berkas pengganti adalah versi baru, dan status punya kontrol tersendiri.",
+    "editSubtitle": "Ubah informasi dokumen. Untuk mengganti berkas, unggah sebagai versi baru.",
     "searchLabel": "Cari Dokumen",
     "searchPlaceholder": "Judul atau nomor Dokumen",
     "tableCaption": "Dokumen yang dapat Anda akses",
