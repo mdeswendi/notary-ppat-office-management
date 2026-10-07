@@ -802,7 +802,7 @@
     "uploading": "Uploading...",
     "uploadInProgress": "The file is uploading. Do not close this page.",
     "editTitle": "Edit Document",
-    "editSubtitle": "Metadata only. A replacement file is a new version, and the status has its own controls.",
+    "editSubtitle": "Edit document information. To replace the file, upload a new version.",
     "searchLabel": "Search documents",
     "searchPlaceholder": "Title or document number",
     "tableCaption": "Documents you can access",
