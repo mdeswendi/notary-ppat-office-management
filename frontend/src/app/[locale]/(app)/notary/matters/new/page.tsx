@@ -14,10 +14,13 @@ import { MatterForm } from "@/features/matters/matter-form";
  */
 export default async function NewNotaryMatterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ project_id?: string }>;
 }) {
   const { locale } = await params;
+  const { project_id: projectId } = await searchParams;
 
   const t = await getTranslations({ locale, namespace: "matters" });
 
@@ -26,10 +29,12 @@ export default async function NewNotaryMatterPage({
       <PageHeader
         title={t("createNotaryTitle")}
         description={t("createSubtitle")}
-        breadcrumb={<PageBackLink href="/notary/matters" />}
+        breadcrumb={
+          <PageBackLink href={projectId ? `/projects/${projectId}` : "/notary/matters"} />
+        }
       />
 
-      <MatterForm domain="NOTARY" />
+      <MatterForm domain="NOTARY" initialProjectId={projectId} />
     </PageContainer>
   );
 }

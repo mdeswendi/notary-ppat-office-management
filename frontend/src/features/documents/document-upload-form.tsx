@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toDocumentErrorKey } from "@/features/documents/document-errors";
+import { documentValidationFields, toDocumentErrorKey } from "@/features/documents/document-errors";
 import { useRouter } from "@/i18n/navigation";
 import { documentQueryKeys, getDocumentOptions, uploadDocument } from "@/services/documents";
 
@@ -140,7 +140,33 @@ export function DocumentUploadForm({
       router.push(`/documents/${saved.id}`);
     },
     onError: (error: unknown) => {
-      form.setError("root", { message: t(`errors.${toDocumentErrorKey(error)}`) });
+      const fieldLabels: Record<string, string> = {
+        file: t("fileLabel"),
+        title: t("titleLabel"),
+        document_type_code: t("typeLabel"),
+        is_sensitive: t("sensitiveLabel"),
+        document_date: t("documentDateLabel"),
+        expiry_date: t("expiryDateLabel"),
+        notes: t("notesLabel"),
+        "related_to.party_id": t("relations.title"),
+        "related_to.project_id": t("relations.title"),
+        "related_to.matter_id": t("relations.title"),
+      };
+      const labels = [
+        ...new Set(
+          documentValidationFields(error)
+            .map((field) => fieldLabels[field])
+            .filter(Boolean),
+        ),
+      ];
+      const message = t(`errors.${toDocumentErrorKey(error)}`);
+
+      form.setError("root", {
+        message:
+          labels.length > 0
+            ? `${message} ${t("errors.fields", { fields: labels.join(", ") })}`
+            : message,
+      });
     },
   });
 

@@ -76,7 +76,8 @@ describe("DashboardHero", () => {
 
     render(<DashboardHero currentDate="2026-09-14T00:00:00.000Z" />);
 
-    expect(screen.getByText("Kantor PPAT Mila Widyahastuti, S.H., M.Kn.")).toBeInTheDocument();
+    expect(screen.getByText("Kantor PPAT")).toBeInTheDocument();
+    expect(screen.getByText("Mila Widyahastuti, S.H., M.Kn.")).toBeInTheDocument();
     expect(screen.queryByText(/Kantor Notaris & PPAT/)).not.toBeInTheDocument();
   });
 });

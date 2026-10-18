@@ -10,10 +10,13 @@ import { MatterForm } from "@/features/matters/matter-form";
  */
 export default async function NewPpatMatterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ project_id?: string }>;
 }) {
   const { locale } = await params;
+  const { project_id: projectId } = await searchParams;
 
   const t = await getTranslations({ locale, namespace: "matters" });
 
@@ -22,10 +25,10 @@ export default async function NewPpatMatterPage({
       <PageHeader
         title={t("createPpatTitle")}
         description={t("createSubtitle")}
-        breadcrumb={<PageBackLink href="/ppat/matters" />}
+        breadcrumb={<PageBackLink href={projectId ? `/projects/${projectId}` : "/ppat/matters"} />}
       />
 
-      <MatterForm domain="PPAT" />
+      <MatterForm domain="PPAT" initialProjectId={projectId} />
     </PageContainer>
   );
 }

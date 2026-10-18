@@ -13,8 +13,16 @@ import { ProjectForm } from "@/features/projects/project-form";
  * it starts OPEN (D-097). The API refuses each of those fields outright, so the
  * form does not offer a choice that does not exist.
  */
-export default async function NewProjectPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function NewProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams?: Promise<{ client_party_id?: string }>;
+}) {
   const { locale } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const initialClientPartyId = resolvedSearchParams?.client_party_id;
 
   const t = await getTranslations({ locale, namespace: "projects" });
 
@@ -26,7 +34,7 @@ export default async function NewProjectPage({ params }: { params: Promise<{ loc
         breadcrumb={<PageBackLink href="/projects" />}
       />
 
-      <ProjectForm />
+      <ProjectForm initialClientPartyId={initialClientPartyId} />
     </PageContainer>
   );
 }

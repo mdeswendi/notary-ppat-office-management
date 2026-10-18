@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { useForm, type UseFormRegisterReturn } from "react-hook-form";
+import { useForm, useWatch, type UseFormRegisterReturn } from "react-hook-form";
 import { z } from "zod";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
@@ -23,7 +23,7 @@ import {
   matterQueryKeys,
   updateMatter,
 } from "@/services/matters";
-import { getProjects, projectQueryKeys } from "@/services/projects";
+import { getProject, getProjects, projectQueryKeys } from "@/services/projects";
 import type { Matter, MatterDomain } from "@/types/matter";
 import { PROJECT_PRIORITIES } from "@/types/project";
 
@@ -53,7 +53,15 @@ import { PROJECT_PRIORITIES } from "@/types/project";
  * canonical says a Matter may not be back-dated or planned in an unusual order,
  * so neither layer invents one.
  */
-export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: Matter }) {
+export function MatterForm({
+  domain,
+  matter,
+  initialProjectId,
+}: {
+  domain: MatterDomain;
+  matter?: Matter;
+  initialProjectId?: string;
+}) {
   const t = useTranslations("matters");
   const tActions = useTranslations("actions");
   const locale = useLocale();
@@ -68,6 +76,21 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
     queryFn: () => getProjects({ page: 1, search: "", status: "", priority: "" }),
     enabled: !isEdit,
   });
+
+  // If a specific parent Project was requested (e.g. from Project Detail page), ensure it is loaded
+  const initialProject = useQuery({
+    queryKey: projectQueryKeys.detail(initialProjectId ?? ""),
+    queryFn: () => getProject(initialProjectId ?? ""),
+    enabled: !isEdit && Boolean(initialProjectId),
+  });
+
+  const projectOptions = useMemo(() => {
+    const list = projects.data?.data ? [...projects.data.data] : [];
+    if (initialProject.data && !list.some((p) => p.id === initialProject.data.id)) {
+      list.unshift(initialProject.data);
+    }
+    return list;
+  }, [projects.data, initialProject.data]);
 
   // Bounded server-side to this Office, this domain, and active entries.
   const serviceTypes = useQuery({
@@ -99,7 +122,7 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      project_id: "",
+      project_id: initialProjectId ?? "",
       service_type_id: "",
       title: "",
       priority: "NORMAL",
@@ -122,8 +145,17 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
         target_completion_date: matter.target_completion_date ?? "",
         notes: matter.notes ?? "",
       });
+    } else if (initialProjectId) {
+      form.setValue("project_id", initialProjectId);
     }
-  }, [matter, reset]);
+  }, [matter, initialProjectId, form, initialProject.data, projects.data, reset]);
+
+  const selectedProjectId = useWatch({ control: form.control, name: "project_id" });
+  const linkedProject = selectedProjectId
+    ? initialProject.data?.id === selectedProjectId
+      ? initialProject.data
+      : (projectOptions.find((p) => p.id === selectedProjectId) ?? null)
+    : null;
 
   /** Empty strings become null so an untouched optional field stays absent. */
   const payload = (values: FormValues) => {
@@ -184,9 +216,9 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
       {!isEdit ? (
         <div className="flex flex-col gap-2">
           <Label htmlFor="project_id">{t("projectLabel")}</Label>
-          <Select id="project_id" {...form.register("project_id")}>
+          <Select id="project_id" {...form.register("project_id")} value={selectedProjectId ?? ""}>
             <option value="">{t("selectProject")}</option>
-            {(projects.data?.data ?? []).map((project) => (
+            {projectOptions.map((project) => (
               <option key={project.id} value={project.id}>
                 {project.project_number} — {project.title}
               </option>
@@ -199,6 +231,12 @@ export function MatterForm({ domain, matter }: { domain: MatterDomain; matter?: 
           ) : (
             <p className="text-muted-foreground text-xs">{t("projectHint")}</p>
           )}
+          {linkedProject ? (
+            <p className="text-muted-foreground text-xs">
+              <span className="text-foreground font-medium">{t("linkedToProject")}: </span>
+              {linkedProject.project_number} — {linkedProject.title}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

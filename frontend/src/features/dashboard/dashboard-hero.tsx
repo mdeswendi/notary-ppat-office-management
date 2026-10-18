@@ -17,13 +17,20 @@ export function DashboardHero({ currentDate }: { currentDate: string }) {
   const t = useTranslations("dashboard");
   const format = useFormatter();
   const { data: user } = useCurrentUser();
-  const officeIdentity = resolveOfficeIdentity(user?.office) ?? t("officeIdentityFallback");
+  const rawIdentity = resolveOfficeIdentity(user?.office) ?? t("officeIdentityFallback");
   const formattedDate = format.dateTime(new Date(currentDate), {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: "Asia/Jakarta",
   });
+
+  const match = rawIdentity.match(
+    /^(Kantor\s+(?:Notaris\s*(?:&|dan)\s*PPAT|PPAT|Notaris))\s+(.+)$/i,
+  );
+  const officeType = match ? match[1] : null;
+  const officialName = match ? match[2] : null;
 
   return (
     <section className="border-border/80 bg-card grid min-h-64 overflow-hidden rounded-xl border shadow-sm lg:grid-cols-[minmax(22rem,1.05fr)_minmax(24rem,1.35fr)_minmax(13rem,0.65fr)]">
@@ -31,9 +38,18 @@ export function DashboardHero({ currentDate }: { currentDate: string }) {
         <h1 className="max-w-2xl font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           {t("welcome")}
         </h1>
-        <p className="text-primary mt-1 max-w-2xl font-serif text-xl font-semibold tracking-tight text-balance sm:text-2xl">
-          {officeIdentity}
-        </p>
+
+        <div className="mt-1 flex flex-col gap-0.5" suppressHydrationWarning>
+          {officeType ? (
+            <span className="text-primary font-serif text-xl font-semibold tracking-tight sm:text-2xl">
+              {officeType}
+            </span>
+          ) : null}
+          <span className="text-primary font-serif text-xl font-bold tracking-tight text-balance sm:text-2xl">
+            {officialName ?? rawIdentity}
+          </span>
+        </div>
+
         <div className="mt-4 flex items-start gap-3">
           <span className="bg-brand-gold mt-2 h-0.5 w-12 shrink-0" aria-hidden="true" />
           <p className="text-muted-foreground max-w-md font-serif text-sm leading-relaxed italic sm:text-base">
@@ -68,7 +84,11 @@ export function DashboardHero({ currentDate }: { currentDate: string }) {
           </p>
           <span className="bg-brand-gold mt-3 h-0.5 w-10" aria-hidden="true" />
         </div>
-        <time dateTime={currentDate} className="text-muted-foreground text-xs lg:text-right">
+        <time
+          dateTime={currentDate}
+          className="text-muted-foreground text-xs lg:text-right"
+          suppressHydrationWarning
+        >
           {formattedDate}
         </time>
       </div>

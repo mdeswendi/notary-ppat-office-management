@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Briefcase, CheckSquare, FileText, FolderOpen, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { InlineAlert } from "@/components/feedback/inline-alert";
@@ -10,6 +11,7 @@ import { DetailHeader } from "@/components/layout/detail-header";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Card, CardHeader } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,8 @@ import { ProjectAssignmentSection } from "@/features/projects/project-assignment
 import { EntityTaskSection } from "@/features/tasks/entity-task-section";
 import { ProjectPriorityBadge, ProjectStatusBadge } from "@/features/projects/project-badges";
 import { ProjectPartiesSection } from "@/features/projects/project-parties-section";
+import { ProjectMattersSection } from "@/features/projects/project-matters-section";
+import { ProjectSetupGuide } from "@/features/projects/project-setup-guide";
 import { toProjectErrorKey } from "@/features/projects/project-errors";
 import { useRouter } from "@/i18n/navigation";
 import {
@@ -70,6 +74,41 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const t = useTranslations("projects");
   const tActions = useTranslations("actions");
   const tParties = useTranslations("projectParties");
+
+  const [activeTab, setActiveTab] = useState<string>("overview");
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash === "#project-parties") {
+        setActiveTab("parties");
+      } else if (hash === "#project-matters") {
+        setActiveTab("matters");
+      } else if (hash === "#project-documents") {
+        setActiveTab("documents");
+      } else if (hash === "#project-tasks") {
+        setActiveTab("tasks");
+      } else if (hash === "#project-overview") {
+        setActiveTab("overview");
+      }
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  const handleNavigateTab = (tab: string, anchorId?: string) => {
+    setActiveTab(tab);
+    if (anchorId) {
+      setTimeout(() => {
+        const el = document.getElementById(anchorId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 50);
+    }
+  };
 
   const query = useQuery({
     queryKey: projectQueryKeys.detail(projectId),
@@ -130,108 +169,103 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
         }
       />
 
-      <Card>
-        <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />
+      <ProjectSetupGuide projectId={project.id} onNavigateTab={handleNavigateTab} />
 
-        <dl className="grid gap-4 sm:grid-cols-2">
-          <Detail label={t("openedAtLabel")} value={project.opened_at} />
-          <Detail label={t("targetCompletionLabel")} value={project.target_completion_date} />
-          <Detail label={t("descriptionLabel")} value={project.description} />
-        </dl>
-      </Card>
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as string)}>
+        <TabsList className="mb-1 w-full justify-start overflow-x-auto">
+          <TabsTrigger value="overview">
+            <FolderOpen className="h-4 w-4" />
+            <span>{t("tabs.overview")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="parties">
+            <Users className="h-4 w-4" />
+            <span>{t("tabs.parties")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="matters">
+            <Briefcase className="h-4 w-4" />
+            <span>{t("tabs.matters")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents">
+            <FileText className="h-4 w-4" />
+            <span>{t("tabs.documents")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="tasks">
+            <CheckSquare className="h-4 w-4" />
+            <span>{t("tabs.tasks")}</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {project.can_change_status ? (
-        <Card>
-          <CardHeader title={t("statusSection")} description={t("statusDescription")} />
+        <TabsContent value="overview" className="flex flex-col gap-6">
+          <Card id="project-overview">
+            <CardHeader title={t("overviewSection")} description={t("overviewDescription")} />
 
-          <StatusForm project={project} />
-        </Card>
-      ) : null}
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <Detail label={t("openedAtLabel")} value={project.opened_at} />
+              <Detail label={t("targetCompletionLabel")} value={project.target_completion_date} />
+              <Detail label={t("descriptionLabel")} value={project.description} />
+            </dl>
+          </Card>
 
-      <Card>
-        <CardHeader title={t("assignmentSection")} description={t("assignmentDescription")} />
+          {project.can_change_status ? (
+            <Card>
+              <CardHeader title={t("statusSection")} description={t("statusDescription")} />
 
-        <ProjectAssignmentSection project={project} />
-      </Card>
+              <StatusForm project={project} />
+            </Card>
+          ) : null}
 
-      {/*
-        Participation (M3.4). Rendered unconditionally rather than behind a
-        capability flag on the Project: the section answers to its own
-        permissions, and the component asks its own endpoint — which returns 403
-        for a reader who holds neither, and that is the honest state to show.
-      */}
-      <Card>
-        <CardHeader title={tParties("section")} description={tParties("sectionDescription")} />
+          <Card>
+            <CardHeader title={t("assignmentSection")} description={t("assignmentDescription")} />
 
-        <ProjectPartiesSection projectId={project.id} />
-      </Card>
+            <ProjectAssignmentSection project={project} />
+          </Card>
+        </TabsContent>
 
-      {/* Documents (M5.2, D-117). A section, not a tab — the same pattern this
-          page already uses for participation, and the M5 lock's own ruling.
-          It answers to `documents.view` and its own endpoint, so a reader who can
-          open the Project and not its documents sees the section fail honestly
-          rather than see a fabricated empty one. */}
-      <Card>
-        <DocumentRelationSection
-          filter={{ project_id: project.id }}
-          uploadHref="/documents/upload"
-          attachTo={{ entity_type: "project", entity_id: project.id }}
-        />
-      </Card>
+        <TabsContent value="parties" className="flex flex-col gap-6">
+          <Card id="project-parties">
+            <CardHeader title={tParties("section")} description={tParties("sectionDescription")} />
 
-      {/* Tasks (M5.4, D-119). A section, not a tab — the pattern this page already
-          uses for participation and documents. It answers to `tasks.view` and its
-          own endpoint, so a reader who can open the Project and not its tasks sees
-          the section fail honestly rather than see a fabricated empty one. */}
-      <Card>
-        <EntityTaskSection
-          filter={{ project_id: project.id }}
-          createHref={`/tasks/new?project_id=${project.id}`}
-        />
-      </Card>
+            <ProjectPartiesSection projectId={project.id} />
+          </Card>
+        </TabsContent>
 
-      {/* Notarial Deeds (O-037). A section, not a tab, like the four above it, and
-          it filters `/notary/deeds?project_id=` rather than calling a nested route
-          — the shape D-118 refused, and the shape Documents and Tasks already
-          avoid on this same page.
+        <TabsContent value="matters" className="flex flex-col gap-6">
+          <Card id="project-matters">
+            <ProjectMattersSection projectId={project.id} />
+          </Card>
 
-          **The one surface that reaches grandchildren.** A Project holds Matters
-          and Matters hold Deeds; this answers "what has this engagement actually
-          produced?" without opening each Matter in turn. It answers to
-          `notary.deeds.view` on its own endpoint, so reaching the Project confers
-          nothing here (D-100) and a reader who holds one and not the other sees an
-          honest failure rather than a fabricated empty section.
+          <Card>
+            <ProjectDeedsSection projectId={project.id} />
+          </Card>
 
-          PPAT deeds cannot appear: `notary_deeds` rows exist only against NOTARY
-          Matters. Their own section is below. */}
-      <Card>
-        <ProjectDeedsSection projectId={project.id} />
-      </Card>
+          <Card>
+            <PpatProjectDeedsSection projectId={project.id} />
+          </Card>
 
-      {/* PPAT Deeds (M7.2, D-121). The mirror of the section above, filtering
-          `/ppat/deeds?project_id=` through the same correlated query.
+          <Card>
+            <ProjectPropertiesSection projectId={project.id} />
+          </Card>
+        </TabsContent>
 
-          **Two sections rather than one merged list**, because Notary and PPAT are
-          separate business domains (`AGENTS.md` section 16) reading separate tables
-          through separate capabilities. Merging them would need a reader to hold
-          both to see either half honestly, and would put a "domain" column on a page
-          whose two halves already answer different questions. Each section fails on
-          its own if its capability is missing. */}
-      <Card>
-        <PpatProjectDeedsSection projectId={project.id} />
-      </Card>
+        <TabsContent value="documents" className="flex flex-col gap-6">
+          <Card id="project-documents">
+            <DocumentRelationSection
+              filter={{ project_id: project.id }}
+              uploadHref="/documents/upload"
+              attachTo={{ entity_type: "project", entity_id: project.id }}
+            />
+          </Card>
+        </TabsContent>
 
-      {/* Which land this engagement is about (M7.3, D-121). The same `?project_id=`
-          shape as the two deed sections, correlated one junction further — a Property
-          has no `project_id` of its own, so the query reaches `matter_properties` to
-          `matters` to `project_id`.
-
-          It answers to `properties.view` on its own endpoint, so reaching the Project
-          confers nothing here (D-100) and a reader who holds one and not the other
-          sees an honest failure rather than a fabricated empty section. */}
-      <Card>
-        <ProjectPropertiesSection projectId={project.id} />
-      </Card>
+        <TabsContent value="tasks" className="flex flex-col gap-6">
+          <Card id="project-tasks">
+            <EntityTaskSection
+              filter={{ project_id: project.id }}
+              createHref={`/tasks/new?project_id=${project.id}`}
+            />
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

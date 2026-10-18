@@ -1,7 +1,11 @@
 import { AxiosError, AxiosHeaders } from "axios";
 import { describe, expect, it } from "vitest";
 
-import { hasFieldError, toDocumentErrorKey } from "@/features/documents/document-errors";
+import {
+  documentValidationFields,
+  hasFieldError,
+  toDocumentErrorKey,
+} from "@/features/documents/document-errors";
 
 /**
  * A genuine `AxiosError`, because the mapper narrows with `instanceof`.
@@ -39,7 +43,7 @@ describe("toDocumentErrorKey", () => {
    * act is not available from means something entirely different, and one message
    * for both would tell somebody to check a file that was fine.
    */
-  it("splits 422 on whether the file was the problem", () => {
+  it("splits field validation from document-state errors", () => {
     expect(toDocumentErrorKey(axiosError(422, { errors: { file: ["too big"] } }))).toBe(
       "validation",
     );
@@ -48,7 +52,7 @@ describe("toDocumentErrorKey", () => {
 
     expect(
       toDocumentErrorKey(axiosError(422, { errors: { "related_to.party_id": ["unreachable"] } })),
-    ).toBe("conflict");
+    ).toBe("validation");
   });
 
   it("reports a dropped connection rather than a server fault", () => {
@@ -65,6 +69,15 @@ describe("toDocumentErrorKey", () => {
     expect(toDocumentErrorKey(new Error("SQLSTATE[23503]: foreign key violation"))).toBe("server");
     expect(toDocumentErrorKey({ isAxiosError: true, response: { status: 403 } })).toBe("server");
     expect(toDocumentErrorKey(undefined)).toBe("server");
+  });
+});
+
+describe("documentValidationFields", () => {
+  it("returns field names without exposing server messages", () => {
+    expect(
+      documentValidationFields(axiosError(422, { errors: { title: ["private detail"] } })),
+    ).toEqual(["title"]);
+    expect(documentValidationFields(axiosError(422, { message: "private detail" }))).toEqual([]);
   });
 });
 

@@ -62,3 +62,21 @@ describe("notary Minuta label collision", () => {
     expect(en.notary.documentSlots.minuta).not.toBe(en.notary.minuta.title);
   });
 });
+
+describe("project primary client message catalog", () => {
+  it("defines all primary client keys in both locales", () => {
+    expect(id.projects.primaryClientLabel).toBe("Klien / Pihak Utama (Opsional)");
+    expect(en.projects.primaryClientLabel).toBe("Primary Client / Party (Optional)");
+    expect(id.projects.primaryClientHint).toBeDefined();
+    expect(en.projects.primaryClientHint).toBeDefined();
+    expect(id.projects.searchClientPlaceholder).toBeDefined();
+    expect(en.projects.clearClientAction).toBeDefined();
+    expect(id.projects.searchingClients).toBeDefined();
+    expect(id.projects.noClientsFound).toBeDefined();
+    expect(id.projects.createNewPartyPrompt).toBeDefined();
+    expect(id.projects.createNewIndividual).toBeDefined();
+    expect(id.projects.createNewCompany).toBeDefined();
+    expect(id.projects.partyTypes.INDIVIDUAL).toBeDefined();
+    expect(id.projects.partyTypes.COMPANY).toBeDefined();
+  });
+});

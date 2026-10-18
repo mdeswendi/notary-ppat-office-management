@@ -16,9 +16,9 @@ export type DocumentErrorKey =
 /**
  * Map a failed Document request onto a message the interface can show.
  *
- * Only the HTTP status is read. The response body never reaches the user, so a
- * Laravel exception or internal payload cannot leak through this path
- * (`AGENTS.md` sections 32 and 48).
+ * The HTTP status and validation field names are read, but server-provided
+ * messages never reach the user. A Laravel exception or internal payload
+ * cannot leak through this path (`AGENTS.md` sections 32 and 48).
  *
  * `403` and `404` are both ordinary outcomes rather than faults. Document access
  * depends on a Data Scope the browser's permission list cannot express (O-026),
@@ -28,8 +28,8 @@ export type DocumentErrorKey =
  *
  * **`422` is split in two, because the two cases need different words.** A
  * document that cannot be verified from its current status is not the same problem
- * as a file that is too large or of the wrong type, and one message for both would
- * tell somebody to check their file when the file was fine. `413` is folded into
+ * as a rejected form field. The latter is identified by Laravel's `errors` keys,
+ * whether the field is a file, title or relation. `413` is folded into
  * the size case: a file that exceeds the *server's* limit never reaches Laravel's
  * validator at all, so it answers 413 rather than 422 and would otherwise fall
  * through to the generic message.
@@ -51,7 +51,7 @@ export function toDocumentErrorKey(error: unknown): DocumentErrorKey {
     case 413:
       return "tooLarge";
     case 422:
-      return hasFieldError(error, "file") ? "validation" : "conflict";
+      return documentValidationFields(error).length > 0 ? "validation" : "conflict";
     case 429:
       return "tooManyAttempts";
     default:
@@ -70,11 +70,18 @@ export function toDocumentErrorKey(error: unknown): DocumentErrorKey {
  * stays translated and ours.
  */
 export function hasFieldError(error: unknown, field: string): boolean {
+  return documentValidationFields(error).includes(field);
+}
+
+/** Only field names are returned; server-provided messages must not reach the UI. */
+export function documentValidationFields(error: unknown): string[] {
   if (!(error instanceof AxiosError) || error.response?.status !== 422) {
-    return false;
+    return [];
   }
 
-  const errors = (error.response.data as { errors?: Record<string, string[]> } | undefined)?.errors;
+  const errors = (error.response.data as { errors?: unknown } | undefined)?.errors;
 
-  return errors !== undefined && field in errors;
+  return errors !== null && typeof errors === "object" && !Array.isArray(errors)
+    ? Object.keys(errors)
+    : [];
 }
